@@ -80,6 +80,10 @@
     .bcard.busy{background:var(--pBusy); border-color: var(--bBusy);}
     .bcard.def{ background:var(--pDef);  border-color: var(--bDef);}
     .bhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .logrow{border-top:1px solid var(--border);padding:10px 0}
+    .logrow:first-child{border-top:none}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{background:#fff;border:1px solid var(--border);padding:4px 10px;border-radius:999px;font-size:12px}
   </style>
 </head>
 <body>
@@ -139,13 +143,63 @@
   <div id="myBookings" class="muted" style="margin-top:10px;">Noch nicht geladen.</div>
 </div>
 
+<div class="card">
+  <h2>5) Feedback / Antworten</h2>
+  <div class="muted">Kommt als nächster Schritt (Chat + Antworten + gelesen Status).</div>
+</div>
+
+<div class="card">
+  <h2>6) Admin</h2>
+
+  <label>Admin Passwort</label>
+  <input id="adminPw" type="password" placeholder="z.B. initial">
+
+  <div class="actions">
+    <button id="btnAdminLogin" class="btn2">Admin Login</button>
+    <button id="btnAdminReload" class="btn2 ghost" disabled>Admin Daten laden</button>
+  </div>
+
+  <div id="adminBox" class="muted" style="margin-top:10px;">Noch nicht eingeloggt.</div>
+
+  <div id="adminControls" style="display:none;margin-top:12px;">
+    <h3 style="margin:10px 0 6px 0;">Stations-PIN</h3>
+    <label>Neue Stations-PIN (4-stellig)</label>
+    <input id="adminStationPin" type="password" inputmode="numeric" placeholder="1111">
+    <div class="actions">
+      <button id="btnSaveStationPin" class="btn2">Stations-PIN speichern</button>
+    </div>
+
+    <h3 style="margin:14px 0 6px 0;">Tage-Fenster</h3>
+    <div class="row">
+      <div>
+        <label>Vergangene Tage (daysPast)</label>
+        <input id="daysPast" inputmode="numeric" placeholder="z.B. 1">
+      </div>
+      <div>
+        <label>Folgende Tage (daysFuture)</label>
+        <input id="daysFuture" inputmode="numeric" placeholder="z.B. 6">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btnSaveDays" class="btn2">Speichern</button>
+    </div>
+
+    <h3 style="margin:14px 0 6px 0;">Logs</h3>
+    <div class="actions">
+      <button id="btnLoadLogs" class="btn2 ghost">Logs laden</button>
+    </div>
+    <div id="logsBox" class="muted" style="margin-top:10px;">Noch keine Logs geladen.</div>
+  </div>
+</div>
+
 <script>
   const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const $ = (id) => document.getElementById(id);
 
   let cachedWasherSlots = [];
   let cachedStatus = null;
-  let myActiveBookingIds = new Set(); // <-- wichtig
+  let myActiveBookingIds = new Set();
+  let adminOk = false;
 
   function setStatus(msg, ok=true){
     const el = $("statusBox");
@@ -190,6 +244,10 @@
     const h = Math.floor(s/3600);
     const m = Math.floor((s%3600)/60);
     return h>0 ? `${h}h ${m}m` : `${m}m`;
+  }
+  function fmtLogTs(ts){
+    const d = new Date(Number(ts));
+    return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
   function rebuildSlotDropdown(){
@@ -273,6 +331,7 @@
   }
   window.setDefect = setDefect;
   window.releaseBooking = releaseBooking;
+  window.cancelBooking = cancelBooking;
 
   async function loadMyBookings(){
     const p = accessPayload();
@@ -280,14 +339,15 @@
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
 
     const list = data.bookings || [];
-    myActiveBookingIds = new Set(); // neu aufbauen
+    myActiveBookingIds = new Set();
 
     if (!list.length) {
-      $("myBookings").innerHTML = `<div class="muted">Keine Buchungen.</div>`;
+      $("myBookings").innerHTML = `<div class="muted">Keine aktiven Buchungen gefunden (Status=booked).</div>`;
       return;
     }
 
     const now = Date.now();
+
     $("myBookings").innerHTML = list.map(b=>{
       const start = Number(b.start);
       const end = Number(b.end);
@@ -297,7 +357,9 @@
 
       if (active && b.id) myActiveBookingIds.add(b.id);
 
-      const state = active ? "busy" : "free";
+      let state = "free";
+      if (active) state = "busy";
+
       const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
       const time = fmtSlot(start, end);
       const left = active ? ` · Rest: ${msToHMS(end-now)}` : "";
@@ -366,9 +428,7 @@
         else btns.push(`<button class="mbtn okbtn" onclick="setDefect('${type}',${machine},false)">Defekt freigeben</button>`);
       }
 
-      // ✅ Freigeben nur wenn es WIRKLICH deine aktive Buchung ist
       const mine = active && active.id && myActiveBookingIds.has(active.id);
-
       const mineTag = mine ? `<div class="tagMine">Dein Slot ✅</div>` : ``;
 
       if (mine) {
@@ -416,15 +476,123 @@
       return;
     }
 
-    await loadMyBookings(); // <-- WICHTIG: erst meine Buchungen laden (für myActiveBookingIds)
+    await loadMyBookings();
     renderMachines();
 
     setStatus("Bereit.", true);
   }
 
+  // ---------- ADMIN ----------
+  function adminPassword(){
+    return $("adminPw").value.trim();
+  }
+
+  async function adminLogin(){
+    const pw = adminPassword();
+    const {data} = await jpost("/api/admin/login", { adminPassword: pw });
+    if (!data.ok) {
+      adminOk = false;
+      $("adminControls").style.display = "none";
+      $("btnAdminReload").disabled = true;
+      $("adminBox").innerHTML = `<b style="color:#b00;">Login fehlgeschlagen</b><div class="small">${data.error||""} ${data.message||""}</div>`;
+      alert(JSON.stringify(data,null,2));
+      return;
+    }
+    adminOk = true;
+    $("btnAdminReload").disabled = false;
+    $("adminControls").style.display = "block";
+    $("adminBox").innerHTML = `<b>Admin Login ok ✅</b><div class="small">build: ${data.build || "-"}</div>`;
+    await adminReload();
+  }
+
+  async function adminReload(){
+    if (!adminOk) return;
+    const pw = adminPassword();
+    const {data} = await jpost("/api/admin/get-config", { adminPassword: pw });
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+    $("daysPast").value = data.config.daysPast ?? 1;
+    $("daysFuture").value = data.config.daysFuture ?? 6;
+
+    const pills = `
+      <div class="kpi">
+        <span class="pill">daysPast: <b>${data.config.daysPast}</b></span>
+        <span class="pill">daysFuture: <b>${data.config.daysFuture}</b></span>
+      </div>
+    `;
+    $("adminBox").innerHTML = `<b>Admin Daten geladen ✅</b>${pills}<div class="small">build: ${data.build || "-"}</div>`;
+  }
+
+  async function saveStationPin(){
+    if (!adminOk) { alert("Bitte erst Admin Login."); return; }
+    const pw = adminPassword();
+    const sp = $("adminStationPin").value.trim();
+
+    if (!confirm("Stations-PIN wirklich speichern?")) return;
+
+    const {data} = await jpost("/api/admin/set-station-pin", { adminPassword: pw, stationPin: sp });
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+
+    alert("Stations-PIN gespeichert ✅");
+  }
+
+  async function saveDays(){
+    if (!adminOk) { alert("Bitte erst Admin Login."); return; }
+    const pw = adminPassword();
+    const dp = Number($("daysPast").value);
+    const df = Number($("daysFuture").value);
+
+    if (!confirm("Tage-Fenster wirklich speichern?")) return;
+
+    const {data} = await jpost("/api/admin/set-days-window", { adminPassword: pw, daysPast: dp, daysFuture: df });
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+
+    alert("Gespeichert ✅");
+    await adminReload();
+    await refreshAll();
+  }
+
+  async function loadLogs(){
+    if (!adminOk) { alert("Bitte erst Admin Login."); return; }
+    const pw = adminPassword();
+    const {data} = await jpost("/api/admin/logs", { adminPassword: pw, limit: 150 });
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+
+    const logs = data.logs || [];
+    if (!logs.length) {
+      $("logsBox").innerHTML = `<div class="muted">Keine Logs vorhanden.</div>`;
+      return;
+    }
+
+    $("logsBox").innerHTML = logs.map(l=>{
+      let det = {};
+      try { det = JSON.parse(l.details||"{}"); } catch {}
+      const detStr = Object.keys(det).length ? `<div class="small">Details: ${escapeHtml(JSON.stringify(det))}</div>` : "";
+      return `
+        <div class="logrow">
+          <div><b>${escapeHtml(l.action)}</b> · ${escapeHtml(l.actor)} · Zimmer ${escapeHtml(l.room||"-")}</div>
+          <div class="small">${fmtLogTs(l.ts)} · ${escapeHtml(l.type)} ${escapeHtml(l.machine)}</div>
+          ${detStr}
+        </div>
+      `;
+    }).join("");
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  // ---------- Events ----------
   $("btnRefresh").onclick = refreshAll;
   $("btnBook").onclick = bookSelected;
   $("btnMy").onclick = loadMyBookings;
+
+  $("btnAdminLogin").onclick = adminLogin;
+  $("btnAdminReload").onclick = adminReload;
+  $("btnSaveStationPin").onclick = saveStationPin;
+  $("btnSaveDays").onclick = saveDays;
+  $("btnLoadLogs").onclick = loadLogs;
 
   setStatus("Bereit. Worker: " + API_BASE, true);
 </script>
