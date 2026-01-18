@@ -5,27 +5,26 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Washportal DEV</title>
   <style>
-    body{font-family:system-ui,Arial,sans-serif;margin:16px;max-width:900px}
-    h1{margin:0 0 4px 0}
+    body{font-family:system-ui,Arial,sans-serif;margin:16px;max-width:980px}
+    h1{margin:0 0 6px 0}
     .sub{color:#666;margin:0 0 16px 0}
-    .card{border:1px solid #ddd;border-radius:10px;padding:12px;margin:12px 0}
-    label{display:block;margin:8px 0 4px}
-    input,select,button,textarea{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccc;width:100%;box-sizing:border-box}
-    button{cursor:pointer}
+    .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;margin:8px 0 4px}
+    input,button{font-size:16px;padding:10px;border-radius:10px;border:1px solid #ccc;width:100%;box-sizing:border-box}
+    button{cursor:pointer}
+    .ok{background:#eaffea;border-color:#a6e3a6}
+    .err{background:#ffecec;border-color:#f2b3b3}
     .muted{color:#666;font-size:13px}
-    .ok{background:#eaffea;border:1px solid #a6e3a6}
-    .err{background:#ffecec;border:1px solid #f2b3b3}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #ddd;margin-left:8px}
-    .slot{border:1px solid #ddd;border-radius:10px;padding:10px;margin:8px 0}
-    .slothead{display:flex;justify-content:space-between;gap:10px;align-items:center}
-    .machines{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    .mchip{border:1px solid #ccc;border-radius:999px;padding:6px 10px;font-size:14px}
-    .mfree{background:#eaffea}
-    .mbusy{background:#f2f2f2;color:#777}
-    .mdef{background:#ffecec;color:#900;border-color:#f2b3b3}
-    details>summary{cursor:pointer;font-weight:700}
+    .slot{border:1px solid #ddd;border-radius:12px;padding:10px;margin:8px 0}
+    .slothead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .chip{border:1px solid #ccc;border-radius:999px;padding:7px 12px;font-size:14px}
+    .free{background:#eaffea}
+    .busy{background:#f2f2f2;color:#777}
+    .def{background:#ffecec;color:#900;border-color:#f2b3b3}
     .smallbtn{width:auto;padding:8px 12px}
+    details>summary{cursor:pointer;font-weight:700}
   </style>
 </head>
 <body>
@@ -37,89 +36,83 @@
 
 <div class="card">
   <h2>1) Zugang</h2>
+
   <div class="row">
     <div>
-      <label>Zimmernummer</label>
-      <input id="room" inputmode="numeric" placeholder="z.B. 316" />
+      <label>Zimmernummer (0–400)</label>
+      <input id="room" inputmode="numeric" placeholder="z.B. 316">
     </div>
     <div>
-      <label>Persönlicher PIN</label>
-      <input id="pin" type="password" inputmode="numeric" placeholder="4-12 stellig" />
+      <label>Persönlicher PIN (4–12 Ziffern)</label>
+      <input id="pin" type="password" inputmode="numeric" placeholder="z.B. 1234">
     </div>
   </div>
 
-  <label>Stations-PIN (für Buchen erforderlich)</label>
-  <input id="stationPinAccess" type="password" inputmode="numeric" placeholder="z.B. 1111" />
+  <label>Stations-PIN (4-stellig)</label>
+  <input id="stationPinAccess" type="password" inputmode="numeric" placeholder="z.B. 1111">
 
   <button id="btnRefresh" style="margin-top:10px;">Aktualisieren</button>
+  <div class="muted" style="margin-top:8px;">
+    Tipp: Wenn es nicht sofort lädt → Strg+Shift+R (Cache leeren).
+  </div>
 </div>
 
 <div class="card">
-  <h2>2) Maschinenübersicht</h2>
-  <div id="machines"></div>
+  <h2>2) Slots buchen (Waschmaschinen)</h2>
+  <div id="slots" class="muted">Noch nicht geladen.</div>
 </div>
 
 <div class="card">
-  <h2>3) Slot buchen (Waschmaschine)</h2>
-  <div id="slots"></div>
-</div>
-
-<div class="card">
-  <h2>4) Meine Buchungen</h2>
+  <h2>3) Meine Buchungen</h2>
   <button id="btnMy" class="smallbtn">Meine Buchungen aktualisieren</button>
-  <div id="myBookings" style="margin-top:10px;"></div>
+  <div id="myBookings" style="margin-top:10px;" class="muted">Noch nicht geladen.</div>
 </div>
 
-<details class="card" open>
+<details class="card">
   <summary>Admin-Bereich</summary>
 
   <div class="row" style="margin-top:10px;">
     <div>
       <label>Admin-Passwort</label>
-      <input id="adminPw" type="password" placeholder="z.B. initial" />
-      <div style="display:flex;gap:10px;margin-top:10px;">
+      <input id="adminPw" type="password" placeholder="z.B. initial">
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
         <button id="btnAdminLogin" class="smallbtn">Login</button>
         <button id="btnAdminLogout" class="smallbtn">Logout</button>
       </div>
-      <div class="muted" id="adminState" style="margin-top:8px;">Nicht eingeloggt.</div>
+      <div id="adminState" class="muted" style="margin-top:8px;">Nicht eingeloggt.</div>
     </div>
 
     <div>
       <label>Stations-PIN setzen/ändern</label>
-      <input id="stationPinAdmin" type="password" inputmode="numeric" placeholder="z.B. 1111" />
+      <input id="stationPinAdmin" type="password" inputmode="numeric" placeholder="z.B. 1111">
       <button id="btnSaveStationPin" style="margin-top:10px;">Stations-PIN speichern</button>
-      <div class="muted">Wird als Hash gespeichert (nicht Klartext).</div>
+      <div class="muted">Wird im Worker als Hash gespeichert.</div>
     </div>
   </div>
-
 </details>
 
 <script>
-  // ✅ HIER MUSS DEIN DEV-WORKER STEHEN
+  // >>> DEIN DEV WORKER <<<
   const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
   const $ = (id) => document.getElementById(id);
 
   let isAdmin = false;
 
-  function setBox(msg, ok=true){
+  function setStatus(msg, ok=true){
     const el = $("statusBox");
     el.className = "card " + (ok ? "ok" : "err");
     el.textContent = msg;
   }
 
-  async function jget(path){
-    const r = await fetch(API_BASE + path, { cache: "no-store" });
-    const data = await r.json().catch(()=>({ok:false}));
-    return { r, data };
-  }
   async function jpost(path, body){
     const r = await fetch(API_BASE + path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body || {})
+      body: JSON.stringify(body || {}),
+      cache: "no-store"
     });
-    const data = await r.json().catch(()=>({ok:false}));
+    const data = await r.json().catch(() => ({ ok:false, error:"bad_json" }));
     return { r, data };
   }
 
@@ -131,40 +124,9 @@
     };
   }
 
-  async function loadStatus(){
-    const {data} = await jget("/api/status");
-    if(!data.ok){
-      setBox("Fehler beim Laden: " + (data.message || data.error || "unknown"), false);
-      return null;
-    }
-    setBox("Verbunden. Build: " + data.build, true);
-    renderMachines(data.machines || []);
-    return data;
-  }
-
-  function renderMachines(list){
-    const el = $("machines");
-    if(!list.length){
-      el.innerHTML = "<div class='muted'>Keine Maschinen.</div>";
-      return;
-    }
-    const rows = list.map(m=>{
-      const state = m.defect ? "Defekt" : (m.enabled ? "Bereit" : "Deaktiviert");
-      return `<div class="slot">
-        <div class="slothead">
-          <div><b>${m.type==="washer"?"Waschmaschine":"Trockner"} ${m.machine}</b>
-            <span class="pill">${state}</span>
-          </div>
-          <div class="muted">letztes Zimmer: ${m.lastRoom || "-"}</div>
-        </div>
-      </div>`;
-    }).join("");
-    el.innerHTML = rows;
-  }
-
   function fmtRange(start, end){
     const a = new Date(start), b = new Date(end);
-    const dd = (d)=>String(d).padStart(2,"0");
+    const dd = (n)=>String(n).padStart(2,"0");
     const ds = `${dd(a.getDate())}.${dd(a.getMonth()+1)}.${a.getFullYear()}`;
     const ts = `${dd(a.getHours())}:${dd(a.getMinutes())}`;
     const te = `${dd(b.getHours())}:${dd(b.getMinutes())}`;
@@ -172,14 +134,22 @@
   }
 
   async function refreshSlots(){
+    setStatus("Lade Slots…", true);
+
     const p = accessPayload();
     const {data} = await jpost("/api/washer/free-slots", p);
+
     if(!data.ok){
+      // ✅ Fehler bleibt stehen (kein "Bereit" direkt danach)
+      setStatus("Fehler beim Laden der Slots: " + (data.message || data.error || "unknown"), false);
       alert(JSON.stringify(data, null, 2));
-      $("slots").innerHTML = "";
-      return;
+      $("slots").innerHTML = "<div class='muted'>Fehler.</div>";
+      return false;
     }
+
     renderSlots(data.slots || []);
+    setStatus("Slots geladen. Build: " + data.build, true);
+    return true;
   }
 
   function renderSlots(slots){
@@ -188,22 +158,21 @@
       el.innerHTML = "<div class='muted'>Keine Slots.</div>";
       return;
     }
+
     el.innerHTML = slots.map(s=>{
-      const freeText = `frei: ${s.freeCount}/${s.total}`;
       const chips = (s.perMachine||[]).map(pm=>{
-        const cls = pm.defect ? "mchip mdef" : (pm.free ? "mchip mfree" : "mchip mbusy");
-        const label = `WM ${pm.machine}`;
+        const cls = pm.defect ? "chip def" : (pm.free ? "chip free" : "chip busy");
         const disabled = (!pm.free || pm.defect) ? "disabled" : "";
         return `<button class="${cls}" ${disabled}
-          onclick="bookWasher(${s.start},${s.end},${pm.machine})">${label}</button>`;
+          onclick="bookWasher(${s.start},${s.end},${pm.machine})">WM ${pm.machine}</button>`;
       }).join("");
 
       return `<div class="slot">
         <div class="slothead">
           <div><b>${fmtRange(s.start,s.end)}</b></div>
-          <div class="muted">${freeText}</div>
+          <div class="muted">frei: ${s.freeCount}/${s.total}</div>
         </div>
-        <div class="machines">${chips || "<span class='muted'>Keine Maschinen</span>"}</div>
+        <div class="chips">${chips}</div>
       </div>`;
     }).join("");
   }
@@ -215,49 +184,42 @@
       alert(JSON.stringify(data, null, 2));
       return;
     }
-    alert(`Gebucht: Waschmaschine ${data.machine}`);
+    alert(`Gebucht: WM ${data.machine}`);
     await refreshSlots();
     await loadMyBookings();
-    await loadStatus();
   }
   window.bookWasher = bookWasher;
 
   async function loadMyBookings(){
+    setStatus("Lade Buchungen…", true);
+
     const p = accessPayload();
     const {data} = await jpost("/api/my-bookings", p);
+
     if(!data.ok){
+      setStatus("Fehler beim Laden der Buchungen: " + (data.message || data.error || "unknown"), false);
       alert(JSON.stringify(data, null, 2));
       return;
     }
+
     const el = $("myBookings");
     if(!(data.bookings||[]).length){
       el.innerHTML = "<div class='muted'>Keine Buchungen.</div>";
+      setStatus("Buchungen geladen.", true);
       return;
     }
-    el.innerHTML = data.bookings.map(b=>{
-      return `<div class="slot">
+
+    el.innerHTML = data.bookings.map(b=>`
+      <div class="slot">
         <div class="slothead">
           <div><b>${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}</b></div>
           <div class="muted">${fmtRange(b.start,b.end)}</div>
         </div>
-        <button class="smallbtn" onclick="cancelBooking('${b.id}')">Stornieren</button>
-      </div>`;
-    }).join("");
-  }
+      </div>
+    `).join("");
 
-  async function cancelBooking(id){
-    const p = accessPayload();
-    const {data} = await jpost("/api/booking/cancel", { ...p, id });
-    if(!data.ok){
-      alert(JSON.stringify(data, null, 2));
-      return;
-    }
-    alert("Storniert.");
-    await loadMyBookings();
-    await refreshSlots();
-    await loadStatus();
+    setStatus("Buchungen geladen.", true);
   }
-  window.cancelBooking = cancelBooking;
 
   async function adminLogin(){
     const pw = $("adminPw").value.trim();
@@ -280,32 +242,25 @@
   }
 
   async function adminSaveStationPin(){
-    if(!isAdmin){
-      alert("Bitte erst Admin einloggen.");
-      return;
-    }
+    if(!isAdmin){ alert("Bitte erst Admin einloggen."); return; }
     const adminPassword = $("adminPw").value.trim();
     const stationPin = $("stationPinAdmin").value.trim();
     const {data} = await jpost("/api/admin/set-station-pin", { adminPassword, stationPin });
-    if(!data.ok){
-      alert(JSON.stringify(data, null, 2));
-      return;
-    }
+    if(!data.ok){ alert(JSON.stringify(data, null, 2)); return; }
     alert("Stations-PIN gespeichert.");
   }
 
-  $("btnRefresh").onclick = async ()=>{ await refreshSlots(); await loadStatus(); };
+  $("btnRefresh").onclick = refreshSlots;
   $("btnMy").onclick = loadMyBookings;
   $("btnAdminLogin").onclick = adminLogin;
   $("btnAdminLogout").onclick = adminLogout;
   $("btnSaveStationPin").onclick = adminSaveStationPin;
 
-  // Enter im Admin-Passwort => Login
   $("adminPw").addEventListener("keydown",(e)=>{ if(e.key==="Enter") adminLogin(); });
 
-  // initial load
+  // initial
   (async ()=>{
-    await loadStatus();
+    setStatus("Bereit. Worker: " + API_BASE, true);
   })();
 </script>
 
