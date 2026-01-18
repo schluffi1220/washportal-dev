@@ -85,12 +85,24 @@
 
     .logrow{border-top:1px solid var(--border);padding:10px 0}
     .logrow:first-child{border-top:none}
+
+    textarea{min-height:90px;resize:vertical}
+    .chatbox{border:1px solid var(--border);border-radius:14px;background:#fff;padding:10px;margin-top:10px}
+    .msg{padding:10px;border-radius:14px;margin:8px 0;border:1px solid var(--border)}
+    .msg.user{background:rgba(59,130,246,.10)}
+    .msg.admin{background:rgba(34,197,94,.10)}
+    .msgMeta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between}
+    .msgText{white-space:pre-wrap;margin-top:6px}
+    .pill{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:#fff}
+    .pill.red{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.12)}
+    .pill.green{border-color:rgba(34,197,94,.55);background:rgba(34,197,94,.12)}
+    .pill.blue{border-color:rgba(59,130,246,.55);background:rgba(59,130,246,.12)}
   </style>
 </head>
 <body>
 
 <h1>Washportal – DEV</h1>
-<p class="sub">1 Zugang → 2 Slots buchen → 3 Maschinenübersicht → 4 Meine Buchungen → 5 Feedback → 6 Admin</p>
+<p class="sub">Build: <b id="buildTag">…</b></p>
 
 <div id="statusBox" class="bar">Bereit.</div>
 
@@ -144,7 +156,20 @@
 
 <div class="card">
   <h2>5) Feedback / Antworten</h2>
-  <div class="muted">Nächster Schritt (Chat + Antworten).</div>
+  <div class="actions">
+    <button id="btnFeedbackLoad" class="btn2 ghost">Chat laden</button>
+    <button id="btnFeedbackMarkRead" class="btn2 ghost">Als gelesen markieren</button>
+  </div>
+
+  <div id="feedbackInfo" class="muted" style="margin-top:8px;">Noch nicht geladen.</div>
+
+  <div class="chatbox" id="chatBox"></div>
+
+  <label>Neue Nachricht</label>
+  <textarea id="feedbackText" placeholder="Schreibe hier dein Feedback…"></textarea>
+  <div class="actions">
+    <button id="btnFeedbackSend" class="btn2">Absenden</button>
+  </div>
 </div>
 
 <div class="card">
@@ -184,6 +209,12 @@
       <button id="btnSaveDays" class="btn2">Speichern</button>
     </div>
 
+    <h3 style="margin:14px 0 6px 0;">Slot-Zeiten (0–23 Uhr)</h3>
+    <div id="slotTimesGrid" class="grid"></div>
+    <div class="actions">
+      <button id="btnSaveSlotTimes" class="btn2">Slot-Zeiten speichern</button>
+    </div>
+
     <h3 style="margin:14px 0 6px 0;">Admin Passwort ändern</h3>
     <label>Neues Admin Passwort</label>
     <input id="newAdminPw" type="password" placeholder="mind. 6 Zeichen">
@@ -191,6 +222,28 @@
     <input id="newAdminPw2" type="password" placeholder="nochmal eingeben">
     <div class="actions">
       <button id="btnChangeAdminPw" class="btn2">Passwort ändern</button>
+    </div>
+
+    <h3 style="margin:14px 0 6px 0;">Feedback (Admin)</h3>
+    <div class="actions">
+      <button id="btnAdminFeedbackList" class="btn2 ghost">Threads laden</button>
+    </div>
+    <div id="adminThreads" class="muted" style="margin-top:8px;"></div>
+
+    <div id="adminChatArea" style="display:none;margin-top:10px;">
+      <div class="muted">Aktiver Thread: <b id="adminActiveRoom"></b></div>
+      <div class="chatbox" id="adminChatBox"></div>
+
+      <label>Admin Antwort</label>
+      <textarea id="adminReplyText" placeholder="Antwort schreiben…"></textarea>
+
+      <label style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+        <input id="adminVisibleToUser" type="checkbox" style="width:auto;"> Antwort ist für User sichtbar
+      </label>
+
+      <div class="actions">
+        <button id="btnAdminReplySend" class="btn2">Antwort senden</button>
+      </div>
     </div>
 
     <h3 style="margin:14px 0 6px 0;">Logs</h3>
@@ -202,17 +255,19 @@
 </div>
 
 <script>
-  // ✅ DEV Worker URL
   const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const $ = (id) => document.getElementById(id);
 
   let cachedWasherSlots = [];
   let cachedStatus = null;
 
-  // ADMIN Session (frontend-only)
+  // Admin Session (frontend-only)
   let adminOk = false;
   let adminLogoutTimer = null;
   const ADMIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 Minuten
+
+  // Feedback popup (once per session)
+  let feedbackPopupShown = false;
 
   function setStatus(msg, ok=true){
     const el = $("statusBox");
@@ -284,7 +339,6 @@
     $("adminControls").style.display = "none";
     $("btnAdminReload").disabled = true;
     $("btnAdminLogout").disabled = true;
-
     $("adminBox").innerHTML = `<b>${reason}</b><div class="small">Du bist ausgeloggt.</div>`;
   }
 
@@ -402,7 +456,6 @@
 
       const defect = isMachineDefect(b.type, b.machine);
 
-      // ✅ harte Farben: rot > blau > grün > grau
       let color = "green";
       if (defect) color = "red";
       else if (active) color = "blue";
@@ -412,14 +465,13 @@
       const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
       const time = fmtSlot(start, end);
       const left = active ? ` · Rest: ${msToHMS(end-now)}` : "";
-
       let flags = defect ? `<div class="warn">⚠️ Maschine ist defekt</div>` : "";
 
       let buttons = "";
       if (future) {
         buttons = `<button class="btn2 ghost" onclick="cancelBooking('${b.id}')">Stornieren</button>`;
       } else if (active) {
-        buttons = `<button class="btn2" style="background:#3b82f6;border-color:#3b82f6" onclick="releaseBooking('${b.id}')">Freigeben</button>`;
+        buttons = `<button class="btn2 info" onclick="releaseBooking('${b.id}')">Freigeben</button>`;
       } else if (expired) {
         buttons = `<button class="btn2 ghost" disabled>Abgelaufen</button>`;
       }
@@ -501,6 +553,175 @@
     $("dryers").innerHTML  = machines.filter(m=>m.type==="dryer").map(cardHTML).join("")  || `<div class="muted">Keine Trockner.</div>`;
   }
 
+  // ---------- Feedback (User) ----------
+  function fmtMsgTime(ts){
+    const d = new Date(Number(ts));
+    return `${pad(d.getDate())}.${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function renderChat(targetId, messages, userView=true){
+    const box = $(targetId);
+    if (!messages || messages.length === 0){
+      box.innerHTML = `<div class="muted">Noch keine Nachrichten.</div>`;
+      return;
+    }
+
+    box.innerHTML = messages.map(m=>{
+      const sender = m.sender === "admin" ? "admin" : "user";
+      const vis = Number(m.visibleToUser) === 1;
+      const readUser = Number(m.userReadAt) > 0;
+      const readAdmin = Number(m.adminReadAt) > 0;
+
+      const pills = [];
+      if (!userView && sender==="admin") pills.push(vis ? `<span class="pill green">sichtbar ✅</span>` : `<span class="pill red">versteckt 🚫</span>`);
+      if (!userView && sender==="admin" && vis) pills.push(readUser ? `<span class="pill blue">User gelesen ✅</span>` : `<span class="pill">User ungelesen</span>`);
+      if (userView && sender==="user") pills.push(readAdmin ? `<span class="pill blue">Admin gelesen ✅</span>` : `<span class="pill">Admin ungelesen</span>`);
+
+      return `
+        <div class="msg ${sender}">
+          <div class="msgMeta">
+            <div><b>${sender==="admin" ? "Admin" : "Du"}</b> · ${fmtMsgTime(m.ts)}</div>
+            <div>${pills.join(" ")}</div>
+          </div>
+          <div class="msgText">${escapeHtml(m.text)}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  async function feedbackLoad(){
+    const p = accessPayload();
+    const {data} = await jpost("/api/feedback/load", { room:p.room, pin:p.pin });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+
+    renderChat("chatBox", data.messages, true);
+
+    const unread = Number(data.unreadUser||0);
+    $("feedbackInfo").innerHTML = unread > 0
+      ? `<b>Neue Admin-Nachrichten: ${unread}</b>`
+      : `Keine neuen Admin-Nachrichten.`;
+
+    if (unread > 0 && !feedbackPopupShown){
+      feedbackPopupShown = true;
+      alert("📩 Neue Nachricht vom Admin im Feedback!");
+    }
+  }
+
+  async function feedbackSend(){
+    const p = accessPayload();
+    const text = $("feedbackText").value.trim();
+    if (!text) return alert("Bitte Nachricht schreiben.");
+
+    const {data} = await jpost("/api/feedback/send", { room:p.room, pin:p.pin, text });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+
+    $("feedbackText").value = "";
+    await feedbackLoad();
+  }
+
+  async function feedbackMarkRead(){
+    const p = accessPayload();
+    const {data} = await jpost("/api/feedback/mark-read", { room:p.room, pin:p.pin });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+    await feedbackLoad();
+  }
+
+  // ---------- Admin slot checkboxes ----------
+  function buildSlotTimesUI(selectedTimes){
+    // selectedTimes is array like ["06:00","08:00"]
+    const selectedHours = new Set((selectedTimes||[]).map(t => Number(String(t).slice(0,2))));
+    const grid = $("slotTimesGrid");
+    grid.innerHTML = "";
+
+    for (let h=0; h<=23; h++){
+      const id = "h_" + h;
+      const checked = selectedHours.has(h);
+
+      const el = document.createElement("div");
+      el.className = "mcard neutral";
+      el.innerHTML = `
+        <label style="display:flex;gap:10px;align-items:center;margin:0;">
+          <input type="checkbox" id="${id}" style="width:auto;" ${checked ? "checked" : ""}>
+          <b>${String(h).padStart(2,"0")}:00</b>
+        </label>
+      `;
+      grid.appendChild(el);
+    }
+  }
+
+  function getSelectedSlotHours(){
+    const out = [];
+    for (let h=0; h<=23; h++){
+      const cb = document.getElementById("h_"+h);
+      if (cb && cb.checked) out.push(h);
+    }
+    return out;
+  }
+
+  // ---------- ADMIN Feedback ----------
+  let adminActiveRoom = "";
+  async function adminFeedbackList(){
+    if (!adminOk) return alert("Bitte erst Admin Login.");
+    adminTouch();
+
+    const pw = $("adminPw").value.trim();
+    const {data} = await jpost("/api/admin/feedback/list", { adminPassword: pw });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+
+    const threads = data.threads || [];
+    if (threads.length === 0){
+      $("adminThreads").innerHTML = `<div class="muted">Keine Threads.</div>`;
+      return;
+    }
+
+    $("adminThreads").innerHTML = threads.map(t=>{
+      const unread = Number(t.unreadAdmin||0);
+      const ts = t.lastTs ? fmtMsgTime(t.lastTs) : "-";
+      return `
+        <div class="logrow">
+          <b>Zimmer ${escapeHtml(t.room)}</b> · letzter Kontakt: ${ts}
+          ${unread>0 ? ` · <span class="pill red">NEU: ${unread}</span>` : ""}
+          <div class="actions" style="margin-top:8px;">
+            <button class="btn2 ghost" onclick="adminOpenThread('${t.room}')">Öffnen</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  async function adminOpenThread(room){
+    adminActiveRoom = room;
+    $("adminActiveRoom").textContent = room;
+    $("adminChatArea").style.display = "block";
+    await adminLoadThread();
+  }
+
+  async function adminLoadThread(){
+    if (!adminOk) return;
+    adminTouch();
+    const pw = $("adminPw").value.trim();
+    const {data} = await jpost("/api/admin/feedback/load", { adminPassword: pw, room: adminActiveRoom });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+    renderChat("adminChatBox", data.messages, false);
+  }
+
+  async function adminReplySend(){
+    if (!adminOk) return;
+    adminTouch();
+    const pw = $("adminPw").value.trim();
+    const text = $("adminReplyText").value.trim();
+    const visible = $("adminVisibleToUser").checked;
+    if (!text) return alert("Bitte Antwort schreiben.");
+
+    const {data} = await jpost("/api/admin/feedback/reply", { adminPassword: pw, room: adminActiveRoom, text, visibleToUser: visible });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+
+    $("adminReplyText").value = "";
+    await adminLoadThread();
+    await adminFeedbackList();
+  }
+
+  // ---------- Refresh ----------
   async function refreshAll(){
     setStatus("Aktualisiere…", true);
     const p = accessPayload();
@@ -514,17 +735,18 @@
     cachedStatus = s.data;
     if (!cachedStatus.ok) { setStatus("Fehler Status", false); alert(JSON.stringify(cachedStatus,null,2)); return; }
 
+    $("buildTag").textContent = cachedStatus.build || "?";
+
     await loadMyBookings();
     renderMachines();
+    await feedbackLoad();
 
     setStatus("Bereit.", true);
   }
 
   // ---------- ADMIN ----------
-  function adminPassword(){ return $("adminPw").value.trim(); }
-
   async function adminLogin(){
-    const pw = adminPassword();
+    const pw = $("adminPw").value.trim();
     const {data} = await jpost("/api/admin/login", { adminPassword: pw });
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
 
@@ -542,18 +764,21 @@
     if (!adminOk) return;
     adminTouch();
 
-    const pw = adminPassword();
+    const pw = $("adminPw").value.trim();
     const {data} = await jpost("/api/admin/get-config", { adminPassword: pw });
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+
     $("daysPast").value = data.config.daysPast ?? 1;
     $("daysFuture").value = data.config.daysFuture ?? 6;
+
+    buildSlotTimesUI(data.config.washerTimes || []);
   }
 
   async function saveStationPin(){
     if (!adminOk) return alert("Bitte erst Admin Login.");
     adminTouch();
 
-    const pw = adminPassword();
+    const pw = $("adminPw").value.trim();
     const sp = $("adminStationPin").value.trim();
     if (!confirm("Stations-PIN wirklich speichern?")) return;
 
@@ -566,7 +791,7 @@
     if (!adminOk) return alert("Bitte erst Admin Login.");
     adminTouch();
 
-    const pw = adminPassword();
+    const pw = $("adminPw").value.trim();
     const dp = Number($("daysPast").value);
     const df = Number($("daysFuture").value);
     if (!confirm("Tage-Fenster wirklich speichern?")) return;
@@ -578,11 +803,27 @@
     await refreshAll();
   }
 
+  async function saveSlotTimes(){
+    if (!adminOk) return alert("Bitte erst Admin Login.");
+    adminTouch();
+
+    const pw = $("adminPw").value.trim();
+    const hours = getSelectedSlotHours();
+    if (!confirm("Slot-Zeiten wirklich speichern?")) return;
+
+    const {data} = await jpost("/api/admin/set-slot-times", { adminPassword: pw, hours });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+
+    alert("Slot-Zeiten gespeichert ✅");
+    await refreshAll();
+    await adminReload();
+  }
+
   async function changeAdminPassword(){
     if (!adminOk) return alert("Bitte erst Admin Login.");
     adminTouch();
 
-    const pw = adminPassword();
+    const pw = $("adminPw").value.trim();
     const n1 = $("newAdminPw").value.trim();
     const n2 = $("newAdminPw2").value.trim();
     if (n1 !== n2) return alert("Neues Passwort stimmt nicht überein.");
@@ -604,8 +845,8 @@
     if (!adminOk) return alert("Bitte erst Admin Login.");
     adminTouch();
 
-    const pw = adminPassword();
-    const {data} = await jpost("/api/admin/logs", { adminPassword: pw, limit: 150 });
+    const pw = $("adminPw").value.trim();
+    const {data} = await jpost("/api/admin/logs", { adminPassword: pw, limit: 200 });
     if (!data.ok) return alert(JSON.stringify(data,null,2));
 
     const logs = data.logs || [];
@@ -614,18 +855,32 @@
     }).join("") || `<div class="muted">Keine Logs vorhanden.</div>`;
   }
 
+  // expose for inline onclick
+  window.cancelBooking = cancelBooking;
+  window.releaseBooking = releaseBooking;
+  window.setDefect = setDefect;
+  window.adminOpenThread = adminOpenThread;
+
   // Events
   $("btnRefresh").onclick = refreshAll;
   $("btnBook").onclick = bookSelected;
   $("btnMy").onclick = loadMyBookings;
+
+  $("btnFeedbackLoad").onclick = feedbackLoad;
+  $("btnFeedbackSend").onclick = feedbackSend;
+  $("btnFeedbackMarkRead").onclick = feedbackMarkRead;
 
   $("btnAdminLogin").onclick = adminLogin;
   $("btnAdminReload").onclick = adminReload;
   $("btnAdminLogout").onclick = () => adminLogout("Logout ✅");
   $("btnSaveStationPin").onclick = saveStationPin;
   $("btnSaveDays").onclick = saveDays;
+  $("btnSaveSlotTimes").onclick = saveSlotTimes;
   $("btnChangeAdminPw").onclick = changeAdminPassword;
   $("btnLoadLogs").onclick = loadLogs;
+
+  $("btnAdminFeedbackList").onclick = adminFeedbackList;
+  $("btnAdminReplySend").onclick = adminReplySend;
 
   $("adminPw").addEventListener("keydown", (e)=>{ if (e.key==="Enter") adminLogin(); });
 
