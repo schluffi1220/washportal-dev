@@ -63,18 +63,6 @@
     .info{background:var(--blue);border-color:var(--blue)}
     .okbtn{background:var(--green);border-color:var(--green)}
 
-    .tagMine{
-      display:inline-block;
-      margin-top:6px;
-      font-size:12px;
-      font-weight:800;
-      color:#0a7c2f;
-      background:rgba(34,197,94,.15);
-      border:1px solid rgba(34,197,94,.45);
-      padding:3px 10px;
-      border-radius:999px;
-    }
-
     .warn{
       display:inline-block;
       margin-top:6px;
@@ -88,15 +76,15 @@
     }
 
     .bcard{border:2px solid var(--border);border-radius:14px;padding:12px;margin:8px 0;background:#fff;}
-    .bcard.free{background:var(--pFree); border-color: var(--bFree);}
-    .bcard.busy{background:var(--pBusy); border-color: var(--bBusy);}
-    .bcard.def{ background:var(--pDef);  border-color: var(--bDef);}
+    .bcard.green{background:var(--pFree); border-color: var(--bFree);}
+    .bcard.blue{ background:var(--pBusy); border-color: var(--bBusy);}
+    .bcard.red{  background:var(--pDef);  border-color: var(--bDef);}
+    .bcard.gray{ background:var(--pNeutral); border-color: var(--bNeutral);}
+
     .bhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
     .logrow{border-top:1px solid var(--border);padding:10px 0}
     .logrow:first-child{border-top:none}
-    .kpi{display:flex;gap:10px;flex-wrap:wrap}
-    .pill{background:#fff;border:1px solid var(--border);padding:4px 10px;border-radius:999px;font-size:12px}
   </style>
 </head>
 <body>
@@ -134,16 +122,13 @@
   <div class="actions">
     <button id="btnBook" class="btn2">Buchen</button>
   </div>
-  <div class="small">Belegt/Defekt/Abgelaufen werden angezeigt, sind aber nicht auswählbar.</div>
 </div>
 
 <div class="card">
   <h2>3) Maschinenübersicht</h2>
-  <div class="muted">Grün = frei · Blau = belegt · Rot = defekt</div>
-
+  <div id="machinesHint" class="muted">Wird nach „Aktualisieren“ geladen.</div>
   <h3 style="margin:10px 0 6px 0;">Waschmaschinen</h3>
   <div id="washers" class="grid"></div>
-
   <h3 style="margin:12px 0 6px 0;">Trockner</h3>
   <div id="dryers" class="grid"></div>
 </div>
@@ -197,6 +182,15 @@
       <button id="btnSaveDays" class="btn2">Speichern</button>
     </div>
 
+    <h3 style="margin:14px 0 6px 0;">Admin Passwort ändern</h3>
+    <label>Neues Admin Passwort</label>
+    <input id="newAdminPw" type="password" placeholder="mind. 6 Zeichen">
+    <label>Neues Passwort bestätigen</label>
+    <input id="newAdminPw2" type="password" placeholder="nochmal eingeben">
+    <div class="actions">
+      <button id="btnChangeAdminPw" class="btn2">Passwort ändern</button>
+    </div>
+
     <h3 style="margin:14px 0 6px 0;">Logs</h3>
     <div class="actions">
       <button id="btnLoadLogs" class="btn2 ghost">Logs laden</button>
@@ -206,15 +200,11 @@
 </div>
 
 <script>
-  // ✅ WICHTIG: Hier steht dein DEV Worker drin
   const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-
   const $ = (id) => document.getElementById(id);
 
   let cachedWasherSlots = [];
   let cachedStatus = null;
-
-  let myActiveBookingIds = new Set();
   let adminOk = false;
 
   function setStatus(msg, ok=true){
@@ -268,11 +258,10 @@
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
     }[m]));
   }
 
-  // ✅ Helfer: Machine defect lookup
   function isMachineDefect(type, machine){
     const list = (cachedStatus && cachedStatus.machines) ? cachedStatus.machines : [];
     const m = list.find(x => x.type===type && Number(x.machine)===Number(machine));
@@ -358,9 +347,6 @@
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
     await refreshAll();
   }
-  window.setDefect = setDefect;
-  window.releaseBooking = releaseBooking;
-  window.cancelBooking = cancelBooking;
 
   async function loadMyBookings(){
     const p = accessPayload();
@@ -368,10 +354,9 @@
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
 
     const list = data.bookings || [];
-    myActiveBookingIds = new Set();
 
     if (!list.length) {
-      $("myBookings").innerHTML = `<div class="muted">Keine aktiven Buchungen gefunden (Status=booked).</div>`;
+      $("myBookings").innerHTML = `<div class="muted">Keine aktiven Buchungen gefunden.</div>`;
       return;
     }
 
@@ -380,37 +365,38 @@
     $("myBookings").innerHTML = list.map(b=>{
       const start = Number(b.start);
       const end = Number(b.end);
-      const active = (start <= now && now < end);
-      const future = (now < start);
+
+      const active  = (start <= now && now < end);
+      const future  = (now < start);
       const expired = (end <= now);
 
-      if (active && b.id) myActiveBookingIds.add(b.id);
-
-      // ✅ NEW: Defekt-Status auf Buchung übernehmen
       const defect = isMachineDefect(b.type, b.machine);
 
-      let state = "free";
-      if (defect) state = "def";
-      else if (active) state = "busy";
+      // ✅ HARTE Farben: rot > blau > grün > grau
+      let color = "green";
+      if (defect) color = "red";
+      else if (active) color = "blue";
+      else if (expired) color = "gray";
+      else color = "green";
 
       const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
       const time = fmtSlot(start, end);
       const left = active ? ` · Rest: ${msToHMS(end-now)}` : "";
 
       let flags = "";
-      if (defect) flags += `<div class="warn">⚠️ Maschine ist defekt</div>`;
+      if (defect) flags = `<div class="warn">⚠️ Maschine ist defekt</div>`;
 
       let buttons = "";
       if (future) {
         buttons = `<button class="btn2 ghost" onclick="cancelBooking('${b.id}')">Stornieren</button>`;
       } else if (active) {
-        buttons = `<button class="btn2 info" onclick="releaseBooking('${b.id}')">Freigeben</button>`;
+        buttons = `<button class="btn2" style="background:#3b82f6;border-color:#3b82f6" onclick="releaseBooking('${b.id}')">Freigeben</button>`;
       } else if (expired) {
         buttons = `<button class="btn2 ghost" disabled>Abgelaufen</button>`;
       }
 
       return `
-        <div class="bcard ${state}">
+        <div class="bcard ${color}">
           <div class="bhead">
             <div>
               <b>${title}</b>
@@ -450,7 +436,7 @@
       let dotCls = "dot free";
       let badgeText = "frei";
 
-      if (!enabled) { stateClass="neutral"; dotCls="dot busy"; badgeText="gesperrt"; }
+      if (!enabled) { stateClass="neutral"; dotCls="dot bus"; badgeText="gesperrt"; }
       else if (defect) { stateClass="def"; dotCls="dot def"; badgeText="defekt"; }
       else if (active) { stateClass="busy"; dotCls="dot busy"; badgeText="belegt"; }
 
@@ -461,16 +447,11 @@
       else line1 = `Frei · zuletzt: ${m.lastRoom ? ("Zimmer " + m.lastRoom) : "-"}`;
 
       const btns = [];
-
       if (enabled) {
         if (!defect) btns.push(`<button class="mbtn danger" onclick="setDefect('${type}',${machine},true)">Defekt melden</button>`);
         else btns.push(`<button class="mbtn okbtn" onclick="setDefect('${type}',${machine},false)">Defekt freigeben</button>`);
       }
-
-      const mine = active && active.id && myActiveBookingIds.has(active.id);
-      const mineTag = mine ? `<div class="tagMine">Dein Slot ✅</div>` : ``;
-
-      if (mine) {
+      if (active && active.room === $("room").value.trim()) {
         btns.push(`<button class="mbtn info" onclick="releaseBooking('${active.id}')">Freigeben</button>`);
       }
 
@@ -480,7 +461,6 @@
             <div>
               <div class="mtitle">${type==="washer"?"Waschmaschine":"Trockner"} ${machine}</div>
               <div class="line">${line1}</div>
-              ${mineTag}
             </div>
             <div class="badge"><span class="${dotCls}"></span>${badgeText}</div>
           </div>
@@ -489,58 +469,40 @@
       `;
     }
 
+    $("machinesHint").textContent = "OK geladen.";
     $("washers").innerHTML = machines.filter(m=>m.type==="washer").map(cardHTML).join("") || `<div class="muted">Keine Waschmaschinen.</div>`;
     $("dryers").innerHTML  = machines.filter(m=>m.type==="dryer").map(cardHTML).join("")  || `<div class="muted">Keine Trockner.</div>`;
   }
 
   async function refreshAll(){
     setStatus("Aktualisiere…", true);
-
     const p = accessPayload();
 
     const a = await jpost("/api/washer/free-slots", p);
-    if (!a.data.ok) {
-      setStatus("Fehler Slots: " + (a.data.message || a.data.error), false);
-      alert(JSON.stringify(a.data,null,2));
-      return;
-    }
+    if (!a.data.ok) { setStatus("Fehler Slots", false); alert(JSON.stringify(a.data,null,2)); return; }
     cachedWasherSlots = a.data.slots || [];
     rebuildSlotDropdown();
 
     const s = await jget("/api/status");
     cachedStatus = s.data;
-    if (!cachedStatus.ok) {
-      setStatus("Fehler Status: " + (cachedStatus.message || cachedStatus.error), false);
-      alert(JSON.stringify(cachedStatus,null,2));
-      return;
-    }
+    if (!cachedStatus.ok) { setStatus("Fehler Status", false); alert(JSON.stringify(cachedStatus,null,2)); return; }
 
     await loadMyBookings();
     renderMachines();
-
     setStatus("Bereit.", true);
   }
 
   // ---------- ADMIN ----------
-  function adminPassword(){
-    return $("adminPw").value.trim();
-  }
+  function adminPassword(){ return $("adminPw").value.trim(); }
 
   async function adminLogin(){
     const pw = adminPassword();
     const {data} = await jpost("/api/admin/login", { adminPassword: pw });
-    if (!data.ok) {
-      adminOk = false;
-      $("adminControls").style.display = "none";
-      $("btnAdminReload").disabled = true;
-      $("adminBox").innerHTML = `<b style="color:#b00;">Login fehlgeschlagen</b><div class="small">${data.error||""} ${data.message||""}</div>`;
-      alert(JSON.stringify(data,null,2));
-      return;
-    }
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
     adminOk = true;
     $("btnAdminReload").disabled = false;
     $("adminControls").style.display = "block";
-    $("adminBox").innerHTML = `<b>Admin Login ok ✅</b><div class="small">build: ${data.build || "-"}</div>`;
+    $("adminBox").innerHTML = `<b>Admin Login ok ✅</b>`;
     await adminReload();
   }
 
@@ -551,71 +513,62 @@
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
     $("daysPast").value = data.config.daysPast ?? 1;
     $("daysFuture").value = data.config.daysFuture ?? 6;
-
-    const pills = `
-      <div class="kpi">
-        <span class="pill">daysPast: <b>${data.config.daysPast}</b></span>
-        <span class="pill">daysFuture: <b>${data.config.daysFuture}</b></span>
-      </div>
-    `;
-    $("adminBox").innerHTML = `<b>Admin Daten geladen ✅</b>${pills}<div class="small">build: ${data.build || "-"}</div>`;
+    $("adminBox").innerHTML = `<b>Admin Daten geladen ✅</b>`;
   }
 
   async function saveStationPin(){
-    if (!adminOk) { alert("Bitte erst Admin Login."); return; }
+    if (!adminOk) return alert("Bitte erst Admin Login.");
     const pw = adminPassword();
     const sp = $("adminStationPin").value.trim();
-
     if (!confirm("Stations-PIN wirklich speichern?")) return;
-
     const {data} = await jpost("/api/admin/set-station-pin", { adminPassword: pw, stationPin: sp });
-    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
     alert("Stations-PIN gespeichert ✅");
   }
 
   async function saveDays(){
-    if (!adminOk) { alert("Bitte erst Admin Login."); return; }
+    if (!adminOk) return alert("Bitte erst Admin Login.");
     const pw = adminPassword();
     const dp = Number($("daysPast").value);
     const df = Number($("daysFuture").value);
-
     if (!confirm("Tage-Fenster wirklich speichern?")) return;
-
     const {data} = await jpost("/api/admin/set-days-window", { adminPassword: pw, daysPast: dp, daysFuture: df });
-    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
-
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
     alert("Gespeichert ✅");
-    await adminReload();
     await refreshAll();
   }
 
-  async function loadLogs(){
-    if (!adminOk) { alert("Bitte erst Admin Login."); return; }
+  async function changeAdminPassword(){
+    if (!adminOk) return alert("Bitte erst Admin Login.");
     const pw = adminPassword();
-    const {data} = await jpost("/api/admin/logs", { adminPassword: pw, limit: 150 });
-    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+    const n1 = $("newAdminPw").value.trim();
+    const n2 = $("newAdminPw2").value.trim();
+    if (n1 !== n2) return alert("Neues Passwort stimmt nicht überein.");
+    if (n1.length < 6) return alert("Neues Passwort muss mindestens 6 Zeichen haben.");
 
-    const logs = data.logs || [];
-    if (!logs.length) {
-      $("logsBox").innerHTML = `<div class="muted">Keine Logs vorhanden.</div>`;
-      return;
-    }
+    if (!confirm("Admin Passwort wirklich ändern?")) return;
+    const {data} = await jpost("/api/admin/set-admin-password", { adminPassword: pw, newPassword: n1 });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
 
-    $("logsBox").innerHTML = logs.map(l=>{
-      let det = {};
-      try { det = JSON.parse(l.details||"{}"); } catch {}
-      const detStr = Object.keys(det).length ? `<div class="small">Details: ${escapeHtml(JSON.stringify(det))}</div>` : "";
-      return `
-        <div class="logrow">
-          <div><b>${escapeHtml(l.action)}</b> · ${escapeHtml(l.actor)} · Zimmer ${escapeHtml(l.room||"-")}</div>
-          <div class="small">${fmtLogTs(l.ts)} · ${escapeHtml(l.type)} ${escapeHtml(l.machine)}</div>
-          ${detStr}
-        </div>
-      `;
-    }).join("");
+    alert("Admin Passwort geändert ✅");
+    $("adminPw").value = n1;
+    $("newAdminPw").value = "";
+    $("newAdminPw2").value = "";
   }
 
-  // ---------- Events ----------
+  async function loadLogs(){
+    if (!adminOk) return alert("Bitte erst Admin Login.");
+    const pw = adminPassword();
+    const {data} = await jpost("/api/admin/logs", { adminPassword: pw, limit: 150 });
+    if (!data.ok) return alert(JSON.stringify(data,null,2));
+
+    const logs = data.logs || [];
+    $("logsBox").innerHTML = logs.map(l=>{
+      return `<div class="logrow"><b>${escapeHtml(l.action)}</b> · ${fmtLogTs(l.ts)} · ${escapeHtml(l.type)} ${escapeHtml(l.machine)} · Zimmer ${escapeHtml(l.room||"-")}</div>`;
+    }).join("") || `<div class="muted">Keine Logs vorhanden.</div>`;
+  }
+
+  // Events
   $("btnRefresh").onclick = refreshAll;
   $("btnBook").onclick = bookSelected;
   $("btnMy").onclick = loadMyBookings;
@@ -624,12 +577,10 @@
   $("btnAdminReload").onclick = adminReload;
   $("btnSaveStationPin").onclick = saveStationPin;
   $("btnSaveDays").onclick = saveDays;
+  $("btnChangeAdminPw").onclick = changeAdminPassword;
   $("btnLoadLogs").onclick = loadLogs;
 
-  // ✅ ENTER-Taste im Admin Passwort = Login
-  $("adminPw").addEventListener("keydown", (e)=>{
-    if (e.key === "Enter") adminLogin();
-  });
+  $("adminPw").addEventListener("keydown", (e)=>{ if (e.key==="Enter") adminLogin(); });
 
   setStatus("Bereit. Worker: " + API_BASE, true);
 </script>
