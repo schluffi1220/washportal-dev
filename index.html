@@ -31,7 +31,7 @@
     .card{border:1px solid var(--border);border-radius:14px;padding:12px;background:var(--card);margin:12px 0}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     label{display:block;margin:8px 0 4px;color:var(--muted);font-size:13px}
-    input,button{font-size:16px;padding:10px;border-radius:12px;border:1px solid var(--border);width:100%;box-sizing:border-box}
+    input,select,button{font-size:16px;padding:10px;border-radius:12px;border:1px solid var(--border);width:100%;box-sizing:border-box}
     button{cursor:pointer;background:var(--btn);color:var(--btnText);border-color:var(--btn)}
     button:disabled{opacity:.45;cursor:not-allowed}
 
@@ -47,66 +47,42 @@
       border-radius:16px;
       padding:12px;
       background:#fff;
+      cursor:pointer;
+      transition: transform .05s ease-in-out;
     }
-
-    .tileHead{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:10px;
-    }
+    .tile:hover{transform: translateY(-1px)}
+    .tile.disabled{opacity:.55;cursor:not-allowed}
+    .tileHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
     .tileTitle{font-weight:900}
     .tileSub{color:var(--muted);font-size:13px;margin-top:2px}
-
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      border:1px solid var(--border);
-      padding:4px 10px;
-      border-radius:999px;
-      font-size:12px;
-      white-space:nowrap;
-    }
+    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:4px 10px;border-radius:999px;font-size:12px;white-space:nowrap}
     .dot{width:12px;height:12px;border-radius:999px;background:var(--busy)}
     .dot.free{background:var(--free)}
     .dot.busy{background:var(--busy)}
     .dot.def{background:var(--def)}
-
-    .machines{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:8px;
-    }
-    .mBtn{
-      width:auto;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:#fff;
-      color:#111;
-      font-size:14px;
-    }
-    .mBtn.free{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.12)}
-    .mBtn.busy{border-color:rgba(156,163,175,.45);background:rgba(156,163,175,.12);color:#555}
-    .mBtn.def{border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.12);color:#900}
-
     .muted{color:var(--muted);font-size:13px}
 
-    /* My bookings list */
-    .listItem{
-      background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;margin:8px 0
+    /* Booking drawer */
+    .drawer{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:16px;
+      padding:12px;
+      margin-top:10px;
     }
-    .listHead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-    .smallbtn{width:auto;padding:8px 12px;border-radius:12px}
+    .drawer h3{margin:0 0 6px 0}
+    .mini{font-size:12px;color:var(--muted)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .smallbtn{width:auto;padding:10px 14px;border-radius:12px}
+    .ghost{background:#fff;color:#111;border-color:var(--border)}
+    .hint{margin-top:6px;font-size:12px;color:var(--muted)}
+    .errorline{margin-top:8px;font-size:13px;color:#b00020}
   </style>
 </head>
 <body>
 
 <h1>Washportal – DEV</h1>
-<p class="sub">Kachel-UI (DEV) – stabiler Worker</p>
+<p class="sub">Slots als Kacheln, Buchung über Dropdown (userfreundlich)</p>
 
 <div id="statusBox" class="bar">Bereit.</div>
 
@@ -134,6 +110,22 @@
 <div class="card">
   <h2>2) Slots (Waschmaschinen)</h2>
   <div id="slots" class="muted">Noch nicht geladen.</div>
+
+  <div id="bookDrawer" class="drawer" style="display:none;">
+    <h3>Slot buchen</h3>
+    <div class="mini" id="drawerSlotInfo"></div>
+
+    <label style="margin-top:10px;">Maschine auswählen</label>
+    <select id="machineSelect"></select>
+
+    <div class="actions">
+      <button id="btnBook" class="smallbtn">Buchen</button>
+      <button id="btnClose" class="smallbtn ghost">Abbrechen</button>
+    </div>
+
+    <div id="drawerError" class="errorline" style="display:none;"></div>
+    <div class="hint">Belegte/defekte Maschinen tauchen nicht in der Auswahl auf.</div>
+  </div>
 </div>
 
 <div class="card">
@@ -153,7 +145,7 @@
       <input id="adminPw" type="password" placeholder="z.B. initial">
       <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
         <button id="btnAdminLogin" class="smallbtn">Login</button>
-        <button id="btnAdminLogout" class="smallbtn">Logout</button>
+        <button id="btnAdminLogout" class="smallbtn ghost">Logout</button>
       </div>
       <div id="adminState" class="muted" style="margin-top:8px;">Nicht eingeloggt.</div>
     </div>
@@ -168,11 +160,12 @@
 </details>
 
 <script>
-  // >>> DEV WORKER URL <<<
   const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-
   const $ = (id) => document.getElementById(id);
   let isAdmin = false;
+
+  // slot currently selected in drawer
+  let selectedSlot = null;
 
   function setStatus(msg, ok=true){
     const el = $("statusBox");
@@ -210,6 +203,7 @@
 
   async function refreshSlots(){
     setStatus("Lade Slots…", true);
+    closeDrawer(true);
 
     const p = accessPayload();
     const {data} = await jpost("/api/washer/free-slots", p);
@@ -234,50 +228,97 @@
     }
 
     el.innerHTML = `<div class="tiles">${
-      slots.map(s=>{
+      slots.map((s, idx)=>{
         const free = s.freeCount;
         const total = s.total;
-        const badgeDotCls = free>0 ? "dot free" : "dot busy";
+
+        // Determine badge color
+        const dotCls = free>0 ? "dot free" : "dot busy";
         const badgeText = `frei: ${free}/${total}`;
 
-        const machines = (s.perMachine||[]).map(pm=>{
-          const cls = pm.defect ? "mBtn def" : (pm.free ? "mBtn free" : "mBtn busy");
-          const disabled = (!pm.free || pm.defect) ? "disabled" : "";
-          return `<button class="${cls}" ${disabled}
-            onclick="bookWasher(${s.start},${s.end},${pm.machine})">WM ${pm.machine}</button>`;
-        }).join("");
+        // Kachel ist klickbar, wenn mindestens 1 freie Maschine existiert
+        const clickable = free > 0;
+        const tileCls = clickable ? "tile" : "tile disabled";
 
         return `
-          <div class="tile">
+          <div class="${tileCls}" onclick="openDrawer(${idx})">
             <div class="tileHead">
               <div>
                 <div class="tileTitle">${fmtRange(s.start,s.end)}</div>
                 <div class="tileSub">${s.date} • ${s.time}</div>
               </div>
-              <div class="badge"><span class="${badgeDotCls}"></span>${badgeText}</div>
+              <div class="badge"><span class="${dotCls}"></span>${badgeText}</div>
             </div>
-            <div class="machines">${machines}</div>
-            <div class="muted" style="margin-top:8px;">
-              Belegt = grau, Defekt = rot, Frei = grün
+            <div class="muted">
+              Tippen zum Buchen → Maschine im Dropdown wählen
             </div>
           </div>`;
       }).join("")
     }</div>`;
+
+    // stash slots on element for openDrawer()
+    el._slots = slots;
   }
 
-  async function bookWasher(start,end,machine){
+  function openDrawer(index){
+    const slots = $("slots")._slots || [];
+    const s = slots[index];
+    if(!s) return;
+
+    if (Number(s.freeCount) <= 0) return; // disabled tile
+
+    selectedSlot = s;
+    $("drawerError").style.display = "none";
+    $("drawerError").textContent = "";
+
+    $("drawerSlotInfo").textContent = `${fmtRange(s.start,s.end)} • frei: ${s.freeCount}/${s.total}`;
+
+    // Build machine options = free & not defect
+    const opts = (s.perMachine || [])
+      .filter(pm => pm.free && !pm.defect)
+      .map(pm => ({ value: pm.machine, label: `Waschmaschine ${pm.machine}` }));
+
+    const sel = $("machineSelect");
+    sel.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
+
+    $("bookDrawer").style.display = "block";
+    window.scrollTo({ top: $("bookDrawer").offsetTop - 10, behavior: "smooth" });
+  }
+  window.openDrawer = openDrawer;
+
+  function closeDrawer(silent=false){
+    selectedSlot = null;
+    $("bookDrawer").style.display = "none";
+    $("machineSelect").innerHTML = "";
+    if(!silent) setStatus("Bereit.", true);
+  }
+
+  async function doBook(){
+    if(!selectedSlot){
+      return;
+    }
     const p = accessPayload();
-    const {data} = await jpost("/api/washer/book", { ...p, start, end, machine });
+    const machine = Number($("machineSelect").value);
+
+    const {data} = await jpost("/api/washer/book", {
+      ...p,
+      start: selectedSlot.start,
+      end: selectedSlot.end,
+      machine
+    });
+
     if(!data.ok){
-      setStatus("Buchen fehlgeschlagen: " + (data.message || data.error || "unknown"), false);
+      $("drawerError").style.display = "block";
+      $("drawerError").textContent = (data.message || data.error || "unknown");
       alert(JSON.stringify(data, null, 2));
       return;
     }
+
     alert(`Gebucht: Waschmaschine ${data.machine}`);
+    closeDrawer(true);
     await refreshSlots();
     await loadMyBookings();
   }
-  window.bookWasher = bookWasher;
 
   async function loadMyBookings(){
     setStatus("Lade Buchungen…", true);
@@ -301,8 +342,8 @@
     }
 
     el.innerHTML = list.map(b=>`
-      <div class="listItem">
-        <div class="listHead">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;margin:8px 0">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div><b>${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}</b></div>
           <div class="muted">${fmtRange(b.start,b.end)}</div>
         </div>
@@ -312,6 +353,7 @@
     setStatus("Buchungen geladen.", true);
   }
 
+  // -------- Admin --------
   async function adminLogin(){
     const pw = $("adminPw").value.trim();
     const {data} = await jpost("/api/admin/login", { adminPassword: pw });
@@ -339,8 +381,13 @@
     alert("Stations-PIN gespeichert.");
   }
 
+  // -------- Wire up --------
   $("btnRefresh").onclick = refreshSlots;
   $("btnMy").onclick = loadMyBookings;
+
+  $("btnBook").onclick = doBook;
+  $("btnClose").onclick = ()=>closeDrawer(true);
+
   $("btnAdminLogin").onclick = adminLogin;
   $("btnAdminLogout").onclick = adminLogout;
   $("btnSaveStationPin").onclick = adminSaveStationPin;
