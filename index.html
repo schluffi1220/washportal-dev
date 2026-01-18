@@ -10,12 +10,18 @@
       --green:#22c55e; --blue:#3b82f6; --red:#ef4444; --gray:#9ca3af;
       --btn:#111; --btnText:#fff;
 
-      /* Pastel backgrounds */
-      --pFree: rgba(34,197,94,.10);
-      --pBusy: rgba(59,130,246,.10);
-      --pDef:  rgba(239,68,68,.10);
-      --pNeutral: rgba(156,163,175,.08);
+      /* Pastel backgrounds (sichtbarer) */
+      --pFree: rgba(34,197,94,.18);
+      --pBusy: rgba(59,130,246,.18);
+      --pDef:  rgba(239,68,68,.18);
+      --pNeutral: rgba(156,163,175,.12);
+
+      --bFree: rgba(34,197,94,.55);
+      --bBusy: rgba(59,130,246,.55);
+      --bDef:  rgba(239,68,68,.55);
+      --bNeutral: rgba(156,163,175,.45);
     }
+
     body{font-family:system-ui,Arial,sans-serif;margin:14px;max-width:1100px;color:var(--text);background:var(--bg)}
     h1{margin:0 0 6px 0}
     .sub{margin:0 0 12px 0;color:var(--muted)}
@@ -38,11 +44,16 @@
     /* machine tiles */
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     @media (max-width:700px){.grid{grid-template-columns:1fr}}
-    .mcard{background:#fff;border:2px solid var(--border);border-radius:16px;padding:12px}
-    .mcard.free{background:var(--pFree)}
-    .mcard.busy{background:var(--pBusy)}
-    .mcard.def{background:var(--pDef)}
-    .mcard.neutral{background:var(--pNeutral)}
+    .mcard{
+      border:2px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .mcard.free{background:var(--pFree); border-color: var(--bFree);}
+    .mcard.busy{background:var(--pBusy); border-color: var(--bBusy);}
+    .mcard.def{ background:var(--pDef);  border-color: var(--bDef);}
+    .mcard.neutral{background:var(--pNeutral); border-color: var(--bNeutral);}
 
     .mhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}
     .mtitle{font-weight:900}
@@ -60,15 +71,15 @@
 
     /* My bookings cards */
     .bcard{
-      border:1px solid var(--border);
+      border:2px solid var(--border);
       border-radius:14px;
       padding:12px;
       margin:8px 0;
       background:#fff;
     }
-    .bcard.free{background:var(--pFree)}
-    .bcard.busy{background:var(--pBusy)}
-    .bcard.def{background:var(--pDef)}
+    .bcard.free{background:var(--pFree); border-color: var(--bFree);}
+    .bcard.busy{background:var(--pBusy); border-color: var(--bBusy);}
+    .bcard.def{ background:var(--pDef);  border-color: var(--bDef);}
     .bhead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   </style>
 </head>
@@ -107,7 +118,7 @@
   <div class="actions">
     <button id="btnBook" class="btn2">Buchen</button>
   </div>
-  <div class="small">Belegt/Defekt werden angezeigt, sind aber nicht auswählbar.</div>
+  <div class="small">Belegt/Defekt/Abgelaufen werden angezeigt, sind aber nicht auswählbar.</div>
 </div>
 
 <div class="card">
@@ -230,11 +241,9 @@
     const items = [];
     for (const s of cachedWasherSlots) {
       for (const pm of (s.perMachine || [])) {
-        // belegt/defekt oder vergangen -> disabled
         const isPast = Number(s.end) <= now;
         const state = isPast ? "abgelaufen" : (pm.defect ? "defekt" : (pm.booked ? "belegt" : "frei"));
         const disabled = (state !== "frei");
-
         items.push({
           label: `${fmtSlot(s.start, s.end)} · Waschmaschine ${pm.machine} · ${state}`,
           disabled,
@@ -283,21 +292,37 @@
     await refreshAll();
   }
 
+  async function cancelById(id){
+    const p = accessPayload();
+    const {data} = await jpost("/api/booking/cancel", { ...p, id });
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+    await refreshAll();
+  }
+  window.cancelById = cancelById;
+
+  async function setDefect(type, machine, defect){
+    const p = accessPayload();
+    const {data} = await jpost("/api/machine/set-defect", { ...p, type, machine, defect });
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+    await refreshAll();
+  }
+  window.setDefect = setDefect;
+
   function renderMachines(){
     if (!cachedStatus || !cachedStatus.ok) return;
 
     const now = Date.now();
     const machines = cachedStatus.machines || [];
     const bookings = cachedStatus.bookings || [];
+    const myRoom = $("room").value.trim();
 
     function findActive(type, machine){
-      return bookings.find(b => b.type===type && Number(b.machine)===Number(machine) && b.status==="booked" && now>=Number(b.start) && now<Number(b.end));
-    }
-    function findNext(type, machine){
-      const future = bookings
-        .filter(b => b.type===type && Number(b.machine)===Number(machine) && b.status==="booked" && Number(b.start) > now)
-        .sort((a,b)=>Number(a.start)-Number(b.start));
-      return future[0] || null;
+      return bookings.find(b =>
+        b.type===type &&
+        Number(b.machine)===Number(machine) &&
+        b.status==="booked" &&
+        now>=Number(b.start) && now<Number(b.end)
+      );
     }
 
     function cardHTML(m){
@@ -305,9 +330,7 @@
       const machine = m.machine;
       const defect = Number(m.defect)===1;
       const enabled = Number(m.enabled)===1;
-
       const active = enabled && !defect ? findActive(type, machine) : null;
-      const next = enabled && !defect ? findNext(type, machine) : null;
 
       let stateClass = "free";
       let dotCls = "dot free";
@@ -323,15 +346,17 @@
       else if (active) line1 = `Belegt von Zimmer ${active.room} · Rest: ${msToHMS(Number(active.end)-now)}`
       else line1 = `Frei · zuletzt: ${m.lastRoom ? ("Zimmer " + m.lastRoom) : "-"}`;
 
-      let line2 = "";
-      if (!defect && !active && next) {
-        line2 = `Nächste Buchung: ${fmtSlot(Number(next.start), Number(next.end))} · Zimmer ${next.room}`;
-      }
-
       const btns = [];
+
+      // Defekt toggle
       if (enabled) {
         if (!defect) btns.push(`<button class="mbtn danger" onclick="setDefect('${type}',${machine},true)">Defekt melden</button>`);
         else btns.push(`<button class="mbtn okbtn" onclick="setDefect('${type}',${machine},false)">Defekt freigeben</button>`);
+      }
+
+      // ✅ Freigeben nur wenn aktive Buchung UND dein Zimmer
+      if (active && String(active.room) === String(myRoom) && active.id) {
+        btns.push(`<button class="mbtn info" onclick="cancelById('${active.id}')">Freigeben</button>`);
       }
 
       return `
@@ -340,7 +365,6 @@
             <div>
               <div class="mtitle">${type==="washer"?"Waschmaschine":"Trockner"} ${machine}</div>
               <div class="line">${line1}</div>
-              ${line2 ? `<div class="line">${line2}</div>` : ""}
             </div>
             <div class="badge"><span class="${dotCls}"></span>${badgeText}</div>
           </div>
@@ -353,37 +377,14 @@
     $("dryers").innerHTML  = machines.filter(m=>m.type==="dryer").map(cardHTML).join("")  || `<div class="muted">Keine Trockner.</div>`;
   }
 
-  async function setDefect(type, machine, defect){
-    const p = accessPayload();
-    const {data} = await jpost("/api/machine/set-defect", { ...p, type, machine, defect });
-    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
-    await refreshAll();
-  }
-  window.setDefect = setDefect;
-
-  async function cancelById(id){
-    const p = accessPayload();
-    const {data} = await jpost("/api/booking/cancel", { ...p, id });
-    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
-    await refreshAll();
-  }
-  window.cancelById = cancelById;
-
   async function loadMyBookings(){
-    setStatus("Lade Buchungen…", true);
     const p = accessPayload();
     const {data} = await jpost("/api/my-bookings", p);
-
-    if (!data.ok) {
-      setStatus("Fehler beim Laden der Buchungen: " + (data.message || data.error), false);
-      alert(JSON.stringify(data,null,2));
-      return;
-    }
+    if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
 
     const list = data.bookings || [];
     if (!list.length) {
       $("myBookings").innerHTML = `<div class="muted">Keine Buchungen.</div>`;
-      setStatus("Buchungen geladen.", true);
       return;
     }
 
@@ -392,14 +393,13 @@
       const active = now>=Number(b.start) && now<Number(b.end);
       const expired = Number(b.end) <= now;
 
-      // Pastel state: active busy, else free-ish
+      // Pastel by state
       const state = active ? "busy" : "free";
 
       const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
       const time = fmtSlot(Number(b.start), Number(b.end));
       const left = active ? ` · Rest: ${msToHMS(Number(b.end)-now)}` : "";
 
-      // Cancel disabled if expired
       const cancelBtn = expired
         ? `<button class="btn2 ghost" disabled>Storno nicht mehr möglich</button>`
         : `<button class="btn2 ghost" onclick="cancelById('${b.id}')">Stornieren / Freigeben</button>`;
@@ -414,14 +414,13 @@
         </div>
       `;
     }).join("");
-
-    setStatus("Buchungen geladen.", true);
   }
 
   async function refreshAll(){
     setStatus("Aktualisiere…", true);
 
     const p = accessPayload();
+
     const a = await jpost("/api/washer/free-slots", p);
     if (!a.data.ok) {
       setStatus("Fehler Slots: " + (a.data.message || a.data.error), false);
@@ -438,13 +437,13 @@
       alert(JSON.stringify(cachedStatus,null,2));
       return;
     }
+
     renderMachines();
     await loadMyBookings();
-
     setStatus("Bereit.", true);
   }
 
-  // Admin
+  // Admin (minimal, korrekt so)
   async function adminLogin(){
     const pw = $("adminPw").value.trim();
     const {data} = await jpost("/api/admin/login", { adminPassword: pw });
