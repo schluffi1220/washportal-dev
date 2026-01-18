@@ -6,89 +6,55 @@
   <title>Washportal DEV</title>
   <style>
     :root{
-      --bg:#ffffff;
-      --card:#f7f7f7;
-      --border:#d9d9d9;
-      --text:#111;
-      --muted:#666;
-
-      --free:#22c55e;
-      --busy:#9ca3af;
-      --def:#ef4444;
-
-      --btn:#111;
-      --btnText:#fff;
+      --bg:#fff; --card:#f7f7f7; --border:#d9d9d9; --text:#111; --muted:#666;
+      --free:#22c55e; --busy:#3b82f6; --def:#d946ef; /* blau busy, magenta def */
+      --err:#b00020;
+      --btn:#111; --btnText:#fff;
     }
-
     body{font-family:system-ui,Arial,sans-serif;margin:16px;max-width:1100px;color:var(--text);background:var(--bg)}
     h1{margin:0 0 6px 0}
     .sub{color:var(--muted);margin:0 0 16px 0}
-
     .bar{border:1px solid var(--border);border-radius:14px;padding:12px;background:var(--card);margin-bottom:12px}
     .bar.ok{background:#eaffea;border-color:#a6e3a6}
-    .bar.err{background:#ffecec;border-color:#f2b3b3}
-
+    .bar.err{background:#ffecec;border-color:#f2b3b3;color:var(--err)}
     .card{border:1px solid var(--border);border-radius:14px;padding:12px;background:var(--card);margin:12px 0}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:720px){.row{grid-template-columns:1fr}}
     label{display:block;margin:8px 0 4px;color:var(--muted);font-size:13px}
     input,select,button{font-size:16px;padding:10px;border-radius:12px;border:1px solid var(--border);width:100%;box-sizing:border-box}
+    input[type="password"]{letter-spacing:1px}
     button{cursor:pointer;background:var(--btn);color:var(--btnText);border-color:var(--btn)}
-    button:disabled{opacity:.45;cursor:not-allowed}
-
+    button:disabled{opacity:.5;cursor:not-allowed}
     details>summary{cursor:pointer;font-weight:800}
-
-    /* Tiles */
-    .tiles{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:12px}
-    @media (max-width: 980px){ .tiles{grid-template-columns:repeat(2, minmax(0,1fr));} }
-    @media (max-width: 640px){ .tiles{grid-template-columns:repeat(1, minmax(0,1fr));} }
-
-    .tile{
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:12px;
-      background:#fff;
-      cursor:pointer;
-      transition: transform .05s ease-in-out;
-    }
-    .tile:hover{transform: translateY(-1px)}
-    .tile.disabled{opacity:.55;cursor:not-allowed}
-    .tileHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
-    .tileTitle{font-weight:900}
-    .tileSub{color:var(--muted);font-size:13px;margin-top:2px}
+    .muted{color:var(--muted);font-size:13px}
+    .kpi{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+    .pill{background:#fff;border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:13px}
+    .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    @media(max-width:720px){.tiles{grid-template-columns:1fr}}
+    .tile{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px}
+    .tileHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
     .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);padding:4px 10px;border-radius:999px;font-size:12px;white-space:nowrap}
-    .dot{width:12px;height:12px;border-radius:999px;background:var(--busy)}
+    .dot{width:14px;height:14px;border-radius:999px;background:var(--free)}
     .dot.free{background:var(--free)}
     .dot.busy{background:var(--busy)}
     .dot.def{background:var(--def)}
-    .muted{color:var(--muted);font-size:13px}
-
-    /* Booking drawer */
-    .drawer{
-      border:1px solid var(--border);
-      background:#fff;
-      border-radius:16px;
-      padding:12px;
-      margin-top:10px;
-    }
-    .drawer h3{margin:0 0 6px 0}
-    .mini{font-size:12px;color:var(--muted)}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .listItem{background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;margin:8px 0}
+    .listHead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
     .smallbtn{width:auto;padding:10px 14px;border-radius:12px}
     .ghost{background:#fff;color:#111;border-color:var(--border)}
-    .hint{margin-top:6px;font-size:12px;color:var(--muted)}
-    .errorline{margin-top:8px;font-size:13px;color:#b00020}
+    .errline{color:var(--err);font-size:13px;margin-top:8px}
   </style>
 </head>
 <body>
 
 <h1>Washportal – DEV</h1>
-<p class="sub">Slots als Kacheln, Buchung über Dropdown (userfreundlich)</p>
+<p class="sub">Dropdown-Buchung wie gewünscht • Maschinenübersicht als Kacheln</p>
 
 <div id="statusBox" class="bar">Bereit.</div>
 
+<!-- 1) Zugang -->
 <div class="card">
   <h2>1) Zugang</h2>
-
   <div class="row">
     <div>
       <label>Zimmernummer (0–400)</label>
@@ -99,46 +65,56 @@
       <input id="pin" type="password" inputmode="numeric" placeholder="z.B. 1234">
     </div>
   </div>
-
   <label>Stations-PIN (4-stellig)</label>
   <input id="stationPinAccess" type="password" inputmode="numeric" placeholder="z.B. 1111">
-
   <button id="btnRefresh" style="margin-top:10px;">Aktualisieren</button>
-  <div class="muted" style="margin-top:8px;">Wenn’s nicht lädt: Strg+Shift+R.</div>
+  <div class="muted" style="margin-top:8px;">Mobile Tipp: Wenn was komisch ist → einmal Strg+Shift+R am PC (Cache).</div>
 </div>
 
+<!-- 2) Slots buchen -->
 <div class="card">
-  <h2>2) Slots (Waschmaschinen)</h2>
-  <div id="slots" class="muted">Noch nicht geladen.</div>
-
-  <div id="bookDrawer" class="drawer" style="display:none;">
-    <h3>Slot buchen</h3>
-    <div class="mini" id="drawerSlotInfo"></div>
-
-    <label style="margin-top:10px;">Maschine auswählen</label>
-    <select id="machineSelect"></select>
-
-    <div class="actions">
-      <button id="btnBook" class="smallbtn">Buchen</button>
-      <button id="btnClose" class="smallbtn ghost">Abbrechen</button>
-    </div>
-
-    <div id="drawerError" class="errorline" style="display:none;"></div>
-    <div class="hint">Belegte/defekte Maschinen tauchen nicht in der Auswahl auf.</div>
+  <h2>2) Slots buchen</h2>
+  <label>Freie Slots auswählen</label>
+  <select id="slotSelect">
+    <option value="">Bitte auswählen…</option>
+  </select>
+  <div class="kpi">
+    <span class="pill" id="slotHint">Noch nicht geladen.</span>
+  </div>
+  <button id="btnBook" style="margin-top:10px;" disabled>Buchen</button>
+  <div id="bookErr" class="errline" style="display:none;"></div>
+  <div class="muted" style="margin-top:8px;">
+    In der Liste erscheinen auch <b>belegte</b> und <b>defekte</b> Maschinen (grau/disabled), damit man alles sieht.
   </div>
 </div>
 
+<!-- 3) Maschinenübersicht -->
 <div class="card">
-  <h2>3) Meine Buchungen</h2>
+  <h2>3) Maschinenübersicht</h2>
+  <div id="machineTiles" class="muted">Noch nicht geladen.</div>
+</div>
+
+<!-- 4) Meine Buchungen -->
+<div class="card">
+  <h2>4) Meine Buchungen</h2>
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
-    <button id="btnMy" class="smallbtn">Meine Buchungen aktualisieren</button>
+    <button id="btnMy" class="smallbtn">Aktualisieren</button>
   </div>
-  <div id="myBookings" style="margin-top:10px;" class="muted">Noch nicht geladen.</div>
+  <div id="myBookings" class="muted" style="margin-top:10px;">Noch nicht geladen.</div>
 </div>
 
-<details class="card" open>
-  <summary>Admin</summary>
+<!-- 5) Feedback / Antworten (UI Platzhalter) -->
+<div class="card">
+  <h2>5) Feedback / Antworten</h2>
+  <div class="muted">
+    Kommt als nächstes als echtes Chat-Modul (User↔Admin, sichtbar/gelesen/Popup).  
+    Aktuell fokussieren wir: Booking + Maschinenübersicht stabil.
+  </div>
+</div>
 
+<!-- 6) Admin -->
+<details class="card" open>
+  <summary>6) Admin</summary>
   <div class="row" style="margin-top:10px;">
     <div>
       <label>Admin-Passwort</label>
@@ -149,252 +125,7 @@
       </div>
       <div id="adminState" class="muted" style="margin-top:8px;">Nicht eingeloggt.</div>
     </div>
-
     <div>
       <label>Stations-PIN setzen/ändern</label>
       <input id="stationPinAdmin" type="password" inputmode="numeric" placeholder="z.B. 1111">
-      <button id="btnSaveStationPin" style="margin-top:10px;">Stations-PIN speichern</button>
-      <div class="muted">Wird im Worker als Hash gespeichert.</div>
-    </div>
-  </div>
-</details>
-
-<script>
-  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  const $ = (id) => document.getElementById(id);
-  let isAdmin = false;
-
-  // slot currently selected in drawer
-  let selectedSlot = null;
-
-  function setStatus(msg, ok=true){
-    const el = $("statusBox");
-    el.className = "bar " + (ok ? "ok" : "err");
-    el.textContent = msg;
-  }
-
-  async function jpost(path, body){
-    const r = await fetch(API_BASE + path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body || {}),
-      cache: "no-store"
-    });
-    const data = await r.json().catch(() => ({ ok:false, error:"bad_json" }));
-    return { r, data };
-  }
-
-  function accessPayload(){
-    return {
-      room: $("room").value.trim(),
-      pin: $("pin").value.trim(),
-      stationPin: $("stationPinAccess").value.trim()
-    };
-  }
-
-  function fmtRange(start, end){
-    const a = new Date(start), b = new Date(end);
-    const dd = (n)=>String(n).padStart(2,"0");
-    const ds = `${dd(a.getDate())}.${dd(a.getMonth()+1)}.${a.getFullYear()}`;
-    const ts = `${dd(a.getHours())}:${dd(a.getMinutes())}`;
-    const te = `${dd(b.getHours())}:${dd(b.getMinutes())}`;
-    return `${ds} ${ts}–${te}`;
-  }
-
-  async function refreshSlots(){
-    setStatus("Lade Slots…", true);
-    closeDrawer(true);
-
-    const p = accessPayload();
-    const {data} = await jpost("/api/washer/free-slots", p);
-
-    if(!data.ok){
-      setStatus("Fehler beim Laden der Slots: " + (data.message || data.error || "unknown"), false);
-      alert(JSON.stringify(data, null, 2));
-      $("slots").innerHTML = "<div class='muted'>Fehler.</div>";
-      return false;
-    }
-
-    renderTiles(data.slots || []);
-    setStatus("Slots geladen. Build: " + data.build, true);
-    return true;
-  }
-
-  function renderTiles(slots){
-    const el = $("slots");
-    if(!slots.length){
-      el.innerHTML = "<div class='muted'>Keine Slots.</div>";
-      return;
-    }
-
-    el.innerHTML = `<div class="tiles">${
-      slots.map((s, idx)=>{
-        const free = s.freeCount;
-        const total = s.total;
-
-        // Determine badge color
-        const dotCls = free>0 ? "dot free" : "dot busy";
-        const badgeText = `frei: ${free}/${total}`;
-
-        // Kachel ist klickbar, wenn mindestens 1 freie Maschine existiert
-        const clickable = free > 0;
-        const tileCls = clickable ? "tile" : "tile disabled";
-
-        return `
-          <div class="${tileCls}" onclick="openDrawer(${idx})">
-            <div class="tileHead">
-              <div>
-                <div class="tileTitle">${fmtRange(s.start,s.end)}</div>
-                <div class="tileSub">${s.date} • ${s.time}</div>
-              </div>
-              <div class="badge"><span class="${dotCls}"></span>${badgeText}</div>
-            </div>
-            <div class="muted">
-              Tippen zum Buchen → Maschine im Dropdown wählen
-            </div>
-          </div>`;
-      }).join("")
-    }</div>`;
-
-    // stash slots on element for openDrawer()
-    el._slots = slots;
-  }
-
-  function openDrawer(index){
-    const slots = $("slots")._slots || [];
-    const s = slots[index];
-    if(!s) return;
-
-    if (Number(s.freeCount) <= 0) return; // disabled tile
-
-    selectedSlot = s;
-    $("drawerError").style.display = "none";
-    $("drawerError").textContent = "";
-
-    $("drawerSlotInfo").textContent = `${fmtRange(s.start,s.end)} • frei: ${s.freeCount}/${s.total}`;
-
-    // Build machine options = free & not defect
-    const opts = (s.perMachine || [])
-      .filter(pm => pm.free && !pm.defect)
-      .map(pm => ({ value: pm.machine, label: `Waschmaschine ${pm.machine}` }));
-
-    const sel = $("machineSelect");
-    sel.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
-
-    $("bookDrawer").style.display = "block";
-    window.scrollTo({ top: $("bookDrawer").offsetTop - 10, behavior: "smooth" });
-  }
-  window.openDrawer = openDrawer;
-
-  function closeDrawer(silent=false){
-    selectedSlot = null;
-    $("bookDrawer").style.display = "none";
-    $("machineSelect").innerHTML = "";
-    if(!silent) setStatus("Bereit.", true);
-  }
-
-  async function doBook(){
-    if(!selectedSlot){
-      return;
-    }
-    const p = accessPayload();
-    const machine = Number($("machineSelect").value);
-
-    const {data} = await jpost("/api/washer/book", {
-      ...p,
-      start: selectedSlot.start,
-      end: selectedSlot.end,
-      machine
-    });
-
-    if(!data.ok){
-      $("drawerError").style.display = "block";
-      $("drawerError").textContent = (data.message || data.error || "unknown");
-      alert(JSON.stringify(data, null, 2));
-      return;
-    }
-
-    alert(`Gebucht: Waschmaschine ${data.machine}`);
-    closeDrawer(true);
-    await refreshSlots();
-    await loadMyBookings();
-  }
-
-  async function loadMyBookings(){
-    setStatus("Lade Buchungen…", true);
-
-    const p = accessPayload();
-    const {data} = await jpost("/api/my-bookings", p);
-
-    if(!data.ok){
-      setStatus("Fehler beim Laden der Buchungen: " + (data.message || data.error || "unknown"), false);
-      alert(JSON.stringify(data, null, 2));
-      return;
-    }
-
-    const el = $("myBookings");
-    const list = data.bookings || [];
-
-    if(!list.length){
-      el.innerHTML = "<div class='muted'>Keine Buchungen.</div>";
-      setStatus("Buchungen geladen.", true);
-      return;
-    }
-
-    el.innerHTML = list.map(b=>`
-      <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;margin:8px 0">
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <div><b>${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}</b></div>
-          <div class="muted">${fmtRange(b.start,b.end)}</div>
-        </div>
-      </div>
-    `).join("");
-
-    setStatus("Buchungen geladen.", true);
-  }
-
-  // -------- Admin --------
-  async function adminLogin(){
-    const pw = $("adminPw").value.trim();
-    const {data} = await jpost("/api/admin/login", { adminPassword: pw });
-    if(!data.ok){
-      alert(JSON.stringify(data, null, 2));
-      isAdmin = false;
-      $("adminState").textContent = "Nicht eingeloggt.";
-      return;
-    }
-    isAdmin = true;
-    $("adminState").textContent = "Eingeloggt.";
-    alert("Admin Login OK");
-  }
-  function adminLogout(){
-    isAdmin = false;
-    $("adminState").textContent = "Nicht eingeloggt.";
-    alert("Logout");
-  }
-  async function adminSaveStationPin(){
-    if(!isAdmin){ alert("Bitte erst Admin einloggen."); return; }
-    const adminPassword = $("adminPw").value.trim();
-    const stationPin = $("stationPinAdmin").value.trim();
-    const {data} = await jpost("/api/admin/set-station-pin", { adminPassword, stationPin });
-    if(!data.ok){ alert(JSON.stringify(data, null, 2)); return; }
-    alert("Stations-PIN gespeichert.");
-  }
-
-  // -------- Wire up --------
-  $("btnRefresh").onclick = refreshSlots;
-  $("btnMy").onclick = loadMyBookings;
-
-  $("btnBook").onclick = doBook;
-  $("btnClose").onclick = ()=>closeDrawer(true);
-
-  $("btnAdminLogin").onclick = adminLogin;
-  $("btnAdminLogout").onclick = adminLogout;
-  $("btnSaveStationPin").onclick = adminSaveStationPin;
-  $("adminPw").addEventListener("keydown",(e)=>{ if(e.key==="Enter") adminLogin(); });
-
-  setStatus("Bereit. Worker: " + API_BASE, true);
-</script>
-
-</body>
-</html>
+      <button id="btnSaveStationPin" style="margin-top:10px;">Stations-PIN speichern</button
