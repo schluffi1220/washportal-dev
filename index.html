@@ -90,7 +90,7 @@
 <body>
 
 <h1>Washportal – DEV</h1>
-<p class="sub">1 Zugang → 2 Slot-Dropdown → 3 Maschinenübersicht → 4 Meine Buchungen → 5 Feedback → 6 Admin</p>
+<p class="sub">1 Zugang → 2 Slots buchen → 3 Maschinenübersicht → 4 Meine Buchungen → 5 Feedback → 6 Admin</p>
 
 <div id="statusBox" class="bar">Bereit.</div>
 
@@ -122,6 +122,7 @@
   <div class="actions">
     <button id="btnBook" class="btn2">Buchen</button>
   </div>
+  <div class="small">Belegt/Defekt/Abgelaufen werden angezeigt, sind aber nicht auswählbar.</div>
 </div>
 
 <div class="card">
@@ -143,7 +144,7 @@
 
 <div class="card">
   <h2>5) Feedback / Antworten</h2>
-  <div class="muted">Kommt als nächster Schritt (Chat + Antworten + gelesen Status).</div>
+  <div class="muted">Nächster Schritt (Chat + Antworten).</div>
 </div>
 
 <div class="card">
@@ -155,6 +156,7 @@
   <div class="actions">
     <button id="btnAdminLogin" class="btn2">Admin Login</button>
     <button id="btnAdminReload" class="btn2 ghost" disabled>Admin Daten laden</button>
+    <button id="btnAdminLogout" class="btn2 ghost" disabled>Logout</button>
   </div>
 
   <div id="adminBox" class="muted" style="margin-top:10px;">Noch nicht eingeloggt.</div>
@@ -200,12 +202,17 @@
 </div>
 
 <script>
+  // ✅ DEV Worker URL
   const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const $ = (id) => document.getElementById(id);
 
   let cachedWasherSlots = [];
   let cachedStatus = null;
+
+  // ADMIN Session (frontend-only)
   let adminOk = false;
+  let adminLogoutTimer = null;
+  const ADMIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 Minuten
 
   function setStatus(msg, ok=true){
     const el = $("statusBox");
@@ -255,7 +262,6 @@
     const d = new Date(Number(ts));
     return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
-
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, m => ({
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
@@ -268,6 +274,29 @@
     return m ? Number(m.defect)===1 : false;
   }
 
+  // ---------- Admin timeout helpers ----------
+  function adminLogout(reason = "Logout ✅") {
+    adminOk = false;
+    if (adminLogoutTimer) {
+      clearTimeout(adminLogoutTimer);
+      adminLogoutTimer = null;
+    }
+    $("adminControls").style.display = "none";
+    $("btnAdminReload").disabled = true;
+    $("btnAdminLogout").disabled = true;
+
+    $("adminBox").innerHTML = `<b>${reason}</b><div class="small">Du bist ausgeloggt.</div>`;
+  }
+
+  function adminTouch(){
+    if (!adminOk) return;
+    if (adminLogoutTimer) clearTimeout(adminLogoutTimer);
+    adminLogoutTimer = setTimeout(() => {
+      adminLogout("Timeout ⏱️");
+    }, ADMIN_TIMEOUT_MS);
+  }
+
+  // ---------- Slots dropdown ----------
   function rebuildSlotDropdown(){
     const sel = $("slotSelect");
     sel.innerHTML = "";
@@ -348,6 +377,7 @@
     await refreshAll();
   }
 
+  // ---------- My bookings ----------
   async function loadMyBookings(){
     const p = accessPayload();
     const {data} = await jpost("/api/my-bookings", p);
@@ -372,7 +402,7 @@
 
       const defect = isMachineDefect(b.type, b.machine);
 
-      // ✅ HARTE Farben: rot > blau > grün > grau
+      // ✅ harte Farben: rot > blau > grün > grau
       let color = "green";
       if (defect) color = "red";
       else if (active) color = "blue";
@@ -383,8 +413,7 @@
       const time = fmtSlot(start, end);
       const left = active ? ` · Rest: ${msToHMS(end-now)}` : "";
 
-      let flags = "";
-      if (defect) flags = `<div class="warn">⚠️ Maschine ist defekt</div>`;
+      let flags = defect ? `<div class="warn">⚠️ Maschine ist defekt</div>` : "";
 
       let buttons = "";
       if (future) {
@@ -410,6 +439,7 @@
     }).join("");
   }
 
+  // ---------- Machines overview ----------
   function renderMachines(){
     if (!cachedStatus || !cachedStatus.ok) return;
 
@@ -436,7 +466,7 @@
       let dotCls = "dot free";
       let badgeText = "frei";
 
-      if (!enabled) { stateClass="neutral"; dotCls="dot bus"; badgeText="gesperrt"; }
+      if (!enabled) { stateClass="neutral"; dotCls="dot busy"; badgeText="gesperrt"; }
       else if (defect) { stateClass="def"; dotCls="dot def"; badgeText="defekt"; }
       else if (active) { stateClass="busy"; dotCls="dot busy"; badgeText="belegt"; }
 
@@ -450,9 +480,6 @@
       if (enabled) {
         if (!defect) btns.push(`<button class="mbtn danger" onclick="setDefect('${type}',${machine},true)">Defekt melden</button>`);
         else btns.push(`<button class="mbtn okbtn" onclick="setDefect('${type}',${machine},false)">Defekt freigeben</button>`);
-      }
-      if (active && active.room === $("room").value.trim()) {
-        btns.push(`<button class="mbtn info" onclick="releaseBooking('${active.id}')">Freigeben</button>`);
       }
 
       return `
@@ -489,6 +516,7 @@
 
     await loadMyBookings();
     renderMachines();
+
     setStatus("Bereit.", true);
   }
 
@@ -499,28 +527,36 @@
     const pw = adminPassword();
     const {data} = await jpost("/api/admin/login", { adminPassword: pw });
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
+
     adminOk = true;
     $("btnAdminReload").disabled = false;
+    $("btnAdminLogout").disabled = false;
     $("adminControls").style.display = "block";
-    $("adminBox").innerHTML = `<b>Admin Login ok ✅</b>`;
+    $("adminBox").innerHTML = `<b>Admin Login ok ✅</b><div class="small">Auto-Logout nach 5 Minuten Inaktivität.</div>`;
+
+    adminTouch();
     await adminReload();
   }
 
   async function adminReload(){
     if (!adminOk) return;
+    adminTouch();
+
     const pw = adminPassword();
     const {data} = await jpost("/api/admin/get-config", { adminPassword: pw });
     if (!data.ok) { alert(JSON.stringify(data,null,2)); return; }
     $("daysPast").value = data.config.daysPast ?? 1;
     $("daysFuture").value = data.config.daysFuture ?? 6;
-    $("adminBox").innerHTML = `<b>Admin Daten geladen ✅</b>`;
   }
 
   async function saveStationPin(){
     if (!adminOk) return alert("Bitte erst Admin Login.");
+    adminTouch();
+
     const pw = adminPassword();
     const sp = $("adminStationPin").value.trim();
     if (!confirm("Stations-PIN wirklich speichern?")) return;
+
     const {data} = await jpost("/api/admin/set-station-pin", { adminPassword: pw, stationPin: sp });
     if (!data.ok) return alert(JSON.stringify(data,null,2));
     alert("Stations-PIN gespeichert ✅");
@@ -528,18 +564,24 @@
 
   async function saveDays(){
     if (!adminOk) return alert("Bitte erst Admin Login.");
+    adminTouch();
+
     const pw = adminPassword();
     const dp = Number($("daysPast").value);
     const df = Number($("daysFuture").value);
     if (!confirm("Tage-Fenster wirklich speichern?")) return;
+
     const {data} = await jpost("/api/admin/set-days-window", { adminPassword: pw, daysPast: dp, daysFuture: df });
     if (!data.ok) return alert(JSON.stringify(data,null,2));
     alert("Gespeichert ✅");
+
     await refreshAll();
   }
 
   async function changeAdminPassword(){
     if (!adminOk) return alert("Bitte erst Admin Login.");
+    adminTouch();
+
     const pw = adminPassword();
     const n1 = $("newAdminPw").value.trim();
     const n2 = $("newAdminPw2").value.trim();
@@ -547,10 +589,12 @@
     if (n1.length < 6) return alert("Neues Passwort muss mindestens 6 Zeichen haben.");
 
     if (!confirm("Admin Passwort wirklich ändern?")) return;
+
     const {data} = await jpost("/api/admin/set-admin-password", { adminPassword: pw, newPassword: n1 });
     if (!data.ok) return alert(JSON.stringify(data,null,2));
 
     alert("Admin Passwort geändert ✅");
+
     $("adminPw").value = n1;
     $("newAdminPw").value = "";
     $("newAdminPw2").value = "";
@@ -558,6 +602,8 @@
 
   async function loadLogs(){
     if (!adminOk) return alert("Bitte erst Admin Login.");
+    adminTouch();
+
     const pw = adminPassword();
     const {data} = await jpost("/api/admin/logs", { adminPassword: pw, limit: 150 });
     if (!data.ok) return alert(JSON.stringify(data,null,2));
@@ -575,6 +621,7 @@
 
   $("btnAdminLogin").onclick = adminLogin;
   $("btnAdminReload").onclick = adminReload;
+  $("btnAdminLogout").onclick = () => adminLogout("Logout ✅");
   $("btnSaveStationPin").onclick = saveStationPin;
   $("btnSaveDays").onclick = saveDays;
   $("btnChangeAdminPw").onclick = changeAdminPassword;
