@@ -597,13 +597,31 @@ function adminTouch(){
 }
 
 async function adminSetStationPin(){
-  if(!adminTouch()) return;
   const pw = $("adminPw").value.trim();
   const stationPin = $("adminStationPin").value.trim();
+
+  if(!pw){
+    alert("Bitte Admin-Passwort nochmal eingeben (wird für das Speichern benötigt).");
+    return;
+  }
+  if(!/^\d{4}$/.test(stationPin)){
+    alert("Stations-PIN muss genau 4-stellig sein.");
+    return;
+  }
+
   const {data} = await jpost("/api/admin/set-station-pin", { adminPassword: pw, stationPin });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); return; }
+  if(!data.ok){
+    alert(JSON.stringify(data,null,2));
+    return;
+  }
+
+  // Session-Timestamp auffrischen (damit du nicht rausfliegst)
+  adminLoggedIn = true;
+  adminLast = Date.now();
+
   alert("✅ Stations-PIN gespeichert");
 }
+
 
 async function adminChangePw(){
   if(!adminTouch()) return;
