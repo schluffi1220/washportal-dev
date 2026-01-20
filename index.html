@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Wasch-Portal (DEV)</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Washportal DEV</title>
   <style>
     :root{
       --bg:#ffffff;
-      --text:#0a0a0a;
+      --text:#0b0b0b;
       --muted:#666;
-      --card:#f6f6f6;
       --border:#ddd;
-      --btn:#111;
-      --btnText:#fff;
+      --card:#f7f7f7;
 
       --freeBg:#e9f7ec;
       --bookedBg:#e8f2ff;
@@ -24,56 +22,72 @@
       --defectDot:#d93025;
       --blockedDot:#f29900;
     }
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--text); margin:0; padding:16px;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--text); margin:0; padding:14px;}
+    .wrap{max-width:980px; margin:0 auto;}
     h1{margin:0 0 4px 0;}
-    .sub{color:var(--muted); margin-bottom:12px;}
-    .wrap{max-width:900px; margin:0 auto;}
-    .box{border:1px solid var(--border); border-radius:12px; padding:12px; background:#fff; margin-bottom:12px;}
-    .row{display:flex; gap:10px; flex-wrap:wrap;}
-    label{display:block; font-weight:600; margin:8px 0 4px;}
+    .sub{color:var(--muted); margin-bottom:10px;}
+    .box{border:1px solid var(--border); border-radius:14px; padding:12px; background:#fff; margin-bottom:12px;}
+    .status{padding:10px; background:var(--card); border-radius:12px; border:1px solid var(--border); margin-bottom:12px;}
+    label{display:block; font-weight:700; margin:8px 0 4px;}
     input,select,textarea{width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; font-size:16px;}
-    input[type="password"]{font-family:inherit;}
-    button{padding:10px 14px; border-radius:10px; border:0; background:var(--btn); color:var(--btnText); font-size:16px; cursor:pointer;}
+    input[type=password]{letter-spacing:2px;}
+    button{padding:10px 14px; border-radius:10px; border:0; background:#111; color:#fff; font-size:16px; cursor:pointer;}
     button.secondary{background:#eee; color:#111; border:1px solid var(--border);}
     button:disabled{opacity:.5; cursor:not-allowed;}
-    .status{padding:10px; background:var(--card); border-radius:10px; border:1px solid var(--border); margin-bottom:10px;}
-    details summary{cursor:pointer; font-weight:700;}
-    .grid{display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px;}
-    @media(min-width:700px){ .grid{grid-template-columns:1fr 1fr;} }
-    .tile{border:1px solid var(--border); border-radius:14px; padding:12px; background:#fff; display:flex; justify-content:space-between; align-items:center; gap:10px;}
-    .tile.left{display:block;}
-    .dot{width:14px;height:14px;border-radius:50%;}
-    .title{font-weight:800;}
-    .small{font-size:13px;color:var(--muted);}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    .grid{display:grid; grid-template-columns:1fr; gap:10px;}
+    @media(min-width:720px){ .grid{grid-template-columns:1fr 1fr;} }
+
+    .tile{border:1px solid var(--border); border-radius:16px; padding:12px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+    .left{display:flex; gap:10px; align-items:flex-start;}
+    .dot{width:16px;height:16px;border-radius:50%; margin-top:4px;}
+    .title{font-weight:900;}
+    .small{color:var(--muted); font-size:13px;}
     .pill{display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--border); font-size:12px; margin-left:6px;}
     .bg-free{background:var(--freeBg);}
     .bg-booked{background:var(--bookedBg);}
     .bg-defect{background:var(--defectBg);}
     .bg-blocked{background:var(--blockedBg);}
-    .hr{height:1px; background:var(--border); margin:12px 0;}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px;}
+
+    details summary{cursor:pointer; font-weight:900;}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px;}
+    .timeGrid{display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:8px; margin-top:8px;}
+    .timeChip{display:flex; align-items:center; gap:8px; padding:10px; border-radius:12px; border:1px solid rgba(0,0,0,.12); background:rgba(255,255,255,.85);}
+    .timeChip input{transform:scale(1.15);}
+    .chatMsg{border:1px solid var(--border); border-radius:12px; padding:10px; margin:8px 0;}
+    .chatUser{background:var(--bookedBg);}
+    .chatAdmin{background:#f3f3ff;}
+    .chatMeta{display:flex; gap:8px; align-items:center; justify-content:space-between;}
   </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>Wasch-Portal (DEV)</h1>
-  <div class="sub">Cloudflare Worker + D1</div>
+  <h1>Washportal DEV</h1>
+  <div class="sub">Build stabil • Slots Dropdown • Freigeben/Storno • News • Feedback</div>
 
   <div id="status" class="status">Lade…</div>
+
+  <!-- Version Info (User) -->
+  <div class="box">
+    <details id="newsDetails">
+      <summary>Was ist neu?</summary>
+      <div id="newsText" class="small" style="margin-top:8px; white-space:pre-wrap;"></div>
+    </details>
+  </div>
 
   <!-- 1) Zugang -->
   <div class="box">
     <h2>1) Zugang</h2>
 
-    <label>Zimmernummer</label>
-    <input id="room" placeholder="z. B. 316" inputmode="numeric" />
+    <label>Zimmernummer (0–400)</label>
+    <input id="room" inputmode="numeric" placeholder="z.B. 316"/>
 
-    <label>Persönlicher PIN (4-stellig)</label>
-    <input id="pin" type="password" placeholder="****" inputmode="numeric" />
+    <label>PIN (4-stellig)</label>
+    <input id="pin" type="password" inputmode="numeric" placeholder="****"/>
 
-    <label>Stations-PIN (für Buchen erforderlich)</label>
-    <input id="stationPin" type="password" placeholder="****" inputmode="numeric" />
+    <label>Stations-PIN</label>
+    <input id="stationPin" type="password" inputmode="numeric" placeholder="****"/>
 
     <div class="row" style="margin-top:10px">
       <button onclick="refreshAll()">Aktualisieren</button>
@@ -84,16 +98,14 @@
   <!-- 2) Slots buchen -->
   <div class="box">
     <h2>2) Slots buchen</h2>
-
-    <label>Freier Slot (Waschmaschine)</label>
+    <label>Freier Slot (Dropdown)</label>
     <select id="slotSelect"></select>
 
     <div class="row" style="margin-top:10px">
       <button onclick="bookSelected()">Buchen</button>
     </div>
-
     <div class="small" style="margin-top:8px">
-      Hinweis: Belegte/defekte/abgelaufene Slots sind sichtbar, aber nicht buchbar.
+      Belegte/defekte/gesperrte Slots sind sichtbar aber nicht buchbar (grau).
     </div>
   </div>
 
@@ -106,14 +118,23 @@
   <!-- 4) Meine Buchungen -->
   <div class="box">
     <h2>4) Meine Buchungen</h2>
-    <button class="secondary" onclick="loadMyBookings()">Meine Buchungen aktualisieren</button>
+    <div class="row">
+      <button class="secondary" onclick="loadMyBookings()">Meine Buchungen aktualisieren</button>
+    </div>
     <div id="myBookings" style="margin-top:10px"></div>
   </div>
 
-  <!-- 5) Feedback (später) -->
+  <!-- 5) Feedback / Antworten -->
   <div class="box">
     <h2>5) Feedback / Antworten</h2>
-    <div class="small">Kommt als nächster Schritt (Chat mit Admin, gelesen/visible).</div>
+    <div id="feedbackBox"></div>
+
+    <label>Nachricht</label>
+    <textarea id="fbText" rows="3" placeholder="Dein Feedback..."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button onclick="sendFeedback()">Absenden</button>
+      <button class="secondary" onclick="loadFeedback()">Neu laden</button>
+    </div>
   </div>
 
   <!-- 6) Admin -->
@@ -123,61 +144,108 @@
     <div class="row">
       <div style="flex:1; min-width:240px">
         <label>Admin-Passwort</label>
-        <input id="adminPw" type="password" placeholder="z.B. initial" onkeydown="if(event.key==='Enter')adminLogin()">
+        <input id="adminPw" type="password" placeholder="z.B. initial" onkeydown="if(event.key==='Enter'){adminLogin()}"/>
         <div class="row" style="margin-top:8px">
           <button onclick="adminLogin()">Login</button>
           <button class="secondary" onclick="adminLogout()">Logout</button>
         </div>
+        <div id="adminState" class="small" style="margin-top:6px;"></div>
       </div>
 
       <div style="flex:1; min-width:240px">
         <label>Stations-PIN setzen/ändern</label>
-        <input id="adminStationPin" type="password" placeholder="z.B. 1111" inputmode="numeric">
+        <input id="adminStationPin" type="password" placeholder="z.B. 1111" inputmode="numeric"/>
         <button style="margin-top:8px" onclick="adminSetStationPin()">Stations-PIN speichern</button>
-        <div class="small">Wird als Hash gespeichert (nicht Klartext).</div>
       </div>
     </div>
 
-    <div class="hr"></div>
+    <hr style="border:0; height:1px; background:var(--border); margin:12px 0;"/>
 
     <details>
       <summary>Admin-Passwort ändern</summary>
       <label>Neues Admin-Passwort (min. 8 Zeichen)</label>
-      <input id="adminPwNew" type="password" placeholder="Neues Passwort">
+      <input id="adminPwNew" type="password" placeholder="Neues Passwort"/>
       <button style="margin-top:8px" onclick="adminChangePw()">Passwort ändern</button>
     </details>
 
-    <div class="hr"></div>
+    <hr style="border:0; height:1px; background:var(--border); margin:12px 0;"/>
 
     <details open>
       <summary>Tage-Fenster</summary>
       <div class="row">
         <div style="flex:1; min-width:140px">
           <label>Vergangene Tage</label>
-          <input id="daysPast" inputmode="numeric" placeholder="1">
+          <input id="daysPast" inputmode="numeric" placeholder="1"/>
         </div>
         <div style="flex:1; min-width:140px">
           <label>Zukünftige Tage</label>
-          <input id="daysFuture" inputmode="numeric" placeholder="6">
+          <input id="daysFuture" inputmode="numeric" placeholder="6"/>
         </div>
       </div>
-      <button style="margin-top:8px" onclick="adminSaveDays()">Speichern (mit Bestätigung)</button>
+      <button style="margin-top:8px" onclick="adminSaveDays()">Speichern</button>
     </details>
 
-    <div class="hr"></div>
+    <hr style="border:0; height:1px; background:var(--border); margin:12px 0;"/>
 
     <details open>
-      <summary>Wasch-Zeiten (0–23 Uhr)</summary>
-      <div id="hourChecks" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px"></div>
-      <button style="margin-top:10px" onclick="adminSaveWasherTimes()">Speichern (mit Bestätigung)</button>
+      <summary>Waschzeiten (Haken 0–23)</summary>
+      <div id="washerTimesGrid" class="timeGrid"></div>
+      <button style="margin-top:8px" onclick="adminSaveWasherTimes()">Speichern</button>
     </details>
 
-    <div class="hr"></div>
+    <hr style="border:0; height:1px; background:var(--border); margin:12px 0;"/>
 
     <details>
-      <summary>Logs</summary>
-      <button style="margin-top:8px" class="secondary" onclick="adminLoadLogs()">Logs laden</button>
-      <div id="logsBox" class="mono" style="margin-top:10px; white-space:pre-wrap"></div>
+      <summary>User darf Defekt melden?</summary>
+      <div class="row" style="margin-top:8px">
+        <label style="display:flex; gap:8px; align-items:center; font-weight:700;">
+          <input id="userDefectEnabled" type="checkbox"/>
+          Defekt melden erlaubt
+        </label>
+        <button onclick="adminSaveUserDefect()">Speichern</button>
+      </div>
+      <div class="small">Zusätzlich pro Maschine sperrbar über die Maschinenkacheln (Admin).</div>
+    </details>
+
+    <hr style="border:0; height:1px; background:var(--border); margin:12px 0;"/>
+
+    <details>
+      <summary>Versionsinfo (Was ist neu?)</summary>
+      <label>Text (für User sichtbar)</label>
+      <textarea id="adminNewsText" rows="3" placeholder="Was ist neu..."></textarea>
+      <div class="row" style="margin-top:8px">
+        <button onclick="adminSaveNews()">Speichern</button>
+        <button class="secondary" onclick="adminNewsSeen()">Gesehen-Zähler</button>
+      </div>
+      <div id="newsSeenInfo" class="small" style="margin-top:6px;"></div>
+    </details>
+
+    <hr style="border:0; height:1px; background:var(--border); margin:12px 0;"/>
+
+    <details>
+      <summary>Feedback (Admin)</summary>
+      <div class="row" style="margin-top:8px">
+        <button class="secondary" onclick="adminLoadThreads()">Threads laden</button>
+      </div>
+      <div id="adminThreads" class="small" style="margin-top:8px;"></div>
+
+      <div id="adminChat" style="margin-top:10px; display:none;">
+        <div class="small" id="adminChatTitle"></div>
+        <div id="adminChatMsgs"></div>
+
+        <label>Antwort</label>
+        <textarea id="adminReplyText" rows="3" placeholder="Admin Antwort..."></textarea>
+
+        <label style="display:flex; gap:8px; align-items:center; font-weight:700;">
+          <input id="adminReplyVisible" type="checkbox" checked/>
+          Für User sichtbar
+        </label>
+
+        <div class="row" style="margin-top:8px">
+          <button onclick="adminSendReply()">Senden</button>
+          <button class="secondary" onclick="adminReloadRoom()">Neu laden</button>
+        </div>
+      </div>
     </details>
 
   </div>
@@ -185,15 +253,20 @@
 </div>
 
 <script>
-/* ✅ WICHTIG: WORKER URL EINTRAGEN */
+/* ====== API BASE ====== */
 const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
-const $ = (id)=>document.getElementById(id);
+/* ====== State ====== */
 let statusCache = null;
-let adminLoggedIn = false;
+let isAdmin = false;
 let adminLast = 0;
+let currentNewsVer = 0;
+let currentRoomInAdminChat = "";
+
+const $ = (id)=>document.getElementById(id);
 
 function setStatus(msg){ $("status").textContent = msg; }
+function corsWarn(obj){ alert(JSON.stringify(obj,null,2)); }
 
 async function jget(path){
   const r = await fetch(API_BASE + path, { cache:"no-store" });
@@ -209,12 +282,7 @@ async function jpost(path, body){
   return { r, data };
 }
 
-function clearAccess(){
-  $("room").value = "";
-  $("pin").value = "";
-  $("stationPin").value = "";
-}
-
+/* ====== Formatting Berlin time ====== */
 function fmtDT(ms){
   const d = new Date(ms);
   return new Intl.DateTimeFormat("de-DE", {
@@ -230,201 +298,104 @@ function fmtTime(ms){
     hour:"2-digit", minute:"2-digit"
   }).format(d);
 }
-function stateToBg(state){
+
+function clearAccess(){
+  $("room").value="";
+  $("pin").value="";
+  $("stationPin").value="";
+}
+
+function bgForState(state){
   if(state==="free") return "bg-free";
   if(state==="booked") return "bg-booked";
   if(state==="defect") return "bg-defect";
-  if(state==="blocked") return "bg-blocked";
-  if(state==="past") return "bg-blocked";
-  return "";
+  return "bg-blocked";
 }
-function stateToDot(state){
+function dotForState(state){
   if(state==="free") return "var(--freeDot)";
   if(state==="booked") return "var(--bookedDot)";
   if(state==="defect") return "var(--defectDot)";
-  if(state==="blocked"||state==="past") return "var(--blockedDot)";
-  return "#999";
+  return "var(--blockedDot)";
 }
 
-async function boot(){
+/* ====== Boot ====== */
+(async function boot(){
   setStatus("Lade Status…");
   const s = await jget("/api/status");
-  if(!s.ok){
-    setStatus("Fehler beim Laden.");
-    alert(JSON.stringify(s,null,2));
-    return;
-  }
+  if(!s.ok){ setStatus("Fehler"); corsWarn(s); return; }
   statusCache = s;
-  setStatus("Bereit. Build: " + s.build);
-  buildHoursUI();
-  fillAdminDefaults(s.config);
-  renderMachines();
-  renderSlotSelect([]); // empty until refreshAll
-}
-boot();
+  currentNewsVer = Number(s.newsVer||0);
 
-function fillAdminDefaults(cfg){
+  setStatus("Bereit • Build: " + s.build);
+
+  $("newsText").textContent = s.newsText || "(leer)";
+  // default collapsed
+  $("newsDetails").open = false;
+
+  fillAdminDefaults();
+  renderWasherTimesGrid(s.config?.washerTimes || []);
+  renderSlotSelect([]);
+  renderMachines();
+
+  // If user already has access filled -> try load slots (no auto)
+})();
+
+function fillAdminDefaults(){
+  const cfg = statusCache?.config || {};
   $("daysPast").value = cfg.daysPast ?? 1;
   $("daysFuture").value = cfg.daysFuture ?? 6;
+  $("userDefectEnabled").checked = !!cfg.userDefectEnabled;
+  $("adminNewsText").value = statusCache?.newsText || "";
 }
 
-function buildHoursUI(){
-  const wrap = $("hourChecks");
-  wrap.innerHTML = "";
-  for(let h=0; h<24; h++){
-    const id = "h_"+h;
-    const lab = document.createElement("label");
-    lab.style.display="flex";
-    lab.style.alignItems="center";
-    lab.style.gap="6px";
-    lab.style.border="1px solid #ddd";
-    lab.style.borderRadius="10px";
-    lab.style.padding="6px 10px";
-    lab.style.background="#fff";
-    const cb = document.createElement("input");
-    cb.type="checkbox";
-    cb.id=id;
-    cb.dataset.hour=String(h);
-    lab.appendChild(cb);
-    const txt = document.createElement("span");
-    txt.textContent = String(h).padStart(2,"0")+":00";
-    lab.appendChild(txt);
-    wrap.appendChild(lab);
+/* ====== News popup (once per version per room) ====== */
+async function checkNewsPopupAfterAccess(){
+  const room = $("room").value.trim();
+  const pin = $("pin").value.trim();
+  const stationPin = $("stationPin").value.trim();
+
+  if(!room || !pin || !stationPin) return;
+
+  // ask worker what room has already seen
+  const {data} = await jpost("/api/news/seen-version", { room, pin, stationPin });
+  if(!data?.ok) return;
+
+  const seenVer = Number(data.seenVer||0);
+  if(currentNewsVer > seenVer && (statusCache?.newsText||"").trim()){
+    // show once
+    alert("🆕 Was ist neu?\n\n" + (statusCache.newsText||""));
+    // mark seen
+    await jpost("/api/news/mark-seen", { room, pin, stationPin });
+    $("newsDetails").open = true;
   }
 }
 
-function setHoursChecked(times){
-  // times like ["06:00","08:00"]
-  const set = new Set(times.map(t=>t.slice(0,2)));
-  for(let h=0; h<24; h++){
-    const cb = $("h_"+h);
-    if(cb) cb.checked = set.has(String(h).padStart(2,"0"));
-  }
-}
-
-function renderMachines(){
-  if(!statusCache) return;
-  const machines = statusCache.machines || [];
-  const bookings = statusCache.bookings || [];
-  const now = Date.now();
-
-  const grid = $("machinesGrid");
-  grid.innerHTML = "";
-
-  for(const m of machines){
-    const type = m.type;
-    const machine = Number(m.machine);
-    const key = type+"#"+machine;
-
-    // state
-    let state = "free";
-    let line = "Frei";
-    let until = null;
-    let bookedRoom = "";
-
-    if(Number(m.enabled)!==1){
-      state="blocked"; line="Gesperrt";
-    }else if(Number(m.defect)===1){
-      state="defect"; line="Defekt";
-    }else{
-      // active booking?
-      const b = bookings.find(x => x.type===type && Number(x.machine)===machine && x.status==="booked" && Number(x.end)>now && Number(x.start)<Number(x.end));
-      if(b && Number(b.end)>now && Number(b.start)<Number(b.end)){
-        state="booked";
-        until = Number(b.end);
-        bookedRoom = b.room || "";
-        line = "Belegt bis " + fmtTime(until) + " (Zimmer "+bookedRoom+")";
-      }
-    }
-
-    const tile = document.createElement("div");
-    tile.className = "tile " + stateToBg(state);
-
-    const left = document.createElement("div");
-    left.style.display="flex";
-    left.style.gap="10px";
-    left.style.alignItems="flex-start";
-
-    const dot = document.createElement("div");
-    dot.className="dot";
-    dot.style.background = stateToDot(state);
-    dot.style.marginTop="4px";
-
-    const text = document.createElement("div");
-    const t = document.createElement("div");
-    t.className="title";
-    t.textContent = (type==="washer" ? "Waschmaschine " : "Trockner ") + machine;
-    const s = document.createElement("div");
-    s.className="small";
-    s.textContent = line;
-
-    text.appendChild(t);
-    text.appendChild(s);
-
-    left.appendChild(dot);
-    left.appendChild(text);
-
-    const right = document.createElement("div");
-
-    // (release/finish buttons for later - coming next step)
-    right.innerHTML = "";
-
-    tile.appendChild(left);
-    tile.appendChild(right);
-    grid.appendChild(tile);
-  }
-
-  // hours UI sync
-  setHoursChecked((statusCache.config && statusCache.config.washerTimes) ? statusCache.config.washerTimes : []);
-}
-
+/* ====== Slots ====== */
 function renderSlotSelect(slots){
   const sel = $("slotSelect");
-  sel.innerHTML = "";
-
+  sel.innerHTML="";
   if(!slots || slots.length===0){
-    const o = document.createElement("option");
-    o.value="";
-    o.textContent="Keine Slots";
+    const o=document.createElement("option");
+    o.value=""; o.textContent="Bitte auswählen";
     sel.appendChild(o);
-    sel.disabled = true;
+    sel.disabled=true;
     return;
   }
-
-  sel.disabled = false;
-
+  sel.disabled=false;
   for(const s of slots){
-    const start = Number(s.start);
-    const end = Number(s.end);
-    const label = `${fmtDT(start)}–${fmtTime(end)} • Waschmaschine ${s.machine} • ${slotStateText(s)}`;
-
-    const opt = document.createElement("option");
-    opt.value = JSON.stringify({ start, machine: s.machine });
-    opt.textContent = label;
+    const label = `${fmtDT(s.start)}–${fmtTime(s.end)} • Waschmaschine ${s.machine} • ${s.state}${s.reason?(" ("+s.reason+")"):""}`;
+    const opt=document.createElement("option");
+    opt.value=JSON.stringify({start:s.start, machine:s.machine});
+    opt.textContent=label;
 
     const disabled = (s.state!=="free");
-    opt.disabled = disabled;
+    opt.disabled=disabled;
     if(disabled) opt.style.color="#777";
-
     sel.appendChild(opt);
   }
-
-  // if first option disabled, browser selects it -> we try find first free
-  const firstFreeIndex = slots.findIndex(x=>x.state==="free");
-  if(firstFreeIndex>=0) sel.selectedIndex = firstFreeIndex;
-}
-
-function slotStateText(s){
-  if(s.state==="free"){
-    const now = Date.now();
-    if(Number(s.start) <= now && Number(s.end) > now) return "frei (läuft schon)";
-    return "frei";
-  }
-  if(s.state==="booked") return "belegt";
-  if(s.state==="defect") return "defekt";
-  if(s.state==="blocked") return "gesperrt";
-  if(s.state==="past") return "abgelaufen";
-  return s.state;
+  // auto-select first free
+  const idx = slots.findIndex(x=>x.state==="free");
+  if(idx>=0) sel.selectedIndex=idx;
 }
 
 async function refreshAll(){
@@ -432,22 +403,36 @@ async function refreshAll(){
   const pin = $("pin").value.trim();
   const stationPin = $("stationPin").value.trim();
 
-  // load slots
+  if(!room || !pin || !stationPin){
+    alert("Bitte Zimmernummer, PIN und Stations-PIN eingeben.");
+    return;
+  }
+
   const {data:slotRes} = await jpost("/api/washer/free-slots", { room, pin, stationPin });
   if(!slotRes.ok){
     setStatus("Fehler beim Laden der Slots.");
-    alert(JSON.stringify(slotRes,null,2));
+    corsWarn(slotRes);
   }else{
-    renderSlotSelect(slotRes.slots || []);
+    renderSlotSelect(slotRes.slots||[]);
     setStatus("Bereit.");
   }
 
-  // reload status
-  const st = await jget("/api/status");
-  if(st.ok){
-    statusCache = st;
+  // refresh status for machines + news
+  const s = await jget("/api/status");
+  if(s.ok){
+    statusCache=s;
+    currentNewsVer=Number(s.newsVer||0);
+    $("newsText").textContent = s.newsText || "(leer)";
     renderMachines();
+    renderWasherTimesGrid(s.config?.washerTimes || []);
+    $("userDefectEnabled").checked = !!s.config?.userDefectEnabled;
   }
+
+  // News popup once after valid access
+  await checkNewsPopupAfterAccess();
+
+  // Feedback popup check
+  await feedbackPopupCheck();
 }
 
 async function bookSelected(){
@@ -455,91 +440,229 @@ async function bookSelected(){
   const pin = $("pin").value.trim();
   const stationPin = $("stationPin").value.trim();
 
+  if(!room || !pin || !stationPin){
+    alert("Bitte Zimmernummer, PIN und Stations-PIN eingeben.");
+    return;
+  }
+
   const raw = $("slotSelect").value;
-  if(!raw){ alert("Bitte Slot auswählen."); return; }
+  if(!raw){ alert("Bitte Slot auswählen"); return; }
 
   const sel = JSON.parse(raw);
   const start = Number(sel.start);
   const machine = Number(sel.machine);
 
-  const {data} = await jpost("/api/washer/book", { room, pin, stationPin, start, machine });
-  if(!data.ok){
-    alert(JSON.stringify(data,null,2));
+  if(!confirm("Buchung ausführen?\n\nWaschmaschine "+machine+"\n"+fmtDT(start)+"–"+fmtTime(start+2*60*60*1000))){
     return;
   }
+
+  const {data} = await jpost("/api/washer/book", { room, pin, stationPin, start, machine });
+  if(!data.ok){ corsWarn(data); return; }
+
   alert("✅ Gebucht!");
   await refreshAll();
   await loadMyBookings();
 }
 
+/* ====== Machines ====== */
+function renderMachines(){
+  const grid = $("machinesGrid");
+  grid.innerHTML="";
+
+  if(!statusCache) return;
+
+  const machines = statusCache.machines || [];
+  const bookings = statusCache.bookings || [];
+  const now = Date.now();
+  const cfg = statusCache.config || {};
+
+  for(const m of machines){
+    const type=m.type;
+    const machine=Number(m.machine);
+    let state="free";
+    let line="Frei";
+    let activeBooking=null;
+
+    if(Number(m.enabled)!==1){ state="blocked"; line="Gesperrt"; }
+    else if(Number(m.defect)===1){ state="defect"; line="Defekt"; }
+    else{
+      const b = bookings.find(x=>x.type===type && Number(x.machine)===machine && x.status==="booked" && Number(x.end)>now);
+      if(b && Number(b.start)<Number(b.end)){
+        state="booked";
+        activeBooking=b;
+        line = `Belegt bis ${fmtTime(Number(b.end))} (Zimmer ${b.room})`;
+      }
+    }
+
+    const tile=document.createElement("div");
+    tile.className="tile "+bgForState(state);
+
+    const left=document.createElement("div");
+    left.className="left";
+    const dot=document.createElement("div");
+    dot.className="dot";
+    dot.style.background=dotForState(state);
+
+    const txt=document.createElement("div");
+    const t=document.createElement("div");
+    t.className="title";
+    t.textContent=(type==="washer"?"Waschmaschine ":"Trockner ")+machine;
+
+    const s=document.createElement("div");
+    s.className="small";
+    s.textContent=line;
+
+    txt.appendChild(t);
+    txt.appendChild(s);
+
+    left.appendChild(dot);
+    left.appendChild(txt);
+
+    const right=document.createElement("div");
+
+    // Admin controls (enable/defect)
+    if(isAdminActive()){
+      const btnBlock=document.createElement("button");
+      btnBlock.className="secondary";
+      btnBlock.textContent = Number(m.enabled)===1 ? "Sperren" : "Freigeben";
+      btnBlock.onclick = ()=>adminToggleEnabled(type, machine, Number(m.enabled)!==1);
+
+      const btnDef=document.createElement("button");
+      btnDef.className="secondary";
+      btnDef.textContent = Number(m.defect)===1 ? "Defekt frei" : "Defekt";
+      btnDef.onclick = ()=>adminToggleDefect(type, machine, Number(m.defect)!==1);
+
+      right.appendChild(btnBlock);
+      right.appendChild(document.createElement("div")).style.height="8px";
+      right.appendChild(btnDef);
+    }else{
+      // User defect report (if allowed)
+      const canDef = cfg.userDefectEnabled && (cfg.userDefectAllowed?.[type]?.[String(machine)]===true);
+      if(canDef && state!=="defect"){
+        const btn=document.createElement("button");
+        btn.className="secondary";
+        btn.textContent="Defekt melden";
+        btn.onclick = ()=>userReportDefect(type, machine);
+        right.appendChild(btn);
+      }
+    }
+
+    tile.appendChild(left);
+    tile.appendChild(right);
+    grid.appendChild(tile);
+  }
+}
+
+async function userReportDefect(type, machine){
+  const room = $("room").value.trim();
+  const pin = $("pin").value.trim();
+  const stationPin = $("stationPin").value.trim();
+
+  if(!room || !pin || !stationPin){
+    alert("Bitte Zimmernummer, PIN und Stations-PIN eingeben.");
+    return;
+  }
+
+  if(!confirm("Wirklich als DEFECT melden?\n\n"+(type==="washer"?"Waschmaschine ":"Trockner ")+machine)) return;
+
+  const {data} = await jpost("/api/machine/report-defect", { room, pin, stationPin, type, machine });
+  if(!data?.ok){ corsWarn(data); return; }
+
+  alert("✅ Defekt gemeldet");
+  await refreshAll();
+}
+
+/* ====== My bookings ====== */
 async function loadMyBookings(){
   const room = $("room").value.trim();
   const pin = $("pin").value.trim();
 
+  if(!room || !pin){
+    alert("Bitte Zimmernummer und PIN eingeben.");
+    return;
+  }
+
   const {data} = await jpost("/api/my-bookings", { room, pin });
   const box = $("myBookings");
-  box.innerHTML = "";
+  box.innerHTML="";
 
-  if(!data.ok){
-    box.textContent = "Fehler";
-    alert(JSON.stringify(data,null,2));
-    return;
-  }
+  if(!data.ok){ corsWarn(data); return; }
 
   const st = await jget("/api/status");
-  if(st.ok) statusCache = st;
+  if(st.ok) statusCache=st;
 
-  const machines = (statusCache && statusCache.machines) ? statusCache.machines : [];
   const mMap = new Map();
-  for(const m of machines) mMap.set(m.type+"#"+Number(m.machine), m);
+  for(const m of (statusCache.machines||[])){
+    mMap.set(m.type+"#"+Number(m.machine), m);
+  }
 
-  if(!data.bookings || data.bookings.length===0){
-    box.textContent = "Keine Buchungen.";
+  const now = Date.now();
+  const list = data.bookings || [];
+  if(list.length===0){
+    box.textContent="Keine Buchungen.";
     return;
   }
 
-  for(const b of data.bookings){
-    const m = mMap.get(b.type+"#"+Number(b.machine));
-    const defect = m && Number(m.defect)===1;
+  for(const b of list){
+    const key = b.type+"#"+Number(b.machine);
+    const m = mMap.get(key);
+    const isDef = m && Number(m.defect)===1;
+    const isBlocked = m && Number(m.enabled)!==1;
 
-    const card = document.createElement("div");
-    card.className = "box " + (defect ? "bg-defect" : "bg-booked");
+    const running = (now >= Number(b.start) && now < Number(b.end));
+    const expired = (now >= Number(b.end));
+
+    let state = "booked";
+    if(isDef) state="defect";
+    else if(isBlocked) state="blocked";
+
+    const card=document.createElement("div");
+    card.className="box "+bgForState(state);
     card.style.marginBottom="10px";
 
-    const title = document.createElement("div");
+    const title=document.createElement("div");
     title.className="title";
-    title.textContent = (b.type==="washer"?"Waschmaschine ":"Trockner ") + b.machine;
-    if(defect){
-      const pill = document.createElement("span");
-      pill.className="pill";
-      pill.textContent="Defekt";
-      title.appendChild(pill);
+    title.textContent=(b.type==="washer"?"Waschmaschine ":"Trockner ")+b.machine;
+
+    if(isDef){
+      const p=document.createElement("span");
+      p.className="pill";
+      p.textContent="Defekt";
+      title.appendChild(p);
+    }
+    if(isBlocked){
+      const p=document.createElement("span");
+      p.className="pill";
+      p.textContent="Gesperrt";
+      title.appendChild(p);
     }
 
-    const t = document.createElement("div");
+    const t=document.createElement("div");
     t.className="small";
-    t.textContent = `${fmtDT(b.start)}–${fmtTime(b.end)}`;
+    t.textContent = `${fmtDT(Number(b.start))}–${fmtTime(Number(b.end))}` + (running ? " • läuft" : expired ? " • vorbei" : " • geplant");
 
-    const row = document.createElement("div");
-    row.className="row";
-    row.style.marginTop="10px";
+    const btnRow=document.createElement("div");
+    btnRow.className="row";
+    btnRow.style.marginTop="10px";
 
-    const btnCancel = document.createElement("button");
+    const btnCancel=document.createElement("button");
     btnCancel.className="secondary";
     btnCancel.textContent="Storno";
+    btnCancel.disabled = expired;
     btnCancel.onclick = ()=>cancelBooking(b.id);
 
-    const btnRelease = document.createElement("button");
+    const btnRelease=document.createElement("button");
     btnRelease.className="secondary";
     btnRelease.textContent="Freigeben";
+    btnRelease.disabled = (!running);
     btnRelease.onclick = ()=>releaseBooking(b.id);
 
-    row.appendChild(btnCancel);
-    row.appendChild(btnRelease);
+    btnRow.appendChild(btnCancel);
+    btnRow.appendChild(btnRelease);
 
     card.appendChild(title);
     card.appendChild(t);
-    card.appendChild(row);
+    card.appendChild(btnRow);
     box.appendChild(card);
   }
 }
@@ -547,8 +670,14 @@ async function loadMyBookings(){
 async function cancelBooking(id){
   const room = $("room").value.trim();
   const pin = $("pin").value.trim();
-  const {data} = await jpost("/api/booking/cancel", { id, room, pin });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); return; }
+
+  if(!room || !pin){ alert("Zimmernummer + PIN fehlt"); return; }
+
+  if(!confirm("Storno wirklich ausführen?")) return;
+
+  const {data} = await jpost("/api/booking/cancel", { room, pin, id });
+  if(!data.ok){ corsWarn(data); return; }
+
   alert("✅ Storniert");
   await refreshAll();
   await loadMyBookings();
@@ -557,130 +686,381 @@ async function cancelBooking(id){
 async function releaseBooking(id){
   const room = $("room").value.trim();
   const pin = $("pin").value.trim();
-  const {data} = await jpost("/api/booking/release", { id, room, pin });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); return; }
+  const stationPin = $("stationPin").value.trim();
+
+  if(!room || !pin || !stationPin){
+    alert("Bitte Zimmernummer, PIN und Stations-PIN eingeben.");
+    return;
+  }
+
+  if(!confirm("Maschine wirklich FREIGEBEN?\n\nSlot läuft weiter, aber andere dürfen buchen.")) return;
+
+  const {data} = await jpost("/api/booking/release", { room, pin, stationPin, id });
+  if(!data.ok){ corsWarn(data); return; }
+
   alert("✅ Freigegeben");
   await refreshAll();
   await loadMyBookings();
 }
 
-/* ---------------- ADMIN ---------------- */
-
-function adminIsActive(){
-  return adminLoggedIn && (Date.now() - adminLast) < (5*60*1000);
+/* ====== Admin session ====== */
+function isAdminActive(){
+  return isAdmin && (Date.now() - adminLast) < (5*60*1000);
+}
+function adminTouch(){
+  if(!isAdminActive()){
+    isAdmin=false;
+    $("adminState").textContent="Admin: ausgeloggt (Timeout)";
+    return false;
+  }
+  adminLast=Date.now();
+  return true;
 }
 
 async function adminLogin(){
   const pw = $("adminPw").value.trim();
   const {data} = await jpost("/api/admin/login", { adminPassword: pw });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); adminLoggedIn=false; return; }
-  adminLoggedIn=true;
+  if(!data.ok){ corsWarn(data); isAdmin=false; $("adminState").textContent="Admin: Login fehlgeschlagen"; return; }
+  isAdmin=true;
   adminLast=Date.now();
-  alert("✅ Admin Login OK");
+  $("adminState").textContent="Admin: eingeloggt ✅ (5 Min Timeout)";
   await refreshAll();
 }
 
 function adminLogout(){
-  adminLoggedIn=false;
+  isAdmin=false;
   adminLast=0;
-  alert("✅ Logout");
-}
-
-function adminTouch(){
-  adminLast=Date.now();
-  if(!adminIsActive()){
-    adminLoggedIn=false;
-    alert("Admin-Session abgelaufen. Bitte neu einloggen.");
-    return false;
-  }
-  return true;
+  $("adminState").textContent="Admin: ausgeloggt";
+  alert("Logout ✅");
+  renderMachines();
 }
 
 async function adminSetStationPin(){
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+
   const pw = $("adminPw").value.trim();
   const stationPin = $("adminStationPin").value.trim();
 
-  if(!pw){
-    alert("Bitte Admin-Passwort nochmal eingeben (wird für das Speichern benötigt).");
-    return;
-  }
-  if(!/^\d{4}$/.test(stationPin)){
-    alert("Stations-PIN muss genau 4-stellig sein.");
-    return;
-  }
+  if(!pw){ alert("Bitte Admin-Passwort im Feld eintragen."); return; }
 
   const {data} = await jpost("/api/admin/set-station-pin", { adminPassword: pw, stationPin });
-  if(!data.ok){
-    alert(JSON.stringify(data,null,2));
-    return;
-  }
-
-  // Session-Timestamp auffrischen (damit du nicht rausfliegst)
-  adminLoggedIn = true;
-  adminLast = Date.now();
-
+  if(!data.ok){ corsWarn(data); return; }
   alert("✅ Stations-PIN gespeichert");
 }
 
-
 async function adminChangePw(){
-  if(!adminTouch()) return;
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+
   const pw = $("adminPw").value.trim();
   const newPw = $("adminPwNew").value.trim();
+
   const {data} = await jpost("/api/admin/change-password", { adminPassword: pw, newPassword: newPw });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); return; }
+  if(!data.ok){ corsWarn(data); return; }
   alert("✅ Admin-Passwort geändert");
 }
 
 async function adminSaveDays(){
-  if(!adminTouch()) return;
-  if(!confirm("Sicher speichern?")) return;
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+
+  if(!confirm("Tage-Fenster speichern?")) return;
 
   const pw = $("adminPw").value.trim();
   const daysPast = $("daysPast").value.trim();
   const daysFuture = $("daysFuture").value.trim();
 
   const {data} = await jpost("/api/admin/set-days-window", { adminPassword: pw, daysPast, daysFuture });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); return; }
-
+  if(!data.ok){ corsWarn(data); return; }
   alert("✅ Gespeichert");
   await refreshAll();
 }
 
+/* ====== Washer times grid ====== */
+function renderWasherTimesGrid(selectedTimes){
+  const grid = $("washerTimesGrid");
+  if(!grid) return;
+  const selected = new Set((selectedTimes||[]).map(String));
+  grid.innerHTML="";
+
+  for(let h=0; h<24; h++){
+    const hh = String(h).padStart(2,"0")+":00";
+    const lab=document.createElement("label");
+    lab.className="timeChip";
+    const cb=document.createElement("input");
+    cb.type="checkbox";
+    cb.value=hh;
+    cb.checked = selected.has(hh);
+    const sp=document.createElement("span");
+    sp.textContent=hh;
+    lab.appendChild(cb); lab.appendChild(sp);
+    grid.appendChild(lab);
+  }
+}
+function getWasherTimesFromGrid(){
+  const grid = $("washerTimesGrid");
+  const cbs = [...grid.querySelectorAll("input[type=checkbox]")];
+  return cbs.filter(x=>x.checked).map(x=>x.value).sort();
+}
 async function adminSaveWasherTimes(){
-  if(!adminTouch()) return;
-  if(!confirm("Sicher speichern?")) return;
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+  if(!confirm("Waschzeiten speichern?")) return;
 
   const pw = $("adminPw").value.trim();
-  const hours = [];
-  for(let h=0; h<24; h++){
-    const cb = $("h_"+h);
-    if(cb && cb.checked) hours.push(h);
-  }
+  const washerTimes = getWasherTimesFromGrid();
 
-  const {data} = await jpost("/api/admin/set-washer-times", { adminPassword: pw, hours });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); return; }
-
+  const {data} = await jpost("/api/admin/set-washer-times", { adminPassword: pw, washerTimes });
+  if(!data.ok){ corsWarn(data); return; }
   alert("✅ Waschzeiten gespeichert");
   await refreshAll();
 }
 
-async function adminLoadLogs(){
+/* ====== Admin defect enable ====== */
+async function adminSaveUserDefect(){
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+  const pw = $("adminPw").value.trim();
+  const userDefectEnabled = $("userDefectEnabled").checked;
+
+  const {data} = await jpost("/api/admin/set-user-defect-enabled", { adminPassword: pw, userDefectEnabled });
+  if(!data.ok){ corsWarn(data); return; }
+  alert("✅ Gespeichert");
+  await refreshAll();
+}
+
+/* ====== Admin machine toggles ====== */
+async function adminToggleEnabled(type, machine, enable){
   if(!adminTouch()) return;
   const pw = $("adminPw").value.trim();
-  const {data} = await jpost("/api/admin/logs", { adminPassword: pw, limit: 200 });
-  if(!data.ok){ alert(JSON.stringify(data,null,2)); return; }
 
-  const lines = [];
-  for(const l of (data.logs||[])){
-    const ts = fmtDT(Number(l.ts||0));
-    const action = l.action || "";
-    const room = l.room ? ` Zimmer ${l.room}` : "";
-    const tm = (l.type && l.machine) ? ` ${l.type}#${l.machine}` : "";
-    lines.push(`${ts}  ${action}${room}${tm}`);
+  const {data} = await jpost("/api/admin/set-machine-flags", { adminPassword: pw, type, machine, enabled: enable });
+  if(!data.ok){ corsWarn(data); return; }
+  await refreshAll();
+}
+
+async function adminToggleDefect(type, machine, makeDefect){
+  if(!adminTouch()) return;
+  const pw = $("adminPw").value.trim();
+
+  const {data} = await jpost("/api/admin/set-machine-flags", { adminPassword: pw, type, machine, defect: makeDefect });
+  if(!data.ok){ corsWarn(data); return; }
+  await refreshAll();
+}
+
+/* ====== Admin news ====== */
+async function adminSaveNews(){
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+  if(!confirm("Versionsinfo speichern? (User bekommen einmal Pop-Up)")) return;
+
+  const pw = $("adminPw").value.trim();
+  const text = $("adminNewsText").value;
+
+  const {data} = await jpost("/api/admin/set-news", { adminPassword: pw, text });
+  if(!data.ok){ corsWarn(data); return; }
+
+  alert("✅ Versionsinfo gespeichert");
+  await refreshAll();
+}
+
+async function adminNewsSeen(){
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+  const pw = $("adminPw").value.trim();
+
+  const {data} = await jpost("/api/admin/news-seen-count", { adminPassword: pw });
+  if(!data.ok){ corsWarn(data); return; }
+
+  $("newsSeenInfo").textContent = `News-Version ${data.ver} • gesehen von ${data.seenCount} Usern`;
+}
+
+/* ====== Feedback user ====== */
+function renderFeedback(messages){
+  const box = $("feedbackBox");
+  box.innerHTML="";
+
+  if(!messages || messages.length===0){
+    box.innerHTML = `<div class="small">Noch keine Nachrichten.</div>`;
+    return;
   }
 
-  $("logsBox").textContent = lines.join("\n");
+  for(const m of messages){
+    const div = document.createElement("div");
+    div.className = "chatMsg " + (m.sender==="user" ? "chatUser" : "chatAdmin");
+
+    const meta=document.createElement("div");
+    meta.className="chatMeta small";
+    meta.innerHTML = `<span><b>${m.sender==="user"?"Du":"Admin"}</b> • ${fmtDT(m.ts)}</span>
+                      <span>${m.sender==="admin" ? (m.readByUser? "✓ gelesen" : "• ungelesen") : ""}</span>`;
+
+    const txt=document.createElement("div");
+    txt.style.whiteSpace="pre-wrap";
+    txt.textContent = m.text;
+
+    div.appendChild(meta);
+    div.appendChild(txt);
+    box.appendChild(div);
+  }
+}
+
+async function loadFeedback(){
+  const room = $("room").value.trim();
+  const pin = $("pin").value.trim();
+  const stationPin = $("stationPin").value.trim();
+
+  if(!room || !pin || !stationPin){
+    alert("Bitte Zimmernummer, PIN und Stations-PIN eingeben.");
+    return;
+  }
+
+  const {data} = await jpost("/api/feedback/messages", { room, pin, stationPin });
+  if(!data.ok){ corsWarn(data); return; }
+
+  renderFeedback(data.messages||[]);
+  // update last seen for popup
+  const lastTs = (data.messages||[]).length ? data.messages[data.messages.length-1].ts : 0;
+  localStorage.setItem("fb_last_ts_"+room, String(lastTs));
+}
+
+async function sendFeedback(){
+  const room = $("room").value.trim();
+  const pin = $("pin").value.trim();
+  const stationPin = $("stationPin").value.trim();
+  const text = $("fbText").value.trim();
+
+  if(!room || !pin || !stationPin){
+    alert("Bitte Zimmernummer, PIN und Stations-PIN eingeben.");
+    return;
+  }
+  if(!text){
+    alert("Bitte Nachricht eingeben.");
+    return;
+  }
+
+  const {data} = await jpost("/api/feedback/send", { room, pin, stationPin, text });
+  if(!data.ok){ corsWarn(data); return; }
+
+  $("fbText").value="";
+  alert("✅ Feedback gesendet");
+  await loadFeedback();
+}
+
+// popup once if new message since last load
+async function feedbackPopupCheck(){
+  const room = $("room").value.trim();
+  const pin = $("pin").value.trim();
+  const stationPin = $("stationPin").value.trim();
+  if(!room || !pin || !stationPin) return;
+
+  // load messages silently
+  const {data} = await jpost("/api/feedback/messages", { room, pin, stationPin });
+  if(!data?.ok) return;
+
+  const msgs = data.messages||[];
+  const lastTs = msgs.length ? msgs[msgs.length-1].ts : 0;
+
+  const key = "fb_last_ts_"+room;
+  const prev = Number(localStorage.getItem(key)||"0");
+
+  if(lastTs > prev){
+    // Only popup if actually a NEW admin-visible message exists
+    const newAdmin = msgs.some(m => m.sender==="admin" && m.ts > prev);
+    const newUser = msgs.some(m => m.sender==="user" && m.ts > prev);
+
+    if(newAdmin){
+      alert("📩 Neue Antwort vom Admin im Feedback!");
+      $("feedbackBox").scrollIntoView({behavior:"smooth"});
+    }
+    // update last seen marker
+    localStorage.setItem(key, String(lastTs));
+  }
+}
+
+/* ====== Admin feedback ====== */
+async function adminLoadThreads(){
+  if(!adminTouch()) { alert("Bitte neu einloggen."); return; }
+  const pw = $("adminPw").value.trim();
+
+  const {data} = await jpost("/api/admin/feedback/threads", { adminPassword: pw });
+  if(!data.ok){ corsWarn(data); return; }
+
+  const el = $("adminThreads");
+  el.innerHTML = "";
+  if(!data.threads || data.threads.length===0){
+    el.textContent="Keine Threads.";
+    return;
+  }
+
+  for(const t of data.threads){
+    const div=document.createElement("div");
+    div.style.padding="8px 0";
+    const btn=document.createElement("button");
+    btn.className="secondary";
+    btn.textContent = `Zimmer ${t.room} • ungelesen: ${t.unreadForAdmin}`;
+    btn.onclick = ()=>adminOpenRoom(t.room);
+    div.appendChild(btn);
+    el.appendChild(div);
+  }
+}
+
+async function adminOpenRoom(room){
+  currentRoomInAdminChat = room;
+  $("adminChat").style.display="block";
+  $("adminChatTitle").textContent = "Chat: Zimmer "+room;
+  await adminReloadRoom();
+}
+
+async function adminReloadRoom(){
+  if(!adminTouch()) return;
+  const pw = $("adminPw").value.trim();
+
+  const {data} = await jpost("/api/admin/feedback/messages", { adminPassword: pw, room: currentRoomInAdminChat });
+  if(!data.ok){ corsWarn(data); return; }
+
+  const box = $("adminChatMsgs");
+  box.innerHTML = "";
+
+  for(const m of (data.messages||[])){
+    const div=document.createElement("div");
+    div.className="chatMsg "+(m.sender==="user"?"chatUser":"chatAdmin");
+
+    const meta=document.createElement("div");
+    meta.className="chatMeta small";
+    meta.innerHTML = `<span><b>${m.sender==="user"?"User":"Admin"}</b> • ${fmtDT(m.ts)}</span>
+                      <span>${m.sender==="user" ? (m.readByAdmin? "✓ gelesen" : "• ungelesen") : ""}</span>`;
+
+    const txt=document.createElement("div");
+    txt.style.whiteSpace="pre-wrap";
+    txt.textContent=m.text;
+
+    const extra=document.createElement("div");
+    extra.className="small";
+    if(m.sender==="admin"){
+      extra.textContent = "Sichtbar für User: " + (m.visibleToUser ? "JA" : "NEIN");
+    }
+
+    div.appendChild(meta);
+    div.appendChild(txt);
+    div.appendChild(extra);
+    box.appendChild(div);
+  }
+}
+
+async function adminSendReply(){
+  if(!adminTouch()) return;
+  const pw = $("adminPw").value.trim();
+  const text = $("adminReplyText").value.trim();
+  const visibleToUser = $("adminReplyVisible").checked;
+
+  if(!currentRoomInAdminChat){ alert("Kein Zimmer gewählt"); return; }
+  if(!text){ alert("Bitte Text eingeben"); return; }
+
+  const {data} = await jpost("/api/admin/feedback/send", {
+    adminPassword: pw,
+    room: currentRoomInAdminChat,
+    text,
+    visibleToUser
+  });
+
+  if(!data.ok){ corsWarn(data); return; }
+  $("adminReplyText").value="";
+  alert("✅ Antwort gesendet");
+  await adminReloadRoom();
 }
 </script>
 </body>
