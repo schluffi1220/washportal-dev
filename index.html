@@ -84,15 +84,17 @@
       color:var(--txt);
       font-weight:700;
     }
-    .btn.inline{ width:auto; margin:0; padding:10px 12px; }
-
-    details{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:10px 12px;
-      background: rgba(255,255,255,.03);
+    .btn.inline{
+      width:auto;
+      margin:0;
+      padding:9px 12px;
+      border-radius:999px;
+      font-size:12px;
     }
-    summary{cursor:pointer;color:#cfe3ff;font-weight:800}
+    .btn.danger{
+      background: linear-gradient(135deg, rgba(239,68,68,.95), rgba(251,146,60,.85));
+      color:#12060a;
+    }
 
     .toast{
       position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
@@ -105,6 +107,7 @@
       display:none;
       z-index:9999;
       font-size:13px;
+      white-space:pre-wrap;
     }
     .mono{font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
     .small{font-size:12px;color:var(--muted);line-height:1.45}
@@ -142,7 +145,6 @@
         linear-gradient(0deg, var(--redFill), var(--redFill)),
         rgba(17,26,43,.92);
     }
-
     .tileTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
     .title{font-weight:900;font-size:14px}
     .tag{
@@ -156,166 +158,68 @@
     }
     .meta{margin-top:6px;font-size:12px;color:var(--muted)}
     .tileBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .tileBtns button{
-      border-radius:999px;
-      padding:8px 10px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.0);
-      color: var(--txt);
-      cursor:pointer;
-      font-size:12px;
-    }
 
-    /* ✅ Slot-Dropdown LESBAR:
-       Viele Mobile-Browser rendern Options in einem hellen System-Picker.
-       Darum: buchbar = schwarz, disabled = grau. */
+    /* Slot dropdown readability */
     #slotSelect option { color:#000; }
     #slotSelect option:disabled { color:#777; }
 
-    /* Haken-Liste Admin */
-    .chkGrid{
-      display:grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap:8px;
-      margin-top:10px;
-    }
-    @media (max-width:740px){ .chkGrid{grid-template-columns: repeat(4, 1fr);} }
-    .chk{
-      display:flex; align-items:center; gap:8px;
-      padding:8px 10px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background: rgba(0,0,0,.06);
-      color: var(--txt);
-      font-size:13px;
-    }
-    .chk input{ width:auto; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <h1>Washportal</h1>
-      <div class="sub">Alpha-Stand (Zimmer + PIN + Stations-PIN) · 4 WM · 4 TR · Kachel-UI</div>
-    </div>
-  </header>
+<header>
+  <div class="wrap">
+    <h1>Washportal</h1>
+    <div class="sub">Kachel-UI · Buttons Storno/Freigeben aktiv</div>
+  </div>
+</header>
 
-  <main class="wrap">
+<main class="wrap">
 
-    <div class="card" id="cardAccess">
-      <h2>1) Zugang</h2>
-      <div class="row">
-        <div>
-          <label>Zimmernummer (0–400)</label>
-          <input id="room" inputmode="numeric" placeholder="z.B. 316" />
-        </div>
-        <div>
-          <label>PIN (4-stellig)</label>
-          <input id="pin" type="password" inputmode="numeric" placeholder="****" />
-        </div>
+  <div class="card">
+    <h2>1) Zugang</h2>
+    <div class="row">
+      <div>
+        <label>Zimmernummer (0–400)</label>
+        <input id="room" inputmode="numeric" placeholder="z.B. 316" />
       </div>
-      <label>Stations-PIN (4-stellig)</label>
-      <input id="stationPin" type="password" inputmode="numeric" placeholder="****" />
-
-      <button class="btn" id="btnRefresh">Aktualisieren</button>
-
-      <div id="newsBoxWrap" style="margin-top:12px; display:none;"></div>
-    </div>
-
-    <div class="card">
-      <h2>2) Slots buchen</h2>
-      <label>Wasch-Slot auswählen</label>
-      <select id="slotSelect">
-        <option value="">Bitte erst „Aktualisieren“ drücken</option>
-      </select>
-      <button class="btn" id="btnBookWasher">Buchen</button>
-      <div class="small" id="slotHint" style="margin-top:10px"></div>
-    </div>
-
-    <div class="card">
-      <h2>3) Maschinenübersicht</h2>
-      <div class="small" style="margin-bottom:10px">
-        Grün = frei · Blau = läuft/gebucht · Rot = defekt/gesperrt · „Zuletzt“ wird angezeigt wenn frei.
-      </div>
-      <div class="gridTiles" id="tiles"></div>
-    </div>
-
-    <div class="card">
-      <h2>4) Meine Buchungen</h2>
-      <div id="myBookings"></div>
-    </div>
-
-    <div class="card">
-      <h2>5) Feedback / Antworten</h2>
-      <button class="btn secondary" id="btnLoadFeedback">Feedback laden</button>
-      <div id="feedbackList" style="margin-top:10px"></div>
-
-      <label>Neue Nachricht</label>
-      <textarea id="feedbackText" placeholder="Deine Nachricht…"></textarea>
-      <button class="btn" id="btnSendFeedback">Senden</button>
-    </div>
-
-    <div class="card">
-      <h2>6) Admin</h2>
-
-      <div id="adminLoginBox">
-        <label>Admin-Passwort</label>
-        <input id="adminPw" type="password" placeholder="initial (falls neu)" />
-        <button class="btn" id="btnAdminLogin">Login</button>
-        <div class="small" id="adminSessionInfo" style="margin-top:8px"></div>
-      </div>
-
-      <div id="adminBox" style="display:none">
-        <div class="row">
-          <button class="btn secondary" id="btnAdminLogout">Logout</button>
-          <button class="btn secondary" id="btnAdminReload">Admin aktualisieren</button>
-        </div>
-
-        <details style="margin-top:12px" open>
-          <summary>Stations-PIN setzen/ändern</summary>
-          <label>Stations-PIN (4-stellig)</label>
-          <input id="adminStationPin" type="password" inputmode="numeric" placeholder="1111" />
-          <button class="btn" id="btnSetStationPin">Speichern</button>
-        </details>
-
-        <details style="margin-top:12px" open>
-          <summary>Admin-Passwort ändern</summary>
-          <label>Neues Admin-Passwort</label>
-          <input id="adminNewPw" type="password" placeholder="Neues Passwort" />
-          <button class="btn" id="btnChangeAdminPw">Ändern</button>
-          <div class="small" style="margin-top:8px">
-            Hinweis: Nach erfolgreichem Ändern wirst du automatisch ausgeloggt.
-          </div>
-        </details>
-
-        <details style="margin-top:12px" open>
-          <summary>Wasch-Slots (Uhrzeiten per Haken)</summary>
-          <div class="small">Waschdauer fix 2 Stunden. Wähle Start-Uhrzeiten (0–23).</div>
-          <div id="washerHoursBox"></div>
-          <button class="btn" id="btnSaveWasherHours">Waschzeiten speichern</button>
-        </details>
-
-        <details style="margin-top:12px" open>
-          <summary>Trockner-Dauer</summary>
-          <label>Dauer</label>
-          <select id="dryerMinutes">
-            <option value="60">1 Stunde</option>
-            <option value="90">1,5 Stunden</option>
-            <option value="120">2 Stunden</option>
-          </select>
-          <button class="btn" id="btnSaveDryerMinutes">Speichern</button>
-        </details>
-
+      <div>
+        <label>PIN (4-stellig)</label>
+        <input id="pin" type="password" inputmode="numeric" placeholder="****" />
       </div>
     </div>
+    <label>Stations-PIN (4-stellig)</label>
+    <input id="stationPin" type="password" inputmode="numeric" placeholder="****" />
+    <button class="btn" id="btnRefresh">Aktualisieren</button>
+  </div>
 
-  </main>
+  <div class="card">
+    <h2>2) Slots buchen</h2>
+    <label>Wasch-Slot auswählen</label>
+    <select id="slotSelect">
+      <option value="">Bitte erst „Aktualisieren“ drücken</option>
+    </select>
+    <button class="btn" id="btnBookWasher">Buchen</button>
+    <div class="small" id="slotHint" style="margin-top:10px"></div>
+  </div>
 
-  <div id="toast" class="toast"></div>
+  <div class="card">
+    <h2>3) Maschinenübersicht</h2>
+    <div class="small" style="margin-bottom:10px">Frei (grün) · Läuft/gebucht (blau) · Defekt/gesperrt (rot). Buttons erscheinen nur wenn es Sinn ergibt.</div>
+    <div class="gridTiles" id="tiles"></div>
+  </div>
+
+  <div class="card">
+    <h2>4) Meine Buchungen</h2>
+    <div id="myBookings"></div>
+  </div>
+
+</main>
+
+<div id="toast" class="toast"></div>
 
 <script>
 /*** SET THIS ***/
-const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-- DEIN Worker
+const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // ggf. Alpha-URL einsetzen
 
 const $ = (id)=>document.getElementById(id);
 function toast(msg){
@@ -323,19 +227,19 @@ function toast(msg){
   t.textContent = msg;
   t.style.display = "block";
   clearTimeout(window.__t);
-  window.__t = setTimeout(()=> t.style.display="none", 3200);
+  window.__t = setTimeout(()=> t.style.display="none", 3800);
 }
 function fmtDT(ms){
   const d = new Date(ms);
-  return d.toLocaleString("de-DE", { timeZone: "Europe/Berlin" });
+  return d.toLocaleString("de-DE", { timeZone:"Europe/Berlin" });
 }
 function fmtTime(ms){
   const d = new Date(ms);
-  return d.toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin", hour:"2-digit", minute:"2-digit" });
+  return d.toLocaleTimeString("de-DE", { timeZone:"Europe/Berlin", hour:"2-digit", minute:"2-digit" });
 }
 function fmtDate(ms){
   const d = new Date(ms);
-  return d.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
+  return d.toLocaleDateString("de-DE", { timeZone:"Europe/Berlin" });
 }
 async function jpost(path, body){
   const r = await fetch(API_BASE + path, {
@@ -344,13 +248,7 @@ async function jpost(path, body){
     body: JSON.stringify(body||{})
   });
   const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw {status:r.status, data};
-  return data;
-}
-async function jget(path){
-  const r = await fetch(API_BASE + path);
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw {status:r.status, data};
+  if (!r.ok) throw {status:r.status, data, path};
   return data;
 }
 function getCreds(){
@@ -361,39 +259,244 @@ function getCreds(){
   };
 }
 
-// ---------- Admin session (TOKEN vom Worker) ----------
-function getAdminSession(){
-  try{
-    const raw = sessionStorage.getItem("wp_admin_v2");
-    if (!raw) return null;
-    const o = JSON.parse(raw);
-    if (!o.token || !o.expiresAt) return null;
-    if (Date.now() > o.expiresAt) return null;
-    return o;
-  }catch{ return null; }
-}
-function setAdminSession(token, expiresAt, pwForChange){
-  // pwForChange merken wir NUR für "change-password oldPassword"
-  // (Kannst du später entfernen – für Alpha ist das okay.)
-  sessionStorage.setItem("wp_admin_v2", JSON.stringify({token, expiresAt, pwForChange}));
-  renderAdminSessionInfo();
-}
-function clearAdminSession(){
-  sessionStorage.removeItem("wp_admin_v2");
-  renderAdminSessionInfo();
-}
-function renderAdminSessionInfo(){
-  const s = getAdminSession();
-  const el = $("adminSessionInfo");
-  if (!el) return;
-  if (!s) { el.textContent=""; return; }
-  el.textContent = `Session aktiv bis ${fmtDT(s.expiresAt)} (Timeout 5 Min)`;
+let STATE = { config:null, machines:[], bookings:[] };
+
+function trStatus(s){
+  if (s === "booked") return "Gebucht";
+  if (s === "cancelled") return "Storniert";
+  if (s === "released") return "Freigegeben";
+  return s || "";
 }
 
-// ---------- state ----------
-let STATE = { config:null, machines:[], bookings:[], feedback:{}, news:{} };
+function machineBy(type, machine){
+  return (STATE.machines||[]).find(m=>m.type===type && m.machine===machine) || null;
+}
 
-// ---------- slots ----------
+function bookingForMachineRunning(type, machine){
+  const now = Date.now();
+  const bs = (STATE.bookings||[]).filter(b=>b.type===type && b.machine===machine && b.status==="booked");
+  return bs.find(b=> b.start <= now && b.end > now) || null;
+}
+
+function tileStatus(type, machine){
+  const m = machineBy(type, machine);
+  if (!m) return {cls:"bad", tag:"FEHLT", text:"Nicht vorhanden", sub:"Zuletzt: —"};
+
+  const last = (m.lastRoom && Number(m.lastAt||0)>0)
+    ? `Zuletzt: Zimmer ${m.lastRoom} · ${fmtDT(m.lastAt)}`
+    : `Zuletzt: —`;
+
+  if (m.enabled===0) return {cls:"bad", tag:"GESPERRT", text:"Maschine gesperrt", sub:last};
+  if (m.defect===1)  return {cls:"bad", tag:"DEFEKT",  text:`Defekt von ${m.defectBy || "?"}`, sub:last};
+
+  const running = bookingForMachineRunning(type, machine);
+  if (running) return {cls:"busy", tag:"LÄUFT", text:`Zimmer ${running.room} bis ${fmtTime(running.end)}`, sub:last};
+
+  return {cls:"free", tag:"FREI", text:"Frei", sub:last};
+}
+
+/* ---------- ACTION CALLS (Fallback paths) ---------- */
+async function tryPost(paths, body){
+  let lastErr = null;
+  for (const p of paths){
+    try{
+      return await jpost(p, body);
+    }catch(e){
+      // only continue on 404 not_found
+      const notFound = (e?.status === 404) || (e?.data?.error === "not_found");
+      if (!notFound) throw e;
+      lastErr = e;
+    }
+  }
+  throw lastErr || {status:404, data:{error:"not_found"}};
+}
+
+async function doRelease(id){
+  const c = getCreds();
+  if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Zugang fehlt");
+  const body = { id, room:c.room, pin:c.pin, stationPin:c.stationPin };
+  return await tryPost(
+    ["/api/booking/release", "/api/release", "/api/washer/release", "/api/dryer/release"],
+    body
+  );
+}
+async function doCancel(id){
+  const c = getCreds();
+  if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Zugang fehlt");
+  const body = { id, room:c.room, pin:c.pin, stationPin:c.stationPin };
+  return await tryPost(
+    ["/api/booking/cancel", "/api/cancel", "/api/washer/cancel", "/api/dryer/cancel"],
+    body
+  );
+}
+
+/* ---------- My Bookings with Buttons ---------- */
+function bookingTileClass(b){
+  const m = machineBy(b.type, b.machine);
+  if (m && (m.enabled===0 || m.defect===1)) return "bad";
+  const now = Date.now();
+  if (b.status === "cancelled") return "";
+  if (b.status === "released") return "";
+  if (b.status === "booked" && b.start <= now && b.end > now) return "busy";
+  if (b.status === "booked" && b.end > now) return "busy";
+  return "";
+}
+
+function canCancel(b){
+  // Storno nur wenn Slot noch nicht abgelaufen und Start in Zukunft
+  const now = Date.now();
+  return b.status==="booked" && b.start > now;
+}
+function canRelease(b){
+  // Freigeben nur wenn Slot läuft
+  const now = Date.now();
+  return b.status==="booked" && b.start <= now && b.end > now;
+}
+
+function renderMyBookings(){
+  const box = $("myBookings");
+  const c = getCreds();
+  if (!c.room){
+    box.innerHTML = `<div class="small">Bitte Zugang eingeben und Aktualisieren.</div>`;
+    return;
+  }
+  const list = (STATE.bookings||[]).filter(b=> b.room===c.room);
+  if (list.length===0){
+    box.innerHTML = `<div class="small">Keine Buchungen.</div>`;
+    return;
+  }
+
+  box.innerHTML = "";
+  for (const b of list.sort((a,b)=>a.start-b.start)){
+    const tile = document.createElement("div");
+    tile.className = "tile " + bookingTileClass(b);
+    const title = `${b.type==="washer" ? "Waschmaschine" : "Trockner"} ${b.machine}`;
+    const line = `${fmtDate(b.start)} ${fmtTime(b.start)}–${fmtTime(b.end)}`;
+
+    tile.innerHTML = `
+      <div class="tileTop">
+        <div>
+          <div class="title">${title}</div>
+          <div class="meta mono">${line}</div>
+          <div class="meta">Status: <b>${trStatus(b.status)}</b></div>
+        </div>
+        <div class="tag">${b.type.toUpperCase()}</div>
+      </div>
+    `;
+
+    const btns = document.createElement("div");
+    btns.className = "tileBtns";
+
+    if (canRelease(b)){
+      const br = document.createElement("button");
+      br.className = "btn inline secondary";
+      br.textContent = "Freigeben";
+      br.onclick = async ()=>{
+        try{
+          await doRelease(b.id);
+          toast("✅ Freigegeben");
+          await refreshAll();
+        }catch(e){
+          const msg = e?.data?.message || e?.data?.error || "Fehler";
+          toast(`⛔ Freigeben: ${msg}`);
+        }
+      };
+      btns.appendChild(br);
+    }
+
+    if (canCancel(b)){
+      const bc = document.createElement("button");
+      bc.className = "btn inline danger";
+      bc.textContent = "Stornieren";
+      bc.onclick = async ()=>{
+        if (!confirm("Wirklich stornieren?")) return;
+        try{
+          await doCancel(b.id);
+          toast("✅ Storniert");
+          await refreshAll();
+        }catch(e){
+          const msg = e?.data?.message || e?.data?.error || "Fehler";
+          toast(`⛔ Storno: ${msg}`);
+        }
+      };
+      btns.appendChild(bc);
+    }
+
+    if (btns.children.length){
+      tile.appendChild(btns);
+    }else{
+      const hint = document.createElement("div");
+      hint.className = "small";
+      hint.style.marginTop = "10px";
+      hint.textContent = "Keine Aktion möglich (abgelaufen / bereits storniert / bereits freigegeben).";
+      tile.appendChild(hint);
+    }
+
+    box.appendChild(tile);
+  }
+}
+
+/* ---------- Tiles (Machines) + Release Button if your own running booking ---------- */
+function renderTiles(){
+  const box = $("tiles");
+  box.innerHTML = "";
+  const c = getCreds();
+
+  const groups = [
+    {type:"washer", title:"Waschmaschine", machines:[1,2,3,4]},
+    {type:"dryer",  title:"Trockner",      machines:[1,2,3,4]},
+  ];
+
+  for (const group of groups){
+    for (const mId of group.machines){
+      const st = tileStatus(group.type, mId);
+      const tile = document.createElement("div");
+      tile.className = "tile " + st.cls;
+
+      const running = bookingForMachineRunning(group.type, mId);
+      const isMine = !!(running && c.room && running.room === c.room);
+
+      tile.innerHTML = `
+        <div class="tileTop">
+          <div>
+            <div class="title">${group.title} ${mId}</div>
+            <div class="meta">${st.text}</div>
+            <div class="meta mono">${st.sub}</div>
+          </div>
+          <div class="tag">${st.tag}</div>
+        </div>
+      `;
+
+      const btns = document.createElement("div");
+      btns.className = "tileBtns";
+
+      if (isMine){
+        const br = document.createElement("button");
+        br.className = "btn inline secondary";
+        br.textContent = "Freigeben";
+        br.onclick = async ()=>{
+          try{
+            await doRelease(running.id);
+            toast("✅ Freigegeben");
+            await refreshAll();
+          }catch(e){
+            const msg = e?.data?.message || e?.data?.error || "Fehler";
+            toast(`⛔ Freigeben: ${msg}`);
+          }
+        };
+        btns.appendChild(br);
+      }
+
+      if (btns.children.length){
+        tile.appendChild(btns);
+      }
+
+      box.appendChild(tile);
+    }
+  }
+}
+
+/* ---------- Slots dropdown (simplified) ---------- */
 function berlinMidnightMs(dayOffset){
   const now = new Date();
   const parts = new Intl.DateTimeFormat("de-DE", { timeZone:"Europe/Berlin", year:"numeric", month:"2-digit", day:"2-digit" }).formatToParts(now);
@@ -407,7 +510,7 @@ function berlinMidnightMs(dayOffset){
 function buildWasherOptions(){
   const cfg = STATE.config || {};
   const machines = [1,2,3,4];
-  const hours = (cfg.washerHours || [6,8,10,12,14,16,18,20]).slice();
+  const hours = (cfg.washerHours || [6,8,10,12,14,16,18,20]).slice().sort((a,b)=>a-b);
   const durMs = 120*60*1000;
   const now = Date.now();
   const daysPast = cfg.daysPast ?? 1;
@@ -459,10 +562,6 @@ function renderSlotDropdown(){
   const sel = $("slotSelect");
   sel.innerHTML = "";
   const opts = buildWasherOptions();
-  if (opts.length===0){
-    sel.appendChild(new Option("Keine Slots verfügbar", ""));
-    return;
-  }
   sel.appendChild(new Option("Bitte auswählen…", ""));
   for (const o of opts){
     const opt = new Option(o.label, JSON.stringify({machine:o.machine,start:o.start,end:o.end}));
@@ -473,229 +572,11 @@ function renderSlotDropdown(){
   $("slotHint").textContent = `Freie Wasch-Slots: ${freeCount} (grau = belegt/defekt/gesperrt/vergangen)`;
 }
 
-// ---------- tiles (wie bei dir bereits ok) ----------
-function bookingForMachineRunning(type, machine){
-  const now = Date.now();
-  const bs = (STATE.bookings||[]).filter(b=>b.type===type && b.machine===machine && b.status==="booked");
-  return bs.find(b=> b.start <= now && b.end > now) || null;
-}
-function tileStatus(type, machine){
-  const m = (STATE.machines||[]).find(x=>x.type===type && x.machine===machine);
-  if (!m) return {cls:"bad", tag:"FEHLT", text:"Nicht vorhanden", sub:"Zuletzt: —"};
-  const last = (m.lastRoom && Number(m.lastAt||0)>0)
-    ? `Zuletzt: Zimmer ${m.lastRoom} · ${fmtDT(m.lastAt)}`
-    : `Zuletzt: —`;
-
-  if (m.enabled===0) return {cls:"bad", tag:"GESPERRT", text:"Maschine gesperrt", sub:last};
-  if (m.defect===1)  return {cls:"bad", tag:"DEFEKT",  text:`Defekt von ${m.defectBy || "?"}`, sub:last};
-
-  const running = bookingForMachineRunning(type, machine);
-  if (running) return {cls:"busy", tag:"LÄUFT", text:`Zimmer ${running.room} bis ${fmtTime(running.end)}`, sub:last};
-
-  return {cls:"free", tag:"FREI", text:"Frei", sub:last};
-}
-function renderTiles(){
-  const box = $("tiles");
-  box.innerHTML = "";
-  const groups = [
-    {type:"washer", title:"Waschmaschine", machines:[1,2,3,4]},
-    {type:"dryer",  title:"Trockner",      machines:[1,2,3,4]},
-  ];
-  for (const group of groups){
-    for (const mId of group.machines){
-      const st = tileStatus(group.type, mId);
-      const tile = document.createElement("div");
-      tile.className = "tile " + st.cls;
-
-      const top = document.createElement("div");
-      top.className = "tileTop";
-
-      const title = document.createElement("div");
-      title.innerHTML = `
-        <div class="title">${group.title} ${mId}</div>
-        <div class="meta">${st.text}</div>
-        <div class="meta mono">${st.sub}</div>
-      `;
-      const tag = document.createElement("div");
-      tag.className = "tag";
-      tag.textContent = st.tag;
-
-      top.appendChild(title);
-      top.appendChild(tag);
-
-      tile.appendChild(top);
-      box.appendChild(tile);
-    }
-  }
-}
-
-// ---------- my bookings minimal ----------
-function renderMyBookings(){
-  const box = $("myBookings");
-  const c = getCreds();
-  if (!c.room){
-    box.innerHTML = `<div class="small">Bitte Zugang eingeben und Aktualisieren.</div>`;
-    return;
-  }
-  const list = (STATE.bookings||[]).filter(b=> b.room===c.room);
-  if (list.length===0){
-    box.innerHTML = `<div class="small">Keine Buchungen.</div>`;
-    return;
-  }
-  box.innerHTML = list.sort((a,b)=>a.start-b.start).map(b=>{
-    const title = `${b.type==="washer" ? "Waschmaschine" : "Trockner"} ${b.machine}`;
-    const line = `${fmtDate(b.start)} ${fmtTime(b.start)}–${fmtTime(b.end)}`;
-    return `
-      <div class="tile" style="margin-bottom:10px">
-        <div class="title">${title}</div>
-        <div class="meta mono">${line}</div>
-        <div class="meta">${b.status}</div>
-      </div>
-    `;
-  }).join("");
-}
-
-// ---------- Admin: washer hour checkboxes ----------
-function renderWasherHoursAdmin(){
-  const box = $("washerHoursBox");
-  if (!box) return;
-  const hrs = (STATE.config?.washerHours || [6,8,10,12,14,16,18,20]).slice().sort((a,b)=>a-b);
-  const set = new Set(hrs.map(String));
-  const grid = document.createElement("div");
-  grid.className = "chkGrid";
-  for (let h=0; h<=23; h++){
-    const id = "wh_"+h;
-    const wrap = document.createElement("label");
-    wrap.className = "chk";
-    wrap.innerHTML = `<input type="checkbox" id="${id}"> <span>${String(h).padStart(2,"0")}:00</span>`;
-    grid.appendChild(wrap);
-    setTimeout(()=>{ const cb = $(id); if (cb) cb.checked = set.has(String(h)); }, 0);
-  }
-  box.innerHTML = "";
-  box.appendChild(grid);
-}
-function readWasherHoursAdmin(){
-  const out = [];
-  for (let h=0; h<=23; h++){
-    const cb = $("wh_"+h);
-    if (cb && cb.checked) out.push(h);
-  }
-  return out;
-}
-
-// ---------- Admin login / actions ----------
-async function adminLogin(){
-  const pw = $("adminPw").value.trim();
-  if (!pw) return toast("Admin Passwort fehlt");
-  try{
-    const r = await jpost("/api/admin/login", {adminPassword: pw});
-    // token+expiresAt vom Worker
-    setAdminSession(r.token, r.expiresAt, pw);
-    $("adminLoginBox").style.display = "none";
-    $("adminBox").style.display = "block";
-    toast("✅ Admin Login OK");
-    // Admin UI initial füllen (aus aktuellem STATE, sonst _status holen)
-    if (!STATE.config){
-      const st = await jget("/api/_status?ts="+Date.now());
-      STATE.config = st.config || STATE.config;
-    }
-    renderWasherHoursAdmin();
-  }catch(e){
-    toast("⛔ Admin Login forbidden");
-  }
-}
-
-async function adminLogout(){
-  const s = getAdminSession();
-  try{
-    if (s?.token) await jpost("/api/admin/logout", {token:s.token});
-  }catch{}
-  clearAdminSession();
-  $("adminBox").style.display = "none";
-  $("adminLoginBox").style.display = "block";
-  toast("✅ Logout");
-}
-
-async function adminReload(){
-  const s = getAdminSession();
-  if (!s) return toast("⛔ Bitte einloggen");
-  try{
-    const st = await jget("/api/_status?ts="+Date.now());
-    STATE.config = st.config || STATE.config;
-    renderWasherHoursAdmin();
-    // dryerMinutes selector:
-    if (STATE.config?.dryerMinutes) $("dryerMinutes").value = String(STATE.config.dryerMinutes);
-    toast("✅ Admin geladen");
-  }catch{
-    toast("⛔ Admin laden fehlgeschlagen");
-  }
-}
-
-async function adminSetStationPin(){
-  const s = getAdminSession();
-  if (!s) return toast("⛔ Bitte einloggen");
-  const pin = $("adminStationPin").value.trim();
-  if (!/^\d{4}$/.test(pin)) return toast("⛔ PIN muss 4-stellig sein");
-  try{
-    const r = await jpost("/api/admin/set-station-pin", {token:s.token, stationPin: pin});
-    toast("✅ Stations-PIN gespeichert");
-  }catch(e){
-    toast("⛔ Speichern fehlgeschlagen");
-  }
-}
-
-async function adminChangePassword(){
-  const s = getAdminSession();
-  if (!s) return toast("⛔ Bitte einloggen");
-  const newPw = $("adminNewPw").value.trim();
-  if (!newPw || newPw.length < 4) return toast("⛔ Neues Passwort zu kurz");
-  try{
-    await jpost("/api/admin/change-password", {
-      token: s.token,
-      oldPassword: s.pwForChange || $("adminPw").value.trim(),
-      newPassword: newPw
-    });
-    alert("✅ Admin-Passwort geändert. Du wirst ausgeloggt.");
-    await adminLogout();
-  }catch(e){
-    alert("⛔ Passwort ändern fehlgeschlagen (Session abgelaufen? falsches altes Passwort?)");
-  }
-}
-
-async function adminSaveWasherHours(){
-  const s = getAdminSession();
-  if (!s) return toast("⛔ Bitte einloggen");
-  const hrs = readWasherHoursAdmin();
-  if (hrs.length === 0) return toast("⛔ Mindestens eine Uhrzeit wählen");
-  try{
-    const r = await jpost("/api/admin/save-config", { token: s.token, patch: { washerHours: hrs }});
-    STATE.config = r.config || STATE.config;
-    toast("✅ Waschzeiten gespeichert");
-    renderSlotDropdown(); // User-Dropdown sofort neu
-  }catch(e){
-    toast("⛔ Speichern fehlgeschlagen");
-  }
-}
-
-async function adminSaveDryerMinutes(){
-  const s = getAdminSession();
-  if (!s) return toast("⛔ Bitte einloggen");
-  const v = Number($("dryerMinutes").value);
-  if (![60,90,120].includes(v)) return toast("⛔ Ungültig");
-  try{
-    const r = await jpost("/api/admin/save-config", { token: s.token, patch: { dryerMinutes: v }});
-    STATE.config = r.config || STATE.config;
-    toast("✅ Trockner-Dauer gespeichert");
-  }catch{
-    toast("⛔ Speichern fehlgeschlagen");
-  }
-}
-
-// ---------- refresh ----------
+/* ---------- Refresh ---------- */
 async function refreshAll(){
   const c = getCreds();
   if (!c.room || !c.pin || !c.stationPin){
-    toast("Bitte Zugang vollständig eingeben");
+    toast("⛔ Bitte Zugang vollständig eingeben");
     return;
   }
   $("btnRefresh").disabled = true;
@@ -703,27 +584,26 @@ async function refreshAll(){
   try{
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
-
     renderSlotDropdown();
     renderTiles();
     renderMyBookings();
-
     toast("✅ Bereit");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast("⛔ " + msg);
+    toast(`⛔ ${msg}`);
   }finally{
     $("btnRefresh").disabled = false;
     $("btnRefresh").textContent = "Aktualisieren";
   }
 }
 
-// ---------- booking washer ----------
+$("btnRefresh").onclick = refreshAll;
+
 $("btnBookWasher").onclick = async ()=>{
   const c = getCreds();
   const v = $("slotSelect").value;
-  if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
-  if (!v) return toast("Bitte Slot auswählen");
+  if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Bitte Zugang eingeben");
+  if (!v) return toast("⛔ Bitte Slot auswählen");
   const slot = JSON.parse(v);
   try{
     await jpost("/api/washer/book", {
@@ -732,39 +612,13 @@ $("btnBookWasher").onclick = async ()=>{
       start: slot.start,
       end: slot.end
     });
-    alert("✅ Gebucht!");
+    toast("✅ Gebucht");
     await refreshAll();
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
-    alert("⛔ " + msg);
+    toast(`⛔ Buchung: ${msg}`);
   }
 };
-
-// ---------- feedback (basic) ----------
-$("btnLoadFeedback").onclick = async ()=> toast("Feedback laden: kommt aus Worker – wenn Worker ok, bleibt es stabil.");
-$("btnSendFeedback").onclick = async ()=> toast("Feedback senden: kommt aus Worker – wenn Worker ok, bleibt es stabil.");
-
-$("btnRefresh").onclick = refreshAll;
-
-// Admin events
-$("btnAdminLogin").onclick = adminLogin;
-$("adminPw").addEventListener("keydown", (e)=>{ if (e.key==="Enter") adminLogin(); });
-$("btnAdminLogout").onclick = adminLogout;
-$("btnAdminReload").onclick = adminReload;
-$("btnSetStationPin").onclick = adminSetStationPin;
-$("btnChangeAdminPw").onclick = adminChangePassword;
-$("btnSaveWasherHours").onclick = adminSaveWasherHours;
-$("btnSaveDryerMinutes").onclick = adminSaveDryerMinutes;
-
-// Boot: existing session?
-(function boot(){
-  renderAdminSessionInfo();
-  const s = getAdminSession();
-  if (s){
-    $("adminLoginBox").style.display="none";
-    $("adminBox").style.display="block";
-  }
-})();
 </script>
 </body>
 </html>
