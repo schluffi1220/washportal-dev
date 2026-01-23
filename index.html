@@ -1,624 +1,629 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Washportal</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Washportal (Alpha)</title>
   <style>
     :root{
       --bg:#0b1220;
-      --card:#111a2b;
-      --line:rgba(255,255,255,.10);
-      --txt:#e9f1ff;
-      --muted:#9cb0d4;
-
-      --greenFill: rgba(34, 197, 94, .26);
-      --blueFill:  rgba(59, 130, 246, .28);
-      --redFill:   rgba(239, 68, 68, .30);
-      --grayFill:  rgba(255,255,255,.06);
-
-      --greenBorder: rgba(34, 197, 94, .55);
-      --blueBorder:  rgba(59, 130, 246, .55);
-      --redBorder:   rgba(239, 68, 68, .60);
-      --grayBorder:  rgba(255,255,255,.12);
+      --card:#121a2b;
+      --muted:#91a4c7;
+      --txt:#eaf2ff;
+      --accent:#54d3ff;
+      --ok:#36d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --line:rgba(255,255,255,.08);
     }
-
     *{box-sizing:border-box}
     body{
       margin:0;
-      background: radial-gradient(900px 500px at 10% 10%, rgba(121,214,255,.10), transparent 60%),
-                  radial-gradient(900px 500px at 90% 20%, rgba(34,197,94,.08), transparent 55%),
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(84,211,255,.12), transparent 60%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(54,211,153,.10), transparent 55%),
                   var(--bg);
       color:var(--txt);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
     header{
-      position:sticky; top:0; z-index:10;
+      padding:18px 16px 10px;
+      border-bottom:1px solid var(--line);
+      position:sticky;
+      top:0;
       backdrop-filter: blur(10px);
       background: rgba(11,18,32,.78);
-      border-bottom: 1px solid var(--line);
-      padding: 14px 14px;
+      z-index:10;
     }
-    .wrap{max-width:980px;margin:0 auto;padding:0 14px}
-    h1{margin:0;font-size:18px}
+    .wrap{max-width:980px;margin:0 auto;padding:0 16px}
+    h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.2px}
     .sub{margin-top:4px;color:var(--muted);font-size:13px}
-    main{padding:14px 0 70px}
+    nav{
+      display:flex;gap:8px;flex-wrap:wrap;
+      margin-top:12px;
+    }
+    nav button{
+      background: transparent;
+      border:1px solid var(--line);
+      color:var(--txt);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:13px;
+      transition:.15s;
+    }
+    nav button.active{
+      border-color:rgba(84,211,255,.45);
+      box-shadow:0 0 0 2px rgba(84,211,255,.14) inset;
+      color:#cfefff;
+    }
+    main{padding:16px 0 60px}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:12px;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+    }
     .card{
-      background: rgba(17,26,43,.90);
+      background: rgba(18,26,43,.92);
       border:1px solid var(--line);
       border-radius:18px;
       padding:14px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.20);
-      margin-bottom:12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.22);
     }
-    .card h2{margin:0 0 10px;font-size:14px;color:#d7e6ff}
+    .card h2{
+      margin:0 0 10px;
+      font-size:14px;
+      color:#d7e6ff;
+      letter-spacing:.2px;
+    }
     label{display:block;color:var(--muted);font-size:12px;margin:10px 0 6px}
-    input,select,textarea{
+    input, select, textarea{
       width:100%;
       background: rgba(255,255,255,.04);
       border:1px solid var(--line);
       color:var(--txt);
-      padding:10px 12px;
+      padding:10px 10px;
       border-radius:14px;
       outline:none;
       font-size:14px;
     }
     textarea{min-height:96px;resize:vertical}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width:740px){ .row{grid-template-columns:1fr} }
-
     .btn{
       width:100%;
-      margin-top:10px;
+      background: linear-gradient(135deg, rgba(84,211,255,.95), rgba(54,211,153,.92));
       border:none;
-      cursor:pointer;
-      border-radius:14px;
-      padding:12px 12px;
-      font-weight:800;
-      background: linear-gradient(135deg, rgba(121,214,255,.95), rgba(34,197,94,.92));
       color:#07101e;
+      font-weight:800;
+      padding:12px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      margin-top:12px;
+      transition:.15s transform;
     }
+    .btn:active{transform:translateY(1px)}
     .btn.secondary{
       background: transparent;
       border:1px solid var(--line);
       color:var(--txt);
       font-weight:700;
     }
-    .btn.inline{
-      width:auto;
-      margin:0;
-      padding:9px 12px;
-      border-radius:999px;
-      font-size:12px;
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px;border:1px solid var(--line);
+      border-radius:999px;font-size:12px;color:var(--muted)
     }
-    .btn.danger{
-      background: linear-gradient(135deg, rgba(239,68,68,.95), rgba(251,146,60,.85));
-      color:#12060a;
-    }
-
-    .toast{
-      position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
-      background: rgba(17,26,43,.96);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px 12px;
-      box-shadow: 0 12px 35px rgba(0,0,0,.35);
-      max-width: min(92vw, 680px);
-      display:none;
-      z-index:9999;
-      font-size:13px;
-      white-space:pre-wrap;
-    }
-    .mono{font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
     .small{font-size:12px;color:var(--muted);line-height:1.45}
-
-    .gridTiles{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap:10px;
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{
+      padding:12px;border:1px solid var(--line);
+      border-radius:16px;
+      background: rgba(255,255,255,.03);
     }
-    @media (max-width:900px){ .gridTiles{grid-template-columns: repeat(2, 1fr);} }
-
-    .tile{
-      border:1px solid var(--grayBorder);
-      border-radius:18px;
-      padding:12px;
-      background:
-        linear-gradient(0deg, var(--grayFill), var(--grayFill)),
-        rgba(17,26,43,.92);
-    }
-    .tile.free{
-      border-color: var(--greenBorder);
-      background:
-        linear-gradient(0deg, var(--greenFill), var(--greenFill)),
-        rgba(17,26,43,.92);
-    }
-    .tile.busy{
-      border-color: var(--blueBorder);
-      background:
-        linear-gradient(0deg, var(--blueFill), var(--blueFill)),
-        rgba(17,26,43,.92);
-    }
-    .tile.bad{
-      border-color: var(--redBorder);
-      background:
-        linear-gradient(0deg, var(--redFill), var(--redFill)),
-        rgba(17,26,43,.92);
-    }
-    .tileTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-    .title{font-weight:900;font-size:14px}
+    .itemTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .title{font-weight:800;font-size:14px}
+    .meta{font-size:12px;color:var(--muted);margin-top:4px}
     .tag{
-      font-size:11px;
+      font-size:11px;padding:4px 8px;border-radius:999px;
       border:1px solid var(--line);
-      padding:4px 8px;
-      border-radius:999px;
       color:var(--muted);
       white-space:nowrap;
-      background: rgba(0,0,0,.08);
     }
-    .meta{margin-top:6px;font-size:12px;color:var(--muted)}
-    .tileBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-
-    /* Slot dropdown readability */
-    #slotSelect option { color:#000; }
-    #slotSelect option:disabled { color:#777; }
-
+    .tag.ok{border-color:rgba(54,211,153,.35);color:#aaf3d7}
+    .tag.warn{border-color:rgba(251,191,36,.35);color:#ffe7a2}
+    .tag.bad{border-color:rgba(251,113,133,.35);color:#ffc4cf}
+    .toast{
+      position:fixed;
+      bottom:14px;left:50%;transform:translateX(-50%);
+      background: rgba(18,26,43,.96);
+      border:1px solid var(--line);
+      padding:10px 12px;
+      border-radius:14px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+      max-width:min(92vw,640px);
+      display:none;
+      z-index:999;
+      font-size:13px;
+      color:#dcecff;
+    }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    .split{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <h1>Washportal</h1>
-    <div class="sub">Kachel-UI · Buttons Storno/Freigeben aktiv</div>
-  </div>
-</header>
-
-<main class="wrap">
-
-  <div class="card">
-    <h2>1) Zugang</h2>
-    <div class="row">
-      <div>
-        <label>Zimmernummer (0–400)</label>
-        <input id="room" inputmode="numeric" placeholder="z.B. 316" />
-      </div>
-      <div>
-        <label>PIN (4-stellig)</label>
-        <input id="pin" type="password" inputmode="numeric" placeholder="****" />
-      </div>
+  <header>
+    <div class="wrap">
+      <h1>Washportal <span class="pill">Alpha</span></h1>
+      <div class="sub">Buchen • Overbooking-Schutz • Trockner • News • Feedback</div>
+      <nav id="tabs"></nav>
     </div>
-    <label>Stations-PIN (4-stellig)</label>
-    <input id="stationPin" type="password" inputmode="numeric" placeholder="****" />
-    <button class="btn" id="btnRefresh">Aktualisieren</button>
-  </div>
+  </header>
 
-  <div class="card">
-    <h2>2) Slots buchen</h2>
-    <label>Wasch-Slot auswählen</label>
-    <select id="slotSelect">
-      <option value="">Bitte erst „Aktualisieren“ drücken</option>
-    </select>
-    <button class="btn" id="btnBookWasher">Buchen</button>
-    <div class="small" id="slotHint" style="margin-top:10px"></div>
-  </div>
+  <main class="wrap">
+    <section id="view"></section>
+  </main>
 
-  <div class="card">
-    <h2>3) Maschinenübersicht</h2>
-    <div class="small" style="margin-bottom:10px">Frei (grün) · Läuft/gebucht (blau) · Defekt/gesperrt (rot). Buttons erscheinen nur wenn es Sinn ergibt.</div>
-    <div class="gridTiles" id="tiles"></div>
-  </div>
-
-  <div class="card">
-    <h2>4) Meine Buchungen</h2>
-    <div id="myBookings"></div>
-  </div>
-
-</main>
-
-<div id="toast" class="toast"></div>
+  <div id="toast" class="toast"></div>
 
 <script>
-/*** SET THIS ***/
-const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // ggf. Alpha-URL einsetzen
+/**
+ * ✅ SET THIS:
+ * Your worker base URL (no trailing slash)
+ */
+const WORKER_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
-const $ = (id)=>document.getElementById(id);
+/** Alpha machine config */
+const MACHINES = {
+  washer: ["W1","W2","W3","W4","W5","W6"],
+  dryer: ["D1","D2"],
+};
+
+const DURATIONS = {
+  washer: [30, 45, 60, 75, 90],
+  dryer: [15, 30, 45, 60],
+};
+
+const $ = (sel) => document.querySelector(sel);
+const el = (tag, attrs={}, children=[]) => {
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs || {})) {
+    if (k === "class") n.className = v;
+    else if (k === "html") n.innerHTML = v;
+    else if (k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const c of children) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  return n;
+};
+
 function toast(msg){
-  const t = $("toast");
+  const t = $("#toast");
   t.textContent = msg;
   t.style.display = "block";
-  clearTimeout(window.__t);
-  window.__t = setTimeout(()=> t.style.display="none", 3800);
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.style.display="none", 3200);
 }
-function fmtDT(ms){
-  const d = new Date(ms);
-  return d.toLocaleString("de-DE", { timeZone:"Europe/Berlin" });
+
+function pad2(n){return String(n).padStart(2,"0");}
+
+function epochFromLocal(dateStr, timeStr){
+  // local time → epoch seconds
+  const d = new Date(`${dateStr}T${timeStr}:00`);
+  return Math.floor(d.getTime()/1000);
 }
-function fmtTime(ms){
-  const d = new Date(ms);
-  return d.toLocaleTimeString("de-DE", { timeZone:"Europe/Berlin", hour:"2-digit", minute:"2-digit" });
+
+function fmtLocal(ts){
+  const d = new Date(ts*1000);
+  return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
-function fmtDate(ms){
-  const d = new Date(ms);
-  return d.toLocaleDateString("de-DE", { timeZone:"Europe/Berlin" });
-}
-async function jpost(path, body){
-  const r = await fetch(API_BASE + path, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body||{})
+
+async function api(path, opts={}){
+  const res = await fetch(`${WORKER_BASE}${path}`, {
+    ...opts,
+    headers: {"Content-Type":"application/json", ...(opts.headers||{})}
   });
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw {status:r.status, data, path};
+  const data = await res.json().catch(()=> ({}));
+  if (!res.ok) {
+    const err = data?.error || `HTTP_${res.status}`;
+    throw {status: res.status, err, data};
+  }
   return data;
 }
-function getCreds(){
-  return {
-    room: $("room").value.trim(),
-    pin: $("pin").value.trim(),
-    stationPin: $("stationPin").value.trim()
-  };
+
+function getName(){
+  return localStorage.getItem("washportal_name") || "";
+}
+function setName(v){
+  localStorage.setItem("washportal_name", (v||"").trim());
 }
 
-let STATE = { config:null, machines:[], bookings:[] };
+const TABS = [
+  {id:"book", label:"Buchen"},
+  {id:"dryer", label:"Trockner"},
+  {id:"mine", label:"Meine Buchungen"},
+  {id:"news", label:"News"},
+  {id:"feedback", label:"Feedback"},
+];
 
-function trStatus(s){
-  if (s === "booked") return "Gebucht";
-  if (s === "cancelled") return "Storniert";
-  if (s === "released") return "Freigegeben";
-  return s || "";
+let activeTab = "book";
+
+function renderTabs(){
+  const nav = $("#tabs");
+  nav.innerHTML = "";
+  for (const t of TABS){
+    nav.appendChild(el("button", {
+      class: t.id === activeTab ? "active" : "",
+      onclick: () => { activeTab = t.id; render(); }
+    }, [t.label]));
+  }
 }
 
-function machineBy(type, machine){
-  return (STATE.machines||[]).find(m=>m.type===type && m.machine===machine) || null;
+function viewCard(title, inner){
+  return el("div",{class:"card"}, [
+    el("h2",{},[title]),
+    inner
+  ]);
 }
 
-function bookingForMachineRunning(type, machine){
-  const now = Date.now();
-  const bs = (STATE.bookings||[]).filter(b=>b.type===type && b.machine===machine && b.status==="booked");
-  return bs.find(b=> b.start <= now && b.end > now) || null;
-}
+/* ------------------------------
+   BOOKING UI (washer/dryer shared)
+--------------------------------*/
+function bookingForm(machine_type){
+  const nameInput = el("input",{value:getName(), placeholder:"Dein Name (z.B. Max)"});
+  const dateInput = el("input",{type:"date", value: new Date().toISOString().slice(0,10)});
+  const timeInput = el("input",{type:"time", value:"18:00"});
+  const machineSel = el("select",{});
+  const durationSel = el("select",{});
+  const notesInput = el("input",{placeholder:"Notiz (optional) z.B. 'Bettwäsche'"});
 
-function tileStatus(type, machine){
-  const m = machineBy(type, machine);
-  if (!m) return {cls:"bad", tag:"FEHLT", text:"Nicht vorhanden", sub:"Zuletzt: —"};
+  for (const m of MACHINES[machine_type]){
+    machineSel.appendChild(el("option",{value:m},[m]));
+  }
+  for (const mins of DURATIONS[machine_type]){
+    durationSel.appendChild(el("option",{value:String(mins)},[`${mins} min`]));
+  }
 
-  const last = (m.lastRoom && Number(m.lastAt||0)>0)
-    ? `Zuletzt: Zimmer ${m.lastRoom} · ${fmtDT(m.lastAt)}`
-    : `Zuletzt: —`;
+  const availBox = el("div",{class:"small", html:"<span class='mono'>Lade Belegung…</span>"});
 
-  if (m.enabled===0) return {cls:"bad", tag:"GESPERRT", text:"Maschine gesperrt", sub:last};
-  if (m.defect===1)  return {cls:"bad", tag:"DEFEKT",  text:`Defekt von ${m.defectBy || "?"}`, sub:last};
-
-  const running = bookingForMachineRunning(type, machine);
-  if (running) return {cls:"busy", tag:"LÄUFT", text:`Zimmer ${running.room} bis ${fmtTime(running.end)}`, sub:last};
-
-  return {cls:"free", tag:"FREI", text:"Frei", sub:last};
-}
-
-/* ---------- ACTION CALLS (Fallback paths) ---------- */
-async function tryPost(paths, body){
-  let lastErr = null;
-  for (const p of paths){
+  async function refreshAvail(){
     try{
-      return await jpost(p, body);
+      const date = dateInput.value;
+      const a = await api(`/api/availability?date=${encodeURIComponent(date)}&type=${encodeURIComponent(machine_type)}`);
+      const b = a.bookings?.[machineSel.value] || [];
+      if (b.length === 0){
+        availBox.innerHTML = `<span class="tag ok">Frei</span> <span class="mono">${machineSel.value}</span> hat heute keine Buchungen.`;
+        return;
+      }
+      const lines = b.map(x => {
+        return `<div class="mono">• ${fmtLocal(x.start_ts)} – ${fmtLocal(x.end_ts)} (${x.user_name})</div>`;
+      }).join("");
+      availBox.innerHTML = `<div class="tag warn">Belegt</div><div style="height:6px"></div>${lines}`;
     }catch(e){
-      // only continue on 404 not_found
-      const notFound = (e?.status === 404) || (e?.data?.error === "not_found");
-      if (!notFound) throw e;
-      lastErr = e;
+      availBox.innerHTML = `<span class="tag bad">Fehler</span> Konnte Belegung nicht laden.`;
     }
   }
-  throw lastErr || {status:404, data:{error:"not_found"}};
-}
 
-async function doRelease(id){
-  const c = getCreds();
-  if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Zugang fehlt");
-  const body = { id, room:c.room, pin:c.pin, stationPin:c.stationPin };
-  return await tryPost(
-    ["/api/booking/release", "/api/release", "/api/washer/release", "/api/dryer/release"],
-    body
-  );
-}
-async function doCancel(id){
-  const c = getCreds();
-  if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Zugang fehlt");
-  const body = { id, room:c.room, pin:c.pin, stationPin:c.stationPin };
-  return await tryPost(
-    ["/api/booking/cancel", "/api/cancel", "/api/washer/cancel", "/api/dryer/cancel"],
-    body
-  );
-}
+  machineSel.addEventListener("change", refreshAvail);
+  dateInput.addEventListener("change", refreshAvail);
 
-/* ---------- My Bookings with Buttons ---------- */
-function bookingTileClass(b){
-  const m = machineBy(b.type, b.machine);
-  if (m && (m.enabled===0 || m.defect===1)) return "bad";
-  const now = Date.now();
-  if (b.status === "cancelled") return "";
-  if (b.status === "released") return "";
-  if (b.status === "booked" && b.start <= now && b.end > now) return "busy";
-  if (b.status === "booked" && b.end > now) return "busy";
-  return "";
-}
+  const submit = el("button",{class:"btn"},[`Buchung speichern (${machine_type === "washer" ? "Waschmaschine" : "Trockner"})`]);
 
-function canCancel(b){
-  // Storno nur wenn Slot noch nicht abgelaufen und Start in Zukunft
-  const now = Date.now();
-  return b.status==="booked" && b.start > now;
-}
-function canRelease(b){
-  // Freigeben nur wenn Slot läuft
-  const now = Date.now();
-  return b.status==="booked" && b.start <= now && b.end > now;
-}
+  submit.addEventListener("click", async () => {
+    const user_name = nameInput.value.trim();
+    if (!user_name){ toast("Bitte Name eintragen."); return; }
+    setName(user_name);
 
-function renderMyBookings(){
-  const box = $("myBookings");
-  const c = getCreds();
-  if (!c.room){
-    box.innerHTML = `<div class="small">Bitte Zugang eingeben und Aktualisieren.</div>`;
-    return;
-  }
-  const list = (STATE.bookings||[]).filter(b=> b.room===c.room);
-  if (list.length===0){
-    box.innerHTML = `<div class="small">Keine Buchungen.</div>`;
-    return;
-  }
+    const dateStr = dateInput.value;
+    const timeStr = timeInput.value;
+    const start_ts = epochFromLocal(dateStr, timeStr);
+    const mins = Number(durationSel.value);
+    const end_ts = start_ts + mins*60;
 
-  box.innerHTML = "";
-  for (const b of list.sort((a,b)=>a.start-b.start)){
-    const tile = document.createElement("div");
-    tile.className = "tile " + bookingTileClass(b);
-    const title = `${b.type==="washer" ? "Waschmaschine" : "Trockner"} ${b.machine}`;
-    const line = `${fmtDate(b.start)} ${fmtTime(b.start)}–${fmtTime(b.end)}`;
+    const payload = {
+      user_name,
+      machine_type,
+      machine_id: machineSel.value,
+      start_ts,
+      end_ts,
+      notes: notesInput.value.trim() || null,
+    };
 
-    tile.innerHTML = `
-      <div class="tileTop">
-        <div>
-          <div class="title">${title}</div>
-          <div class="meta mono">${line}</div>
-          <div class="meta">Status: <b>${trStatus(b.status)}</b></div>
-        </div>
-        <div class="tag">${b.type.toUpperCase()}</div>
-      </div>
-    `;
+    submit.disabled = true;
+    submit.textContent = "Speichere…";
 
-    const btns = document.createElement("div");
-    btns.className = "tileBtns";
-
-    if (canRelease(b)){
-      const br = document.createElement("button");
-      br.className = "btn inline secondary";
-      br.textContent = "Freigeben";
-      br.onclick = async ()=>{
-        try{
-          await doRelease(b.id);
-          toast("✅ Freigegeben");
-          await refreshAll();
-        }catch(e){
-          const msg = e?.data?.message || e?.data?.error || "Fehler";
-          toast(`⛔ Freigeben: ${msg}`);
-        }
-      };
-      btns.appendChild(br);
+    try{
+      const r = await api("/api/bookings", {method:"POST", body: JSON.stringify(payload)});
+      toast(`✅ Gespeichert! ID: ${r.id}`);
+      await refreshAvail();
+    }catch(e){
+      if (e.status === 409 && e.data?.conflicts?.length){
+        const c = e.data.conflicts[0];
+        toast(`⛔ Overbooking: Konflikt mit ${c.user_name} (${fmtLocal(c.start_ts)}–${fmtLocal(c.end_ts)})`);
+      }else{
+        toast(`⛔ Fehler: ${e.err}`);
+      }
+    }finally{
+      submit.disabled = false;
+      submit.textContent = `Buchung speichern (${machine_type === "washer" ? "Waschmaschine" : "Trockner"})`;
     }
+  });
 
-    if (canCancel(b)){
-      const bc = document.createElement("button");
-      bc.className = "btn inline danger";
-      bc.textContent = "Stornieren";
-      bc.onclick = async ()=>{
-        if (!confirm("Wirklich stornieren?")) return;
-        try{
-          await doCancel(b.id);
-          toast("✅ Storniert");
-          await refreshAll();
-        }catch(e){
-          const msg = e?.data?.message || e?.data?.error || "Fehler";
-          toast(`⛔ Storno: ${msg}`);
-        }
-      };
-      btns.appendChild(bc);
-    }
+  const left = el("div",{},[
+    el("div",{class:"row"},[
+      el("div",{},[el("label",{},["Name"]), nameInput]),
+      el("div",{},[el("label",{},["Gerät"]), machineSel]),
+    ]),
+    el("div",{class:"row"},[
+      el("div",{},[el("label",{},["Datum"]), dateInput]),
+      el("div",{},[el("label",{},["Startzeit"]), timeInput]),
+    ]),
+    el("div",{class:"row"},[
+      el("div",{},[el("label",{},["Dauer"]), durationSel]),
+      el("div",{},[el("label",{},["Notiz"]), notesInput]),
+    ]),
+    submit,
+    el("div",{class:"small", style:"margin-top:10px"},[
+      "Hinweis: Overbooking ist blockiert (du bekommst einen Konflikt-Fehler, wenn es Überschneidungen gibt)."
+    ])
+  ]);
 
-    if (btns.children.length){
-      tile.appendChild(btns);
-    }else{
-      const hint = document.createElement("div");
-      hint.className = "small";
-      hint.style.marginTop = "10px";
-      hint.textContent = "Keine Aktion möglich (abgelaufen / bereits storniert / bereits freigegeben).";
-      tile.appendChild(hint);
-    }
+  const right = el("div",{},[
+    el("div",{class:"small"},["Belegung für das ausgewählte Gerät:"]),
+    el("div",{style:"height:8px"}),
+    el("div",{class:"item"},[availBox]),
+    el("div",{class:"split"},[
+      el("button",{class:"btn secondary", onclick: refreshAvail},["Belegung aktualisieren"]),
+      el("button",{class:"btn secondary", onclick: async ()=>{
+        timeInput.value = "18:00";
+        durationSel.value = String(DURATIONS[machine_type][0]);
+        notesInput.value = "";
+        await refreshAvail();
+        toast("Form zurückgesetzt.");
+      }},["Reset"])
+    ])
+  ]);
 
-    box.appendChild(tile);
-  }
+  // initial
+  setTimeout(refreshAvail, 0);
+
+  return el("div",{class:"grid"},[
+    viewCard(machine_type === "washer" ? "Waschmaschine buchen" : "Trockner buchen", left),
+    viewCard("Live-Belegung", right),
+  ]);
 }
 
-/* ---------- Tiles (Machines) + Release Button if your own running booking ---------- */
-function renderTiles(){
-  const box = $("tiles");
-  box.innerHTML = "";
-  const c = getCreds();
+/* ------------------------------
+   MY BOOKINGS
+--------------------------------*/
+async function renderMine(){
+  const name = getName();
+  const nameInput = el("input",{value:name, placeholder:"Dein Name (gleich wie beim Buchen)"});
+  const loadBtn = el("button",{class:"btn secondary"},["Laden"]);
+  const list = el("div",{class:"list"});
 
-  const groups = [
-    {type:"washer", title:"Waschmaschine", machines:[1,2,3,4]},
-    {type:"dryer",  title:"Trockner",      machines:[1,2,3,4]},
-  ];
+  async function load(){
+    const n = nameInput.value.trim();
+    if (!n){ toast("Bitte Name eintragen."); return; }
+    setName(n);
+    list.innerHTML = "<div class='small mono'>Lade…</div>";
 
-  for (const group of groups){
-    for (const mId of group.machines){
-      const st = tileStatus(group.type, mId);
-      const tile = document.createElement("div");
-      tile.className = "tile " + st.cls;
+    try{
+      const r = await api(`/api/my-bookings?name=${encodeURIComponent(n)}`);
+      const rows = r.bookings || [];
+      if (rows.length === 0){
+        list.innerHTML = `<div class="item"><div class="small">Keine Buchungen gefunden.</div></div>`;
+        return;
+      }
 
-      const running = bookingForMachineRunning(group.type, mId);
-      const isMine = !!(running && c.room && running.room === c.room);
+      list.innerHTML = "";
+      for (const b of rows){
+        const tagClass = b.status === "active" ? "ok" : "bad";
+        const tagText = b.status === "active" ? "aktiv" : "storniert";
 
-      tile.innerHTML = `
-        <div class="tileTop">
-          <div>
-            <div class="title">${group.title} ${mId}</div>
-            <div class="meta">${st.text}</div>
-            <div class="meta mono">${st.sub}</div>
-          </div>
-          <div class="tag">${st.tag}</div>
-        </div>
-      `;
+        const cancelBtn = el("button",{class:"btn secondary", style:"margin-top:10px"},["Stornieren"]);
+        cancelBtn.disabled = b.status !== "active";
 
-      const btns = document.createElement("div");
-      btns.className = "tileBtns";
-
-      if (isMine){
-        const br = document.createElement("button");
-        br.className = "btn inline secondary";
-        br.textContent = "Freigeben";
-        br.onclick = async ()=>{
+        cancelBtn.addEventListener("click", async ()=>{
+          cancelBtn.disabled = true;
+          cancelBtn.textContent = "Storniere…";
           try{
-            await doRelease(running.id);
-            toast("✅ Freigegeben");
-            await refreshAll();
+            await api("/api/cancel-booking", {
+              method:"POST",
+              body: JSON.stringify({id: b.id, user_name: n})
+            });
+            toast("✅ Storniert.");
+            await load();
           }catch(e){
-            const msg = e?.data?.message || e?.data?.error || "Fehler";
-            toast(`⛔ Freigeben: ${msg}`);
+            toast(`⛔ Fehler: ${e.err}`);
+          }finally{
+            cancelBtn.textContent = "Stornieren";
           }
-        };
-        btns.appendChild(br);
+        });
+
+        list.appendChild(el("div",{class:"item"},[
+          el("div",{class:"itemTop"},[
+            el("div",{},[
+              el("div",{class:"title"},[
+                `${b.machine_type === "washer" ? "Waschmaschine" : "Trockner"} ${b.machine_id} `,
+              ]),
+              el("div",{class:"meta mono"},[
+                `${fmtLocal(b.start_ts)} → ${fmtLocal(b.end_ts)}`
+              ]),
+              b.notes ? el("div",{class:"meta"},[`Notiz: ${b.notes}`]) : el("div",{}),
+            ]),
+            el("div",{class:`tag ${tagClass}`},[tagText]),
+          ]),
+          cancelBtn
+        ]));
       }
 
-      if (btns.children.length){
-        tile.appendChild(btns);
-      }
-
-      box.appendChild(tile);
+    }catch(e){
+      list.innerHTML = `<div class="item"><div class="small">Fehler: ${e.err}</div></div>`;
     }
   }
+
+  loadBtn.addEventListener("click", load);
+
+  return el("div",{class:"grid"},[
+    viewCard("Meine Buchungen", el("div",{},[
+      el("label",{},["Name"]),
+      nameInput,
+      loadBtn,
+      el("div",{style:"height:10px"}),
+      el("div",{class:"small"},[
+        "Stornieren geht nur mit dem gleichen Namen, mit dem du gebucht hast."
+      ]),
+    ])),
+    viewCard("Liste", list),
+  ]);
 }
 
-/* ---------- Slots dropdown (simplified) ---------- */
-function berlinMidnightMs(dayOffset){
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("de-DE", { timeZone:"Europe/Berlin", year:"numeric", month:"2-digit", day:"2-digit" }).formatToParts(now);
-  const y = Number(parts.find(p=>p.type==="year").value);
-  const m = Number(parts.find(p=>p.type==="month").value);
-  const d = Number(parts.find(p=>p.type==="day").value);
-  const base = new Date(y, m-1, d, 0,0,0);
-  base.setDate(base.getDate() + dayOffset);
-  return base.getTime();
-}
-function buildWasherOptions(){
-  const cfg = STATE.config || {};
-  const machines = [1,2,3,4];
-  const hours = (cfg.washerHours || [6,8,10,12,14,16,18,20]).slice().sort((a,b)=>a-b);
-  const durMs = 120*60*1000;
-  const now = Date.now();
-  const daysPast = cfg.daysPast ?? 1;
-  const daysFuture = cfg.daysFuture ?? 6;
+/* ------------------------------
+   NEWS
+--------------------------------*/
+async function renderNews(){
+  const box = el("div",{class:"list"},[
+    el("div",{class:"small mono"},["Lade News…"])
+  ]);
 
-  const washerBookings = (STATE.bookings || []).filter(b => b.type==="washer" && b.status==="booked");
-  const byM = {1:[],2:[],3:[],4:[]};
-  for (const b of washerBookings){ if (byM[b.machine]) byM[b.machine].push(b); }
-
-  const machineMap = {};
-  for (const m of (STATE.machines||[])) if (m.type==="washer") machineMap[m.machine] = m;
-
-  const options = [];
-  for (let day = -daysPast; day <= daysFuture; day++){
-    const day0 = berlinMidnightMs(day);
-    for (const h of hours){
-      const start = day0 + h*60*60*1000;
-      const end = start + durMs;
-
-      for (const mac of machines){
-        const ms = machineMap[mac];
-        const disabledMachine = !ms || ms.enabled===0;
-        const defect = !!(ms && ms.defect===1);
-        const pastNotBookable = !(end > now);
-
-        let booked = false;
-        for (const b of (byM[mac]||[])){
-          if (!(b.end <= start || b.start >= end)){ booked = true; break; }
-        }
-
-        const labelBase = `${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)} – Waschmaschine ${mac}`;
-        let label = labelBase;
-        let disabled = false;
-
-        if (disabledMachine){ label += " (gesperrt)"; disabled = true; }
-        else if (defect){ label += " (defekt)"; disabled = true; }
-        else if (pastNotBookable){ label += " (vergangen)"; disabled = true; }
-        else if (booked){ label += " (belegt)"; disabled = true; }
-
-        options.push({machine:mac, start, end, label, disabled});
-      }
+  try{
+    const r = await api("/api/news");
+    const news = r.news || [];
+    if (news.length === 0){
+      box.innerHTML = `<div class="item"><div class="small">Keine News vorhanden.</div></div>`;
+      return viewCard("News", box);
     }
+    box.innerHTML = "";
+    for (const n of news){
+      box.appendChild(el("div",{class:"item"},[
+        el("div",{class:"itemTop"},[
+          el("div",{},[
+            el("div",{class:"title"},[n.title]),
+            el("div",{class:"meta"},[new Date(n.created_at).toLocaleString()]),
+          ]),
+          n.pinned ? el("div",{class:"tag warn"},["PIN"]) : el("div",{class:"tag"},[""])
+        ]),
+        el("div",{class:"meta", style:"margin-top:8px;white-space:pre-wrap"},[n.body])
+      ]));
+    }
+  }catch(e){
+    box.innerHTML = `<div class="item"><div class="small">Fehler: ${e.err}</div></div>`;
   }
-  options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
-  return options;
+
+  return viewCard("News", box);
 }
 
-function renderSlotDropdown(){
-  const sel = $("slotSelect");
-  sel.innerHTML = "";
-  const opts = buildWasherOptions();
-  sel.appendChild(new Option("Bitte auswählen…", ""));
-  for (const o of opts){
-    const opt = new Option(o.label, JSON.stringify({machine:o.machine,start:o.start,end:o.end}));
-    opt.disabled = !!o.disabled;
-    sel.appendChild(opt);
+/* ------------------------------
+   FEEDBACK
+--------------------------------*/
+function renderFeedback(){
+  const nameInput = el("input",{value:getName(), placeholder:"Dein Name (optional)"});
+  const ratingSel = el("select",{});
+  for (let i=5;i>=1;i--){
+    ratingSel.appendChild(el("option",{value:String(i)},[`${i} / 5`]));
   }
-  const freeCount = opts.filter(o=>!o.disabled).length;
-  $("slotHint").textContent = `Freie Wasch-Slots: ${freeCount} (grau = belegt/defekt/gesperrt/vergangen)`;
+  const msg = el("textarea",{placeholder:"Was läuft gut? Was nervt? Was fehlt noch?"});
+  const send = el("button",{class:"btn"},["Feedback senden"]);
+
+  send.addEventListener("click", async ()=>{
+    const payload = {
+      user_name: nameInput.value.trim() || null,
+      rating: Number(ratingSel.value),
+      message: msg.value.trim()
+    };
+    if (!payload.message){ toast("Bitte Nachricht schreiben."); return; }
+    if (payload.user_name) setName(payload.user_name);
+
+    send.disabled = true;
+    send.textContent = "Sende…";
+    try{
+      const r = await api("/api/feedback",{method:"POST", body: JSON.stringify(payload)});
+      toast(`✅ Danke! Feedback-ID: ${r.id}`);
+      msg.value = "";
+    }catch(e){
+      toast(`⛔ Fehler: ${e.err}`);
+    }finally{
+      send.disabled = false;
+      send.textContent = "Feedback senden";
+    }
+  });
+
+  return el("div",{class:"grid"},[
+    viewCard("Feedback", el("div",{},[
+      el("label",{},["Name (optional)"]),
+      nameInput,
+      el("label",{},["Bewertung"]),
+      ratingSel,
+      el("label",{},["Nachricht"]),
+      msg,
+      send,
+      el("div",{class:"small", style:"margin-top:10px"},[
+        "Feedback landet direkt in der D1-Datenbank (Tabelle: feedback)."
+      ])
+    ])),
+    viewCard("Was ist neu im Alpha?", el("div",{},[
+      el("div",{class:"item"},[
+        el("div",{class:"title"},["✅ Overbooking-Schutz"]),
+        el("div",{class:"meta"},["Buchungen mit Überschneidung werden blockiert (409)."])
+      ]),
+      el("div",{class:"item"},[
+        el("div",{class:"title"},["✅ News"]),
+        el("div",{class:"meta"},["Aktuelle Infos aus der Tabelle 'news'."])
+      ]),
+      el("div",{class:"item"},[
+        el("div",{class:"title"},["✅ Trockner integriert"]),
+        el("div",{class:"meta"},["Buchen & Live-Belegung wie bei Waschmaschinen."])
+      ]),
+    ])),
+  ]);
 }
 
-/* ---------- Refresh ---------- */
-async function refreshAll(){
-  const c = getCreds();
-  if (!c.room || !c.pin || !c.stationPin){
-    toast("⛔ Bitte Zugang vollständig eingeben");
+/* ------------------------------
+   Main render
+--------------------------------*/
+async function render(){
+  renderTabs();
+  const v = $("#view");
+  v.innerHTML = "";
+
+  if (activeTab === "book"){
+    v.appendChild(bookingForm("washer"));
     return;
   }
-  $("btnRefresh").disabled = true;
-  $("btnRefresh").textContent = "Lade…";
-  try{
-    const r = await jpost("/api/user/refresh", c);
-    STATE = r;
-    renderSlotDropdown();
-    renderTiles();
-    renderMyBookings();
-    toast("✅ Bereit");
-  }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast(`⛔ ${msg}`);
-  }finally{
-    $("btnRefresh").disabled = false;
-    $("btnRefresh").textContent = "Aktualisieren";
+
+  if (activeTab === "dryer"){
+    v.appendChild(bookingForm("dryer"));
+    return;
+  }
+
+  if (activeTab === "mine"){
+    v.appendChild(await renderMine());
+    return;
+  }
+
+  if (activeTab === "news"){
+    v.appendChild(await renderNews());
+    return;
+  }
+
+  if (activeTab === "feedback"){
+    v.appendChild(renderFeedback());
+    return;
   }
 }
 
-$("btnRefresh").onclick = refreshAll;
-
-$("btnBookWasher").onclick = async ()=>{
-  const c = getCreds();
-  const v = $("slotSelect").value;
-  if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Bitte Zugang eingeben");
-  if (!v) return toast("⛔ Bitte Slot auswählen");
-  const slot = JSON.parse(v);
+(async function boot(){
   try{
-    await jpost("/api/washer/book", {
-      room: c.room, pin: c.pin, stationPin: c.stationPin,
-      machine: slot.machine,
-      start: slot.start,
-      end: slot.end
-    });
-    toast("✅ Gebucht");
-    await refreshAll();
+    const s = await api("/api/_status?ts="+Date.now());
+    console.log("Worker status:", s);
   }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast(`⛔ Buchung: ${msg}`);
+    console.warn("Worker not reachable:", e);
+    toast("⚠️ Worker nicht erreichbar. Prüfe WORKER_BASE in index.html");
   }
-};
+  render();
+})();
 </script>
 </body>
 </html>
