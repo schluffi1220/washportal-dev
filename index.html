@@ -1151,7 +1151,7 @@ $("btnSendFeedback").onclick = async ()=>{
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
   if (!msg) return toast("Nachricht fehlt");
   try{
-    await jpost("/api/feedback/send", {...c, message: msg});
+    await jpost("/api/feedback/send", { ...c, message: msg });
     $("feedbackText").value = "";
     toast("✅ Gesendet");
     await loadFeedback(false);
