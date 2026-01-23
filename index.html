@@ -19,6 +19,21 @@
       --pastelGray:  rgba(255,255,255,.06);
     }
 
+/* Slot-Dropdown: lesbar (freie Slots schwarz) */
+#slotSelect{
+  background: rgba(255,255,255,.92);
+  color:#000;
+  border-color: rgba(255,255,255,.25);
+}
+#slotSelect option{ color:#000; }
+
+/* deaktivierte Slots bleiben grau */
+#slotSelect option.disabledOpt,
+#slotSelect option:disabled{
+  color:#8a94a8;
+}
+
+    
     *{box-sizing:border-box}
     body{
       margin:0;
