@@ -254,23 +254,6 @@
           <button class="btn secondary" id="btnAdminReload">Admin aktualisieren</button>
         </div>
 
-        <div class="card">
-  <h3>Slotzeit-Rechner</h3>
-  <input id="slotMin" type="number" value="120" style="width:80px"> Minuten
-  <button onclick="calcSlots()">Berechnen</button>
-  <div id="slotOut" class="small"></div>
-</div>
-
-<script>
-function calcSlots(){
-  const m = Number(document.getElementById("slotMin").value||0);
-  const h = (m/60).toFixed(2);
-  document.getElementById("slotOut").innerText =
-    `${m} Minuten = ${h} Stunden`;
-}
-</script>
-
-
         <details style="margin-top:12px" open>
           <summary>Stations-PIN setzen/ändern</summary>
           <label>Stations-PIN (4-stellig)</label>
