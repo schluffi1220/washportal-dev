@@ -446,7 +446,6 @@ function buildWasherOptions(){
   const machines = [1,2,3,4];
   const hours = (cfg?.washerHours || []).slice();
   const durMs = 120*60*1000; // fixed 2h
-  const now = Date.now();
 
   const daysPast = cfg.daysPast || 1;
   const daysFuture = cfg.daysFuture || 6;
