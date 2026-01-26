@@ -441,6 +441,7 @@ function berlinMidnightMs(dayOffset){
 }
 
 function buildWasherOptions(){
+  const now = Date.now();
   const cfg = STATE.config;
   const machines = [1,2,3,4];
   const hours = (cfg?.washerHours || []).slice();
@@ -462,8 +463,6 @@ function buildWasherOptions(){
   for (const m of STATE.machines){
     if (m.type==="washer") machineMap[m.machine] = m;
   }
-
-  const now = Date.now();
 
 const options = [];
 for (let dayOff = -cfg.daysPast; dayOff <= cfg.daysFuture; dayOff++) {
