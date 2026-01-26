@@ -464,8 +464,8 @@ function buildWasherOptions(){
   }
 
   const options = [];
-  for (let dayOff = -cfg.daysPast; dayOff <= cfg.daysFuture; dayOff++) {
-    const day0 = berlinMidnightMs(day);
+  for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
+  const day0 = berlinMidnightMs(Date.now() + dayOff*24*60*60*1000);
     for (const h of hours){
       const start = day0 + h*60*60*1000;
       const end = start + durMs;
