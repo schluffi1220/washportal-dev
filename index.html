@@ -464,21 +464,23 @@ function buildWasherOptions(){
   }
 
   const now = Date.now();
-  
-  const options = [];
-  for (let dayOff = -cfg.daysPast; dayOff <= cfg.daysFuture; dayOff++) {
-  const day0 = berlinMidnightMs(Date.now() + dayOff*24*60*60*1000);
-    for (const h of hours){
-      const start = day0 + h*60*60*1000;
-      const end = start + durMs;
 
-      for (const mac of machines){
-        const ms = machineMap[mac];
-        const disabledMachine = !ms || ms.enabled===0;
-        const defect = !!(ms && ms.defect===1);
+const options = [];
+for (let dayOff = -cfg.daysPast; dayOff <= cfg.daysFuture; dayOff++) {
 
-        // past slots cannot be booked if end<=now (per spec)
-        const pastNotBookable = end <= now;
+  const day0 = berlinMidnightMs(dayOff);
+
+  for (const h of hours){
+    const start = day0 + h*60*60*1000;
+    const end = start + durMs;
+
+    for (const mac of machines){
+      const ms = machineMap[mac];
+      const disabledMachine = !ms || ms.enabled===0;
+      const defect = !!(ms && ms.defect===1);
+
+      const pastNotBookable = end <= now;
+
 
         // overlap?
         let booked = false;
