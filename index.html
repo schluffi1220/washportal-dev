@@ -463,6 +463,8 @@ function buildWasherOptions(){
     if (m.type==="washer") machineMap[m.machine] = m;
   }
 
+  const now = Date.now();
+  
   const options = [];
   for (let dayOff = -cfg.daysPast; dayOff <= cfg.daysFuture; dayOff++) {
   const day0 = berlinMidnightMs(Date.now() + dayOff*24*60*60*1000);
@@ -476,7 +478,7 @@ function buildWasherOptions(){
         const defect = !!(ms && ms.defect===1);
 
         // past slots cannot be booked if end<=now (per spec)
-        const pastNotBookable = !(end > now);
+        const pastNotBookable = end <= now;
 
         // overlap?
         let booked = false;
