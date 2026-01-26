@@ -464,7 +464,7 @@ function buildWasherOptions(){
   }
 
   const options = [];
-  for (let day = -daysPast; day <= daysFuture; day++){
+  for (let d = 0; d <= daysFuture; d++){
     const day0 = berlinMidnightMs(day);
     for (const h of hours){
       const start = day0 + h*60*60*1000;
