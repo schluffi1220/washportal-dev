@@ -446,7 +446,6 @@ function buildWasherOptions(){
   const machines = [1,2,3,4];
   const hours = (cfg?.washerHours || []).slice();
   const durMs = 120*60*1000; // fixed 2h
-
   const daysPast = cfg.daysPast || 1;
   const daysFuture = cfg.daysFuture || 6;
 
@@ -464,7 +463,7 @@ function buildWasherOptions(){
   }
 
 const options = [];
-for (let dayOff = -cfg.daysPast; dayOff <= cfg.daysFuture; dayOff++) {
+for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
 
   const day0 = berlinMidnightMs(dayOff);
 
