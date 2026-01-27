@@ -455,6 +455,11 @@ function buildWasherOptions(){
   for (const b of washerBookings){
     if (byM[b.machine]) byM[b.machine].push(b);
   }
+  function buildWasherOptionsForMachine(machine){
+  const all = buildWasherOptions(); // nutzt cfg / STATE
+  return all.filter(o => Number(o.machine) === Number(machine));
+}
+
 
   // machine status map
   const machineMap = {};
@@ -654,6 +659,92 @@ function renderTiles(){
             }
           };
           btns.appendChild(b);
+         // ---- Direktbuchung pro Waschmaschine (Dropdown + Buchen) ----
+{
+  const bookRow = document.createElement("div");
+  bookRow.className = "row";
+  bookRow.style.gap = "8px";
+  bookRow.style.marginTop = "8px";
+
+  const sel = document.createElement("select");
+  sel.className = "slotSelect"; // nutzt dein bestehendes Styling
+  sel.style.flex = "1";
+
+  // Wenn Zugang fehlt: nur Hinweis
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Bitte erst Zugang eingeben";
+    sel.appendChild(opt);
+    sel.disabled = true;
+  } else {
+    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine in der Kachel
+    if (!opts.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Keine Slots verfügbar";
+      sel.appendChild(opt);
+      sel.disabled = true;
+    } else {
+      // Default Platzhalter
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = "Bitte Slot wählen…";
+      sel.appendChild(ph);
+
+      for (const o of opts){
+        const opt = document.createElement("option");
+        opt.value = `${o.start}|${o.end}|${o.machine}`;
+        opt.textContent = o.label;
+        opt.disabled = !!o.disabled;
+        // visuell: buchbare Slots LESBAR (schwarz), disabled grau
+        opt.style.color = o.disabled ? "#777" : "#000";
+        sel.appendChild(opt);
+      }
+    }
+  }
+
+  const bBook = document.createElement("button");
+  bBook.textContent = "Buchen";
+  bBook.onclick = async ()=>{
+    try{
+      if (!sel.value) { toast("⛔ Bitte Slot wählen"); return; }
+      const [startS, endS, machineS] = String(sel.value).split("|");
+      const start = Number(startS);
+      const end = Number(endS);
+      const machine = Number(machineS);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || !machine){
+        toast("⛔ Ungültiger Slot");
+        return;
+      }
+
+      await jpost("/api/washer/book", {
+        room: creds.room,
+        pin: creds.pin,
+        stationPin: creds.stationPin,
+        machine,
+        start,
+        end
+      });
+
+      toast("✅ Gebucht");
+      await refreshAll();
+    }catch(e){
+      toast("⛔ Buchen fehlgeschlagen");
+    }
+  };
+
+  // Optional: wenn kein Zugang, Button deaktivieren
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    bBook.disabled = true;
+  }
+
+  bookRow.appendChild(sel);
+  bookRow.appendChild(bBook);
+
+  // unter die Buttons hängen
+  card.appendChild(bookRow);
+} 
         }
       } else {
         // dryer
