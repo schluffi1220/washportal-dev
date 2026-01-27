@@ -461,11 +461,7 @@ function buildWasherOptions(){
   for (const m of STATE.machines){
     if (m.type==="washer") machineMap[m.machine] = m;
   }
-
-   function buildWasherOptionsForMachine(machine){
-  const all = buildWasherOptions(); // nutzt cfg / STATE
-  return all.filter(o => Number(o.machine) === Number(machine));
-
+  
 const options = [];
 for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
 
@@ -521,6 +517,9 @@ for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
   options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
   return options;
 }
+  function buildWasherOptionsForMachine(machine){
+  const all = buildWasherOptions(); // nutzt cfg / STATE
+  return all.filter(o => Number(o.machine) === Number(machine));
 
 function bookingForMachineRunning(type, machine){
   const now = Date.now();
@@ -649,64 +648,67 @@ function renderTiles(){
       const creds = getCreds();
       const running = bookingForMachineRunning(group.type, m);
 
-      if (group.type === "washer") {
-        // --- Washer: Quick-Book Dropdown pro Maschine (bleibt zusätzlich zum globalen Dropdown) ---
-const quickWrap = document.createElement("div");
-quickWrap.style.display = "flex";
-quickWrap.style.gap = "8px";
-quickWrap.style.alignItems = "center";
-quickWrap.style.flexWrap = "wrap";
+            if (group.type === "washer") {
 
-const sel = document.createElement("select");
-sel.className = "select"; // falls du so eine Klasse hast, sonst weglassen
-sel.style.minWidth = "240px";
+        // --- Pro Maschine: Dropdown + Buchen (nur wenn Zugang vorhanden) ---
+        if (creds.room && creds.pin && creds.stationPin) {
+          const row = document.createElement("div");
+          row.style.display = "flex";
+          row.style.gap = "8px";
+          row.style.marginTop = "8px";
 
-// Optionen für genau diese Maschine bauen:
-const opts = buildWasherOptionsForMachine(m); // m ist deine Maschinen-Nummer in der Kachel
-// Falls bei dir die Maschine anders heißt: statt m -> group.machine oder ähnlich
+          const sel = document.createElement("select");
+          sel.style.flex = "1";
 
-// Placeholder
-const ph = document.createElement("option");
-ph.value = "";
-ph.textContent = "Slot auswählen…";
-sel.appendChild(ph);
+          const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine (1..4)
+          for (const o of opts) {
+            const op = document.createElement("option");
+            op.value = JSON.stringify({ machine: Number(o.machine), start: Number(o.start), end: Number(o.end) });
+            op.textContent = o.label;
+            op.disabled = !!o.disabled;
+            sel.appendChild(op);
+          }
 
-for (const o of opts){
-  const op = document.createElement("option");
-  op.value = JSON.stringify({ machine: o.machine, start: o.start, end: o.end });
-  op.textContent = o.label; // WICHTIG: buildWasherOptions muss label liefern
-  op.disabled = !!o.disabled;
-  sel.appendChild(op);
-}
+          const bookBtn = document.createElement("button");
+          bookBtn.textContent = "Buchen";
 
-const bookBtn = document.createElement("button");
-bookBtn.textContent = "Buchen";
-bookBtn.onclick = async () => {
-  try{
-    const c = getCreds();
-    if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Bitte erst Zugang eingeben");
-    if (!sel.value) return toast("⛔ Bitte Slot auswählen");
-    const v = JSON.parse(sel.value);
-    await jpost("/api/washer/book", {
-      room: c.room,
-      pin: c.pin,
-      stationPin: c.stationPin,
-      machine: v.machine,
-      start: v.start,
-      end: v.end
-    });
-    toast("✅ Gebucht");
-    await refreshAll();
-  }catch(e){
-    toast("⛔ Buchen fehlgeschlagen");
-  }
-};
+          function syncBookBtn(){
+            const so = sel.selectedOptions && sel.selectedOptions[0];
+            bookBtn.disabled = !so || !!so.disabled;
+          }
+          sel.onchange = syncBookBtn;
+          syncBookBtn();
 
-quickWrap.appendChild(sel);
-quickWrap.appendChild(bookBtn);
+          bookBtn.onclick = async ()=>{
+            try{
+              const so = sel.selectedOptions && sel.selectedOptions[0];
+              if (!so || so.disabled) { toast("⛔ Slot nicht buchbar"); return; }
 
-// ✅ Das muss in die Kachel rein – aber nur bei Waschmaschinen:
-card.appendChild(quickWrap);
+              const v = JSON.parse(so.value || "{}");
+              if (!v.start || !v.end || !v.machine) { toast("⛔ Slot ungültig"); return; }
+
+              await jpost("/api/washer/book", {
+                room: creds.room,
+                pin: creds.pin,
+                stationPin: creds.stationPin,
+                machine: v.machine,
+                start: v.start,
+                end: v.end
+              });
+
+              toast("✅ Gebucht");
+              await refreshAll();
+            }catch(e){
+              toast("⛔ Buchen fehlgeschlagen");
+            }
+          };
+
+          row.appendChild(sel);
+          row.appendChild(bookBtn);
+          tile.appendChild(row);
+        }
+
+        // --- Freigeben-Button bleibt wie gehabt, wenn Slot läuft und eigenes Zimmer ---
         if (running && creds.room && running.room === creds.room) {
           const b = document.createElement("button");
           b.textContent = "Freigeben";
@@ -720,8 +722,10 @@ card.appendChild(quickWrap);
             }
           };
           btns.appendChild(b);
-         // ---- Direktbuchung pro Waschmaschine (Dropdown + Buchen) ----
-{
+        }
+
+      } else {
+
   const bookRow = document.createElement("div");
   bookRow.className = "row";
   bookRow.style.gap = "8px";
