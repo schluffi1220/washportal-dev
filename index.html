@@ -442,28 +442,30 @@ function berlinMidnightMs(dayOffset){
 
 function buildWasherOptions(){
   const now = Date.now();
-  const cfg = STATE.config;
-
+  const cfg = STATE.config || {};
   const machines = [1,2,3,4];
-  const hours = (cfg?.washerHours || []).slice();
-  const durMs = 120*60*1000;
+  const hours = (cfg.washerHours || []).slice();
+  const durMs = 120*60*1000; // 2h fix
 
-  const washerBookings = (STATE.bookings || [])
-    .filter(b => b.type==="washer" && b.status==="booked");
+  // Nur gebuchte Washer-Buchungen
+  const washerBookings = (STATE.bookings || []).filter(b => b.type==="washer" && b.status==="booked");
 
+  // Buchungen nach Maschine
   const byM = {1:[],2:[],3:[],4:[]};
   for (const b of washerBookings){
     if (byM[b.machine]) byM[b.machine].push(b);
   }
 
+  // Maschinenstatus Map
   const machineMap = {};
-  for (const m of STATE.machines){
+  for (const m of (STATE.machines || [])){
     if (m.type==="washer") machineMap[m.machine] = m;
   }
 
   const options = [];
 
-  for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++){
+  // WICHTIG: ab HEUTE (kein vergangener Tag mehr)
+  for (let dayOff = 0; dayOff <= (cfg.daysFuture ?? 6); dayOff++){
     const day0 = berlinMidnightMs(dayOff);
 
     for (const h of hours){
@@ -471,13 +473,14 @@ function buildWasherOptions(){
       const end = start + durMs;
 
       for (const mac of machines){
-
         const ms = machineMap[mac];
         const disabledMachine = !ms || ms.enabled===0;
         const defect = !!(ms && ms.defect===1);
 
+        // Vergangenheit: nicht buchbar, wenn Slot schon vorbei ist
         const isPast = end <= now;
 
+        // Overlap mit bestehender Buchung?
         let booked = false;
         for (const b of (byM[mac]||[])){
           if (!(b.end <= start || b.start >= end)){
@@ -486,38 +489,41 @@ function buildWasherOptions(){
           }
         }
 
-        const disabled = disabledMachine || defect || booked || isPast;
+        let label = `${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)} – Waschmaschine ${mac}`;
+        let disabled = false;
 
-        const label =
-          `${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)} (M${mac})`;
+        if (disabledMachine){
+          label += " (gesperrt)";
+          disabled = true;
+        } else if (defect){
+          label += " (defekt)";
+          disabled = true;
+        } else if (isPast){
+          label += " (vergangen)";
+          disabled = true;
+        } else if (booked){
+          label += " (belegt)";
+          disabled = true;
+        }
 
-        options.push({
-          type:"washer",
-          machine:mac,
-          start,
-          end,
-          label,
-          disabled
-        });
+        options.push({ type:"washer", machine:mac, start, end, label, disabled });
       }
     }
   }
 
   options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
-
   return options;
 }
-  function buildWasherOptionsForMachine(machine){
+
+function buildWasherOptionsForMachine(machine){
   const all = buildWasherOptions();
   return all.filter(o => Number(o.machine) === Number(machine));
 }
 
-
 function bookingForMachineRunning(type, machine){
   const now = Date.now();
-  const bs = (STATE.bookings||[]).filter(b=>b.type===type && b.machine===machine && b.status==="booked");
-  // running = start<=now<end
-  return bs.find(b=> b.start <= now && b.end > now) || null;
+  const bs = (STATE.bookings||[]).filter(b => b.type===type && b.machine===machine && b.status==="booked");
+  return bs.find(b => b.start <= now && b.end > now) || null;
 }
 
 // ---------- render ----------
@@ -642,63 +648,78 @@ function renderTiles(){
 
             if (group.type === "washer") {
 
-        // --- Pro Maschine: Dropdown + Buchen (nur wenn Zugang vorhanden) ---
-        if (creds.room && creds.pin && creds.stationPin) {
-          const row = document.createElement("div");
-          row.style.display = "flex";
-          row.style.gap = "8px";
-          row.style.marginTop = "8px";
+  // 1) Freigeben-Button nur, wenn aktuell laufend UND gehört mir
+  if (running && creds.room && running.room === creds.room) {
+    const b = document.createElement("button");
+    b.textContent = "Freigeben";
+    b.onclick = async ()=>{
+      try{
+        await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+        toast("✅ Freigegeben");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Freigeben fehlgeschlagen");
+      }
+    };
+    btns.appendChild(b);
+  }
 
-          const sel = document.createElement("select");
-          sel.style.flex = "1";
+  // 2) Direkt-Buchen Drop-Down pro Maschine (bleibt zusätzlich zum globalen Dropdown!)
+  // Nur anzeigen, wenn Zugang gesetzt ist
+  if (creds.room && creds.pin && creds.stationPin) {
 
-          const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine (1..4)
-          for (const o of opts) {
-            const op = document.createElement("option");
-            op.value = JSON.stringify({ machine: Number(o.machine), start: Number(o.start), end: Number(o.end) });
-            op.textContent = o.label;
-            op.disabled = !!o.disabled;
-            sel.appendChild(op);
-          }
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+    wrap.style.gap = "8px";
+    wrap.style.marginTop = "8px";
 
-          const bookBtn = document.createElement("button");
-          bookBtn.textContent = "Buchen";
+    const sel = document.createElement("select");
+    sel.className = "in";
+    sel.style.flex = "1";
 
-          function syncBookBtn(){
-            const so = sel.selectedOptions && sel.selectedOptions[0];
-            bookBtn.disabled = !so || !!so.disabled;
-          }
-          sel.onchange = syncBookBtn;
-          syncBookBtn();
+    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine der Kachel
 
-          bookBtn.onclick = async ()=>{
-            try{
-              const so = sel.selectedOptions && sel.selectedOptions[0];
-              if (!so || so.disabled) { toast("⛔ Slot nicht buchbar"); return; }
+    for (const o of opts){
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({ machine:o.machine, start:o.start, end:o.end });
+      opt.textContent = o.label;
+      if (o.disabled) opt.disabled = true;
+      sel.appendChild(opt);
+    }
 
-              const v = JSON.parse(so.value || "{}");
-              if (!v.start || !v.end || !v.machine) { toast("⛔ Slot ungültig"); return; }
-
-              await jpost("/api/washer/book", {
-                room: creds.room,
-                pin: creds.pin,
-                stationPin: creds.stationPin,
-                machine: v.machine,
-                start: v.start,
-                end: v.end
-              });
-
-              toast("✅ Gebucht");
-              await refreshAll();
-            }catch(e){
-              toast("⛔ Buchen fehlgeschlagen");
-            }
-          };
-
-          row.appendChild(sel);
-          row.appendChild(bookBtn);
-          tile.appendChild(row);
+    const bookBtn = document.createElement("button");
+    bookBtn.textContent = "Buchen";
+    bookBtn.onclick = async ()=>{
+      try{
+        const picked = JSON.parse(sel.value || "{}");
+        if (!picked.machine || !picked.start || !picked.end) {
+          toast("⛔ Bitte Slot wählen");
+          return;
         }
+        await jpost("/api/washer/book", {
+          room: creds.room,
+          pin: creds.pin,
+          stationPin: creds.stationPin,
+          machine: picked.machine,
+          start: picked.start,
+          end: picked.end
+        });
+        toast("✅ Gebucht");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Buchen fehlgeschlagen");
+      }
+    };
+
+    wrap.appendChild(sel);
+    wrap.appendChild(bookBtn);
+
+    // Wichtig: in die Card / Content rein, nicht an btns (btns ist nur Button-Leiste)
+    card.appendChild(wrap);
+  }
+}
+
+      else
 
         // --- Freigeben-Button bleibt wie gehabt, wenn Slot läuft und eigenes Zimmer ---
         if (running && creds.room && running.room === creds.room) {
