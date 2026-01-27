@@ -512,8 +512,7 @@ for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
       }
     }
   }
-
-  // sort by start then machine
+// sort by start then machine
   options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
   return options;
 }
