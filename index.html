@@ -761,20 +761,6 @@ if (group.type === "washer") {
       }
     };
     btns.appendChild(b);
-  } else {
-    if (creds.room && running.room === creds.room) {
-      const b = document.createElement("button");
-      b.textContent = "Fertig (Freigeben)";
-      b.onclick = async ()=>{
-        try{
-          await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
-          toast("✅ Freigegeben");
-          await refreshAll();
-        }catch(e){
-          toast("⛔ Freigeben fehlgeschlagen");
-        }
-      };
-      btns.appendChild(b);
     } else {
       const b = document.createElement("button");
       b.textContent = "Überbuchen";
