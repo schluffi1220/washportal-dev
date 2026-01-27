@@ -443,6 +443,7 @@ function berlinMidnightMs(dayOffset){
 function buildWasherOptions(){
   const now = Date.now();
   const cfg = STATE.config;
+
   const machines = [1,2,3,4];
   const hours = (cfg?.washerHours || []).slice();
   const durMs = 120*60*1000;
@@ -470,6 +471,7 @@ function buildWasherOptions(){
       const end = start + durMs;
 
       for (const mac of machines){
+
         const ms = machineMap[mac];
         const disabledMachine = !ms || ms.enabled===0;
         const defect = !!(ms && ms.defect===1);
@@ -502,13 +504,14 @@ function buildWasherOptions(){
   }
 
   options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
+
   return options;
 }
-
   function buildWasherOptionsForMachine(machine){
-  const all = buildWasherOptions(); // nutzt cfg / STATE
+  const all = buildWasherOptions();
   return all.filter(o => Number(o.machine) === Number(machine));
-  }
+}
+
 
 function bookingForMachineRunning(type, machine){
   const now = Date.now();
