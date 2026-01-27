@@ -520,6 +520,7 @@ for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
   function buildWasherOptionsForMachine(machine){
   const all = buildWasherOptions(); // nutzt cfg / STATE
   return all.filter(o => Number(o.machine) === Number(machine));
+  }
 
 function bookingForMachineRunning(type, machine){
   const now = Date.now();
