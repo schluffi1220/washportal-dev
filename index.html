@@ -455,11 +455,10 @@ function buildWasherOptions(){
   for (const b of washerBookings){
     if (byM[b.machine]) byM[b.machine].push(b);
   }
+}
   function buildWasherOptionsForMachine(machine){
   const all = buildWasherOptions(); // nutzt cfg / STATE
   return all.filter(o => Number(o.machine) === Number(machine));
-}
-
 
   // machine status map
   const machineMap = {};
@@ -616,6 +615,11 @@ function tileStatus(type, machine){
 function renderTiles(){
   const box = $("tiles");
   box.innerHTML = "";
+    // Guard: wenn STATE (noch) nicht da ist, nicht alles leer lassen
+  if (!STATE || !Array.isArray(STATE.machines) || !Array.isArray(STATE.bookings)) {
+    box.innerHTML = `<div class="small">Keine Daten geladen. Bitte auf „Aktualisieren“ drücken.</div>`;
+    return;
+  }
 
   const types = [
     {type:"washer", title:"Waschmaschine", machines:[1,2,3,4]},
@@ -646,6 +650,63 @@ function renderTiles(){
       const running = bookingForMachineRunning(group.type, m);
 
       if (group.type === "washer") {
+        // --- Washer: Quick-Book Dropdown pro Maschine (bleibt zusätzlich zum globalen Dropdown) ---
+const quickWrap = document.createElement("div");
+quickWrap.style.display = "flex";
+quickWrap.style.gap = "8px";
+quickWrap.style.alignItems = "center";
+quickWrap.style.flexWrap = "wrap";
+
+const sel = document.createElement("select");
+sel.className = "select"; // falls du so eine Klasse hast, sonst weglassen
+sel.style.minWidth = "240px";
+
+// Optionen für genau diese Maschine bauen:
+const opts = buildWasherOptionsForMachine(m); // m ist deine Maschinen-Nummer in der Kachel
+// Falls bei dir die Maschine anders heißt: statt m -> group.machine oder ähnlich
+
+// Placeholder
+const ph = document.createElement("option");
+ph.value = "";
+ph.textContent = "Slot auswählen…";
+sel.appendChild(ph);
+
+for (const o of opts){
+  const op = document.createElement("option");
+  op.value = JSON.stringify({ machine: o.machine, start: o.start, end: o.end });
+  op.textContent = o.label; // WICHTIG: buildWasherOptions muss label liefern
+  op.disabled = !!o.disabled;
+  sel.appendChild(op);
+}
+
+const bookBtn = document.createElement("button");
+bookBtn.textContent = "Buchen";
+bookBtn.onclick = async () => {
+  try{
+    const c = getCreds();
+    if (!c.room || !c.pin || !c.stationPin) return toast("⛔ Bitte erst Zugang eingeben");
+    if (!sel.value) return toast("⛔ Bitte Slot auswählen");
+    const v = JSON.parse(sel.value);
+    await jpost("/api/washer/book", {
+      room: c.room,
+      pin: c.pin,
+      stationPin: c.stationPin,
+      machine: v.machine,
+      start: v.start,
+      end: v.end
+    });
+    toast("✅ Gebucht");
+    await refreshAll();
+  }catch(e){
+    toast("⛔ Buchen fehlgeschlagen");
+  }
+};
+
+quickWrap.appendChild(sel);
+quickWrap.appendChild(bookBtn);
+
+// ✅ Das muss in die Kachel rein – aber nur bei Waschmaschinen:
+card.appendChild(quickWrap);
         if (running && creds.room && running.room === creds.room) {
           const b = document.createElement("button");
           b.textContent = "Freigeben";
