@@ -456,15 +456,15 @@ function buildWasherOptions(){
     if (byM[b.machine]) byM[b.machine].push(b);
   }
 }
-  function buildWasherOptionsForMachine(machine){
-  const all = buildWasherOptions(); // nutzt cfg / STATE
-  return all.filter(o => Number(o.machine) === Number(machine));
-
   // machine status map
   const machineMap = {};
   for (const m of STATE.machines){
     if (m.type==="washer") machineMap[m.machine] = m;
   }
+
+   function buildWasherOptionsForMachine(machine){
+  const all = buildWasherOptions(); // nutzt cfg / STATE
+  return all.filter(o => Number(o.machine) === Number(machine));
 
 const options = [];
 for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
