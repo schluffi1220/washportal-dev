@@ -727,7 +727,6 @@ function renderTiles(){
      let quickRow = null;
 
 if (group.type === "washer") {
-  // Freigeben nur wenn läuft + gehört mir
   if (running && creds.room && running.room === creds.room) {
     const b = document.createElement("button");
     b.textContent = "Freigeben";
@@ -742,9 +741,6 @@ if (group.type === "washer") {
     };
     btns.appendChild(b);
   }
-
-  // Quick-Booking Dropdown pro Washer-Kachel (globales Dropdown bleibt!)
-  quickRow = makeWasherQuickBookRow(m, creds);
 
 } else {
   // dryer
@@ -761,22 +757,6 @@ if (group.type === "washer") {
       }
     };
     btns.appendChild(b);
-    } else {
-      const b = document.createElement("button");
-      b.textContent = "Überbuchen";
-      b.onclick = async ()=>{
-        const ok = confirm("Überbuchen nur wenn bestätigt:\n\nDie Wäsche vom Vorgänger ist sauber und vorsichtig im Korb oben/nebendran abgelegt.");
-        if (!ok) return;
-        try{
-          await jpost("/api/dryer/book", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, machine:m, force:true, confirmed:true});
-          toast("✅ Überbucht & gebucht");
-          await refreshAll();
-        }catch(e){
-          toast("⛔ Überbuchen fehlgeschlagen");
-        }
-      };
-      btns.appendChild(b);
-    }
   }
 }
 
