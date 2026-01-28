@@ -724,8 +724,6 @@ function renderTiles(){
       const creds = getCreds();
       const running = bookingForMachineRunning(group.type, m);
 
-     let quickRow = null;
-
 if (group.type === "washer") {
   // washer buttons
   if (running && creds.room && running.room === creds.room) {
