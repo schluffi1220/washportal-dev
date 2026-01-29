@@ -536,11 +536,11 @@ function buildWasherOptions(){
   options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
   return options;
 }
-
-function buildWasherOptionsForMachine(machine){
+  function buildWasherOptionsForMachine(machine){
   const all = buildWasherOptions();
   return all.filter(o => Number(o.machine) === Number(machine));
 }
+
 
 function bookingForMachineRunning(type, machine){
   const now = Date.now();
@@ -669,6 +669,7 @@ function renderTiles(){
       const running = bookingForMachineRunning(group.type, m);
 
 if (group.type === "washer") {
+
   // Freigeben nur wenn läuft + gehört mir
   if (running && creds.room && running.room === creds.room) {
     const b = document.createElement("button");
@@ -685,11 +686,8 @@ if (group.type === "washer") {
     btns.appendChild(b);
   }
 
-  // ✅ Quick-Booking Dropdown pro Washer-Kachel (globales Dropdown bleibt!)
-  // Nutzt deine bestehende buildWasherOptions(), filtert aber nur Slots für diese Maschine (m)
-  const allOpts = buildWasherOptions(); // muss bei dir schon existieren
-  const opts = allOpts.filter(o => Number(o.machine) === Number(m));
-
+  // --- Quick-Booking Dropdown pro Washer-Kachel (globales Dropdown bleibt!) ---
+  // Nur anzeigen, wenn Zugang da ist
   const bookRow = document.createElement("div");
   bookRow.className = "row";
   bookRow.style.gap = "8px";
@@ -699,17 +697,37 @@ if (group.type === "washer") {
   sel.className = "slotSelect";
   sel.style.flex = "1";
 
-  const ph = document.createElement("option");
-  ph.value = "";
-  ph.textContent = "Slot wählen…";
-  sel.appendChild(ph);
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Bitte erst Zugang eingeben";
+    sel.appendChild(opt);
+    sel.disabled = true;
+  } else {
+    const opts = buildWasherOptionsForMachine(m); // m = Maschine dieser Kachel
+    if (!opts.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Keine Slots verfügbar";
+      sel.appendChild(opt);
+      sel.disabled = true;
+    } else {
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = "Bitte Slot wählen…";
+      sel.appendChild(ph);
 
-  for (const o of opts) {
-    const op = document.createElement("option");
-    op.value = `${o.start}|${o.end}|${o.machine}`;
-    op.textContent = o.label;
-    if (o.disabled) op.disabled = true;
-    sel.appendChild(op);
+      for (const o of opts){
+        const opt = document.createElement("option");
+        opt.value = `${o.start}|${o.end}|${o.machine}`;
+        opt.textContent = o.label;
+        opt.disabled = !!o.disabled;
+
+        // Lesbarkeit: buchbar schwarz, disabled grau
+        opt.style.color = o.disabled ? "#777" : "#000";
+        sel.appendChild(opt);
+      }
+    }
   }
 
   const bBook = document.createElement("button");
@@ -717,15 +735,21 @@ if (group.type === "washer") {
   bBook.onclick = async ()=>{
     try{
       if (!sel.value) { toast("⛔ Bitte Slot wählen"); return; }
-      const [startS, endS] = String(sel.value).split("|");
+      const [startS, endS, machineS] = String(sel.value).split("|");
       const start = Number(startS);
       const end = Number(endS);
+      const machine = Number(machineS);
+
+      if (!Number.isFinite(start) || !Number.isFinite(end) || !machine){
+        toast("⛔ Ungültiger Slot");
+        return;
+      }
 
       await jpost("/api/washer/book", {
         room: creds.room,
         pin: creds.pin,
         stationPin: creds.stationPin,
-        machine: m,
+        machine,
         start,
         end
       });
@@ -737,12 +761,19 @@ if (group.type === "washer") {
     }
   };
 
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    bBook.disabled = true;
+  }
+
   bookRow.appendChild(sel);
   bookRow.appendChild(bBook);
+
+  // WICHTIG: an btns hängen (NICHT card/tile, damit nix verschwindet)
   btns.appendChild(bookRow);
-}
-      } else {
-        // dryer
+
+} else {
+  // dryer
+
         if (!running) {
           const b = document.createElement("button");
           b.textContent = "Jetzt buchen";
