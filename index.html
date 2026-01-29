@@ -668,9 +668,8 @@ function renderTiles(){
       const creds = getCreds();
       const running = bookingForMachineRunning(group.type, m);
 
-            if (group.type === "washer") {
-
-  // 1) Freigeben-Button nur, wenn aktuell laufend UND gehört mir
+if (group.type === "washer") {
+  // Freigeben nur wenn läuft + gehört mir
   if (running && creds.room && running.room === creds.room) {
     const b = document.createElement("button");
     b.textContent = "Freigeben";
@@ -686,78 +685,10 @@ function renderTiles(){
     btns.appendChild(b);
   }
 
-  // 2) Direkt-Buchen Drop-Down pro Maschine (bleibt zusätzlich zum globalen Dropdown!)
-  // Nur anzeigen, wenn Zugang gesetzt ist
-  if (creds.room && creds.pin && creds.stationPin) {
-
-    const wrap = document.createElement("div");
-    wrap.className = "row";
-    wrap.style.gap = "8px";
-    wrap.style.marginTop = "8px";
-
-    const sel = document.createElement("select");
-    sel.className = "in";
-    sel.style.flex = "1";
-
-    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine der Kachel
-
-    for (const o of opts){
-      const opt = document.createElement("option");
-      opt.value = JSON.stringify({ machine:o.machine, start:o.start, end:o.end });
-      opt.textContent = o.label;
-      if (o.disabled) opt.disabled = true;
-      sel.appendChild(opt);
-    }
-
-    const bookBtn = document.createElement("button");
-    bookBtn.textContent = "Buchen";
-    bookBtn.onclick = async ()=>{
-      try{
-        const picked = JSON.parse(sel.value || "{}");
-        if (!picked.machine || !picked.start || !picked.end) {
-          toast("⛔ Bitte Slot wählen");
-          return;
-        }
-        await jpost("/api/washer/book", {
-          room: creds.room,
-          pin: creds.pin,
-          stationPin: creds.stationPin,
-          machine: picked.machine,
-          start: picked.start,
-          end: picked.end
-        });
-        toast("✅ Gebucht");
-        await refreshAll();
-      }catch(e){
-        toast("⛔ Buchen fehlgeschlagen");
-      }
-    };
-
-    wrap.appendChild(sel);
-    wrap.appendChild(bookBtn);
-
-    // Wichtig: in die Card / Content rein, nicht an btns (btns ist nur Button-Leiste)
-    card.appendChild(wrap);
-  }
-}
-
-        // --- Freigeben-Button bleibt wie gehabt, wenn Slot läuft und eigenes Zimmer ---
-        if (running && creds.room && running.room === creds.room) {
-          const b = document.createElement("button");
-          b.textContent = "Freigeben";
-          b.onclick = async ()=>{
-            try{
-              await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
-              toast("✅ Freigegeben");
-              await refreshAll();
-            }catch(e){
-              toast("⛔ Freigeben fehlgeschlagen");
-            }
-          };
-          btns.appendChild(b);
-        }
-
-      } else {
+  // ✅ Quick-Booking Dropdown pro Washer-Kachel (globales Dropdown bleibt!)
+  // Nutzt deine bestehende buildWasherOptions(), filtert aber nur Slots für diese Maschine (m)
+  const allOpts = buildWasherOptions(); // muss bei dir schon existieren
+  const opts = allOpts.filter(o => Number(o.machine) === Number(m));
 
   const bookRow = document.createElement("div");
   bookRow.className = "row";
@@ -765,41 +696,20 @@ function renderTiles(){
   bookRow.style.marginTop = "8px";
 
   const sel = document.createElement("select");
-  sel.className = "slotSelect"; // nutzt dein bestehendes Styling
+  sel.className = "slotSelect";
   sel.style.flex = "1";
 
-  // Wenn Zugang fehlt: nur Hinweis
-  if (!creds.room || !creds.pin || !creds.stationPin){
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "Bitte erst Zugang eingeben";
-    sel.appendChild(opt);
-    sel.disabled = true;
-  } else {
-    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine in der Kachel
-    if (!opts.length){
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "Keine Slots verfügbar";
-      sel.appendChild(opt);
-      sel.disabled = true;
-    } else {
-      // Default Platzhalter
-      const ph = document.createElement("option");
-      ph.value = "";
-      ph.textContent = "Bitte Slot wählen…";
-      sel.appendChild(ph);
+  const ph = document.createElement("option");
+  ph.value = "";
+  ph.textContent = "Slot wählen…";
+  sel.appendChild(ph);
 
-      for (const o of opts){
-        const opt = document.createElement("option");
-        opt.value = `${o.start}|${o.end}|${o.machine}`;
-        opt.textContent = o.label;
-        opt.disabled = !!o.disabled;
-        // visuell: buchbare Slots LESBAR (schwarz), disabled grau
-        opt.style.color = o.disabled ? "#777" : "#000";
-        sel.appendChild(opt);
-      }
-    }
+  for (const o of opts) {
+    const op = document.createElement("option");
+    op.value = `${o.start}|${o.end}|${o.machine}`;
+    op.textContent = o.label;
+    if (o.disabled) op.disabled = true;
+    sel.appendChild(op);
   }
 
   const bBook = document.createElement("button");
@@ -807,20 +717,15 @@ function renderTiles(){
   bBook.onclick = async ()=>{
     try{
       if (!sel.value) { toast("⛔ Bitte Slot wählen"); return; }
-      const [startS, endS, machineS] = String(sel.value).split("|");
+      const [startS, endS] = String(sel.value).split("|");
       const start = Number(startS);
       const end = Number(endS);
-      const machine = Number(machineS);
-      if (!Number.isFinite(start) || !Number.isFinite(end) || !machine){
-        toast("⛔ Ungültiger Slot");
-        return;
-      }
 
       await jpost("/api/washer/book", {
         room: creds.room,
         pin: creds.pin,
         stationPin: creds.stationPin,
-        machine,
+        machine: m,
         start,
         end
       });
@@ -832,18 +737,10 @@ function renderTiles(){
     }
   };
 
-  // Optional: wenn kein Zugang, Button deaktivieren
-  if (!creds.room || !creds.pin || !creds.stationPin){
-    bBook.disabled = true;
-  }
-
   bookRow.appendChild(sel);
   bookRow.appendChild(bBook);
-
-  // unter die Buttons hängen
-  card.appendChild(bookRow);
-} 
-        }
+  btns.appendChild(bookRow);
+}
       } else {
         // dryer
         if (!running) {
