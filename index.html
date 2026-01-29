@@ -152,13 +152,28 @@
     .tileBtns button{
       border-radius:999px;
       padding:8px 10px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.0);
-      color: var(--txt);
+      border:1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.55);
+      color:#07101e;
       cursor:pointer;
       font-size:12px;
+      font-weight:800;
+      backdrop-filter: blur(6px);
     }
-    .disabledOpt{color:#9aa9c6}
+    
+
+    .tileBtns button:hover{ filter: brightness(1.03); }
+    .tileBtns button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    /* Dropdowns in Kacheln: lesbar */
+    .tile select{
+      background: rgba(255,255,255,.92);
+      color:#000;
+      border-color: rgba(255,255,255,.25);
+    }
+    .tile select option{ color:#000; }
+    .tile select option:disabled{ color:#8a94a8; }
+.disabledOpt{color:#9aa9c6}
   </style>
 </head>
 <body>
@@ -1142,7 +1157,9 @@ async function adminLoadLogs(){
       </div>`;
     }).join("");
   }catch(e){
-    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen</div>`;
+    const hint = (e && e.status) ? ` (HTTP ${e.status})` : "";
+    const detail = (e && e.data && (e.data.error || e.data.message)) ? ` – ${escapeHtml(e.data.error || e.data.message)}` : "";
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen${hint}${detail}</div>`;
   }
 }
 
@@ -1188,7 +1205,9 @@ async function adminLoadBookings(){
           await adminLoadBookings();
           await refreshAll();
         }catch(e){
-          toast("⛔ Admin-Storno fehlgeschlagen");
+    const hint = (e && e.status) ? ` (HTTP ${e.status})` : "";
+    const detail = (e && e.data && (e.data.error || e.data.message)) ? ` – ${escapeHtml(e.data.error || e.data.message)}` : "";
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen${hint}${detail}</div>`;
         }
       };
     });
@@ -1298,7 +1317,7 @@ async function adminOpenThread(threadId){
     };
 
   // Thread löschen (Admin)
-  const delBtn = $("btnThreadDelete");
+  const delBtn = $("btnAdminDeleteThread");
   if (delBtn){
     delBtn.onclick = async ()=>{
       if (!confirm("Thread wirklich löschen?")) return;
