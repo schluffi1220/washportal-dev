@@ -358,8 +358,12 @@ function toast(msg){
   window.__t = setTimeout(()=> t.style.display="none", 3200);
 }
 function fmtDT(ms){
-  const d = new Date(ms);
-  return d.toLocaleString("de-DE", { timeZone: "Europe/Berlin" });
+  const d = new Date(Number(ms||0));
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone:"Europe/Berlin",
+    day:"2-digit", month:"2-digit", year:"numeric",
+    hour:"2-digit", minute:"2-digit"
+  }).format(d);
 }
 function fmtTime(ms){
   const d = new Date(ms);
@@ -1036,10 +1040,24 @@ async function adminOpenThread(threadId){
   const s = getAdminSession(); if (!s) return;
   const view = $("adminFeedbackThreadView");
   view.innerHTML = `<div class="small mono">Lade Thread…</div>`;
+  $("btnDeleteThread").onclick = async () => {
+  if (!confirm("Thread wirklich löschen? (Alle Nachrichten werden entfernt)")) return;
+  try{
+    await jpost("/api/admin/feedback/delete-thread", { adminPassword: s.pw, threadId });
+    toast("✅ Thread gelöscht");
+    await adminLoadFeedbackThreads();
+    view.innerHTML = `<div class="small">Thread gelöscht.</div>`;
+  }catch(e){
+    toast("⛔ Löschen fehlgeschlagen");
+  }
+};
+
   try{
     const r = await jpost("/api/admin/feedback/thread", {adminPassword:s.pw, threadId});
     const t = r.thread;
     const msgs = r.messages || [];
+    const s = getAdminSession(); // ist da schon
+
 
     const allowId = "allowUserViewToggle";
     view.innerHTML = `
@@ -1066,6 +1084,7 @@ async function adminOpenThread(threadId){
             <div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(m.message)}</div>
           </div>
         `).join("")}
+        <button class="btn danger" id="btnDeleteThread">Thread löschen</button>
       </div>
 
       <label>Antwort</label>
