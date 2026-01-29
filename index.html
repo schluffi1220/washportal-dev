@@ -165,7 +165,7 @@
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
-      <div class="sub">Alpha-Stand (Zimmer + PIN + Stations-PIN) · 4 WM · 4 TR · Kachel-UI</div>
+      <div class="sub">DEV-Stand</div>
     </div>
   </header>
 
@@ -329,7 +329,29 @@
         <details style="margin-top:12px" open>
           <summary>Feedback (Admin-Chat)</summary>
           <div id="adminFeedbackThreads"></div>
-          <div id="adminFeedbackThreadView" style="margin-top:10px"></div>
+          <div id="adminFeedbackThreadView" style="margin-top:10px"></div><div id="adminFeedbackThreadView"></div>
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:12px 0">
+
+        <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="pill">Admin Tools</div>
+          <button class="btn" id="btnAdminLoadLogs">Logs laden</button>
+          <button class="btn" id="btnAdminLoadBookings">Buchungen laden</button>
+        </div>
+
+        <div class="card" style="margin-top:10px">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div class="h">Logs</div>
+          </div>
+          <div id="adminLogsBox" class="small" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card" style="margin-top:10px">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div class="h">Buchungen (Admin)</div>
+          </div>
+          <div id="adminBookingsBox" class="small" style="margin-top:8px"></div>
+        </div>
+
         </details>
 
         <details style="margin-top:12px">
@@ -358,12 +380,8 @@ function toast(msg){
   window.__t = setTimeout(()=> t.style.display="none", 3200);
 }
 function fmtDT(ms){
-  const d = new Date(Number(ms||0));
-  return new Intl.DateTimeFormat("de-DE", {
-    timeZone:"Europe/Berlin",
-    day:"2-digit", month:"2-digit", year:"numeric",
-    hour:"2-digit", minute:"2-digit"
-  }).format(d);
+  const d = new Date(ms);
+  return d.toLocaleString("de-DE", { timeZone: "Europe/Berlin" });
 }
 function fmtTime(ms){
   const d = new Date(ms);
@@ -446,53 +464,54 @@ function berlinMidnightMs(dayOffset){
 
 function buildWasherOptions(){
   const now = Date.now();
-  const cfg = STATE.config;
+  const cfg = STATE.config || {};
   const machines = [1,2,3,4];
-  const hours = (cfg?.washerHours || []).slice();
-  const durMs = 120*60*1000; // fixed 2h
-  const daysPast = cfg.daysPast || 1;
-  const daysFuture = cfg.daysFuture || 6;
+  const hours = (cfg.washerHours || []).slice();
+  const durMs = 120*60*1000; // 2h fix
 
-  // map bookings by machine for washers
+  // Nur gebuchte Washer-Buchungen
   const washerBookings = (STATE.bookings || []).filter(b => b.type==="washer" && b.status==="booked");
+
+  // Buchungen nach Maschine
   const byM = {1:[],2:[],3:[],4:[]};
   for (const b of washerBookings){
     if (byM[b.machine]) byM[b.machine].push(b);
   }
 
-  // machine status map
+  // Maschinenstatus Map
   const machineMap = {};
-  for (const m of STATE.machines){
+  for (const m of (STATE.machines || [])){
     if (m.type==="washer") machineMap[m.machine] = m;
   }
 
-const options = [];
-for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
+  const options = [];
 
-  const day0 = berlinMidnightMs(dayOff);
+  // WICHTIG: ab HEUTE (kein vergangener Tag mehr)
+  for (let dayOff = 0; dayOff <= (cfg.daysFuture ?? 6); dayOff++){
+    const day0 = berlinMidnightMs(dayOff);
 
-  for (const h of hours){
-    const start = day0 + h*60*60*1000;
-    const end = start + durMs;
+    for (const h of hours){
+      const start = day0 + h*60*60*1000;
+      const end = start + durMs;
 
-    for (const mac of machines){
-      const ms = machineMap[mac];
-      const disabledMachine = !ms || ms.enabled===0;
-      const defect = !!(ms && ms.defect===1);
+      for (const mac of machines){
+        const ms = machineMap[mac];
+        const disabledMachine = !ms || ms.enabled===0;
+        const defect = !!(ms && ms.defect===1);
 
-      const pastNotBookable = end <= now;
+        // Vergangenheit: nicht buchbar, wenn Slot schon vorbei ist
+        const isPast = end <= now;
 
-
-        // overlap?
+        // Overlap mit bestehender Buchung?
         let booked = false;
         for (const b of (byM[mac]||[])){
           if (!(b.end <= start || b.start >= end)){
-            booked = true; break;
+            booked = true;
+            break;
           }
         }
 
-        const labelBase = `${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)} – Waschmaschine ${mac}`;
-        let label = labelBase;
+        let label = `${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)} – Waschmaschine ${mac}`;
         let disabled = false;
 
         if (disabledMachine){
@@ -501,32 +520,32 @@ for (let dayOff = 0; dayOff <= cfg.daysFuture; dayOff++) {
         } else if (defect){
           label += " (defekt)";
           disabled = true;
-        } else if (pastNotBookable){
+        } else if (isPast){
           label += " (vergangen)";
           disabled = true;
         } else if (booked){
           label += " (belegt)";
           disabled = true;
-        } else {
-          // free
-          // show nothing extra
         }
 
-        options.push({type:"washer", machine:mac, start, end, label, disabled});
+        options.push({ type:"washer", machine:mac, start, end, label, disabled });
       }
     }
   }
 
-  // sort by start then machine
   options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
   return options;
 }
 
+function buildWasherOptionsForMachine(machine){
+  const all = buildWasherOptions();
+  return all.filter(o => Number(o.machine) === Number(machine));
+}
+
 function bookingForMachineRunning(type, machine){
   const now = Date.now();
-  const bs = (STATE.bookings||[]).filter(b=>b.type===type && b.machine===machine && b.status==="booked");
-  // running = start<=now<end
-  return bs.find(b=> b.start <= now && b.end > now) || null;
+  const bs = (STATE.bookings||[]).filter(b => b.type===type && b.machine===machine && b.status==="booked");
+  return bs.find(b => b.start <= now && b.end > now) || null;
 }
 
 // ---------- render ----------
@@ -615,6 +634,11 @@ function tileStatus(type, machine){
 function renderTiles(){
   const box = $("tiles");
   box.innerHTML = "";
+    // Guard: wenn STATE (noch) nicht da ist, nicht alles leer lassen
+  if (!STATE || !Array.isArray(STATE.machines) || !Array.isArray(STATE.bookings)) {
+    box.innerHTML = `<div class="small">Keine Daten geladen. Bitte auf „Aktualisieren“ drücken.</div>`;
+    return;
+  }
 
   const types = [
     {type:"washer", title:"Waschmaschine", machines:[1,2,3,4]},
@@ -644,7 +668,80 @@ function renderTiles(){
       const creds = getCreds();
       const running = bookingForMachineRunning(group.type, m);
 
-      if (group.type === "washer") {
+            if (group.type === "washer") {
+
+  // 1) Freigeben-Button nur, wenn aktuell laufend UND gehört mir
+  if (running && creds.room && running.room === creds.room) {
+    const b = document.createElement("button");
+    b.textContent = "Freigeben";
+    b.onclick = async ()=>{
+      try{
+        await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+        toast("✅ Freigegeben");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Freigeben fehlgeschlagen");
+      }
+    };
+    btns.appendChild(b);
+  }
+
+  // 2) Direkt-Buchen Drop-Down pro Maschine (bleibt zusätzlich zum globalen Dropdown!)
+  // Nur anzeigen, wenn Zugang gesetzt ist
+  if (creds.room && creds.pin && creds.stationPin) {
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+    wrap.style.gap = "8px";
+    wrap.style.marginTop = "8px";
+
+    const sel = document.createElement("select");
+    sel.className = "in";
+    sel.style.flex = "1";
+
+    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine der Kachel
+
+    for (const o of opts){
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({ machine:o.machine, start:o.start, end:o.end });
+      opt.textContent = o.label;
+      if (o.disabled) opt.disabled = true;
+      sel.appendChild(opt);
+    }
+
+    const bookBtn = document.createElement("button");
+    bookBtn.textContent = "Buchen";
+    bookBtn.onclick = async ()=>{
+      try{
+        const picked = JSON.parse(sel.value || "{}");
+        if (!picked.machine || !picked.start || !picked.end) {
+          toast("⛔ Bitte Slot wählen");
+          return;
+        }
+        await jpost("/api/washer/book", {
+          room: creds.room,
+          pin: creds.pin,
+          stationPin: creds.stationPin,
+          machine: picked.machine,
+          start: picked.start,
+          end: picked.end
+        });
+        toast("✅ Gebucht");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Buchen fehlgeschlagen");
+      }
+    };
+
+    wrap.appendChild(sel);
+    wrap.appendChild(bookBtn);
+
+    // Wichtig: in die Card / Content rein, nicht an btns (btns ist nur Button-Leiste)
+    card.appendChild(wrap);
+  }
+}
+
+        // --- Freigeben-Button bleibt wie gehabt, wenn Slot läuft und eigenes Zimmer ---
         if (running && creds.room && running.room === creds.room) {
           const b = document.createElement("button");
           b.textContent = "Freigeben";
@@ -658,6 +755,94 @@ function renderTiles(){
             }
           };
           btns.appendChild(b);
+        }
+
+      } else {
+
+  const bookRow = document.createElement("div");
+  bookRow.className = "row";
+  bookRow.style.gap = "8px";
+  bookRow.style.marginTop = "8px";
+
+  const sel = document.createElement("select");
+  sel.className = "slotSelect"; // nutzt dein bestehendes Styling
+  sel.style.flex = "1";
+
+  // Wenn Zugang fehlt: nur Hinweis
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Bitte erst Zugang eingeben";
+    sel.appendChild(opt);
+    sel.disabled = true;
+  } else {
+    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine in der Kachel
+    if (!opts.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Keine Slots verfügbar";
+      sel.appendChild(opt);
+      sel.disabled = true;
+    } else {
+      // Default Platzhalter
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = "Bitte Slot wählen…";
+      sel.appendChild(ph);
+
+      for (const o of opts){
+        const opt = document.createElement("option");
+        opt.value = `${o.start}|${o.end}|${o.machine}`;
+        opt.textContent = o.label;
+        opt.disabled = !!o.disabled;
+        // visuell: buchbare Slots LESBAR (schwarz), disabled grau
+        opt.style.color = o.disabled ? "#777" : "#000";
+        sel.appendChild(opt);
+      }
+    }
+  }
+
+  const bBook = document.createElement("button");
+  bBook.textContent = "Buchen";
+  bBook.onclick = async ()=>{
+    try{
+      if (!sel.value) { toast("⛔ Bitte Slot wählen"); return; }
+      const [startS, endS, machineS] = String(sel.value).split("|");
+      const start = Number(startS);
+      const end = Number(endS);
+      const machine = Number(machineS);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || !machine){
+        toast("⛔ Ungültiger Slot");
+        return;
+      }
+
+      await jpost("/api/washer/book", {
+        room: creds.room,
+        pin: creds.pin,
+        stationPin: creds.stationPin,
+        machine,
+        start,
+        end
+      });
+
+      toast("✅ Gebucht");
+      await refreshAll();
+    }catch(e){
+      toast("⛔ Buchen fehlgeschlagen");
+    }
+  };
+
+  // Optional: wenn kein Zugang, Button deaktivieren
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    bBook.disabled = true;
+  }
+
+  bookRow.appendChild(sel);
+  bookRow.appendChild(bBook);
+
+  // unter die Buttons hängen
+  card.appendChild(bookRow);
+} 
         }
       } else {
         // dryer
@@ -1002,6 +1187,101 @@ async function adminLoadMachines(){
   }
 }
 
+
+// -----------------------------
+// Admin: Logs + Bookings helpers
+// -----------------------------
+function fmtBerlin(ts){
+  const d = new Date(Number(ts||0));
+  if (!Number.isFinite(d.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("de-DE", {
+    timeZone:"Europe/Berlin",
+    year:"numeric", month:"2-digit", day:"2-digit",
+    hour:"2-digit", minute:"2-digit"
+  }).formatToParts(d);
+  const get = (t)=> (parts.find(p=>p.type===t)?.value || "");
+  return `${get("day")}.${get("month")}.${get("year")} ${get("hour")}:${get("minute")}`;
+}
+
+async function adminLoadLogs(){
+  const s = getAdminSession();
+  if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
+  const box = $("adminLogsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpost("/api/admin/logs", { adminPassword: s.pw, limit: 300 });
+    const list = (r.logs||[]);
+    if (!box) return;
+    if (!list.length){ box.innerHTML = `<div class="small">Keine Logs.</div>`; return; }
+    box.innerHTML = list.map(l=>{
+      const meta = (()=>{ try{return JSON.parse(l.meta||"{}")}catch(_){return null} })();
+      const metaTxt = meta ? `<div class="mono small" style="opacity:.8">${esc(JSON.stringify(meta))}</div>` : "";
+      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
+        <div>
+          <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
+          <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${Number(l.machine||0)||""}</div>
+          ${metaTxt}
+        </div>
+        <div class="mono small" style="white-space:nowrap">${esc(fmtBerlin(l.ts))}</div>
+      </div>`;
+    }).join("");
+  }catch(e){
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen</div>`;
+  }
+}
+
+async function adminLoadBookings(){
+  const s = getAdminSession();
+  if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
+  const box = $("adminBookingsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  try{
+    const r = await jpost("/api/admin/bookings/list", { adminPassword: s.pw });
+    const list = (r.bookings||[]);
+    if (!box) return;
+    if (!list.length){ box.innerHTML = `<div class="small">Keine Buchungen im Fenster.</div>`; return; }
+    const now = Date.now();
+    box.innerHTML = list.map(b=>{
+      const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
+      const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+      let st = b.status;
+      if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
+      if (st==="released") st="freigegeben";
+      if (st==="cancelled") st="storniert";
+      if (st==="admin_cancelled") st="ADMIN gelöscht";
+      const canCancel = (b.status==="booked");
+      const btn = canCancel ? `<button class="btn" data-bid="${esc(b.id)}">Storno (Admin)</button>` : `<span class="small" style="opacity:.7">—</span>`;
+      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin:6px 0">
+        <div>
+          <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
+          <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
+        </div>
+        ${btn}
+      </div>`;
+    }).join("");
+
+    // wire buttons
+    box.querySelectorAll("button[data-bid]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.getAttribute("data-bid");
+        if (!id) return;
+        if (!confirm("Admin-Storno wirklich ausführen?")) return;
+        try{
+          await jpost("/api/admin/bookings/cancel", { adminPassword: s.pw, id });
+          toast("✅ Admin-Storno ausgeführt");
+          await adminLoadBookings();
+          await refreshAll();
+        }catch(e){
+          toast("⛔ Admin-Storno fehlgeschlagen");
+        }
+      };
+    });
+
+  }catch(e){
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen</div>`;
+  }
+}
+
 async function adminLoadFeedbackThreads(){
   const s = getAdminSession(); if (!s) return;
   const box = $("adminFeedbackThreads");
@@ -1040,24 +1320,10 @@ async function adminOpenThread(threadId){
   const s = getAdminSession(); if (!s) return;
   const view = $("adminFeedbackThreadView");
   view.innerHTML = `<div class="small mono">Lade Thread…</div>`;
-  $("btnDeleteThread").onclick = async () => {
-  if (!confirm("Thread wirklich löschen? (Alle Nachrichten werden entfernt)")) return;
-  try{
-    await jpost("/api/admin/feedback/delete-thread", { adminPassword: s.pw, threadId });
-    toast("✅ Thread gelöscht");
-    await adminLoadFeedbackThreads();
-    view.innerHTML = `<div class="small">Thread gelöscht.</div>`;
-  }catch(e){
-    toast("⛔ Löschen fehlgeschlagen");
-  }
-};
-
   try{
     const r = await jpost("/api/admin/feedback/thread", {adminPassword:s.pw, threadId});
     const t = r.thread;
     const msgs = r.messages || [];
-    const s = getAdminSession(); // ist da schon
-
 
     const allowId = "allowUserViewToggle";
     view.innerHTML = `
@@ -1084,7 +1350,6 @@ async function adminOpenThread(threadId){
             <div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(m.message)}</div>
           </div>
         `).join("")}
-        <button class="btn danger" id="btnDeleteThread">Thread löschen</button>
       </div>
 
       <label>Antwort</label>
@@ -1096,9 +1361,11 @@ async function adminOpenThread(threadId){
       </label>
 
       <button class="btn" id="btnAdminSendReply">Antwort senden</button>
+              <button class="btn danger" id="btnAdminDeleteThread">Thread löschen</button>
     `;
 
-    $("btnAdminSendReply").onclick = async ()=>{
+    const sendBtn = $("btnAdminSendReply");
+    if (sendBtn) sendBtn.onclick = async ()=>{
       const msg = $("adminReplyText").value.trim();
       if (!msg) return toast("Antwort fehlt");
       const visible = $("adminVisibleToUser").checked;
@@ -1213,6 +1480,9 @@ $("btnAdminLogout").onclick = ()=>{
 };
 
 $("btnAdminReload").onclick = adminReload;
+
+$("btnAdminLoadLogs").onclick = adminLoadLogs;
+$("btnAdminLoadBookings").onclick = adminLoadBookings;
 
 $("btnSetStationPin").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
@@ -1403,5 +1673,9 @@ $("btnLoadLogs").onclick = async ()=>{
 </script>
 </body>
 </html>
+
+
+
+
 
 
