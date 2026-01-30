@@ -1142,24 +1142,27 @@ async function adminLoadLogs(){
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
   const box = $("adminLogsBox");
   if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+
   try{
     const r = await jpost("/api/admin/logs", { adminPassword: s.pw, limit: 300 });
     const list = (r.logs||[]);
     if (!box) return;
     if (!list.length){ box.innerHTML = `<div class="small">Keine Logs.</div>`; return; }
+
     box.innerHTML = list.map(l=>{
       const meta = (()=>{ try{return JSON.parse(l.meta||"{}")}catch(_){return null} })();
       const metaTxt = (()=> {
         if (!meta) return "";
-        // show start/end in human time if present
         const parts = [];
         if (Number.isFinite(Number(meta.start)) && Number.isFinite(Number(meta.end))) {
           const s = Number(meta.start), e = Number(meta.end);
           parts.push(`<div class="small" style="opacity:.85">Slot: ${esc(fmtBerlin(s))}–${esc(fmtBerlin(e))}</div>`);
         }
-        parts.push(`<div class="mono small" style="opacity:.8">${esc(JSON.stringify(meta))}</div>`);
+        // Meta optional anzeigen – wenn dir zu viel, einfach auskommentieren
+        // parts.push(`<div class="mono small" style="opacity:.8">${esc(JSON.stringify(meta))}</div>`);
         return parts.join("");
       })();
+
       return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
         <div>
           <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
@@ -1169,32 +1172,53 @@ async function adminLoadLogs(){
         <div class="mono small" style="white-space:nowrap">${esc(fmtBerlin(l.ts))}</div>
       </div>`;
     }).join("");
+
   }catch(e){
-    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen</div>`;
+    const status = e?.status ? `HTTP ${e.status}` : "";
+    const msg = e?.data?.error || e?.data?.message || "";
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(status)} ${esc(msg)})</div>`;
+    toast(`⛔ Logs: ${status} ${msg}`.trim());
   }
 }
+
 
 async function adminLoadBookings(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
   const box = $("adminBookingsBox");
   if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+
+  const tryLoad = async (path) => {
+    return await jpost(path, { adminPassword: s.pw });
+  };
+
   try{
-    const r = await jpost("/api/admin/bookings/list", { adminPassword: s.pw });
+    let r;
+    try{
+      r = await tryLoad("/api/admin/bookings/list");
+    }catch(_){
+      r = await tryLoad("/api/admin/bookings");
+    }
+
     const list = (r.bookings||[]);
     if (!box) return;
     if (!list.length){ box.innerHTML = `<div class="small">Keine Buchungen im Fenster.</div>`; return; }
+
     const now = Date.now();
     box.innerHTML = list.map(b=>{
       const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
-      const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+      const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`; // ✅ DD.MM.YYYY HH:MM
       let st = b.status;
       if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
       if (st==="released") st="freigegeben";
       if (st==="cancelled") st="storniert";
       if (st==="admin_cancelled") st="ADMIN gelöscht";
+
       const canCancel = (b.status==="booked");
-      const btn = canCancel ? `<button class="btn" data-bid="${esc(b.id)}">Storno (Admin)</button>` : `<span class="small" style="opacity:.7">—</span>`;
+      const btn = canCancel
+        ? `<button class="btn" data-bid="${esc(b.id)}">Storno (Admin)</button>`
+        : `<span class="small" style="opacity:.7">—</span>`;
+
       return `<div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin:6px 0">
         <div>
           <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
@@ -1204,7 +1228,6 @@ async function adminLoadBookings(){
       </div>`;
     }).join("");
 
-    // wire buttons
     box.querySelectorAll("button[data-bid]").forEach(btn=>{
       btn.onclick = async ()=>{
         const id = btn.getAttribute("data-bid");
@@ -1216,15 +1239,21 @@ async function adminLoadBookings(){
           await adminLoadBookings();
           await refreshAll();
         }catch(e){
-          toast("⛔ Admin-Storno fehlgeschlagen");
+          const status = e?.status ? `HTTP ${e.status}` : "";
+          const msg = e?.data?.error || e?.data?.message || "";
+          toast(`⛔ Admin-Storno: ${status} ${msg}`.trim());
         }
       };
     });
 
   }catch(e){
-    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen</div>`;
+    const status = e?.status ? `HTTP ${e.status}` : "";
+    const msg = e?.data?.error || e?.data?.message || "";
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(status)} ${esc(msg)})</div>`;
+    toast(`⛔ Buchungen: ${status} ${msg}`.trim());
   }
 }
+
 
 async function adminLoadFeedbackThreads(){
   const s = getAdminSession(); if (!s) return;
