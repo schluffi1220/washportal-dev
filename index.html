@@ -159,7 +159,13 @@
       font-size:12px;
     }
     .disabledOpt{color:#9aa9c6}
-  </style>
+  
+/* Ensure dropdown text is readable */
+.tileBtns select, .tile select{
+  color:#000 !important;
+  background:#fff !important;
+}
+</style>
 </head>
 <body>
   <header>
@@ -328,6 +334,11 @@
 
         <details style="margin-top:12px" open>
           <summary>Feedback (Admin-Chat)</summary>
+          <div class="row" style="gap:8px;flex-wrap:wrap;margin:8px 0">
+            <input id="adminThreadFilter" placeholder="Filter (Zimmer/Text)..." style="flex:1;min-width:180px" />
+            <button class="btn danger" id="btnAdminDeleteSelectedThreads">Ausgewählte löschen</button>
+            <button class="btn secondary" id="btnAdminExportThreadsCSV">Threads CSV</button>
+          </div>
           <div id="adminFeedbackThreads"></div>
           <div id="adminFeedbackThreadView" style="margin-top:10px"></div><div id="adminFeedbackThreadView"></div>
         <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:12px 0">
@@ -384,6 +395,16 @@ function fmtDT(ms){
   const d = new Date(ms);
   return d.toLocaleString("de-DE", { timeZone: "Europe/Berlin" });
 }
+
+function esc(v){
+  return String(v ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
 function fmtTime(ms){
   const d = new Date(ms);
   return d.toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin", hour:"2-digit", minute:"2-digit" });
@@ -1276,14 +1297,14 @@ async function adminLoadFeedbackThreads(){
     }
     box.innerHTML = threads.map(t=>{
       const unread = t.adminUnread ? " (NEU)" : "";
-      return `<div class="tile ${t.adminUnread? "busy":"free"}" style="margin-bottom:10px">
+      return `<div class="tile ${t.adminUnread? "busy":"free"}" data-search="${t.room} ${t.id}" style="margin-bottom:10px">
         <div class="tileTop">
           <div>
             <div class="title">Zimmer ${t.room}${unread}</div>
             <div class="meta mono">updated: ${fmtDT(t.updatedAt)}</div>
             <div class="meta">User-Sichtbar: ${t.allowUserView ? "ja":"nein"}</div>
           </div>
-          <button class="btn inline secondary" data-open-thread="${t.id}">Öffnen</button>
+          <label class="small" style="display:flex;align-items:center;gap:6px;margin-right:8px"><input type="checkbox" class="threadChk" data-thread-id="${t.id}">auswählen</label><button class="btn inline secondary" data-open-thread="${t.id}">Öffnen</button>
         </div>
       </div>`;
     }).join("");
@@ -1297,6 +1318,71 @@ async function adminLoadFeedbackThreads(){
   }
 }
 
+
+
+// Admin: thread filter + bulk delete + CSV
+(function initAdminThreadTools(){
+  const filter = $("adminThreadFilter");
+  if (filter){
+    filter.oninput = ()=>{
+      const q = filter.value.trim().toLowerCase();
+      document.querySelectorAll("#adminFeedbackThreads .tile").forEach(tile=>{
+        const txt = tile.getAttribute("data-search") || tile.textContent || "";
+        tile.style.display = txt.toLowerCase().includes(q) ? "" : "none";
+      });
+    };
+  }
+
+  const delSel = $("btnAdminDeleteSelectedThreads");
+  if (delSel){
+    delSel.onclick = async ()=>{
+      const s = getAdminSession();
+      if (!s?.pw) return toast("⛔ Bitte erst Admin-Login");
+      const ids = Array.from(document.querySelectorAll(".threadChk:checked")).map(x=>x.getAttribute("data-thread-id"));
+      if (!ids.length) return toast("⛔ Keine Threads gewählt");
+      if (!confirm(`Wirklich ${ids.length} Thread(s) löschen?`)) return;
+      try{
+        for (const id of ids){
+          await jpost("/api/admin/feedback/delete", { adminPassword: s.pw, threadId: id });
+        }
+        toast("✅ Threads gelöscht");
+        await adminLoadFeedbackThreads();
+      }catch(e){
+        const status = e?.status ? `HTTP ${e.status}` : "";
+        const msg = e?.data?.error || e?.data?.message || "";
+        toast(`⛔ Löschen fehlgeschlagen ${status} ${msg}`.trim());
+      }
+    };
+  }
+
+  const csvBtn = $("btnAdminExportThreadsCSV");
+  if (csvBtn){
+    csvBtn.onclick = ()=>{
+      // read tiles into csv
+      const rows = [];
+      document.querySelectorAll("#adminFeedbackThreads [data-thread-id]").forEach(chk=>{
+        const id = chk.getAttribute("data-thread-id");
+        const tile = chk.closest(".tile");
+        const room = (tile?.querySelector(".title")?.textContent || "").replace("Zimmer","").trim();
+        const updated = tile?.querySelector(".meta.mono")?.textContent?.replace("updated:","").trim() || "";
+        const allow = tile?.textContent?.includes("User-Sichtbar: ja") ? "ja" : "nein";
+        const unread = tile?.textContent?.includes("(NEU)") ? "ja" : "nein";
+        rows.push({id, room, updated, allowUserView:allow, adminUnread:unread});
+      });
+      if (!rows.length) return toast("⛔ Keine Threads zum Export");
+      const keys = Object.keys(rows[0]);
+      const csv = [keys.join(";"), ...rows.map(r=>keys.map(k=>String(r[k]??"")).join(";"))].join("\n");
+      const blob = new Blob([csv],{type:"text/csv"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "threads.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast("✅ CSV exportiert");
+    };
+  }
+})();
 async function adminOpenThread(threadId){
   const s = getAdminSession(); if (!s) return;
   const view = $("adminFeedbackThreadView");
@@ -1374,7 +1460,9 @@ async function adminOpenThread(threadId){
         $("adminReplyText").value = "";
         await adminLoadFeedbackThreads();
       }catch(e){
-        toast("⛔ Thread löschen fehlgeschlagen");
+        const status = e?.status ? `HTTP ${e.status}` : "";
+        const msg = e?.data?.error || e?.data?.message || "";
+        toast(`⛔ Thread löschen fehlgeschlagen ${status} ${msg}`.trim());
       }
     };
   }
