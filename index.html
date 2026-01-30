@@ -1662,25 +1662,27 @@ $("btnSaveDefectRules").onclick = async ()=>{
   }
 };
 
-$("btnLoadLogs").onclick = async ()=>{
-  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
-  const box = $("logsBox");
-  box.innerHTML = `<div class="small mono">Lade…</div>`;
-  try{
-    const r = await jpost("/api/admin/logs", {adminPassword:s.pw, limit:200});
-    const logs = r.logs || [];
-    box.innerHTML = logs.map(l=>{
-      const meta = l.meta ? escapeHtml(l.meta) : "{}";
-      return `<div class="tile" style="margin-bottom:10px;background:var(--pastelGray)">
-        <div class="title">${escapeHtml(l.action)}</div>
-        <div class="meta mono">${fmtDT(l.ts)} · ${escapeHtml(l.actor)} · ${escapeHtml(l.room)}</div>
-        <div class="small mono" style="margin-top:6px;white-space:pre-wrap">${meta}</div>
-      </div>`;
-    }).join("");
-  }catch(e){
-    box.innerHTML = `<div class="small">Fehler.</div>`;
-  }
-};
+if ($("btnLoadLogs")) {
+  $("btnLoadLogs").onclick = async ()=>{
+    const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+    const box = $("logsBox");
+    box.innerHTML = `<div class="small mono">Lade…</div>`;
+    try{
+      const r = await jpost("/api/admin/logs", {adminPassword:s.pw, limit:200});
+      const logs = r.logs || [];
+      box.innerHTML = logs.map(l=>{
+        const meta = l.meta ? escapeHtml(l.meta) : "{}";
+        return `<div class="tile" style="margin-bottom:10px;background:var(--pastelGray)">
+          <div class="title">${escapeHtml(l.action)}</div>
+          <div class="meta mono">${fmtDT(l.ts)} · ${escapeHtml(l.actor)} · ${escapeHtml(l.room)}</div>
+          <div class="small mono" style="margin-top:6px;white-space:pre-wrap">${meta}</div>
+        </div>`;
+      }).join("");
+    }catch(e){
+      box.innerHTML = `<div class="small">Fehler.</div>`;
+    }
+  };
+}
 
 // Boot: if admin session exists, show admin box
 (async function boot(){
