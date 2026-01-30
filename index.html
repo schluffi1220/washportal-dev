@@ -410,6 +410,14 @@ function confirm2(step1, step2){
   alert(step2);
   return true;
 }
+  function esc(v){
+  return String(v ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
 async function jpost(path, body){
   const r = await fetch(API_BASE + path, {
     method:"POST",
