@@ -159,17 +159,6 @@
       font-size:12px;
     }
     .disabledOpt{color:#9aa9c6}
-    /* Pastell-Buchen-Button in den Kacheln */
-    .tileBtns .bookBtn{
-      background: linear-gradient(135deg,#7fd6ff,#6ee7b7);
-      color:#0b1b2b;
-      border:none;
-      font-weight:600;
-    }
-    .tileBtns .bookBtn:hover{filter:brightness(1.05);transform:translateY(-1px)}
-
-    /* Dropdown in den Kacheln lesbar (nicht pastell) */
-    .tileBtns select{background:#fff;color:#000;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px}
   </style>
 </head>
 <body>
@@ -344,34 +333,32 @@
         <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:12px 0">
 
         <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
-          <div class="pill">Admin Tools</div>
-          <button class="btn" id="btnAdminLoadLogs">Logs laden</button>
-          <button class="btn" id="btnAdminLoadBookings">Buchungen laden</button>
-          <button class="btn danger" id="btnAdminDeleteSelected">Ausgewählte Threads löschen</button>
-          <button class="btn secondary" id="btnAdminExportThreadsCsv">Threads CSV</button>
-          <input id="adminThreadFilter" class="input" placeholder="Threads filtern (Zimmer/Text)…" style="max-width:260px"/>
-        </div>
+  <div class="pill">Admin Tools</div>
+  <button class="btn" id="btnAdminLoadLogs">Logs laden</button>
+  <button class="btn secondary" id="btnAdminExportLogsCSV">Logs CSV</button>
+  <input id="adminLogsFilter" placeholder="Logs filtern (Zimmer/Text)…" style="flex:1;min-width:220px" />
+</div>
 
-        <div class="card" style="margin-top:10px">
-          <div class="row" style="justify-content:space-between;align-items:center">
-            <div class="h">Logs</div>
-          </div>
-          <div id="adminLogsBox" class="small" style="margin-top:8px"></div>
-        </div>
+<details id="adminLogsDetails" style="margin-top:10px" open>
+  <summary>Logs</summary>
+  <div class="card" style="margin-top:10px">
+    <div id="adminLogsBox" class="small" style="margin-top:8px"></div>
+  </div>
+</details>
 
-        <div class="card" style="margin-top:10px">
-          <div class="row" style="justify-content:space-between;align-items:center">
-            <div class="h">Buchungen (Admin)</div>
-          </div>
-          <div id="adminBookingsBox" class="small" style="margin-top:8px"></div>
-        </div>
+<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+  <button class="btn" id="btnAdminLoadBookings">Buchungen laden</button>
+  <button class="btn secondary" id="btnAdminExportBookingsCSV">Buchungen CSV</button>
+  <input id="adminBookingsFilter" placeholder="Buchungen filtern (Zimmer/Maschine)…" style="flex:1;min-width:220px" />
+</div>
 
-        </details>
+<details id="adminBookingsDetails" style="margin-top:10px" open>
+  <summary>Buchungen (Admin)</summary>
+  <div class="card" style="margin-top:10px">
+    <div id="adminBookingsBox" class="small" style="margin-top:8px"></div>
+  </div>
+</details>
 
-        <details style="margin-top:12px">
-          <summary>Logs</summary>
-          <button class="btn secondary" id="btnLoadLogs">Logs laden</button>
-          <div id="logsBox" style="margin-top:10px"></div>
         </details>
       </div>
     </div>
@@ -409,14 +396,6 @@ function confirm2(step1, step2){
   if (!confirm(step1)) return false;
   alert(step2);
   return true;
-}
-  function esc(v){
-  return String(v ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#39;");
 }
 async function jpost(path, body){
   const r = await fetch(API_BASE + path, {
@@ -564,79 +543,6 @@ function buildWasherOptionsForMachine(machine){
   return all.filter(o => Number(o.machine) === Number(machine));
 }
 
-
-function makeWasherQuickBookRow(machine, creds){
-  // braucht STATE
-  if (!STATE) return null;
-
-  const row = document.createElement("div");
-  row.className = "row";
-  row.style.gap = "8px";
-  row.style.marginTop = "8px";
-
-  const sel = document.createElement("select");
-  sel.style.flex = "1";
-
-  // Dropdown optisch neutral/lesbar
-  sel.style.background = "#ffffff";
-  sel.style.color = "#000000";
-
-  const needCreds = (!creds.room || !creds.pin || !creds.stationPin);
-  if (needCreds){
-    sel.appendChild(new Option("Bitte erst Zugang eingeben", ""));
-    sel.disabled = true;
-  } else {
-    const opts = buildWasherOptionsForMachine(machine);
-    sel.appendChild(new Option("Slot wählen…", ""));
-    if (!opts.length){
-      sel.appendChild(new Option("Keine Slots verfügbar", ""));
-      sel.disabled = true;
-    } else {
-      for (const o of opts){
-        const opt = new Option(o.label, `${o.start}|${o.end}|${o.machine}`);
-        opt.disabled = !!o.disabled;
-        sel.appendChild(opt);
-      }
-    }
-  }
-
-  const b = document.createElement("button");
-  b.textContent = "Buchen";
-  b.className = "bookBtn";
-  b.disabled = needCreds;
-
-  b.onclick = async ()=>{
-    try{
-      if (needCreds) return toast("⛔ Bitte Zugang eingeben");
-      if (!sel.value) return toast("⛔ Bitte Slot wählen");
-      const [startS, endS, machineS] = String(sel.value).split("|");
-      const start = Number(startS);
-      const end = Number(endS);
-      const mach = Number(machineS);
-      if (!Number.isFinite(start) || !Number.isFinite(end) || !mach) return toast("⛔ Ungültiger Slot");
-
-      await jpost("/api/washer/book", {
-        room: creds.room,
-        pin: creds.pin,
-        stationPin: creds.stationPin,
-        machine: mach,
-        start,
-        end
-      });
-
-      toast("✅ Gebucht");
-      await refreshAll();
-    }catch(e){
-      const msg = e?.data?.message || e?.data?.error || e?.message || "Fehler";
-      toast("⛔ " + msg);
-    }
-  };
-
-  row.appendChild(sel);
-  row.appendChild(b);
-  return row;
-}
-
 function bookingForMachineRunning(type, machine){
   const now = Date.now();
   const bs = (STATE.bookings||[]).filter(b => b.type===type && b.machine===machine && b.status==="booked");
@@ -729,8 +635,7 @@ function tileStatus(type, machine){
 function renderTiles(){
   const box = $("tiles");
   box.innerHTML = "";
-
-  // Guard: wenn STATE (noch) nicht da ist, nicht alles leer lassen
+    // Guard: wenn STATE (noch) nicht da ist, nicht alles leer lassen
   if (!STATE || !Array.isArray(STATE.machines) || !Array.isArray(STATE.bookings)) {
     box.innerHTML = `<div class="small">Keine Daten geladen. Bitte auf „Aktualisieren“ drücken.</div>`;
     return;
@@ -764,8 +669,80 @@ function renderTiles(){
       const creds = getCreds();
       const running = bookingForMachineRunning(group.type, m);
 
-      if (group.type === "washer") {
-        // Freigeben nur wenn läuft + gehört mir
+            if (group.type === "washer") {
+
+  // 1) Freigeben-Button nur, wenn aktuell laufend UND gehört mir
+  if (running && creds.room && running.room === creds.room) {
+    const b = document.createElement("button");
+    b.textContent = "Freigeben";
+    b.onclick = async ()=>{
+      try{
+        await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+        toast("✅ Freigegeben");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Freigeben fehlgeschlagen");
+      }
+    };
+    btns.appendChild(b);
+  }
+
+  // 2) Direkt-Buchen Drop-Down pro Maschine (bleibt zusätzlich zum globalen Dropdown!)
+  // Nur anzeigen, wenn Zugang gesetzt ist
+  if (creds.room && creds.pin && creds.stationPin) {
+
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+    wrap.style.gap = "8px";
+    wrap.style.marginTop = "8px";
+
+    const sel = document.createElement("select");
+    sel.className = "in";
+    sel.style.flex = "1";
+
+    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine der Kachel
+
+    for (const o of opts){
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({ machine:o.machine, start:o.start, end:o.end });
+      opt.textContent = o.label;
+      if (o.disabled) opt.disabled = true;
+      sel.appendChild(opt);
+    }
+
+    const bookBtn = document.createElement("button");
+    bookBtn.textContent = "Buchen";
+    bookBtn.onclick = async ()=>{
+      try{
+        const picked = JSON.parse(sel.value || "{}");
+        if (!picked.machine || !picked.start || !picked.end) {
+          toast("⛔ Bitte Slot wählen");
+          return;
+        }
+        await jpost("/api/washer/book", {
+          room: creds.room,
+          pin: creds.pin,
+          stationPin: creds.stationPin,
+          machine: picked.machine,
+          start: picked.start,
+          end: picked.end
+        });
+        toast("✅ Gebucht");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Buchen fehlgeschlagen");
+      }
+    };
+
+    wrap.appendChild(sel);
+    wrap.appendChild(bookBtn);
+
+    // Wichtig: in die Card / Content rein, nicht an btns (btns ist nur Button-Leiste)
+    card.appendChild(wrap);
+  }
+}
+
+        // --- Freigeben-Button bleibt wie gehabt, wenn Slot läuft und eigenes Zimmer ---
         if (running && creds.room && running.room === creds.room) {
           const b = document.createElement("button");
           b.textContent = "Freigeben";
@@ -779,14 +756,98 @@ function renderTiles(){
             }
           };
           btns.appendChild(b);
-        }
-
-        // Quick-Booking Dropdown pro Washer-Kachel
-        const quick = makeWasherQuickBookRow(m, creds);
-        if (quick) btns.appendChild(quick);
+        
 
       } else {
+
+  const bookRow = document.createElement("div");
+  bookRow.className = "row";
+  bookRow.style.gap = "8px";
+  bookRow.style.marginTop = "8px";
+
+  const sel = document.createElement("select");
+  sel.className = "slotSelect"; // nutzt dein bestehendes Styling
+  sel.style.flex = "1";
+
+  // Wenn Zugang fehlt: nur Hinweis
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Bitte erst Zugang eingeben";
+    sel.appendChild(opt);
+    sel.disabled = true;
+  } else {
+    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine in der Kachel
+    if (!opts.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Keine Slots verfügbar";
+      sel.appendChild(opt);
+      sel.disabled = true;
+    } else {
+      // Default Platzhalter
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = "Bitte Slot wählen…";
+      sel.appendChild(ph);
+
+      for (const o of opts){
+        const opt = document.createElement("option");
+        opt.value = `${o.start}|${o.end}|${o.machine}`;
+        opt.textContent = o.label;
+        opt.disabled = !!o.disabled;
+        // visuell: buchbare Slots LESBAR (schwarz), disabled grau
+        opt.style.color = o.disabled ? "#777" : "#000";
+        sel.appendChild(opt);
+      }
+    }
+  }
+
+  const bBook = document.createElement("button");
+  bBook.textContent = "Buchen";
+  bBook.onclick = async ()=>{
+    try{
+      if (!sel.value) { toast("⛔ Bitte Slot wählen"); return; }
+      const [startS, endS, machineS] = String(sel.value).split("|");
+      const start = Number(startS);
+      const end = Number(endS);
+      const machine = Number(machineS);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || !machine){
+        toast("⛔ Ungültiger Slot");
+        return;
+      }
+
+      await jpost("/api/washer/book", {
+        room: creds.room,
+        pin: creds.pin,
+        stationPin: creds.stationPin,
+        machine,
+        start,
+        end
+      });
+
+      toast("✅ Gebucht");
+      await refreshAll();
+    }catch(e){
+      toast("⛔ Buchen fehlgeschlagen");
+    }
+  };
+
+  // Optional: wenn kein Zugang, Button deaktivieren
+  if (!creds.room || !creds.pin || !creds.stationPin){
+    bBook.disabled = true;
+  }
+
+  bookRow.appendChild(sel);
+  bookRow.appendChild(bBook);
+
+  // unter die Buttons hängen
+  card.appendChild(bookRow);
+
+        
+        } else {
         // dryer
+        }
         if (!running) {
           const b = document.createElement("button");
           b.textContent = "Jetzt buchen";
@@ -860,7 +921,6 @@ function renderTiles(){
     }
   }
 }
-
 
 function myBookingState(b){
   const m = STATE.machines.find(x=>x.type===b.type && x.machine===b.machine);
@@ -1145,123 +1205,167 @@ function fmtBerlin(ts){
   return `${get("day")}.${get("month")}.${get("year")} ${get("hour")}:${get("minute")}`;
 }
 
+let __ADMIN_LOGS_CACHE = [];
+let __ADMIN_BOOKINGS_CACHE = [];
+
+function downloadCSV(filename, rows){
+  if (!rows || !rows.length){ toast("⛔ Keine Daten"); return; }
+  const keys = Object.keys(rows[0]);
+  const escCsv = (v)=> {
+    const s = String(v ?? "");
+    if (/[;"
+
+]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+    return s;
+  };
+  const csv = [
+    keys.join(";"),
+    ...rows.map(r => keys.map(k=>escCsv(r[k])).join(";"))
+  ].join("
+");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function credsComplete(){
+  const c = getCreds();
+  return !!(c.room && c.pin && c.stationPin);
+}
+
+function renderAdminLogs(){
+  const box = $("adminLogsBox");
+  if (!box) return;
+  const q = ($("adminLogsFilter")?.value || "").trim().toLowerCase();
+
+  const list = __ADMIN_LOGS_CACHE.filter(l=>{
+    if (!q) return true;
+    const hay = `${l.ts} ${l.actor} ${l.action} ${l.room} ${l.type} ${l.machine} ${l.meta}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Logs (Filter?).</div>`;
+    return;
+  }
+
+  box.innerHTML = list.map(l=>{
+    let metaTxt = "";
+    try{
+      const meta = l.meta ? JSON.parse(l.meta) : null;
+      if (meta && Number.isFinite(Number(meta.start)) && Number.isFinite(Number(meta.end))){
+        metaTxt = `<div class="small" style="opacity:.85">Slot: ${esc(fmtBerlin(meta.start))} – ${esc(fmtBerlin(meta.end))}</div>`;
+      }
+    }catch(_){}
+
+    return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
+      <div>
+        <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
+        <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${Number(l.machine||0)||""}</div>
+        ${metaTxt}
+      </div>
+      <div class="mono small" style="white-space:nowrap">${esc(fmtBerlin(l.ts))}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderAdminBookings(){
+  const box = $("adminBookingsBox");
+  if (!box) return;
+  const q = ($("adminBookingsFilter")?.value || "").trim().toLowerCase();
+
+  const list = __ADMIN_BOOKINGS_CACHE.filter(b=>{
+    if (!q) return true;
+    const hay = `${b.type} ${b.machine} ${b.room} ${b.id} ${b.status}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Buchungen (Filter?).</div>`;
+    return;
+  }
+
+  const now = Date.now();
+  box.innerHTML = list.map(b=>{
+    const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
+    const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+    let st = b.status;
+    if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
+    if (st==="released") st="freigegeben";
+    if (st==="cancelled") st="storniert";
+    if (st==="admin_cancelled") st="ADMIN gelöscht";
+
+    const canCancel = (b.status==="booked");
+    const btn = canCancel
+      ? `<button class="btn" data-bid="${esc(b.id)}">Storno (Admin)</button>`
+      : `<span class="small" style="opacity:.7">—</span>`;
+
+    return `<div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin:6px 0">
+      <div>
+        <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
+        <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
+      </div>
+      ${btn}
+    </div>`;
+  }).join("");
+
+  // wire buttons
+  box.querySelectorAll("button[data-bid]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-bid");
+      if (!id) return;
+      if (!confirm("Admin-Storno wirklich ausführen?")) return;
+      try{
+        const s = getAdminSession();
+        await jpost("/api/admin/bookings/cancel", { adminPassword: s.pw, id });
+        toast("✅ Admin-Storno ausgeführt");
+        await adminLoadBookings();
+        if (credsComplete()) await refreshAll(); // nur wenn User-Zugang gesetzt ist
+      }catch(e){
+        const msg = e?.data?.message || e?.data?.error || "Fehler";
+        toast("⛔ Admin-Storno: " + msg);
+      }
+    };
+  });
+}
+
 async function adminLoadLogs(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
   const box = $("adminLogsBox");
   if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
-
   try{
     const r = await jpost("/api/admin/logs", { adminPassword: s.pw, limit: 300 });
-    const list = (r.logs||[]);
-    if (!box) return;
-    if (!list.length){ box.innerHTML = `<div class="small">Keine Logs.</div>`; return; }
-
-    box.innerHTML = list.map(l=>{
-      const meta = (()=>{ try{return JSON.parse(l.meta||"{}")}catch(_){return null} })();
-      const metaTxt = (()=> {
-        if (!meta) return "";
-        const parts = [];
-        if (Number.isFinite(Number(meta.start)) && Number.isFinite(Number(meta.end))) {
-          const s = Number(meta.start), e = Number(meta.end);
-          parts.push(`<div class="small" style="opacity:.85">Slot: ${esc(fmtBerlin(s))}–${esc(fmtBerlin(e))}</div>`);
-        }
-        // Meta optional anzeigen – wenn dir zu viel, einfach auskommentieren
-        // parts.push(`<div class="mono small" style="opacity:.8">${esc(JSON.stringify(meta))}</div>`);
-        return parts.join("");
-      })();
-
-      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
-        <div>
-          <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
-          <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${Number(l.machine||0)||""}</div>
-          ${metaTxt}
-        </div>
-        <div class="mono small" style="white-space:nowrap">${esc(fmtBerlin(l.ts))}</div>
-      </div>`;
-    }).join("");
-
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+    renderAdminLogs();
+    const d = $("adminLogsDetails"); if (d) d.open = false; // nach Laden einklappen
   }catch(e){
-    const status = e?.status ? `HTTP ${e.status}` : "";
-    const msg = e?.data?.error || e?.data?.message || "";
-    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(status)} ${esc(msg)})</div>`;
-    toast(`⛔ Logs: ${status} ${msg}`.trim());
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
   }
 }
-
 
 async function adminLoadBookings(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
   const box = $("adminBookingsBox");
   if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
-
-  const tryLoad = async (path) => {
-    return await jpost(path, { adminPassword: s.pw });
-  };
-
   try{
-    let r;
-    try{
-      r = await tryLoad("/api/admin/bookings/list");
-    }catch(_){
-      r = await tryLoad("/api/admin/bookings");
-    }
-
-    const list = (r.bookings||[]);
-    if (!box) return;
-    if (!list.length){ box.innerHTML = `<div class="small">Keine Buchungen im Fenster.</div>`; return; }
-
-    const now = Date.now();
-    box.innerHTML = list.map(b=>{
-      const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
-      const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`; // ✅ DD.MM.YYYY HH:MM
-      let st = b.status;
-      if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
-      if (st==="released") st="freigegeben";
-      if (st==="cancelled") st="storniert";
-      if (st==="admin_cancelled") st="ADMIN gelöscht";
-
-      const canCancel = (b.status==="booked");
-      const btn = canCancel
-        ? `<button class="btn" data-bid="${esc(b.id)}">Storno (Admin)</button>`
-        : `<span class="small" style="opacity:.7">—</span>`;
-
-      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin:6px 0">
-        <div>
-          <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
-          <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
-        </div>
-        ${btn}
-      </div>`;
-    }).join("");
-
-    box.querySelectorAll("button[data-bid]").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const id = btn.getAttribute("data-bid");
-        if (!id) return;
-        if (!confirm("Admin-Storno wirklich ausführen?")) return;
-        try{
-          await jpost("/api/admin/bookings/cancel", { adminPassword: s.pw, id });
-          toast("✅ Admin-Storno ausgeführt");
-          await adminLoadBookings();
-          await refreshAll();
-        }catch(e){
-          const status = e?.status ? `HTTP ${e.status}` : "";
-          const msg = e?.data?.error || e?.data?.message || "";
-          toast(`⛔ Admin-Storno: ${status} ${msg}`.trim());
-        }
-      };
-    });
-
+    const r = await jpost("/api/admin/bookings/list", { adminPassword: s.pw });
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
+    renderAdminBookings();
+    const d = $("adminBookingsDetails"); if (d) d.open = false; // nach Laden einklappen
   }catch(e){
-    const status = e?.status ? `HTTP ${e.status}` : "";
-    const msg = e?.data?.error || e?.data?.message || "";
-    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(status)} ${esc(msg)})</div>`;
-    toast(`⛔ Buchungen: ${status} ${msg}`.trim());
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(msg)})</div>`;
   }
 }
-
 
 async function adminLoadFeedbackThreads(){
   const s = getAdminSession(); if (!s) return;
@@ -1283,7 +1387,7 @@ async function adminLoadFeedbackThreads(){
             <div class="meta mono">updated: ${fmtDT(t.updatedAt)}</div>
             <div class="meta">User-Sichtbar: ${t.allowUserView ? "ja":"nein"}</div>
           </div>
-          <label class="small" style="display:inline-flex;gap:6px;align-items:center;margin-right:8px"><input type="checkbox" class="threadChk" data-thread-id="${t.id}"/> auswählen</label><button class="btn inline secondary" data-open-thread="${t.id}">Öffnen</button>
+          <button class="btn inline secondary" data-open-thread="${t.id}">Öffnen</button>
         </div>
       </div>`;
     }).join("");
@@ -1362,7 +1466,7 @@ async function adminOpenThread(threadId){
       }
     };
 
-  // Thread löschen (Admin) – Button-ID & Passwort korrekt
+  // Thread löschen (Admin)
   const delBtn = $("btnAdminDeleteThread");
   if (delBtn){
     delBtn.onclick = async ()=>{
@@ -1370,7 +1474,8 @@ async function adminOpenThread(threadId){
       try{
         await jpost("/api/admin/feedback/delete", { adminPassword: s.pw, threadId });
         toast("✅ Thread gelöscht");
-        $("adminFeedbackThreadView").innerHTML = "";
+        $("adminMsgs").innerHTML = "";
+        $("adminReplyText").value = "";
         await adminLoadFeedbackThreads();
       }catch(e){
         toast("⛔ Thread löschen fehlgeschlagen");
@@ -1481,61 +1586,36 @@ $("btnAdminReload").onclick = adminReload;
 $("btnAdminLoadLogs").onclick = adminLoadLogs;
 $("btnAdminLoadBookings").onclick = adminLoadBookings;
 
-// Bulk-Thread löschen + CSV + Filter
-const btnDelSel = $("btnAdminDeleteSelected");
-if (btnDelSel){
-  btnDelSel.onclick = async ()=>{
-    const s = getAdminSession(); if (!s) return toast("⛔ Bitte erst Admin-Login");
-    const ids = [...document.querySelectorAll('.threadChk:checked')].map(x=>x.getAttribute("data-thread-id"));
-    if (!ids.length) return toast("Keine Threads ausgewählt");
-    if (!confirm(`Wirklich ${ids.length} Threads löschen?`)) return;
-    try{
-      // vorhandene API löscht einen Thread; wir löschen nacheinander
-      for (const threadId of ids){
-        await jpost("/api/admin/feedback/delete", { adminPassword: s.pw, threadId });
-      }
-      toast("✅ Threads gelöscht");
-      $("adminFeedbackThreadView").innerHTML = "";
-      await adminLoadFeedbackThreads();
-    }catch(e){
-      toast("⛔ Löschen fehlgeschlagen");
-    }
-  };
-}
+// Admin: Filter + CSV
+if ($("adminLogsFilter")) $("adminLogsFilter").addEventListener("input", renderAdminLogs);
+if ($("adminBookingsFilter")) $("adminBookingsFilter").addEventListener("input", renderAdminBookings);
 
-const btnCsv = $("btnAdminExportThreadsCsv");
-if (btnCsv){
-  btnCsv.onclick = ()=>{
-    const tiles = [...document.querySelectorAll('#adminFeedbackThreads .tile')];
-    if (!tiles.length) return toast("Keine Threads zum Export");
-    const rows = tiles.map(tile=>{
-      const title = tile.querySelector('.title')?.textContent?.trim() || "";
-      const updated = tile.querySelector('.meta.mono')?.textContent?.replace(/^updated:\s*/,'')?.trim() || "";
-      const visible = [...tile.querySelectorAll('.meta')].map(x=>x.textContent).find(t=>t.includes('User-Sichtbar')) || "";
-      return {title, updated, visible};
-    });
-    const head = Object.keys(rows[0]);
-    const csv = [head.join(';'), ...rows.map(r=>head.map(k=>String(r[k]??'').replaceAll(';',',')).join(';'))].join('\n');
-    const blob = new Blob([csv], {type:'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'threads.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-}
+if ($("btnAdminExportLogsCSV")) $("btnAdminExportLogsCSV").onclick = ()=>{
+  const rows = (__ADMIN_LOGS_CACHE||[]).map(l=>({
+    Zeit: fmtBerlin(l.ts),
+    Actor: l.actor||"",
+    Action: l.action||"",
+    Room: l.room||"",
+    Type: l.type||"",
+    Machine: l.machine||"",
+    Meta: l.meta||""
+  }));
+  downloadCSV("logs.csv", rows);
+};
 
-const filterEl = $("adminThreadFilter");
-if (filterEl){
-  filterEl.oninput = ()=>{
-    const q = filterEl.value.trim().toLowerCase();
-    document.querySelectorAll('#adminFeedbackThreads .tile').forEach(tile=>{
-      const txt = tile.textContent.toLowerCase();
-      tile.style.display = (!q || txt.includes(q)) ? "" : "none";
-    });
-  };
-}
+if ($("btnAdminExportBookingsCSV")) $("btnAdminExportBookingsCSV").onclick = ()=>{
+  const rows = (__ADMIN_BOOKINGS_CACHE||[]).map(b=>({
+    Type: b.type||"",
+    Machine: b.machine||"",
+    Room: b.room||"",
+    Start: fmtBerlin(b.start),
+    End: fmtBerlin(b.end),
+    Status: b.status||"",
+    Id: b.id||""
+  }));
+  downloadCSV("bookings.csv", rows);
+};
+
 $("btnSetStationPin").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   const sp = $("adminStationPin").value.trim();
