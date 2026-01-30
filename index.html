@@ -159,6 +159,17 @@
       font-size:12px;
     }
     .disabledOpt{color:#9aa9c6}
+    /* Pastell-Buchen-Button in den Kacheln */
+    .tileBtns .bookBtn{
+      background: linear-gradient(135deg,#7fd6ff,#6ee7b7);
+      color:#0b1b2b;
+      border:none;
+      font-weight:600;
+    }
+    .tileBtns .bookBtn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+
+    /* Dropdown in den Kacheln lesbar (nicht pastell) */
+    .tileBtns select{background:#fff;color:#000;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px}
   </style>
 </head>
 <body>
@@ -540,6 +551,79 @@ function buildWasherOptions(){
 function buildWasherOptionsForMachine(machine){
   const all = buildWasherOptions();
   return all.filter(o => Number(o.machine) === Number(machine));
+}
+
+
+function makeWasherQuickBookRow(machine, creds){
+  // braucht STATE
+  if (!STATE) return null;
+
+  const row = document.createElement("div");
+  row.className = "row";
+  row.style.gap = "8px";
+  row.style.marginTop = "8px";
+
+  const sel = document.createElement("select");
+  sel.style.flex = "1";
+
+  // Dropdown optisch neutral/lesbar
+  sel.style.background = "#ffffff";
+  sel.style.color = "#000000";
+
+  const needCreds = (!creds.room || !creds.pin || !creds.stationPin);
+  if (needCreds){
+    sel.appendChild(new Option("Bitte erst Zugang eingeben", ""));
+    sel.disabled = true;
+  } else {
+    const opts = buildWasherOptionsForMachine(machine);
+    sel.appendChild(new Option("Slot wählen…", ""));
+    if (!opts.length){
+      sel.appendChild(new Option("Keine Slots verfügbar", ""));
+      sel.disabled = true;
+    } else {
+      for (const o of opts){
+        const opt = new Option(o.label, `${o.start}|${o.end}|${o.machine}`);
+        opt.disabled = !!o.disabled;
+        sel.appendChild(opt);
+      }
+    }
+  }
+
+  const b = document.createElement("button");
+  b.textContent = "Buchen";
+  b.className = "bookBtn";
+  b.disabled = needCreds;
+
+  b.onclick = async ()=>{
+    try{
+      if (needCreds) return toast("⛔ Bitte Zugang eingeben");
+      if (!sel.value) return toast("⛔ Bitte Slot wählen");
+      const [startS, endS, machineS] = String(sel.value).split("|");
+      const start = Number(startS);
+      const end = Number(endS);
+      const mach = Number(machineS);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || !mach) return toast("⛔ Ungültiger Slot");
+
+      await jpost("/api/washer/book", {
+        room: creds.room,
+        pin: creds.pin,
+        stationPin: creds.stationPin,
+        machine: mach,
+        start,
+        end
+      });
+
+      toast("✅ Gebucht");
+      await refreshAll();
+    }catch(e){
+      const msg = e?.data?.message || e?.data?.error || e?.message || "Fehler";
+      toast("⛔ " + msg);
+    }
+  };
+
+  row.appendChild(sel);
+  row.appendChild(b);
+  return row;
 }
 
 function bookingForMachineRunning(type, machine){
