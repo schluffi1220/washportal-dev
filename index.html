@@ -724,75 +724,79 @@ function renderTiles(){
       btns.className = "tileBtns";
 
       // Buttons depending on state
-      const creds = getCreds();
-      const running = bookingForMachineRunning(group.type, m);
+   // Buttons depending on state
+const creds = getCreds();
+const running = bookingForMachineRunning(group.type, m);
 
-      if (group.type === "washer") {
-        // Freigeben nur wenn läuft + gehört mir
-        if (running && creds.room && running.room === creds.room) {
-          const b = document.createElement("button");
-          b.textContent = "Freigeben";
-          b.onclick = async ()=>{
-            try{
-              await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
-              toast("✅ Freigegeben");
-              await refreshAll();
-            }catch(e){
-              toast("⛔ Freigeben fehlgeschlagen");
-            }
-          };
-          btns.appendChild(b);
-        }
-
-        // Quick-Booking Dropdown pro Washer-Kachel (globales Dropdown bleibt!)
-        const quick = makeWasherQuickBookRow(m, creds);
-        if (quick) btns.appendChild(quick);
-
-      
-      } else {
-
-  const bookRow = document.createElement("div");
-  bookRow.className = "row";
-  bookRow.style.gap = "8px";
-  bookRow.style.marginTop = "8px";
-
-  const sel = document.createElement("select");
-  sel.className = "slotSelect"; // nutzt dein bestehendes Styling
-  sel.style.flex = "1";
-
-  // Wenn Zugang fehlt: nur Hinweis
-  if (!creds.room || !creds.pin || !creds.stationPin){
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "Bitte erst Zugang eingeben";
-    sel.appendChild(opt);
-    sel.disabled = true;
-  } else {
-    const opts = buildWasherOptionsForMachine(m); // m = aktuelle Maschine in der Kachel
-    if (!opts.length){
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "Keine Slots verfügbar";
-      sel.appendChild(opt);
-      sel.disabled = true;
-    } else {
-      // Default Platzhalter
-      const ph = document.createElement("option");
-      ph.value = "";
-      ph.textContent = "Bitte Slot wählen…";
-      sel.appendChild(ph);
-
-      for (const o of opts){
-        const opt = document.createElement("option");
-        opt.value = `${o.start}|${o.end}|${o.machine}`;
-        opt.textContent = o.label;
-        opt.disabled = !!o.disabled;
-        // visuell: buchbare Slots LESBAR (schwarz), disabled grau
-        opt.style.color = o.disabled ? "#777" : "#000";
-        sel.appendChild(opt);
+if (group.type === "washer") {
+  // Freigeben nur wenn läuft + gehört mir
+  if (running && creds.room && running.room === creds.room) {
+    const b = document.createElement("button");
+    b.textContent = "Freigeben";
+    b.onclick = async ()=>{
+      try{
+        await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+        toast("✅ Freigegeben");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Freigeben fehlgeschlagen");
       }
+    };
+    btns.appendChild(b);
+  }
+
+  // Quick-Booking Dropdown pro Washer-Kachel
+  const quick = makeWasherQuickBookRow(m, creds);
+  if (quick) btns.appendChild(quick);
+
+} else {
+  // dryer
+  if (!running) {
+    const b = document.createElement("button");
+    b.textContent = "Jetzt buchen";
+    b.onclick = async ()=>{
+      try{
+        await jpost("/api/dryer/book", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, machine:m});
+        toast("✅ Trockner gebucht");
+        await refreshAll();
+      }catch(e){
+        toast("⛔ Buchen fehlgeschlagen");
+      }
+    };
+    btns.appendChild(b);
+  } else {
+    if (creds.room && running.room === creds.room) {
+      const b = document.createElement("button");
+      b.textContent = "Fertig (Freigeben)";
+      b.onclick = async ()=>{
+        try{
+          await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+          toast("✅ Freigegeben");
+          await refreshAll();
+        }catch(e){
+          toast("⛔ Freigeben fehlgeschlagen");
+        }
+      };
+      btns.appendChild(b);
+    } else {
+      const b = document.createElement("button");
+      b.textContent = "Überbuchen";
+      b.onclick = async ()=>{
+        const ok = confirm("Überbuchen nur wenn bestätigt:\n\nDie Wäsche vom Vorgänger ist sauber und vorsichtig im Korb oben/nebendran abgelegt.");
+        if (!ok) return;
+        try{
+          await jpost("/api/dryer/book", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, machine:m, force:true, confirmed:true});
+          toast("✅ Überbucht & gebucht");
+          await refreshAll();
+        }catch(e){
+          toast("⛔ Überbuchen fehlgeschlagen");
+        }
+      };
+      btns.appendChild(b);
     }
   }
+}
+
 
   const bBook = document.createElement("button");
   bBook.textContent = "Buchen";
