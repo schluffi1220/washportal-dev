@@ -1,187 +1,180 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Benutzerverwaltung</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:#0b1020;color:#e9eefc;}
-    header{padding:18px 16px;background:linear-gradient(135deg,#15224a,#0b1020);border-bottom:1px solid rgba(255,255,255,.08);}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px;}
-    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:16px;box-shadow:0 10px 25px rgba(0,0,0,.25);}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial; margin:18px; color:#eaeaea; background:#111316;}
+    a{color:inherit}
+    input,select,button{padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#eaeaea}
+    button{cursor:pointer}
+    button:disabled{opacity:.5; cursor:not-allowed}
     .muted{opacity:.8}
-    input,button{font:inherit;}
-    input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25);color:#fff;}
-    button{padding:10px 12px;border-radius:10px;border:0;background:linear-gradient(135deg,#7fd6ff,#6ee7b7);color:#0b1b2b;font-weight:800;cursor:pointer;}
-    .btn2{background:rgba(255,255,255,.10);color:#fff;border:1px solid rgba(255,255,255,.18);}
-    table{width:100%;border-collapse:collapse;margin-top:12px;}
-    th,td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.10);vertical-align:top;}
-    th{text-align:left;opacity:.85;}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.10);font-size:12px;}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
-    label{display:flex;gap:8px;align-items:center;}
-    .actions{display:flex;gap:6px;flex-wrap:wrap;}
+    .top{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;margin:12px 0}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}
+    .badge{padding:2px 8px;border-radius:999px;font-size:12px}
+    .b-active{background:rgba(0,255,0,.14)}
+    .b-pending{background:rgba(255,200,0,.16)}
+    .b-disabled{background:rgba(255,0,0,.14)}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
   </style>
 </head>
 <body>
-<header>
-  <div class="wrap" style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-    <div>
-      <div style="font-size:20px;font-weight:900;">Benutzerverwaltung</div>
-      <div class="muted">Super‑Admin (Admin‑Passwort) · <a href="https://schluffi1220.github.io/washportal-dev/" style="color:inherit;text-decoration:underline;font-weight:700;">
-  ← Zurück zum Portal
-</a>
-    </div>
-    <div class="muted" id="statusLine"></div>
-  </div>
-</header>
 
-<main class="wrap">
+  <div class="muted">
+    Washportal ·
+    <a href="https://schluffi1220.github.io/washportal-dev/">← Portal</a>
+    ·
+    <a href="https://schluffi1220.github.io/washportal-dev/privacy/">Datenschutz</a>
+  </div>
+
+  <h2>Benutzerverwaltung</h2>
+
   <div class="card">
-    <h2 style="margin:0 0 8px 0;">Login</h2>
-    <div class="row">
-      <input id="adminPw" type="password" placeholder="Admin-Passwort"/>
-      <button id="btnLogin">Login</button>
-      <button id="btnLogout" class="btn2" style="display:none;">Logout</button>
-      <button id="btnReload" class="btn2">Neu laden</button>
+    <div class="top">
+      <input id="adminPw" type="password" placeholder="Super-Admin Passwort" />
+      <button id="btnLoad">Liste laden</button>
+      <span id="msg" class="muted"></span>
     </div>
-    <div class="muted" style="margin-top:10px;">
-      Patientensprecher registrieren sich über <a href="/privacy" style="color:inherit;">/privacy</a> und werden hier freigeschaltet.
+    <div class="muted" style="margin-top:8px">
+      Freischalten deaktiviert automatisch den bisherigen aktiven Patientensprecher / Stellvertreter derselben Rolle.
     </div>
   </div>
 
-  <div class="card" style="margin-top:16px;">
-    <h2 style="margin:0;">Accounts & Rechte</h2>
-    <div id="tableWrap" class="muted" style="margin-top:10px;">Nicht eingeloggt.</div>
+  <div class="card">
+    <div class="top" style="justify-content:space-between">
+      <h3 style="margin:0">Registrierungen</h3>
+      <select id="filterRole">
+        <option value="">Alle Rollen</option>
+        <option value="ps">Patientensprecher</option>
+        <option value="ps_deputy">Stellvertreter</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div id="tbl" style="margin-top:8px"></div>
   </div>
-</main>
 
-<script>
-const LS_KEY="washportal_superadmin_pw";
-function getPw(){return localStorage.getItem(LS_KEY)||"";}
-function setPw(p){localStorage.setItem(LS_KEY,p||"");}
-function clearPw(){localStorage.removeItem(LS_KEY);}
-function esc(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
-function pad(n){return String(n).padStart(2,"0");}
-function fmt(ts){ if(!ts) return "-"; const d=new Date(Number(ts)); return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes()); }
+  <script>
+    const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
-async function jpost(url,data){
-  const res = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
-  const txt = await res.text();
-  let j={}; try{j=JSON.parse(txt);}catch(_){}
-  if(!res.ok) throw Object.assign(new Error("http"),{status:res.status,data:j});
-  return j;
-}
-function showStatus(t){document.getElementById("statusLine").textContent=t||"";}
+    const $ = (id)=>document.getElementById(id);
+    const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 
-async function load(){
-  const pw=getPw();
-  const wrap=document.getElementById("tableWrap");
-  if(!pw){ wrap.textContent="Nicht eingeloggt."; showStatus("Bitte einloggen."); return; }
-  showStatus("Lade…");
-  const j = await jpost("/api/admin/auth/users/list",{adminPassword:pw});
-  showStatus("Geladen.");
-  render(j.users||[], j.perms||[], j.userPerms||[], pw);
-}
+    function badge(status){
+      if (status==="active") return `<span class="badge b-active">active</span>`;
+      if (status==="disabled") return `<span class="badge b-disabled">disabled</span>`;
+      return `<span class="badge b-pending">pending</span>`;
+    }
 
-function render(users, perms, userPerms, pw){
-  const permMap={};
-  for(const up of userPerms){
-    if(!permMap[up.userId]) permMap[up.userId]={};
-    permMap[up.userId][up.permKey]=!!up.allowed;
-  }
-  const rows = users.map(u=>{
-    const p=permMap[u.id]||{};
-    const permList = perms
-      .filter(x=>u.role==="ps" ? x.permKey.startsWith("ps.") : !x.permKey.startsWith("ps."))
-      .map(x=>{
-        const checked = p[x.permKey] ? "checked" : "";
-        return `<label title="${esc(x.label)}"><input type="checkbox" data-uid="${esc(u.id)}" data-perm="${esc(x.permKey)}" ${checked}/> <span class="muted">${esc(x.permKey)}</span></label>`;
-      }).join("<br/>");
+    function roleLabel(r){
+      if (r==="ps") return "Patientensprecher";
+      if (r==="ps_deputy") return "Stellvertreter";
+      if (r==="admin") return "Admin";
+      return r || "";
+    }
 
-    const actions = `
-      <div class="actions">
-        ${u.status!=="active" ? `<button class="btn2" data-act="approve" data-uid="${esc(u.id)}">Freischalten</button>` : ``}
-        <button class="btn2" data-act="toggle" data-uid="${esc(u.id)}" data-disabled="${u.status==="disabled" ? "0":"1"}">${u.status==="disabled" ? "Aktivieren":"Deaktivieren"}</button>
-        ${u.status==="active" ? `<button class="btn2" data-act="code" data-uid="${esc(u.id)}">Login‑Code</button>` : ``}
-      </div>`;
+    async function jpost(path, body){
+      const r = await fetch(API_BASE + path, {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify(body||{})
+      });
+      const t = await r.text();
+      let data={}; try{ data=t?JSON.parse(t):{} }catch(_){ data={raw:t} }
+      if (!r.ok) throw {status:r.status,data};
+      return data;
+    }
 
-    return `<tr>
-      <td><b>${esc(u.firstName)} ${esc(u.lastName)}</b><br/><span class="muted">${esc(u.email)}</span></td>
-      <td><span class="pill">${esc(u.role)}</span> <span class="pill">${esc(u.status)}</span><br/>
-          <span class="muted">Registriert: ${fmt(u.createdAt)}<br/>Freigabe: ${fmt(u.approvedAt)}</span></td>
-      <td class="mono" style="font-size:12px;">${permList || "<span class='muted'>—</span>"}</td>
-      <td>${actions}<div class="muted" data-out="${esc(u.id)}" style="margin-top:6px;"></div></td>
-    </tr>`;
-  }).join("");
+    let __users = [];
 
-  const html = `
-    <table>
-      <thead><tr><th>User</th><th>Status</th><th>Rechte</th><th>Aktionen</th></tr></thead>
-      <tbody>${rows || "<tr><td colspan='4' class='muted'>Keine Accounts.</td></tr>"}</tbody>
-    </table>`;
-
-  const wrap=document.getElementById("tableWrap");
-  wrap.innerHTML = html;
-
-  wrap.querySelectorAll("input[type=checkbox][data-perm]").forEach(cb=>{
-    cb.onchange = async ()=>{
-      const uid = cb.getAttribute("data-uid");
-      const permKey = cb.getAttribute("data-perm");
-      const allowed = cb.checked;
+    async function loadUsers(){
+      const pw = ($("adminPw").value||"").trim();
+      $("msg").textContent = "lade…";
       try{
-        await jpost("/api/admin/auth/users/set-perm",{adminPassword:pw,userId:uid,permKey,allowed});
+        const res = await jpost("/api/admin/ps/list", { adminPassword: pw });
+        __users = res.users || [];
+        $("msg").textContent = `ok (${__users.length})`;
+        render();
       }catch(e){
-        cb.checked = !allowed;
-        alert("Rechte setzen fehlgeschlagen");
+        console.error(e);
+        $("msg").textContent = `⛔ Fehler (HTTP ${e?.status||"?"})`;
+        $("tbl").innerHTML = "";
       }
-    };
-  });
+    }
 
-  wrap.querySelectorAll("button[data-act]").forEach(b=>{
-    b.onclick = async ()=>{
-      const act = b.getAttribute("data-act");
-      const uid = b.getAttribute("data-uid");
-      const out = wrap.querySelector(`[data-out="${uid}"]`);
-      if(out) out.textContent="";
+    async function approve(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      if (!confirm("Freischalten? (Alter aktiver derselben Rolle wird deaktiviert)")) return;
       try{
-        if(act==="approve"){
-          await jpost("/api/admin/auth/users/approve",{adminPassword:pw,userId:uid});
-          await load();
-        } else if(act==="toggle"){
-          const disabled = b.getAttribute("data-disabled")==="1";
-          await jpost("/api/admin/auth/users/disable",{adminPassword:pw,userId:uid,disabled});
-          await load();
-        } else if(act==="code"){
-          const j = await jpost("/api/admin/auth/users/issue-code",{adminPassword:pw,userId:uid});
-          if(out) out.innerHTML = `Code: <span class="mono" style="font-weight:900;">${esc(j.code)}</span> (bis ${esc(fmt(j.expiresAt))})`;
-        }
+        await jpost("/api/admin/ps/approve", { adminPassword: pw, userId });
+        await loadUsers();
       }catch(e){
-        const m = e?.data?.message || e?.data?.error || "Fehler";
-        if(out) out.textContent="⛔ "+m;
+        console.error(e);
+        alert(`⛔ Freischalten fehlgeschlagen (HTTP ${e?.status||"?"})`);
       }
-    };
-  });
-}
+    }
 
-document.getElementById("btnLogin").onclick = async ()=>{
-  const pw = document.getElementById("adminPw").value.trim();
-  if(!pw) return;
-  try{
-    await jpost("/api/admin/login",{adminPassword:pw});
-    setPw(pw);
-    document.getElementById("btnLogout").style.display="inline-block";
-    await load();
-  }catch(e){
-    alert("Login fehlgeschlagen");
-  }
-};
-document.getElementById("btnLogout").onclick = ()=>{clearPw(); location.reload();};
-document.getElementById("btnReload").onclick = ()=>load();
+    async function genCode(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      try{
+        const r = await jpost("/api/admin/ps/code", { adminPassword: pw, userId });
+        const until = new Date(r.expiresAt).toLocaleString();
+        alert(`Login-Code (${roleLabel(r.role)}): ${r.code}\nGültig bis: ${until}`);
+      }catch(e){
+        console.error(e);
+        alert(`⛔ Code erzeugen fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
+    }
 
-if(getPw()) document.getElementById("btnLogout").style.display="inline-block";
-load().catch(()=>showStatus("Fehler"));
-</script>
+    function render(){
+      const f = $("filterRole").value;
+      const users = f ? __users.filter(u=>u.role===f) : __users;
+
+      const rows = users.map(u=>{
+        const approveDisabled = u.status === "active";
+        const codeDisabled = u.status !== "active";
+        return `<tr>
+          <td class="mono">${esc(u.id)}</td>
+          <td>${esc(u.firstName||"")} ${esc(u.lastName||"")}</td>
+          <td>${esc(u.email||"")}</td>
+          <td>${esc(roleLabel(u.role))}</td>
+          <td>${badge(u.status)}</td>
+          <td>
+            <div class="rowbtns">
+              <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
+              <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+
+      $("tbl").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>Status</th><th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="6" class="muted">Keine Einträge</td></tr>`}
+          </tbody>
+        </table>
+      `;
+    }
+
+    $("btnLoad").onclick = loadUsers;
+    $("filterRole").onchange = render;
+
+    // expose handlers
+    window.approve = approve;
+    window.genCode = genCode;
+  </script>
+
 </body>
 </html>
