@@ -174,5 +174,74 @@ document.getElementById("psRegister").onclick = async ()=>{
 };
 loadMeta().catch(()=>{document.getElementById("metaLine").textContent="";});
 </script>
+  <!-- ===================== -->
+<!-- Registrierung Patientensprecher/Admin -->
+<!-- ===================== -->
+
+<hr style="margin:40px 0; opacity:.2">
+
+<h3>Registrierung</h3>
+
+<form id="psForm" style="display:flex;flex-direction:column;gap:10px;max-width:400px">
+
+  <select id="psRole" required>
+    <option value="ps">Patientensprecher</option>
+    <option value="ps_deputy">Stellv. Patientensprecher</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <input id="psFirst" placeholder="Vorname" required>
+  <input id="psLast" placeholder="Nachname" required>
+  <input id="psEmail" type="email" placeholder="E-Mail" required>
+
+  <button type="submit">Registrieren</button>
+
+  <div id="psMsg" style="opacity:.8"></div>
+</form>
+
+
+<script>
+const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+
+async function jpost(path, body){
+  const r = await fetch(API_BASE + path,{
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body: JSON.stringify(body||{})
+  });
+  const t = await r.text();
+  return t ? JSON.parse(t) : {};
+}
+
+document.getElementById("psForm").onsubmit = async (e)=>{
+  e.preventDefault();
+
+  const fn = psFirst.value.trim();
+  const ln = psLast.value.trim();
+  const em = psEmail.value.trim();
+  const role = psRole.value;
+
+  if(!fn || !ln || !em){
+    psMsg.textContent = "Bitte alle Felder ausfüllen";
+    return;
+  }
+
+  try{
+    await jpost("/api/ps/register", {
+      firstName: fn,
+      lastName: ln,
+      email: em,
+      role
+    });
+
+    psMsg.textContent = "✅ Registrierung gespeichert. Admin schaltet frei.";
+    e.target.reset();
+
+  }catch{
+    psMsg.textContent = "⛔ Fehler bei Registrierung";
+  }
+};
+</script>
+
 </body>
 </html>
