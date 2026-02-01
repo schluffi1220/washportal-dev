@@ -21,21 +21,6 @@
     .b-disabled{background:rgba(255,0,0,.14)}
     .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
     .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
-    .primary{background:#2d7ef7;border-color:#2d7ef7;color:#fff}
-    .permgrid{display:grid;grid-template-columns:1fr;gap:6px}
-    @media (min-width:900px){.permgrid{grid-template-columns:1fr 1fr}}
-    .perm{display:flex;gap:10px;align-items:flex-start;padding:6px;border:1px solid rgba(255,255,255,.08);border-radius:12px}
-    .perm input{margin-top:3px}
-    .details{background:rgba(255,255,255,.04);padding:10px;border-radius:14px;border:1px dashed rgba(255,255,255,.14)}
-  
-    .primary{background:#2d7ef7;border-color:#2d7ef7;color:#fff}
-    .permgrid{display:grid;grid-template-columns:1fr;gap:6px}
-    @media (min-width:900px){.permgrid{grid-template-columns:1fr 1fr}}
-    .perm{display:flex;gap:10px;align-items:flex-start;padding:6px;border:1px solid rgba(255,255,255,.08);border-radius:12px}
-    .perm input{margin-top:3px}
-    .details{background:rgba(255,255,255,.03);padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.08)}
-    .muted{opacity:.8}
-
   </style>
 </head>
 <body>
@@ -74,215 +59,122 @@
   </div>
 
   <script>
-  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+    const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
-  const $ = (id)=>document.getElementById(id);
-  const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    const $ = (id)=>document.getElementById(id);
+    const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 
-  function badge(status){
-    if (status==="active") return `<span class="badge b-active">active</span>`;
-    if (status==="disabled") return `<span class="badge b-disabled">disabled</span>`;
-    return `<span class="badge b-pending">pending</span>`;
-  }
-  function roleLabel(r){
-    if (r==="ps") return "Patientensprecher";
-    if (r==="ps_deputy") return "Stellv. Patientensprecher";
-    if (r==="admin") return "Admin";
-    return r || "";
-  }
-
-  async function jpost(path, body){
-    const r = await fetch(API_BASE + path, {
-      method:"POST",
-      headers:{"content-type":"application/json"},
-      body: JSON.stringify(body||{})
-    });
-    const t = await r.text();
-    let data={}; try{ data=t?JSON.parse(t):{} }catch(_){ data={raw:t} }
-    if (!r.ok) throw {status:r.status,data};
-    return data;
-  }
-
-  let __users = [];
-  let __perms = [];
-  let __userPerms = []; // rows {userId,permKey,allowed}
-
-  function userPermMap(){
-    const m = new Map();
-    for (const row of (__userPerms||[])){
-      if (!m.has(row.userId)) m.set(row.userId, new Map());
-      m.get(row.userId).set(row.permKey, !!row.allowed);
+    function badge(status){
+      if (status==="active") return `<span class="badge b-active">active</span>`;
+      if (status==="disabled") return `<span class="badge b-disabled">disabled</span>`;
+      return `<span class="badge b-pending">pending</span>`;
     }
-    return m;
-  }
 
-  async function loadUsers(){
-    const pw = ($("adminPw").value||"").trim();
-    if (!pw) return ($("msg").textContent="ERR Admin-Passwort fehlt");
-    $("msg").textContent = "lade…";
-    try{
-      const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
-      __users = res.users || [];
-      __perms = res.perms || [];
-      __userPerms = res.userPerms || [];
-      $("msg").textContent = `ok (${__users.length})`;
-      render();
-    }catch(e){
-      console.error(e);
-      $("msg").textContent = `ERR Fehler (HTTP ${e?.status||"?"})`;
-      $("tbl").innerHTML = "";
+    function roleLabel(r){
+      if (r==="ps") return "Patientensprecher";
+      if (r==="ps_deputy") return "Stellvertreter";
+      if (r==="admin") return "Admin";
+      return r || "";
     }
-  }
 
-  function render(){
-    const f = $("filterRole").value;
-    const users = f ? __users.filter(u=>u.role===f || u.role2===f) : __users;
-    const permByUser = userPermMap();
+    async function jpost(path, body){
+      const r = await fetch(API_BASE + path, {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify(body||{})
+      });
+      const t = await r.text();
+      let data={}; try{ data=t?JSON.parse(t):{} }catch(_){ data={raw:t} }
+      if (!r.ok) throw {status:r.status,data};
+      return data;
+    }
 
-    const rows = users.map(u=>{
-      const approveDisabled = u.status === "active";
-      const codeDisabled = u.status !== "active";
+    let __users = [];
 
-      const detailId = `d_${u.id}`;
-      const roleSelId = `r_${u.id}`;
-      const role2SelId = `r2_${u.id}`;
+    async function loadUsers(){
+      const pw = ($("adminPw").value||"").trim();
+      $("msg").textContent = "lade…";
+      try{
+        const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
+        __users = res.users || [];
+        $("msg").textContent = `ok (${__users.length})`;
+        render();
+      }catch(e){
+        console.error(e);
+        $("msg").textContent = `Fehler: Fehler (HTTP ${e?.status||"?"})`;
+        $("tbl").innerHTML = "";
+      }
+    }
 
-      const permRows = __perms.map(p=>{
-        const on = permByUser.get(u.id)?.get(p.permKey) ?? true; // default true
-        const cid = `p_${u.id}_${p.permKey.replace(/[^a-zA-Z0-9_-]/g,"_")}`;
-        return `<label class="perm">
-          <input type="checkbox" id="${cid}" data-user="${esc(u.id)}" data-perm="${esc(p.permKey)}" ${on?"checked":""}/>
-          <span class="mono">${esc(p.permKey)}</span> <span class="muted">- ${esc(p.label||"")}</span>
-        </label>`;
+    async function approve(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      if (!confirm("Freischalten? (Alter aktiver derselben Rolle wird deaktiviert)")) return;
+      try{
+        await jpost("/api/admin/auth/users/approve", { adminPassword: pw, userId });
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Freischalten fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
+    }
+
+    async function genCode(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      try{
+        const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
+        const until = new Date(r.expiresAt).toLocaleString();
+        alert(`Login-Code (${roleLabel(r.role)}): ${r.code}\nGültig bis: ${until}`);
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Code erzeugen fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
+    }
+
+    function render(){
+      const f = $("filterRole").value;
+      const users = f ? __users.filter(u=>u.role===f) : __users;
+
+      const rows = users.map(u=>{
+        const approveDisabled = u.status === "active";
+        const codeDisabled = u.status !== "active";
+        return `<tr>
+          <td class="mono">${esc(u.id)}</td>
+          <td>${esc(u.firstName||"")} ${esc(u.lastName||"")}</td>
+          <td>${esc(u.email||"")}</td>
+          <td>${esc(roleLabel(u.role))}</td>
+          <td>${badge(u.status)}</td>
+          <td>
+            <div class="rowbtns">
+              <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
+              <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
+            </div>
+          </td>
+        </tr>`;
       }).join("");
 
-      return `<tr>
-        <td class="mono">${esc(u.id)}</td>
-        <td>${esc(u.firstName||"")} ${esc(u.lastName||"")}</td>
-        <td>${esc(u.email||"")}</td>
-        <td>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <select id="${roleSelId}">
-              ${["admin","ps","ps_deputy"].map(r=>`<option value="${r}" ${u.role===r?"selected":""}>${roleLabel(r)}</option>`).join("")}
-            </select>
-            <span class="muted small">+ Zweitrolle</span>
-            <select id="${role2SelId}">
-              <option value="">(keine)</option>
-              ${["admin","ps","ps_deputy"].map(r=>`<option value="${r}" ${u.role2===r?"selected":""}>${roleLabel(r)}</option>`).join("")}
-            </select>
-          </div>
-        </td>
-        <td>${badge(u.status)}</td>
-        <td>
-          <div class="rowbtns">
-            <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
-            <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
-            <button onclick="toggleDetails('${detailId}')">Details</button>
-            <button class="primary" onclick="saveUser('${esc(u.id)}')">Speichern</button>
-          </div>
-          <div id="${detailId}" class="details" style="display:none;margin-top:10px">
-            <div class="small muted" style="margin-bottom:8px">Berechtigungen (Haken entfernen = Zugriff sperren):</div>
-            <div class="permgrid">${permRows}</div>
-          </div>
-        </td>
-      </tr>`;
-    }).join("");
-
-    $("tbl").innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>Status</th><th>Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>${rows || `<tr><td colspan="6" class="muted">Keine Nutzer.</td></tr>`}</tbody>
-      </table>
-    `;
-  }
-
-  function toggleDetails(id){
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = (el.style.display==="none" || !el.style.display) ? "block" : "none";
-  }
-
-  async function approve(userId){
-    const pw = ($("adminPw").value||"").trim();
-    if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-    if (!confirm("Freischalten? (Es wird direkt ein Login-Code erzeugt und per Mail versendet.)")) return;
-
-    try{
-      const r = await jpost("/api/admin/auth/users/approve", { adminPassword: pw, userId, issueCode: true });
-      await loadUsers();
-
-      if (r.mailSent){
-        alert("OK freigeschaltet - Login-Code wurde per Mail verschickt");
-      }else{
-        const extra = r.mailError ? ("\n\nMail-Fehler: " + r.mailError) : "";
-        alert("OK freigeschaltet - aber Mail konnte nicht gesendet werden.\nDer Code wird jetzt angezeigt." + extra + "\n\nCode: " + (r.code||"") );
-      }
-    }catch(e){
-      alert("ERR Freischalten fehlgeschlagen");
-      console.error(e);
-    }
-  }
-
-  async function genCode(userId){
-    const pw = ($("adminPw").value||"").trim();
-    if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-    try{
-      const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
-      const until = r.expiresAt ? new Date(r.expiresAt).toLocaleString("de-DE") : "";
-      if (r.mailSent){
-        alert("OK Login-Code wurde per Mail verschickt.\nGültig bis: " + until);
-      }else{
-        const extra = r.mailError ? ("\n\nMail-Fehler: " + r.mailError) : "";
-        alert("Login-Code: " + r.code + "\nGültig bis: " + until + extra);
-      }
-    }catch(e){
-      alert("ERR Code erzeugen fehlgeschlagen");
-      console.error(e);
-    }
-  }
-
-  async function saveUser(userId){
-    const pw = ($("adminPw").value||"").trim();
-    if (!pw) return alert("Admin-Passwort fehlt");
-
-    // roles
-    const role = document.getElementById(`r_${userId}`)?.value || "";
-    const role2 = document.getElementById(`r2_${userId}`)?.value || "";
-    try{
-      await jpost("/api/admin/auth/users/set-role", { adminPassword: pw, userId, role, role2 });
-    }catch(e){
-      alert("ERR Rolle speichern fehlgeschlagen");
-      console.error(e);
-      return;
+      $("tbl").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>Status</th><th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="6" class="muted">Keine Einträge</td></tr>`}
+          </tbody>
+        </table>
+      `;
     }
 
-    // perms (send one-by-one, safe + simple)
-    const boxes = document.querySelectorAll(`input[type="checkbox"][data-user="${CSS.escape(userId)}"]`);
-    try{
-      for (const b of boxes){
-        const permKey = b.getAttribute("data-perm");
-        const allowed = b.checked;
-        await jpost("/api/admin/auth/users/set-perm", { adminPassword: pw, userId, permKey, allowed });
-      }
-      await loadUsers();
-      alert("OK gespeichert");
-    }catch(e){
-      alert("ERR Berechtigungen speichern fehlgeschlagen");
-      console.error(e);
-    }
-  }
+    $("btnLoad").onclick = loadUsers;
+    $("filterRole").onchange = render;
 
-  window.loadUsers = loadUsers;
-  window.approve = approve;
-  window.genCode = genCode;
-  window.toggleDetails = toggleDetails;
-  window.saveUser = saveUser;
-
-</script>
+    // expose handlers
+    window.approve = approve;
+    window.genCode = genCode;
+  </script>
 
 </body>
 </html>
