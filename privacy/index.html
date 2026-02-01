@@ -216,19 +216,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
     Zugang wird durch einen Admin freigeschaltet. Danach erhältst du einen Login‑Code.
   </div>
 
-  <form id="psForm" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <select id="psRole" required style="grid-column:1/-1">
+ <form id="psForm" style="
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:10px;
+  align-items:stretch;
+">
+    <select id="psRole" required style="grid-column:1/-1;width:100%">
       <option value="ps">Patientensprecher</option>
       <option value="ps_deputy">Stellv. Patientensprecher</option>
       <option value="admin">Admin</option>
     </select>
 
-    <input id="psFirst" placeholder="Vorname" required>
-    <input id="psLast" placeholder="Nachname" required>
+    <input id="psFirst" placeholder="Vorname" required style="width:100%">
+<input id="psLast" placeholder="Nachname" required style="width:100%">
+<input id="psEmail" type="email" placeholder="E-Mail" required style="grid-column:1/-1;width:100%">
 
-    <input id="psEmail" type="email" placeholder="E-Mail" required style="grid-column:1/-1">
-
-    <button id="psSubmit" type="submit" style="grid-column:1/-1">Registrieren</button>
+    <button id="psSubmit" type="submit" style="grid-column:1/-1;width:100%">Registrieren</button>
     <div id="psMsg" class="muted" style="grid-column:1/-1"></div>
   </form>
 </div>
