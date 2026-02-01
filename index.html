@@ -395,12 +395,6 @@
     <input id="psEmail" placeholder="E-Mail" style="width:100%">
     <input id="psCode" placeholder="Login-Code (6-stellig)" style="width:100%">
   </div>
-  
-  <div class="card" id="psOnly" style="display:none;margin-top:20px">
-  <h3>Patientensprecher Bereich</h3>
-  <div class="muted">✅ Login erkannt – dieser Bereich erscheint nur für PS / Stellvertreter.</div>
-</div>
-
   <div class="row">
     <button class="btn" id="btnPsLogin">Anmelden</button>
     <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
@@ -418,139 +412,8 @@
   </button>
 </div>
 </div>
-<script>
-const AUTH_KEY="wp_token";
-const AUTH_ROLE="wp_role";
-const AUTH_EMAIL="wp_email";
-const AUTH_EXP="wp_exp"; // expiresAt (ms)
 
-function setAuth(t,r,e,exp){
-  localStorage.setItem(AUTH_KEY, t || "");
-  localStorage.setItem(AUTH_ROLE, r || "");
-  localStorage.setItem(AUTH_EMAIL, e || "");
-  localStorage.setItem(AUTH_EXP, String(exp || 0));
-}
-  function applyRoleVisibility(){
-  const token = localStorage.getItem("wp_token") || "";
-  const role  = localStorage.getItem("wp_role") || "";
 
-  const show = !!token && (role === "ps" || role === "ps_deputy");
-
-  const el = document.getElementById("psOnly");
-  if (el) el.style.display = show ? "" : "none";
-}
-
-function clearAuth(){
-  localStorage.removeItem(AUTH_KEY);
-  localStorage.removeItem(AUTH_ROLE);
-  localStorage.removeItem(AUTH_EMAIL);
-  localStorage.removeItem(AUTH_EXP);
-}
-
-function getAuth(){
-  return {
-    token: localStorage.getItem(AUTH_KEY) || "",
-    role:  localStorage.getItem(AUTH_ROLE) || "",
-    email: localStorage.getItem(AUTH_EMAIL) || "",
-    exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
-  };
-}
-function roleLabel(r){
-  if (r === "admin") return "Admin";
-  if (r === "ps") return "Patientensprecher";
-  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
-  return r || "";
-}
-
-function renderAuth(){
-  const a=getAuth();
-  const st=document.getElementById("psLoginState");
-  const out=document.getElementById("btnPsLogout");
-
-  if(a.token){
-    st.textContent="Angemeldet als "+roleLabel(a.role)+" ("+a.email+")";
-    out.style.display="";
-  }else{
-    st.textContent="Nicht angemeldet";
-    out.style.display="none";
-  }
-}
-let __logoutTimer = null;
-
-function scheduleAutoLogout(){
-  if (__logoutTimer) clearTimeout(__logoutTimer);
-
-  const a = getAuth();
-  if (!a.token || !a.exp) return;
-
-  const msLeft = a.exp - Date.now();
-
-  __logoutTimer = setTimeout(()=>{
-    clearAuth();
-    renderAuth();
-    alert("Session abgelaufen – bitte neu anmelden");
-  }, msLeft);
-}
-function roleLabel(r){
-  if (r === "admin") return "Admin";
-  if (r === "ps") return "Patientensprecher";
-  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
-  return r || "";
-}
-
-function applyRoleVisibility(){
-  const a = getAuth();
-
-  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
-  const psOnly = document.getElementById("psOnly");
-  const adminOnly = document.getElementById("adminOnly");
-
-  const logged = !!a.token;
-  const isAdmin = logged && a.role === "admin";
-  const isPS = logged && (a.role === "ps" || a.role === "ps_deputy");
-
-  if (psOnly) psOnly.style.display = isPS ? "" : "none";
-  if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
-}
-
-document.addEventListener("DOMContentLoaded",()=>{
-  applyRoleVisibility();
-  scheduleAutoLogout();
-  renderAuth();
-
-  document.getElementById("btnPsLogin").onclick=async()=>{
-    const email = psEmail.value.trim().toLowerCase();
-    const code=psCode.value.trim();
-
-    const r=await fetch(API_BASE+"/api/ps/login",{
-      method:"POST",
-      headers:{"content-type":"application/json"},
-      body:JSON.stringify({email,code})
-    });
-
-    const j = await r.json();
-
-if (j.ok) {
-  setAuth(j.token,j.role,email,j.expiresAt);
-  applyRoleVisibility();
-  scheduleAutoLogout();
-  toast("✅ Login erfolgreich");
-  renderAuth();
-  applyRoleVisibility();
-} else {
-  const m = j.message || j.error || "Login fehlgeschlagen";
-  toast("⛔ " + m);
-}
-  };
-
-  document.getElementById("btnPsLogout").onclick=()=>{
-    clearAuth();
-    applyRoleVisibility(); 
-    renderAuth();
-  };
-
-});
-</script>
 
   </main>
 
@@ -1954,14 +1817,7 @@ if ($("btnLoadLogs")) {
 
 // Boot: if admin session exists, show admin box
 (async function boot(){
-  try{
-    const s = await jget("/api/_status?ts="+Date.now());
-    console.log("status", s);
-  }catch(e){
-    toast("⚠️ Worker nicht erreichbar – API_BASE prüfen");
-  }
-
-  const sess = getAdminSession();
+const sess = getAdminSession();
   if (sess){
     $("adminLoginBox").style.display="none";
     $("adminBox").style.display="block";
@@ -1984,6 +1840,116 @@ if ($("btnLoadLogs")) {
 
   }
 })();
+
+// =====================
+// PS / Admin Auth (Login-Code)
+// =====================
+const PS_AUTH_KEY = "wp_ps_auth";
+
+function getPsAuth(){
+  try{
+    const raw = localStorage.getItem(PS_AUTH_KEY);
+    if (!raw) return { token:"", role:"", email:"", exp:0 };
+    const o = JSON.parse(raw);
+    return {
+      token: String(o.token||""),
+      role: String(o.role||""),
+      email: String(o.email||""),
+      exp: Number(o.exp||0)
+    };
+  }catch(_){
+    return { token:"", role:"", email:"", exp:0 };
+  }
+}
+function setPsAuth(auth){
+  localStorage.setItem(PS_AUTH_KEY, JSON.stringify({
+    token: auth.token || "",
+    role: auth.role || "",
+    email: auth.email || "",
+    exp: auth.exp || 0
+  }));
+}
+function clearPsAuth(){
+  localStorage.removeItem(PS_AUTH_KEY);
+}
+function psRoleLabel(role){
+  if (role === "ps") return "Patientensprecher";
+  if (role === "ps_deputy") return "Stellvertretender Patientensprecher";
+  if (role === "admin") return "Admin";
+  return role || "";
+}
+function applyRoleVisibility(){
+  const a = getPsAuth();
+  const show = !!a.token && (a.role === "ps" || a.role === "ps_deputy");
+  const el = document.getElementById("psOnly");
+  if (el) el.style.display = show ? "" : "none";
+}
+function syncPsLoginControls(){
+  const a = getPsAuth();
+  const st = document.getElementById("psLoginState");
+  const out = document.getElementById("btnPsLogout");
+  if (st){
+    if (a.token){
+      st.textContent = "Angemeldet als " + psRoleLabel(a.role) + " (" + (a.email||"") + ")";
+    }else{
+      st.textContent = "Nicht angemeldet";
+    }
+  }
+  if (out) out.style.display = a.token ? "" : "none";
+  applyRoleVisibility();
+}
+
+function scheduleAutoLogout(){
+  // nur 1 Timer
+  if (window.__psLogoutTimer){
+    clearTimeout(window.__psLogoutTimer);
+    window.__psLogoutTimer = null;
+  }
+  const a = getPsAuth();
+  if (!a.token || !a.exp) return;
+  const ms = a.exp - Date.now();
+  if (ms <= 0){
+    clearPsAuth();
+    syncPsLoginControls();
+    return;
+  }
+  window.__psLogoutTimer = setTimeout(()=>{
+    clearPsAuth();
+    syncPsLoginControls();
+    toast("ℹ️ PS-Login abgelaufen");
+  }, ms);
+}
+
+// Wire Buttons (falls vorhanden)
+if (document.getElementById("btnPsLogin")){
+  document.getElementById("btnPsLogin").onclick = async ()=>{
+    const email = String(document.getElementById("psEmail")?.value || "").trim();
+    const code  = String(document.getElementById("psCode")?.value || "").trim();
+    if (!email || !code) return toast("⛔ E-Mail und Login-Code erforderlich");
+    try{
+      const r = await jpost("/api/ps/login", { email, code });
+      if (!r || !r.ok) throw new Error(r?.message || "login_failed");
+      setPsAuth({ token:r.token, role:r.role, email:r.email || email, exp: Number(r.expiresAt || 0) });
+      syncPsLoginControls();
+      scheduleAutoLogout();
+      toast("✅ Angemeldet");
+    }catch(e){
+      toast("⛔ Anmeldung fehlgeschlagen");
+    }
+  };
+}
+if (document.getElementById("btnPsLogout")){
+  document.getElementById("btnPsLogout").onclick = ()=>{
+    clearPsAuth();
+    syncPsLoginControls();
+    toast("👋 Abgemeldet");
+  };
+}
+
+// initial state
+syncPsLoginControls();
+scheduleAutoLogout();
+
 </script>
 </body>
 </html>
