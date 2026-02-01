@@ -461,8 +461,31 @@ function scheduleAutoLogout(){
     alert("Session abgelaufen – bitte neu anmelden");
   }, msLeft);
 }
+function roleLabel(r){
+  if (r === "admin") return "Admin";
+  if (r === "ps") return "Patientensprecher";
+  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  return r || "";
+}
+
+function applyRoleVisibility(){
+  const a = getAuth();
+
+  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
+  const psOnly = document.getElementById("psOnly");
+  const adminOnly = document.getElementById("adminOnly");
+
+  const logged = !!a.token;
+  const isAdmin = logged && a.role === "admin";
+  const isPS = logged && (a.role === "ps" || a.role === "ps_deputy");
+
+  if (psOnly) psOnly.style.display = isPS ? "" : "none";
+  if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
+}
 
 document.addEventListener("DOMContentLoaded",()=>{
+  applyRoleVisibility();
+
   scheduleAutoLogout();
 
   renderAuth();
@@ -494,6 +517,7 @@ scheduleAutoLogout();
   document.getElementById("btnPsLogout").onclick=()=>{
     clearAuth();
     renderAuth();
+    applyRoleVisibility(); 
   };
 
 });
