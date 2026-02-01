@@ -186,46 +186,56 @@ loadMeta().catch(()=>{document.getElementById("metaLine").textContent="";});
 
 
 <script>
-const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+document.addEventListener("DOMContentLoaded", () => {
 
-async function jpost(path, body){
-  const r = await fetch(API_BASE + path,{
-    method:"POST",
-    headers:{"content-type":"application/json"},
-    body: JSON.stringify(body||{})
-  });
-  const t = await r.text();
-  return t ? JSON.parse(t) : {};
-}
+  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
-document.getElementById("psForm").onsubmit = async (e)=>{
-  e.preventDefault();
-
-  const fn = psFirst.value.trim();
-  const ln = psLast.value.trim();
-  const em = psEmail.value.trim();
-  const role = psRole.value;
-
-  if(!fn || !ln || !em){
-    psMsg.textContent = "Bitte alle Felder ausfüllen";
-    return;
-  }
-
-  try{
-    await jpost("/api/ps/register", {
-      firstName: fn,
-      lastName: ln,
-      email: em,
-      role
+  async function jpost(path, body){
+    const r = await fetch(API_BASE + path,{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body: JSON.stringify(body||{})
     });
 
-    psMsg.textContent = "✅ Registrierung gespeichert. Admin schaltet frei.";
-    e.target.reset();
-
-  }catch{
-    psMsg.textContent = "⛔ Fehler bei Registrierung";
+    const t = await r.text();
+    return t ? JSON.parse(t) : {};
   }
-};
+
+  const form = document.getElementById("psForm");
+  const msg  = document.getElementById("psMsg");
+
+  if(!form) return;
+
+  form.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+
+    const fn = document.getElementById("psFirst").value.trim();
+    const ln = document.getElementById("psLast").value.trim();
+    const em = document.getElementById("psEmail").value.trim();
+    const role = document.getElementById("psRole").value;
+
+    if(!fn || !ln || !em){
+      msg.textContent = "Bitte alle Felder ausfüllen";
+      return;
+    }
+
+    try{
+      await jpost("/api/ps/register", {
+        firstName: fn,
+        lastName: ln,
+        email: em,
+        role
+      });
+
+      msg.textContent = "✅ Registrierung gespeichert. Admin schaltet frei.";
+      form.reset();
+
+    }catch{
+      msg.textContent = "⛔ Fehler bei Registrierung";
+    }
+  });
+
+});
 </script>
 
 </body>
