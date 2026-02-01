@@ -208,10 +208,19 @@
 
   async function approve(userId){
     const pw = ($("adminPw").value||"").trim();
+    if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+    if (!confirm("Freischalten? (Es wird direkt ein Login-Code erzeugt und per Mail versendet.)")) return;
+
     try{
-      await jpost("/api/admin/auth/users/approve", { adminPassword: pw, userId });
+      const r = await jpost("/api/admin/auth/users/approve", { adminPassword: pw, userId, issueCode: true });
       await loadUsers();
-      alert("✅ freigeschaltet");
+
+      if (r.mailSent){
+        alert("✅ freigeschaltet – Login-Code wurde per Mail verschickt");
+      }else{
+        const extra = r.mailError ? ("\n\nMail-Fehler: " + r.mailError) : "";
+        alert("✅ freigeschaltet – aber Mail konnte nicht gesendet werden.\nDer Code wird jetzt angezeigt." + extra + "\n\nCode: " + (r.code||"") );
+      }
     }catch(e){
       alert("⛔ Freischalten fehlgeschlagen");
       console.error(e);
@@ -220,12 +229,18 @@
 
   async function genCode(userId){
     const pw = ($("adminPw").value||"").trim();
+    if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
     try{
       const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
-      alert("Login-Code: " + r.code + "
-Gültig bis: " + new Date(r.expiresAt).toLocaleString("de-DE"));
+      const until = r.expiresAt ? new Date(r.expiresAt).toLocaleString("de-DE") : "";
+      if (r.mailSent){
+        alert("✅ Login-Code wurde per Mail verschickt.\nGültig bis: " + until);
+      }else{
+        const extra = r.mailError ? ("\n\nMail-Fehler: " + r.mailError) : "";
+        alert("Login-Code: " + r.code + "\nGültig bis: " + until + extra);
+      }
     }catch(e){
-      alert("⛔ Code erstellen fehlgeschlagen");
+      alert("⛔ Code erzeugen fehlgeschlagen");
       console.error(e);
     }
   }
