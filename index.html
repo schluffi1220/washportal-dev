@@ -388,6 +388,89 @@
         </details>
       </div>
     </div>
+<div class="card" style="margin-top:20px">
+  <h3>PS / Admin Login</h3>
+
+  <div class="row">
+    <input id="psEmail" placeholder="E-Mail" style="width:100%">
+    <input id="psCode" placeholder="Login-Code (6-stellig)" style="width:100%">
+  </div>
+
+  <div class="row">
+    <button class="btn" id="btnPsLogin">Anmelden</button>
+    <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
+    <div id="psLoginState" class="muted"></div>
+  </div>
+</div>
+<script>
+const AUTH_KEY="wp_token";
+const AUTH_ROLE="wp_role";
+const AUTH_EMAIL="wp_email";
+
+function setAuth(t,r,e){
+  localStorage.setItem(AUTH_KEY,t);
+  localStorage.setItem(AUTH_ROLE,r);
+  localStorage.setItem(AUTH_EMAIL,e);
+}
+function clearAuth(){
+  localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_ROLE);
+  localStorage.removeItem(AUTH_EMAIL);
+}
+function getAuth(){
+  return {
+    token:localStorage.getItem(AUTH_KEY)||"",
+    role:localStorage.getItem(AUTH_ROLE)||"",
+    email:localStorage.getItem(AUTH_EMAIL)||""
+  };
+}
+
+function renderAuth(){
+  const a=getAuth();
+  const st=document.getElementById("psLoginState");
+  const out=document.getElementById("btnPsLogout");
+
+  if(a.token){
+    st.textContent="Angemeldet als "+a.role+" ("+a.email+")";
+    out.style.display="";
+  }else{
+    st.textContent="Nicht angemeldet";
+    out.style.display="none";
+  }
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+
+  renderAuth();
+
+  document.getElementById("btnPsLogin").onclick=async()=>{
+    const email=psEmail.value.trim();
+    const code=psCode.value.trim();
+
+    const r=await fetch(API_BASE+"/api/ps/login",{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({email,code})
+    });
+
+    const j=await r.json();
+
+    if(j.ok){
+      setAuth(j.token,j.role,email);
+      alert("Login erfolgreich");
+      renderAuth();
+    }else{
+      alert("Login fehlgeschlagen");
+    }
+  };
+
+  document.getElementById("btnPsLogout").onclick=()=>{
+    clearAuth();
+    renderAuth();
+  };
+
+});
+</script>
 
   </main>
 
