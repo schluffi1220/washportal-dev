@@ -406,24 +406,31 @@
 const AUTH_KEY="wp_token";
 const AUTH_ROLE="wp_role";
 const AUTH_EMAIL="wp_email";
+const AUTH_EXP="wp_exp"; // expiresAt (ms)
 
-function setAuth(t,r,e){
-  localStorage.setItem(AUTH_KEY,t);
-  localStorage.setItem(AUTH_ROLE,r);
-  localStorage.setItem(AUTH_EMAIL,e);
+function setAuth(t,r,e,exp){
+  localStorage.setItem(AUTH_KEY, t || "");
+  localStorage.setItem(AUTH_ROLE, r || "");
+  localStorage.setItem(AUTH_EMAIL, e || "");
+  localStorage.setItem(AUTH_EXP, String(exp || 0));
 }
+
 function clearAuth(){
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(AUTH_ROLE);
   localStorage.removeItem(AUTH_EMAIL);
+  localStorage.removeItem(AUTH_EXP);
 }
+
 function getAuth(){
   return {
-    token:localStorage.getItem(AUTH_KEY)||"",
-    role:localStorage.getItem(AUTH_ROLE)||"",
-    email:localStorage.getItem(AUTH_EMAIL)||""
+    token: localStorage.getItem(AUTH_KEY) || "",
+    role:  localStorage.getItem(AUTH_ROLE) || "",
+    email: localStorage.getItem(AUTH_EMAIL) || "",
+    exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
   };
 }
+
 
 function renderAuth(){
   const a=getAuth();
@@ -438,13 +445,30 @@ function renderAuth(){
     out.style.display="none";
   }
 }
+let __logoutTimer = null;
+
+function scheduleAutoLogout(){
+  if (__logoutTimer) clearTimeout(__logoutTimer);
+
+  const a = getAuth();
+  if (!a.token || !a.exp) return;
+
+  const msLeft = a.exp - Date.now();
+
+  __logoutTimer = setTimeout(()=>{
+    clearAuth();
+    renderAuth();
+    alert("Session abgelaufen – bitte neu anmelden");
+  }, msLeft);
+}
 
 document.addEventListener("DOMContentLoaded",()=>{
+  scheduleAutoLogout();
 
   renderAuth();
 
   document.getElementById("btnPsLogin").onclick=async()=>{
-    const email=psEmail.value.trim();
+    const email = psEmail.value.trim().toLowerCase();
     const code=psCode.value.trim();
 
     const r=await fetch(API_BASE+"/api/ps/login",{
@@ -453,15 +477,18 @@ document.addEventListener("DOMContentLoaded",()=>{
       body:JSON.stringify({email,code})
     });
 
-    const j=await r.json();
+    const j = await r.json();
 
-    if(j.ok){
-      setAuth(j.token,j.role,email);
-      alert("Login erfolgreich");
-      renderAuth();
-    }else{
-      alert("Login fehlgeschlagen");
-    }
+if (j.ok) {
+  setAuth(j.token,j.role,email,j.expiresAt);
+scheduleAutoLogout();
+  toast("✅ Login erfolgreich");
+  renderAuth();
+  applyRoleVisibility();
+} else {
+  const m = j.message || j.error || "Login fehlgeschlagen";
+  toast("⛔ " + m);
+}
   };
 
   document.getElementById("btnPsLogout").onclick=()=>{
