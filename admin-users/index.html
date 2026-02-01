@@ -118,7 +118,7 @@
 
   async function loadUsers(){
     const pw = ($("adminPw").value||"").trim();
-    if (!pw) return ($("msg").textContent="⛔ Admin-Passwort fehlt");
+    if (!pw) return ($("msg").textContent="ERR Admin-Passwort fehlt");
     $("msg").textContent = "lade…";
     try{
       const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
@@ -129,7 +129,7 @@
       render();
     }catch(e){
       console.error(e);
-      $("msg").textContent = `⛔ Fehler (HTTP ${e?.status||"?"})`;
+      $("msg").textContent = `ERR Fehler (HTTP ${e?.status||"?"})`;
       $("tbl").innerHTML = "";
     }
   }
@@ -152,7 +152,7 @@
         const cid = `p_${u.id}_${p.permKey.replace(/[^a-zA-Z0-9_-]/g,"_")}`;
         return `<label class="perm">
           <input type="checkbox" id="${cid}" data-user="${esc(u.id)}" data-perm="${esc(p.permKey)}" ${on?"checked":""}/>
-          <span class="mono">${esc(p.permKey)}</span> <span class="muted">– ${esc(p.label||"")}</span>
+          <span class="mono">${esc(p.permKey)}</span> <span class="muted">- ${esc(p.label||"")}</span>
         </label>`;
       }).join("");
 
@@ -216,13 +216,13 @@
       await loadUsers();
 
       if (r.mailSent){
-        alert("✅ freigeschaltet – Login-Code wurde per Mail verschickt");
+        alert("OK freigeschaltet - Login-Code wurde per Mail verschickt");
       }else{
         const extra = r.mailError ? ("\n\nMail-Fehler: " + r.mailError) : "";
-        alert("✅ freigeschaltet – aber Mail konnte nicht gesendet werden.\nDer Code wird jetzt angezeigt." + extra + "\n\nCode: " + (r.code||"") );
+        alert("OK freigeschaltet - aber Mail konnte nicht gesendet werden.\nDer Code wird jetzt angezeigt." + extra + "\n\nCode: " + (r.code||"") );
       }
     }catch(e){
-      alert("⛔ Freischalten fehlgeschlagen");
+      alert("ERR Freischalten fehlgeschlagen");
       console.error(e);
     }
   }
@@ -234,13 +234,13 @@
       const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
       const until = r.expiresAt ? new Date(r.expiresAt).toLocaleString("de-DE") : "";
       if (r.mailSent){
-        alert("✅ Login-Code wurde per Mail verschickt.\nGültig bis: " + until);
+        alert("OK Login-Code wurde per Mail verschickt.\nGültig bis: " + until);
       }else{
         const extra = r.mailError ? ("\n\nMail-Fehler: " + r.mailError) : "";
         alert("Login-Code: " + r.code + "\nGültig bis: " + until + extra);
       }
     }catch(e){
-      alert("⛔ Code erzeugen fehlgeschlagen");
+      alert("ERR Code erzeugen fehlgeschlagen");
       console.error(e);
     }
   }
@@ -255,7 +255,7 @@
     try{
       await jpost("/api/admin/auth/users/set-role", { adminPassword: pw, userId, role, role2 });
     }catch(e){
-      alert("⛔ Rolle speichern fehlgeschlagen");
+      alert("ERR Rolle speichern fehlgeschlagen");
       console.error(e);
       return;
     }
@@ -269,9 +269,9 @@
         await jpost("/api/admin/auth/users/set-perm", { adminPassword: pw, userId, permKey, allowed });
       }
       await loadUsers();
-      alert("✅ gespeichert");
+      alert("OK gespeichert");
     }catch(e){
-      alert("⛔ Berechtigungen speichern fehlgeschlagen");
+      alert("ERR Berechtigungen speichern fehlgeschlagen");
       console.error(e);
     }
   }
