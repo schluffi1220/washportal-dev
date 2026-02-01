@@ -395,12 +395,28 @@
     <input id="psEmail" placeholder="E-Mail" style="width:100%">
     <input id="psCode" placeholder="Login-Code (6-stellig)" style="width:100%">
   </div>
+  
+  <div class="card" id="psOnly" style="display:none;margin-top:20px">
+  <h3>Patientensprecher Bereich</h3>
+  <div class="muted">✅ Login erkannt – dieser Bereich erscheint nur für PS / Stellvertreter.</div>
+</div>
 
   <div class="row">
     <button class="btn" id="btnPsLogin">Anmelden</button>
     <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
   </div>
+  <div class="card" id="psOnly" style="display:none;margin-top:20px">
+  <h3>Patientensprecher Bereich</h3>
+
+  <div class="muted">
+    ✅ Login erkannt – dieser Bereich erscheint nur für Patientensprecher / Stellvertreter.
+  </div>
+
+  <button class="btn" onclick="alert('PS Funktion aktiv')">
+    Test-Button
+  </button>
+</div>
 </div>
 <script>
 const AUTH_KEY="wp_token";
@@ -413,6 +429,15 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_ROLE, r || "");
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
+}
+  function applyRoleVisibility(){
+  const token = localStorage.getItem("wp_token") || "";
+  const role  = localStorage.getItem("wp_role") || "";
+
+  const show = !!token && (role === "ps" || role === "ps_deputy");
+
+  const el = document.getElementById("psOnly");
+  if (el) el.style.display = show ? "" : "none";
 }
 
 function clearAuth(){
@@ -430,7 +455,12 @@ function getAuth(){
     exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
   };
 }
-
+function roleLabel(r){
+  if (r === "admin") return "Admin";
+  if (r === "ps") return "Patientensprecher";
+  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  return r || "";
+}
 
 function renderAuth(){
   const a=getAuth();
@@ -438,7 +468,7 @@ function renderAuth(){
   const out=document.getElementById("btnPsLogout");
 
   if(a.token){
-    st.textContent="Angemeldet als "+a.role+" ("+a.email+")";
+    st.textContent="Angemeldet als "+roleLabel(a.role)+" ("+a.email+")";
     out.style.display="";
   }else{
     st.textContent="Nicht angemeldet";
@@ -485,9 +515,7 @@ function applyRoleVisibility(){
 
 document.addEventListener("DOMContentLoaded",()=>{
   applyRoleVisibility();
-
   scheduleAutoLogout();
-
   renderAuth();
 
   document.getElementById("btnPsLogin").onclick=async()=>{
@@ -504,7 +532,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 if (j.ok) {
   setAuth(j.token,j.role,email,j.expiresAt);
-scheduleAutoLogout();
+  applyRoleVisibility();
+  scheduleAutoLogout();
   toast("✅ Login erfolgreich");
   renderAuth();
   applyRoleVisibility();
@@ -516,8 +545,8 @@ scheduleAutoLogout();
 
   document.getElementById("btnPsLogout").onclick=()=>{
     clearAuth();
-    renderAuth();
     applyRoleVisibility(); 
+    renderAuth();
   };
 
 });
