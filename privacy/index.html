@@ -2,7 +2,6 @@
 <html lang="de">
 <head>
   <meta charset="utf-8"/>
-  <link rel="icon" href="/washportal-dev/icon.ico">
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Datenschutzbestimmungen</title>
   <style>
@@ -107,136 +106,150 @@ Stand: 27.01.2026
   </div>
   </div>
 </main>
-<script>
-const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
+<script>
 function pad(n){return String(n).padStart(2,"0");}
 function fmt(ts){
   const d=new Date(Number(ts));
   return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
 }
-function esc(s){return String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
-
-async function jget(path){
-  const r = await fetch(API_BASE + path);
-  const t = await r.text();
-  let j={}; try{ j = t ? JSON.parse(t) : {}; } catch { j={}; }
-  if(!r.ok) throw {status:r.status, data:j};
-  return j;
-}
-async function jpost(path, data){
-  const r = await fetch(API_BASE + path, {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify(data||{})
-  });
-  const t = await r.text();
-  let j={}; try{ j = t ? JSON.parse(t) : {}; } catch { j={}; }
-  if(!r.ok) throw {status:r.status, data:j};
-  return j;
-}
-
 async function loadMeta(){
-  const j = await jget("/api/privacy/meta");
+  const r = await fetch("/api/privacy/meta");
+  const j = await r.json();
   if(!j.ok) throw new Error("meta");
-  const del = fmt(j.deleteAt || j.delete_at || Date.now());
-  const metaLine = document.getElementById("metaLine");
-  if(metaLine) metaLine.textContent = "Stand: " + del;
-
-  const deleteInfo = document.getElementById("deleteInfo");
-  if(deleteInfo){
-    deleteInfo.innerHTML =
-      "Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation erforderlich ist. "+
-      "Bei der aktuellen Einstellung werden Daten spätestens am <span class='mono'>"+esc(del)+"</span> gelöscht "+
-      "(Fenster: "+esc(j.daysPast)+" Tage zurück, "+esc(j.daysFuture)+" Tage voraus).";
-  }
-
-  const list = document.getElementById("psList");
-  if(list){
-    const ps = j.patientSpeakers || [];
-    if(!ps.length){
-      list.textContent = "Noch keine Registrierungen.";
-    } else {
-      list.innerHTML = ps.map(p=>{
-        const name = p.name || [p.firstName, p.lastName].filter(Boolean).join(" ");
-        const email = p.emailMasked || p.email || "";
-        const st = p.status || "";
-        return "• "+esc(name)+" ("+esc(email)+")"+(st?(" – "+esc(st)):"");
-      }).join("<br/>");
-    }
+  const del = fmt(j.deleteAt);
+  document.getElementById("metaLine").textContent = "Stand: " + del;
+  document.getElementById("deleteInfo").innerHTML =
+    "Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation erforderlich ist. "+
+    "Bei der aktuellen Einstellung werden Daten spätestens am <span class='mono'>"+del+"</span> gelöscht "+
+    "(Fenster: "+j.daysPast+" Tage zurück, "+j.daysFuture+" Tage voraus).";
+  const ps = j.patientSpeakers || [];
+  if(!ps.length){
+    document.getElementById("psList").textContent = "Noch keine Registrierungen.";
+  } else {
+    document.getElementById("psList").innerHTML = ps.map(p=>(
+      "• "+p.firstName+" "+p.lastName+" ("+p.email+") – "+(p.status||"")
+    )).join("<br/>");
   }
 }
+async function jpost(url,data){
+  const res = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  const txt = await res.text();
+  let j={}; try{j=JSON.parse(txt);}catch(_){}
+  if(!res.ok) throw Object.assign(new Error("http"), {status:res.status, data:j});
+  return j;
+}
+document.getElementById("psRegister").onclick = async ()=>{
+  const firstName = document.getElementById("psFirst").value.trim();
+  const lastName = document.getElementById("psLast").value.trim();
+  const email = document.getElementById("psEmail").value.trim();
+  const msg = document.getElementById("psRegMsg");
+  msg.textContent="";
+  try{
+    await jpost("/api/ps/register",{firstName,lastName,email});
+    msg.textContent="✅ Registrierung gespeichert (Freischaltung durch Admin).";
+    document.getElementById("psFirst").value="";
+    document.getElementById("psLast").value="";
+    document.getElementById("psEmail").value="";
+    await loadMeta();
+  }catch(e){
+    const m = e?.data?.message || e?.data?.error || "Fehler";
+    msg.textContent="⛔ "+m;
+  }
+};
+loadMeta().catch(()=>{document.getElementById("metaLine").textContent="";});
+</script>
+  <!-- ===================== -->
+<!-- Registrierung Patientensprecher/Admin -->
+<!-- ===================== -->
 
-document.addEventListener("DOMContentLoaded", ()=>{
-  loadMeta().catch(()=>{ const m=document.getElementById("metaLine"); if(m) m.textContent=""; });
+<hr style="margin:40px 0; opacity:.2">
+
+<h3>Registrierung</h3>
+
+<form id="psForm" style="display:flex;flex-direction:column;gap:10px;max-width:400px">
+
+  <select id="psRole" required>
+    <option value="ps">Patientensprecher</option>
+    <option value="ps_deputy">Stellv. Patientensprecher</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <input id="psFirst" placeholder="Vorname" required>
+  <input id="psLast" placeholder="Nachname" required>
+  <input id="psEmail" type="email" placeholder="E-Mail" required>
+  <input id="psPass" type="password" placeholder="Passwort (mind. 8 Zeichen)" required>
+  <input id="psPass2" type="password" placeholder="Passwort wiederholen" required>
+
+  <button type="submit">Registrieren</button>
+
+  <div id="psMsg" style="opacity:.8"></div>
+</form>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+
+  async function jpost(path, body){
+    const r = await fetch(API_BASE + path,{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body: JSON.stringify(body||{})
+    });
+
+    const t = await r.text();
+    return t ? JSON.parse(t) : {};
+  }
 
   const form = document.getElementById("psForm");
   const msg  = document.getElementById("psMsg");
-  const btn  = document.getElementById("psSubmit");
 
   if(!form) return;
+
   form.addEventListener("submit", async (e)=>{
     e.preventDefault();
-    const fn = (document.getElementById("psFirst")?.value||"").trim();
-    const ln = (document.getElementById("psLast")?.value||"").trim();
-    const em = (document.getElementById("psEmail")?.value||"").trim();
-    const role = (document.getElementById("psRole")?.value||"ps").trim();
 
-    if(!fn || !ln || !em){
-      if(msg) msg.textContent = "⛔ Bitte alle Felder ausfüllen.";
+    const fn = document.getElementById("psFirst").value.trim();
+    const ln = document.getElementById("psLast").value.trim();
+    const em = document.getElementById("psEmail").value.trim();
+    const pw1 = document.getElementById("psPass").value;
+    const pw2 = document.getElementById("psPass2").value;
+    const role = document.getElementById("psRole").value;
+
+    if(!fn || !ln || !em || !pw1 || !pw2){
+      msg.textContent = "Bitte alle Felder ausfüllen";
+      return;
+    }
+    if(pw1.length < 8){
+      msg.textContent = "Passwort muss mind. 8 Zeichen haben";
+      return;
+    }
+    if(pw1 !== pw2){
+      msg.textContent = "Passwörter stimmen nicht überein";
       return;
     }
 
-    if(btn) btn.disabled = true;
-    if(msg) msg.textContent = "";
-
     try{
-      await jpost("/api/ps/register", { firstName: fn, lastName: ln, email: em, role });
-      if(msg) msg.textContent = "✅ Registrierung gespeichert (Freischaltung durch Admin).";
+      await jpost("/api/ps/register", {
+        firstName: fn,
+        lastName: ln,
+        email: em,
+        role,
+        password: pw1
+      });
+
+      msg.textContent = "✅ Registrierung gespeichert. Admin schaltet frei.";
       form.reset();
-      await loadMeta();
-    }catch(err){
-      console.error(err);
-      const m = err?.data?.message || err?.data?.error || ("HTTP " + (err?.status || "?"));
-      if(msg) msg.textContent = "⛔ " + m;
-    }finally{
-      if(btn) btn.disabled = false;
+
+    }catch{
+      msg.textContent = "⛔ Fehler bei Registrierung";
     }
   });
+
 });
 </script>
-
-<!-- ===================== -->
-<!-- Registrierung -->
-<!-- ===================== -->
-<hr style="margin:40px 0; opacity:.2">
-
-<div class="card" style="max-width:980px;margin:0 auto 40px auto;">
-  <h3 style="margin-top:0">Registrierung</h3>
-  <div class="muted" style="margin-bottom:12px">
-    Zugang wird durch einen Admin freigeschaltet. Danach erhältst du einen Login‑Code.
-  </div>
-
- <form id="psForm" style="
-  display:grid;
-  grid-template-columns:repeat(2, minmax(0,1fr));
-  gap:10px;
-  align-items:stretch;
-">
-    <select id="psRole" required style="grid-column:1/-1;width:100%">
-      <option value="ps">Patientensprecher</option>
-      <option value="ps_deputy">Stellv. Patientensprecher</option>
-      <option value="admin">Admin</option>
-    </select>
-
-    <input id="psFirst" placeholder="Vorname" required style="width:100%">
-<input id="psLast" placeholder="Nachname" required style="width:100%">
-<input id="psEmail" type="email" placeholder="E-Mail" required style="grid-column:1/-1;width:100%">
-
-    <button id="psSubmit" type="submit" style="grid-column:1/-1;width:100%">Registrieren</button>
-    <div id="psMsg" class="muted" style="grid-column:1/-1"></div>
-  </form>
-</div>
 
 </body>
 </html>
