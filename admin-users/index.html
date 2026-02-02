@@ -206,7 +206,33 @@ Gültig bis: ${until}${mailInfo}`);
 ${e.data.message}` : "";
         alert(`Fehler: Speichern fehlgeschlagen (HTTP ${e?.status||"?"})${msg}`);
       }
+    
+    async function deactivateUser(userId){
+      if(!confirm("User wirklich deaktivieren?\n\nAlle Rechte werden entfernt, der User bleibt aber erhalten.")) return;
+      try{
+        await apiPost("/api/admin/auth/users/deactivate", { adminPassword: __pw, userId });
+        alert("Deaktiviert.");
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Deaktivieren fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
     }
+
+    async function markDeleteUser(userId){
+      if(!confirm("User zum Löschen freigeben?\n\nAlle Rechte werden entfernt. Der Datensatz bleibt 14 Tage und kann in der Zeit reaktiviert werden.")) return;
+      try{
+        const r = await apiPost("/api/admin/auth/users/mark-delete", { adminPassword: __pw, userId });
+        const da = r?.deleteAfter ? new Date(r.deleteAfter).toLocaleString("de-DE") : "";
+        alert("Zum Löschen freigegeben." + (da ? ("\nLöschung ab: " + da) : ""));
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Freigabe fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
+    }
+
+}
 
     function render(){
       const f = $("filterRole").value;
@@ -257,6 +283,8 @@ ${e.data.message}` : "";
               <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
               <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
               <button onclick="saveUser('${esc(u.id)}')">Speichern</button>
+              <button onclick="deactivateUser('${esc(u.id)}')">Deaktivieren</button>
+              <button onclick="markDeleteUser('${esc(u.id)}')">Zum Löschen</button>
             </div>
           </td>
         </tr>`;
