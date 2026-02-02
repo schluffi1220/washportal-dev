@@ -59,10 +59,11 @@
   </div>
 
   <script>
+
     const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
     const $ = (id)=>document.getElementById(id);
-    const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
 
     function badge(status){
       if (status==="active") return `<span class="badge b-active">active</span>`;
@@ -74,6 +75,7 @@
       if (r==="ps") return "Patientensprecher";
       if (r==="ps_deputy") return "Stellvertreter";
       if (r==="admin") return "Admin";
+      if (r==="") return "—";
       return r || "";
     }
 
@@ -90,18 +92,50 @@
     }
 
     let __users = [];
+    let __perms = [];
+    let __userPermsMap = {}; // userId -> permKey -> 0/1
+
+    function ensureDefaultPerms(){
+      // If worker didn't return per-user perms, default everyone to all allowed
+      if (__perms.length === 0 || __users.length === 0) return;
+      if (__userPermsMap && Object.keys(__userPermsMap).length > 0) return;
+
+      __userPermsMap = {};
+      for (const u of __users){
+        __userPermsMap[u.id] = {};
+        for (const p of __perms) __userPermsMap[u.id][p.permKey] = 1;
+      }
+    }
 
     async function loadUsers(){
       const pw = ($("adminPw").value||"").trim();
       $("msg").textContent = "lade…";
       try{
         const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
+
         __users = res.users || [];
+        __perms = res.perms || [];
+
+        // accept either userPermsMap or raw rows
+        if (res.userPermsMap && typeof res.userPermsMap === "object") {
+          __userPermsMap = res.userPermsMap || {};
+        } else {
+          __userPermsMap = {};
+          const rows = Array.isArray(res.userPerms) ? res.userPerms : [];
+          for (const r of rows){
+            if (!r || !r.userId || !r.permKey) continue;
+            if (!__userPermsMap[r.userId]) __userPermsMap[r.userId] = {};
+            __userPermsMap[r.userId][r.permKey] = Number(r.allowed) ? 1 : 0;
+          }
+        }
+
+        ensureDefaultPerms();
+
         $("msg").textContent = `ok (${__users.length})`;
         render();
       }catch(e){
         console.error(e);
-        $("msg").textContent = `Fehler: Fehler (HTTP ${e?.status||"?"})`;
+        $("msg").textContent = `Fehler (HTTP ${e?.status||"?"})`;
         $("tbl").innerHTML = "";
       }
     }
@@ -125,10 +159,52 @@
       try{
         const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
         const until = new Date(r.expiresAt).toLocaleString();
-        prompt(`Login-Code (${roleLabel(r.role)})\nGültig bis: ${until}\n\nCode (kopierbar):`, r.code);
+        // show mail status if present
+        const mailInfo = (typeof r.mailSent === "boolean")
+          ? (`
+Mail: ${r.mailSent ? "gesendet" : ("FEHLER - " + (r.mailError||""))}`)
+          : "";
+        alert(`Login-Code (${roleLabel(r.role)}): ${r.code}
+Gültig bis: ${until}${mailInfo}`);
       }catch(e){
         console.error(e);
         alert(`Fehler: Code erzeugen fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
+    }
+
+    function readPermsFromUI(userId){
+      const m = {};
+      for (const p of __perms){
+        const id = `perm__${userId}__${p.permKey}`;
+        const el = document.getElementById(id);
+        m[p.permKey] = !!(el && el.checked);
+      }
+      return m;
+    }
+
+    async function saveUser(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+
+      const role1 = (document.getElementById(`role1__${userId}`)?.value || "").trim();
+      const role2 = (document.getElementById(`role2__${userId}`)?.value || "").trim();
+      const perms = readPermsFromUI(userId);
+
+      try{
+        await jpost("/api/admin/auth/users/update", {
+          adminPassword: pw,
+          userId,
+          role1,
+          role2,
+          perms
+        });
+        alert("Gespeichert.");
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        const msg = e?.data?.message ? `
+${e.data.message}` : "";
+        alert(`Fehler: Speichern fehlgeschlagen (HTTP ${e?.status||"?"})${msg}`);
       }
     }
 
@@ -136,19 +212,51 @@
       const f = $("filterRole").value;
       const users = f ? __users.filter(u=>u.role===f) : __users;
 
+      const roleOpts = [
+        ["admin","Admin"],
+        ["ps","Patientensprecher"],
+        ["ps_deputy","Stellvertreter"],
+      ];
+
+      const roleSelect = (id, val, allowEmpty=false) => {
+        const opts = (allowEmpty ? [["","—"]] : []).concat(roleOpts).map(([k,lab])=>{
+          const sel = (String(val||"")===k) ? "selected" : "";
+          return `<option value="${esc(k)}" ${sel}>${esc(lab)}</option>`;
+        }).join("");
+        return `<select id="${esc(id)}">${opts}</select>`;
+      };
+
+      const permBox = (userId, permKey, label, checked) => {
+        const id = `perm__${userId}__${permKey}`;
+        const ch = checked ? "checked" : "";
+        return `<label class="perm"><input type="checkbox" id="${esc(id)}" ${ch}/> <span>${esc(label)}</span></label>`;
+      };
+
       const rows = users.map(u=>{
         const approveDisabled = u.status === "active";
         const codeDisabled = u.status !== "active";
+
+        const up = __userPermsMap[u.id] || {};
+        const permHtml = (__perms||[]).map(p=>permBox(u.id, p.permKey, p.label, up[p.permKey] !== 0)).join("") || `<div class="muted">Keine Permissions</div>`;
+
+        // role2 not provided by backend yet -> default empty
+        const role2Val = u.role2 || "";
+
         return `<tr>
           <td class="mono">${esc(u.id)}</td>
           <td>${esc(u.firstName||"")} ${esc(u.lastName||"")}</td>
           <td>${esc(u.email||"")}</td>
-          <td>${esc(roleLabel(u.role))}</td>
+          <td>${roleSelect(`role1__${u.id}`, u.role)}</td>
+          <td>${roleSelect(`role2__${u.id}`, role2Val, true)}</td>
           <td>${badge(u.status)}</td>
+          <td>
+            <div class="permwrap">${permHtml}</div>
+          </td>
           <td>
             <div class="rowbtns">
               <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
               <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
+              <button onclick="saveUser('${esc(u.id)}')">Speichern</button>
             </div>
           </td>
         </tr>`;
@@ -158,11 +266,11 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>Status</th><th>Aktionen</th>
+              <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>2. Rolle</th><th>Status</th><th>Rechte</th><th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
-            ${rows || `<tr><td colspan="6" class="muted">Keine Einträge</td></tr>`}
+            ${rows || `<tr><td colspan="8" class="muted">Keine Einträge</td></tr>`}
           </tbody>
         </table>
       `;
@@ -171,9 +279,10 @@
     $("btnLoad").onclick = loadUsers;
     $("filterRole").onchange = render;
 
-    // expose handlers
     window.approve = approve;
     window.genCode = genCode;
+    window.saveUser = saveUser;
+
   </script>
 
 </body>
