@@ -172,6 +172,59 @@ Gültig bis: ${until}${mailInfo}`);
       }
     }
 
+    
+function fmtDT(ms){
+  if (!ms) return "";
+  try{
+    return new Date(Number(ms)).toLocaleString("de-DE");
+  }catch(_){ return String(ms); }
+}
+
+async function disableUser(userId, disabled){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  const msg = disabled ? "User deaktivieren? (alle Rechte werden entfernt)" : "User reaktivieren? (Status -> pending)";
+  if (!confirm(msg)) return;
+  try{
+    if (disabled){
+      await jpost("/api/admin/auth/users/disable", { adminPassword: pw, userId, disabled:true });
+    }else{
+      await jpost("/api/admin/auth/users/reactivate", { adminPassword: pw, userId });
+    }
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Aktion fehlgeschlagen (HTTP ${e?.status||"?"})`);
+  }
+}
+
+async function markDelete(userId){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  if (!confirm("Zum Löschen freigeben? (deaktiviert sofort, endgültiges Löschen nach 14 Tagen)")) return;
+  try{
+    const r = await jpost("/api/admin/auth/users/mark-delete", { adminPassword: pw, userId, days:14 });
+    alert("✅ Markiert. Wird gelöscht ab: " + fmtDT(r.deleteAfter));
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Markieren fehlgeschlagen (HTTP ${e?.status||"?"})`);
+  }
+}
+
+async function deleteNow(userId){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  if (!confirm("Wirklich SOFORT endgültig löschen? (nicht rückgängig)")) return;
+  try{
+    await jpost("/api/admin/auth/users/delete-now", { adminPassword: pw, userId });
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Löschen fehlgeschlagen (HTTP ${e?.status||"?"})`);
+  }
+}
+
     function readPermsFromUI(userId){
       const m = {};
       for (const p of __perms){
@@ -206,33 +259,7 @@ Gültig bis: ${until}${mailInfo}`);
 ${e.data.message}` : "";
         alert(`Fehler: Speichern fehlgeschlagen (HTTP ${e?.status||"?"})${msg}`);
       }
-    
-    async function deactivateUser(userId){
-      if(!confirm("User wirklich deaktivieren?\n\nAlle Rechte werden entfernt, der User bleibt aber erhalten.")) return;
-      try{
-        await apiPost("/api/admin/auth/users/deactivate", { adminPassword: __pw, userId });
-        alert("Deaktiviert.");
-        await loadUsers();
-      }catch(e){
-        console.error(e);
-        alert(`Fehler: Deaktivieren fehlgeschlagen (HTTP ${e?.status||"?"})`);
-      }
     }
-
-    async function markDeleteUser(userId){
-      if(!confirm("User zum Löschen freigeben?\n\nAlle Rechte werden entfernt. Der Datensatz bleibt 14 Tage und kann in der Zeit reaktiviert werden.")) return;
-      try{
-        const r = await apiPost("/api/admin/auth/users/mark-delete", { adminPassword: __pw, userId });
-        const da = r?.deleteAfter ? new Date(r.deleteAfter).toLocaleString("de-DE") : "";
-        alert("Zum Löschen freigegeben." + (da ? ("\nLöschung ab: " + da) : ""));
-        await loadUsers();
-      }catch(e){
-        console.error(e);
-        alert(`Fehler: Freigabe fehlgeschlagen (HTTP ${e?.status||"?"})`);
-      }
-    }
-
-}
 
     function render(){
       const f = $("filterRole").value;
@@ -275,6 +302,7 @@ ${e.data.message}` : "";
           <td>${roleSelect(`role1__${u.id}`, u.role)}</td>
           <td>${roleSelect(`role2__${u.id}`, role2Val, true)}</td>
           <td>${badge(u.status)}</td>
+          <td class="mono">${u.deleteAfter ? esc(fmtDT(u.deleteAfter)) : ""}</td>
           <td>
             <div class="permwrap">${permHtml}</div>
           </td>
@@ -283,8 +311,10 @@ ${e.data.message}` : "";
               <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
               <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
               <button onclick="saveUser('${esc(u.id)}')">Speichern</button>
-              <button onclick="deactivateUser('${esc(u.id)}')">Deaktivieren</button>
-              <button onclick="markDeleteUser('${esc(u.id)}')">Zum Löschen</button>
+              <button onclick="disableUser('${esc(u.id)}', true)">Deaktivieren</button>
+              <button onclick="disableUser('${esc(u.id)}', false)">Reaktivieren</button>
+              <button onclick="markDelete('${esc(u.id)}')">Zum Löschen freigeben</button>
+              <button onclick="deleteNow('${esc(u.id)}')">Sofort löschen</button>
             </div>
           </td>
         </tr>`;
@@ -309,6 +339,10 @@ ${e.data.message}` : "";
 
     window.approve = approve;
     window.genCode = genCode;
+    window.saveUser = saveUser;
+    window.disableUser = disableUser;
+    window.markDelete = markDelete;
+    window.deleteNow = deleteNow;
     window.saveUser = saveUser;
 
   </script>
