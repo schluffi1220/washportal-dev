@@ -412,6 +412,30 @@
   </button>
 </div>
 </div>
+<div class="card" id="pwCard" style="display:none;margin-top:12px;">
+  <div class="row" style="justify-content:space-between;align-items:center;">
+    <div style="font-weight:700;">Passwort ändern</div>
+    <div class="muted" style="font-size:12px;">nur für PS / Stellvertreter / Admin (eingeloggt)</div>
+  </div>
+
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px;">
+    <input id="pwOld" type="password" placeholder="Altes Passwort (falls gesetzt)" style="flex:1;min-width:240px;">
+  </div>
+
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <input id="pwNew" type="text" placeholder="Neues Passwort" style="flex:1;min-width:240px;">
+    <button id="btnPwCopy">Kopieren</button>
+  </div>
+
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <input id="pwNew2" type="password" placeholder="Neues Passwort bestätigen" style="flex:1;min-width:240px;">
+    <button id="btnPwSave">Speichern</button>
+  </div>
+
+  <div class="muted" style="margin-top:8px;font-size:12px;">
+    Tipp: Du kannst das neue Passwort im Feld oben markieren oder mit „Kopieren“ übernehmen.
+  </div>
+</div>
 
 
 
@@ -1949,7 +1973,50 @@ if (document.getElementById("btnPsLogout")){
 // initial state
 syncPsLoginControls();
 scheduleAutoLogout();
+/* ===== PASSWORT BLOCK START ===== */
 
+function showPwCard(){
+  const a = getAuth && getAuth();
+  const el = document.getElementById("pwCard");
+  if (!el) return;
+  el.style.display = (a && a.token) ? "" : "none";
+}
+
+async function changePassword(){
+  const a = getAuth();
+  if(!a || !a.token){ toast("⛔ Bitte erst einloggen"); return; }
+
+  const oldPw = pwOld.value.trim();
+  const newPw = pwNew.value.trim();
+  const newPw2= pwNew2.value.trim();
+
+  if(!newPw || newPw.length < 6){ toast("⛔ min. 6 Zeichen"); return; }
+  if(newPw !== newPw2){ toast("⛔ stimmt nicht"); return; }
+
+  const res = await fetch(API_BASE + "/api/auth/password/change",{
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "authorization":"Bearer " + a.token
+    },
+    body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw })
+  });
+
+  const j = await res.json().catch(()=> ({}));
+  if(!j.ok){ toast("⛔ Fehler"); return; }
+
+  toast("✅ Passwort gespeichert");
+}
+
+async function copyNewPassword(){
+  await navigator.clipboard.writeText(pwNew.value);
+  toast("✅ Kopiert");
+}
+
+btnPwSave.onclick = changePassword;
+btnPwCopy.onclick = copyNewPassword;
+
+/* ===== PASSWORT BLOCK ENDE ===== */
 </script>
 </body>
 </html>
