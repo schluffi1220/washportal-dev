@@ -393,7 +393,7 @@
 
   <div class="row">
     <input id="psEmail" placeholder="E-Mail" style="width:100%">
-    <input id="psCode" placeholder="Login-Code (6-stellig)" style="width:100%">
+    <input id="psCode" placeholder="Passwort" style="width:100%">
   </div>
   
   <div class="card" id="psOnly" style="display:none;margin-top:20px">
@@ -402,7 +402,7 @@
 </div>
 
   <div class="row">
-    <button type="button" class="btn" id="btnPsLogin">Anmelden</button>
+    <button class="btn" id="btnPsLogin">Anmelden</button>
     <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
   </div>
@@ -486,8 +486,8 @@ function scheduleAutoLogout(){
   const msLeft = a.exp - Date.now();
 
   __logoutTimer = setTimeout(()=>{
-    (typeof clearAuth==="function"?clearAuth():null);
-    (typeof renderAuth==="function"?renderAuth():null);
+    clearAuth();
+    renderAuth();
     alert("Session abgelaufen – bitte neu anmelden");
   }, msLeft);
 }
@@ -513,52 +513,52 @@ function applyRoleVisibility(){
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
-function initPortal(){
-
-  (typeof applyRoleVisibility==="function"?applyRoleVisibility():null);
-  (typeof scheduleAutoLogout==="function"?scheduleAutoLogout():null);
-  (typeof renderAuth==="function"?renderAuth():null);
+document.addEventListener("DOMContentLoaded",()=>{
+  applyRoleVisibility();
+  scheduleAutoLogout();
+  renderAuth();
 
   document.getElementById("btnPsLogin").onclick=async()=>{
-    const email = psEmail.value.trim().toLowerCase();
-    const code=psCode.value.trim();
+    try{
+      const email = psEmail.value.trim().toLowerCase();
+      const password = psCode.value.trim();
 
-    const r=await fetch(API_BASE+"/api/ps/login",{
-      method:"POST",
-      headers:{"content-type":"application/json"},
-      body:JSON.stringify({email,code})
-    });
+      if(!email || !password){
+        toast("⛔ E-Mail und Passwort erforderlich");
+        return;
+      }
 
-    const j = await r.json();
+      const r=await fetch(API_BASE+"/api/ps/login",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({email,password})
+      });
 
-if (j.ok) {
-  setAuth(j.token,j.role,email,j.expiresAt);
-  (typeof applyRoleVisibility==="function"?applyRoleVisibility():null);
-  (typeof scheduleAutoLogout==="function"?scheduleAutoLogout():null);
-  toast("✅ Login erfolgreich");
-  (typeof renderAuth==="function"?renderAuth():null);
-  (typeof applyRoleVisibility==="function"?applyRoleVisibility():null);
-} else {
-  const m = j.message || j.error || "Login fehlgeschlagen";
-  toast("⛔ " + m);
-}
+      const j = await r.json();
+
+      if (j.ok) {
+        setAuth(j.token,j.role,email,j.expiresAt);
+        renderAuth();
+        applyRoleVisibility();
+        scheduleAutoLogout();
+        toast("✅ Login erfolgreich");
+      } else {
+        const m = j.message || j.error || "Login fehlgeschlagen";
+        toast("⛔ " + m);
+      }
+    }catch(e){
+      console.error(e);
+      toast("⛔ Login fehlgeschlagen");
+    }
   };
 
   document.getElementById("btnPsLogout").onclick=()=>{
-    (typeof clearAuth==="function"?clearAuth():null);
-    (typeof applyRoleVisibility==="function"?applyRoleVisibility():null); 
-    (typeof renderAuth==="function"?renderAuth():null);
+    clearAuth();
+    applyRoleVisibility(); 
+    renderAuth();
   };
 
-
-}
-
-if (document.readyState !== "loading") {
-  initPortal();
-} else {
-  document.addEventListener("DOMContentLoaded", initPortal);
-}
-
+});
 </script>
 
   </main>
