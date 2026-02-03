@@ -393,12 +393,37 @@
 
   <div class="row">
     <input id="psEmail" placeholder="E-Mail" style="width:100%">
-    <input id="psCode" placeholder="Passwort" style="width:100%">
+    <input id="psCode" type="password" autocomplete="current-password" placeholder="Passwort" style="width:100%">
   </div>
   
-  <div class="card" id="psOnly" style="display:none;margin-top:20px">
-  <h3>Patientensprecher Bereich</h3>
-  <div class="muted">✅ Login erkannt – dieser Bereich erscheint nur für PS / Stellvertreter.</div>
+  <div class="gridTiles" style="margin-top:12px">
+    <div class="tile free" onclick="location.href='./admin-users/'">
+      👥<br><b>Benutzer</b><br>
+      <span class="small">Rollen & Rechte</span>
+    </div>
+
+    <div class="tile busy" onclick="adminLoadLogs()">
+      📋<br><b>Logs</b><br>
+      <span class="small">Systemverlauf</span>
+    </div>
+
+    <div class="tile free" onclick="adminLoadBookings()">
+      📅<br><b>Buchungen</b><br>
+      <span class="small">Übersicht</span>
+    </div>
+
+    <div class="tile bad" onclick="adminReload()">
+      ⚙️<br><b>Admin</b><br>
+      <span class="small">Konfiguration</span>
+    </div>
+  </div>
+
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn secondary" id="btnPsDashReload">Aktualisieren</button>
+    <button class="btn secondary" id="btnPsLogout2">Abmelden</button>
+  </div>
+</div>
+
 </div>
 
   <div class="row">
@@ -430,17 +455,7 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
 }
-  function applyRoleVisibility(){
-  const token = localStorage.getItem("wp_token") || "";
-  const role  = localStorage.getItem("wp_role") || "";
-
-  const show = !!token && (role === "ps" || role === "ps_deputy");
-
-  const el = document.getElementById("psOnly");
-  if (el) el.style.display = show ? "" : "none";
-}
-
-function clearAuth(){
+  function clearAuth(){
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(AUTH_ROLE);
   localStorage.removeItem(AUTH_EMAIL);
@@ -474,6 +489,8 @@ function renderAuth(){
     st.textContent="Nicht angemeldet";
     out.style.display="none";
   }
+  try{ applyRoleVisibility(); }catch(e){}
+  try{ updatePsDashUI(); }catch(e){}
 }
 let __logoutTimer = null;
 
@@ -512,6 +529,45 @@ function applyRoleVisibility(){
   if (psOnly) psOnly.style.display = isPS ? "" : "none";
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
+
+function updatePsDashUI(){
+  const a = getAuth();
+  const info = document.getElementById("psDashInfo");
+  const logout2 = document.getElementById("btnPsLogout2");
+  const reloadBtn = document.getElementById("btnPsDashReload");
+
+  if (info){
+    if (a.token && (a.role==="ps" || a.role==="ps_deputy")){
+      info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
+    } else {
+      info.textContent = "—";
+    }
+  }
+
+  // wire buttons once
+  if (logout2 && !logout2._wired){
+    logout2._wired = true;
+    logout2.onclick = ()=>{
+      const btn = document.getElementById("btnPsLogout");
+      if (btn && typeof btn.onclick === "function") return btn.onclick();
+      // fallback
+      clearAuth();
+      renderAuth();
+      applyRoleVisibility();
+      updatePsDashUI();
+    };
+  }
+  if (reloadBtn && !reloadBtn._wired){
+    reloadBtn._wired = true;
+    reloadBtn.onclick = ()=>{
+      // for now just refresh role visibility + info
+      applyRoleVisibility();
+      updatePsDashUI();
+      toast("✅ Aktualisiert");
+    };
+  }
+}
+
 
 document.addEventListener("DOMContentLoaded",()=>{
   applyRoleVisibility();
