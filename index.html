@@ -2061,7 +2061,7 @@ if ($("btnLoadLogs")) {
   }
 
   function updateDash(){
-    const a = getAuth?.();
+    const a = (typeof getAuth==='function') ? getAuth() : null;
     const box = document.getElementById("psDash");
     if(!box) return;
 
@@ -2092,7 +2092,7 @@ if ($("btnLoadLogs")) {
   }
 
   window.logoutPs = function(){
-    clearAuth?.();
+    if (typeof clearAuth==='function') clearAuth();
     location.reload();
   }
 
