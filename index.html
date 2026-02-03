@@ -434,13 +434,28 @@
   <div class="card" id="psOnly" style="display:none;margin-top:20px">
   <h3>Patientensprecher Bereich</h3>
 
-  <div class="muted">
-    ✅ Login erkannt – dieser Bereich erscheint nur für Patientensprecher / Stellvertreter.
+  <div class="muted" style="margin-bottom:10px">
+    ✅ Angemeldet – hier kannst du Zimmer direkt anschreiben oder sperren.
   </div>
 
-  <button class="btn" onclick="alert('PS Funktion aktiv')">
-    Test-Button
-  </button>
+  <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+    <input id="psRoomTarget" placeholder="Zimmer (z.B. 103)" style="width:140px" />
+    <label class="small" style="display:flex;gap:6px;align-items:center">
+      <input type="checkbox" id="psAllRooms" />
+      alle Zimmer
+    </label>
+  </div>
+
+  <textarea id="psRoomMsg" placeholder="Nachricht an das Zimmer (Popup beim nächsten Refresh) …" style="width:100%;min-height:80px;margin-top:10px"></textarea>
+
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button class="btn" id="btnPsSendMsg">Nachricht senden</button>
+    <button class="btn secondary" id="btnPsClearMsg">Nachricht löschen</button>
+    <button class="btn warn" id="btnPsBlockRoom">Zimmer sperren</button>
+    <button class="btn secondary" id="btnPsUnblockRoom">Sperre aufheben</button>
+  </div>
+
+  <div id="psRoomCtrlState" class="small muted" style="margin-top:10px"></div>
 </div>
 </div>
 <script>
@@ -614,6 +629,72 @@ document.addEventListener("DOMContentLoaded",()=>{
     renderAuth();
   };
 
+
+  // PS/VS/Admin: Zimmer anschreiben / sperren
+  const wire = (id, fn)=>{
+    const el = document.getElementById(id);
+    if (el) el.onclick = fn;
+  };
+  const stateEl = document.getElementById("psRoomCtrlState");
+  const roomEl = document.getElementById("psRoomTarget");
+  const allEl = document.getElementById("psAllRooms");
+  const msgEl = document.getElementById("psRoomMsg");
+
+  async function roomAct(patch){
+    const a = getAuth();
+    if (!a?.token) return toast("⛔ Bitte erst anmelden");
+    const allRooms = !!(allEl && allEl.checked);
+    const room = roomEl ? roomEl.value.trim() : "";
+    if (!allRooms && !room) return toast("⛔ Bitte Zimmer eingeben oder 'alle Zimmer' wählen");
+    const body = { room, allRooms, ...patch };
+    const r = await jpostAuth("/api/auth/room/control", body);
+    if (stateEl){
+      if (allRooms){
+        stateEl.textContent = "✅ Gespeichert für alle Zimmer (" + (r.count||0) + ")";
+      } else {
+        const rc = r.roomControl;
+        const parts = [];
+        if (rc?.blocked) parts.push("gesperrt");
+        if (rc?.message) parts.push("Nachricht gesetzt");
+        stateEl.textContent = "✅ Zimmer " + room + ": " + (parts.join(" · ") || "OK");
+      }
+    }
+  }
+
+  wire("btnPsSendMsg", async ()=>{
+    try{
+      await roomAct({ message: (msgEl ? msgEl.value : "").trim() });
+      toast("✅ Nachricht gespeichert");
+    }catch(e){
+      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
+    }
+  });
+  wire("btnPsClearMsg", async ()=>{
+    try{
+      await roomAct({ message: "" });
+      if (msgEl) msgEl.value = "";
+      toast("✅ Nachricht gelöscht");
+    }catch(e){
+      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
+    }
+  });
+  wire("btnPsBlockRoom", async ()=>{
+    try{
+      if (!confirm("Zimmer wirklich sperren?")) return;
+      await roomAct({ blocked: true });
+      toast("✅ Zimmer gesperrt");
+    }catch(e){
+      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
+    }
+  });
+  wire("btnPsUnblockRoom", async ()=>{
+    try{
+      await roomAct({ blocked: false });
+      toast("✅ Sperre aufgehoben");
+    }catch(e){
+      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
+    }
+  });
 });
 </script>
 
@@ -670,6 +751,22 @@ async function jpost(path, body){
   const data = await r.json().catch(()=> ({}));
   if (!r.ok) throw {status:r.status, data};
   return data;
+
+async function jpostAuth(path, body){
+  const a = getAuth ? getAuth() : null;
+  const token = a && a.token ? a.token : "";
+  const r = await fetch(API_BASE + path, {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      ...(token ? {"Authorization":"Bearer "+token} : {})
+    },
+    body: JSON.stringify(body||{})
+  });
+  const data = await r.json().catch(()=> ({}));
+  if (!r.ok) throw {status:r.status, data};
+  return data;
+}
 }
 async function jget(path){
   const r = await fetch(API_BASE + path);
@@ -1729,10 +1826,28 @@ async function refreshAll(){
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
 
+    // Zimmer-Sperre / Nachricht (unabhängig vom PIN)
+    if (r.roomControl){
+      if (r.roomControl.message){
+        alert("📩 Nachricht für Zimmer "+c.room+":\n\n"+r.roomControl.message);
+      }
+      if (r.roomControl.blocked){
+        alert("⛔ Zimmer "+c.room+" ist aktuell gesperrt. Buchungen sind deaktiviert.");
+      }
+    }
+
     renderNewsBox();
     renderSlotDropdown();
     renderTiles();
     renderMyBookings();
+
+    // Wenn Zimmer gesperrt: alle Buchungs-Buttons deaktivieren
+    if (STATE?.roomControl?.blocked){
+      document.querySelectorAll("button").forEach(b=>{
+        const t=(b.textContent||"").trim();
+        if (/Buchen|Überbuchen|Fertig|Freigeben/i.test(t)) b.disabled = true;
+      });
+    }
 
     // feedback popup if new
     if (r.feedback && r.feedback.userUnread) {
