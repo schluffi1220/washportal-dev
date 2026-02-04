@@ -389,11 +389,38 @@
       </div>
     </div>
 <div class="card" id="authDashCard" style="margin-top:20px">
-  <h2>PS / Admin Login</h2>
+  <h2>PS / VS / Admin Dashboard</h2>
 
   <div class="row">
     <input id="authEmail" placeholder="E-Mail" autocomplete="username" />
     <input id="authPw" type="password" placeholder="Passwort" autocomplete="current-password" />
+  </div>
+
+  <div id="authTiles" class="gridTiles" style="margin-top:12px; display:none">
+    <div class="tile free" data-act="users" data-role="admin">
+      👥<br><b>Benutzer</b><br>
+      <span class="small">Rollen & Rechte</span>
+    </div>
+
+    <div class="tile busy" data-act="logs" data-role="ps,ps_deputy,admin">
+      📋<br><b>Logs</b><br>
+      <span class="small">Systemverlauf</span>
+    </div>
+
+    <div class="tile free" data-act="bookings" data-role="ps,ps_deputy,admin">
+      📅<br><b>Buchungen</b><br>
+      <span class="small">Übersicht</span>
+    </div>
+
+    <div class="tile bad" data-act="room" data-role="ps,ps_deputy,admin">
+      🚫<br><b>Zimmer sperren</b><br>
+      <span class="small">Sperre & Nachricht</span>
+    </div>
+
+    <div class="tile bad" data-act="admin" data-role="admin">
+      ⚙️<br><b>Admin-Konfig</b><br>
+      <span class="small">Slots & Regeln</span>
+    </div>
   </div>
 
   <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -403,33 +430,47 @@
 
   <div id="authState" class="small" style="margin-top:8px;color:var(--muted)"></div>
 
-  <div id="authTiles" class="gridTiles" style="margin-top:12px; display:none">
-    <div class="tile free" data-act="users">
-      👥<br><b>Benutzer</b><br>
-      <span class="small">Rollen & Rechte</span>
-    </div>
+  <details id="authPanelLogs" style="margin-top:12px;display:none">
+    <summary>Logs</summary>
+    <div id="authOutLogs" class="small" style="margin-top:10px"></div>
+  </details>
 
-    <div class="tile busy" data-act="logs">
-      📋<br><b>Logs</b><br>
-      <span class="small">Systemverlauf</span>
-    </div>
+  <details id="authPanelBookings" style="margin-top:12px;display:none">
+    <summary>Buchungen</summary>
+    <div id="authOutBookings" class="small" style="margin-top:10px"></div>
+  </details>
 
-    <div class="tile free" data-act="bookings">
-      📅<br><b>Buchungen</b><br>
-      <span class="small">Übersicht</span>
+  <details id="authPanelRoom" style="margin-top:12px;display:none">
+    <summary>Zimmer sperren / Nachricht</summary>
+    <div class="small" style="margin-top:8px;color:var(--muted)">
+      Sperre ist unabhängig vom PIN (kann nicht umgangen werden). Nachricht wird beim nächsten „Aktualisieren“ als Popup gezeigt.
     </div>
-
-    <div class="tile bad" data-act="admin">
-      ⚙️<br><b>Admin</b><br>
-      <span class="small">Konfiguration</span>
+    <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+      <input id="authRoomTarget" placeholder="Zimmer (z.B. 103)" style="width:140px" />
+      <label class="small" style="display:flex;gap:6px;align-items:center">
+        <input type="checkbox" id="authAllRooms" />
+        alle Zimmer
+      </label>
     </div>
-  </div>
+    <textarea id="authRoomMsg" placeholder="Nachricht an das Zimmer …" style="width:100%;min-height:80px;margin-top:10px"></textarea>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn" id="btnAuthSendMsg">Nachricht speichern</button>
+      <button class="btn secondary" id="btnAuthClearMsg">Nachricht löschen</button>
+      <button class="btn secondary" id="btnAuthBlockRoom">Zimmer sperren</button>
+      <button class="btn secondary" id="btnAuthUnblockRoom">Sperre aufheben</button>
+    </div>
+    <div id="authRoomState" class="small" style="margin-top:10px;color:var(--muted)"></div>
+  </details>
 
-  <div id="authOut" class="small" style="margin-top:12px"></div>
+  <details id="authPanelAdmin" style="margin-top:12px;display:none">
+    <summary>Admin-Konfiguration</summary>
+    <div class="small" style="margin-top:8px;color:var(--muted)">
+      Dieser Bereich ist im Portal weiterhin über das <b>Admin-Passwort</b> oben im Admin-Abschnitt geschützt.
+      (Super-Admin kann das Admin-Passwort setzen. Admin-Rolle bekommt Zugriff in einem separaten Worker-Schritt.)
+    </div>
+    <button class="btn secondary" id="btnAuthGoAdmin" style="margin-top:10px">Zum Admin-Bereich springen</button>
+  </details>
 </div>
-
-
-
 
   </main>
 
@@ -1898,9 +1939,15 @@ function authRender(){
   const btnAction = document.getElementById("btnAuthAction");
   const btnLogout = document.getElementById("btnAuthLogout");
 
+  const pLogs = document.getElementById("authPanelLogs");
+  const pBookings = document.getElementById("authPanelBookings");
+  const pRoom = document.getElementById("authPanelRoom");
+  const pAdmin = document.getElementById("authPanelAdmin");
+
+  const loggedIn = !!(a && a.token && (!a.exp || Date.now() < a.exp));
   if (!st || !tiles || !btnAction || !btnLogout) return;
 
-  if (a && a.token && (!a.exp || Date.now() < a.exp)){
+  if (loggedIn){
     st.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
     tiles.style.display = "";
     btnLogout.style.display = "";
@@ -1912,6 +1959,22 @@ function authRender(){
     btnAction.textContent = "Anmelden";
     if (a && a.exp && Date.now() >= a.exp) authClear();
   }
+
+  // show/hide tiles by role
+  const role = (a && a.role) ? String(a.role) : "";
+  document.querySelectorAll("#authTiles [data-role]").forEach(el=>{
+    const allowed = (el.getAttribute("data-role") || "")
+      .split(",").map(x=>x.trim()).filter(Boolean);
+    el.style.display = (loggedIn && allowed.includes(role)) ? "" : "none";
+  });
+
+  // panels only when logged in
+  [pLogs,pBookings,pRoom,pAdmin].forEach(p=>{
+    if (!p) return;
+    p.style.display = loggedIn ? "" : "none";
+    // collapse on logout
+    if (!loggedIn) p.open = false;
+  });
 }
 
 async function jpostAuth(path, body){
@@ -1946,14 +2009,18 @@ function fmtBerlin(ts){
 }
 
 async function authLoadLogs(){
-  const out = document.getElementById("authOut");
+  const out = document.getElementById("authOutLogs");
+  const p = document.getElementById("authPanelLogs");
+  if (p) p.open = true;
   if (out) out.innerHTML = `<div class="small">Lade Logs…</div>`;
+
   const r = await jpostAuth("/api/auth/logs", {limit:200});
   const logs = (r.logs || []);
   if (!logs.length){
     if (out) out.innerHTML = `<div class="small">Keine Logs.</div>`;
     return;
   }
+
   if (out){
     out.innerHTML = logs.map(l=>{
       return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
@@ -1968,16 +2035,21 @@ async function authLoadLogs(){
 }
 
 async function authLoadBookings(){
-  const out = document.getElementById("authOut");
+  const out = document.getElementById("authOutBookings");
+  const p = document.getElementById("authPanelBookings");
+  if (p) p.open = true;
   if (out) out.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+
   const r = await jpostAuth("/api/auth/bookings", {});
   const bookings = (r.bookings || []);
   if (!bookings.length){
     if (out) out.innerHTML = `<div class="small">Keine Buchungen.</div>`;
     return;
   }
+
+  const list = bookings.slice(0, 300);
   if (out){
-    out.innerHTML = bookings.slice(0,200).map(b=>{
+    out.innerHTML = list.map(b=>{
       const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
       const when = `${fmtBerlin(b.start)} – ${fmtBerlin(b.end)}`;
       return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
@@ -1991,8 +2063,13 @@ async function authLoadBookings(){
 }
 
 function authScrollToAdmin(){
-  const el = document.querySelector("div.card h2:nth-child(1)"); // not reliable, so just toast
-  toast("ℹ️ Admin-Konfiguration läuft über den Admin-Login weiter oben (Admin-Passwort).");
+  const adminCard = document.querySelector("#adminBox")?.closest(".card") || document.querySelector("#adminLoginBox")?.closest(".card");
+  if (adminCard){
+    adminCard.scrollIntoView({behavior:"smooth", block:"start"});
+    toast("ℹ️ Für Konfiguration bitte oben im Admin-Abschnitt mit Admin-Passwort einloggen (Super-Admin).");
+  }else{
+    toast("ℹ️ Admin-Abschnitt nicht gefunden.");
+  }
 }
 
 document.addEventListener("DOMContentLoaded", ()=>{
@@ -2000,6 +2077,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const pwEl = document.getElementById("authPw");
   const btnAction = document.getElementById("btnAuthAction");
   const btnLogout = document.getElementById("btnAuthLogout");
+
+  const pLogs = document.getElementById("authPanelLogs");
+  const pBookings = document.getElementById("authPanelBookings");
+  const pRoom = document.getElementById("authPanelRoom");
+  const pAdmin = document.getElementById("authPanelAdmin");
+
+  const closePanels = ()=>{
+    [pLogs,pBookings,pRoom,pAdmin].forEach(p=>{ if (p) p.open = false; });
+  };
 
   authRender();
 
@@ -2020,13 +2106,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
     }
     authSet({token:j.token, role:j.role, email, exp:j.expiresAt||0});
     toast("✅ Login erfolgreich");
+    closePanels();
     authRender();
   }
 
-  async function doRefresh(){
-    // simple refresh: clear output + re-render
-    const out = document.getElementById("authOut");
-    if (out) out.innerHTML = "";
+  function doRefresh(){
+    closePanels();
+    const outL = document.getElementById("authOutLogs"); if (outL) outL.innerHTML = "";
+    const outB = document.getElementById("authOutBookings"); if (outB) outB.innerHTML = "";
+    const st = document.getElementById("authRoomState"); if (st) st.textContent = "";
     authRender();
     toast("✅ Aktualisiert");
   }
@@ -2036,7 +2124,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const a = authGet();
       try{
         if (a && a.token && (!a.exp || Date.now() < a.exp)){
-          await doRefresh();
+          doRefresh();
         } else {
           await doLogin();
         }
@@ -2057,8 +2145,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if (btnLogout){
     btnLogout.onclick = ()=>{
       authClear();
-      const out = document.getElementById("authOut");
-      if (out) out.innerHTML = "";
+      closePanels();
       toast("✅ Abgemeldet");
       authRender();
     };
@@ -2073,18 +2160,70 @@ document.addEventListener("DOMContentLoaded", ()=>{
           location.href = "./admin-users/";
           return;
         }
-        if (act === "logs") return await authLoadLogs();
-        if (act === "bookings") return await authLoadBookings();
-        if (act === "admin") return authScrollToAdmin();
+        if (act === "logs"){
+          await authLoadLogs();
+          return;
+        }
+        if (act === "bookings"){
+          await authLoadBookings();
+          return;
+        }
+        if (act === "room"){
+          if (pRoom) pRoom.open = true;
+          return;
+        }
+        if (act === "admin"){
+          if (pAdmin) pAdmin.open = true;
+          return;
+        }
       }catch(e){
         console.error(e);
-        const msg = e?.data?.message || e?.data?.error || ("HTTP " + (e?.status||""));
-        toast("⛔ " + (msg || "Fehler"));
+        const msg = e?.data?.message || e?.data?.error || e?.message || "Fehler";
+        toast("⛔ " + msg);
       }
     });
   });
+
+  const goAdmin = document.getElementById("btnAuthGoAdmin");
+  if (goAdmin){
+    goAdmin.onclick = authScrollToAdmin;
+  }
+
+  // room control actions
+  const stateEl = document.getElementById("authRoomState");
+  const roomEl = document.getElementById("authRoomTarget");
+  const allEl = document.getElementById("authAllRooms");
+  const msgEl = document.getElementById("authRoomMsg");
+
+  async function roomAct(patch){
+    const a = authGet();
+    if (!a?.token) return toast("⛔ Bitte erst anmelden");
+    const allRooms = !!(allEl && allEl.checked);
+    const room = roomEl ? roomEl.value.trim() : "";
+    if (!allRooms && !room) return toast("⛔ Bitte Zimmer eingeben oder 'alle Zimmer' wählen");
+    const body = { room, allRooms, ...patch };
+    const r = await jpostAuth("/api/auth/room/control", body);
+    if (stateEl){
+      if (allRooms){
+        stateEl.textContent = "✅ Gespeichert für alle Zimmer (" + (r.count||0) + ")";
+      } else {
+        const rc = r.roomControl;
+        const parts = [];
+        if (rc?.blocked) parts.push("gesperrt");
+        if (rc?.message) parts.push("Nachricht gesetzt");
+        stateEl.textContent = "✅ Zimmer " + room + ": " + (parts.join(" · ") || "OK");
+      }
+    }
+  }
+
+  const w = (id, fn)=>{ const el = document.getElementById(id); if (el) el.onclick = fn; };
+  w("btnAuthSendMsg", async ()=>{ await roomAct({ message: (msgEl ? msgEl.value : "").trim() }); toast("✅ Nachricht gespeichert"); });
+  w("btnAuthClearMsg", async ()=>{ await roomAct({ message: "" }); if (msgEl) msgEl.value=""; toast("✅ Nachricht gelöscht"); });
+  w("btnAuthBlockRoom", async ()=>{ if (!confirm("Zimmer wirklich sperren?")) return; await roomAct({ blocked: true }); toast("✅ Zimmer gesperrt"); });
+  w("btnAuthUnblockRoom", async ()=>{ await roomAct({ blocked: false }); toast("✅ Sperre aufgehoben"); });
 });
 })();
+
 </script>
 
 </body>
