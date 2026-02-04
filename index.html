@@ -507,6 +507,11 @@ function renderAuth(){
     st.textContent="Nicht angemeldet";
     out.style.display="none";
   }
+
+// Backwards-compat alias (older patches referenced renderAuthState)
+function renderAuthState(){
+  return renderAuth();
+}
   try{ applyRoleVisibility(); }catch(e){}
   try{ updatePsDashUI(); }catch(e){}
 }
