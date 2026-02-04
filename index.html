@@ -1539,68 +1539,70 @@ function authLogout(){
 }
 
 // Wire auth controls
-(
-// ---- Auth UI state (ensures available before wiring) ----
-function renderAuthState(){
-  try{
-    if (typeof renderAuth === "function") return renderAuth();
-  }catch(_e){}
-  try{
-    const a = (typeof getAuth === "function") ? getAuth() : {token:"",role:"",email:""};
-    const st = document.getElementById("psLoginState");
-    if (st){
-      st.textContent = a && a.token ? "Angemeldet" : "Nicht angemeldet";
-    }
-  }catch(_e){}
-}
-
-function wireAuthUI(){
-  const loginBtn = $("btnPsLogin");
-  const emailEl = $("psEmail");
-  const passEl = $("psCode");
-  const logoutBtn = $("btnPsLogout2");
-  const reloadBtn = $("btnPsDashReload");
-
-  const doLogin = async ()=>{
+(function () {
+  // ---- Auth UI state (ensures available before wiring) ----
+  function renderAuthState(){
     try{
-      const email = (emailEl?.value || "").trim().toLowerCase();
-      const password = (passEl?.value || "").trim();
-      if (!email || !password) return toast("⛔ E-Mail und Passwort erforderlich");
-
-      const r = await fetch(API_BASE+"/api/ps/login", {
-        method:"POST",
-        headers:{"content-type":"application/json"},
-        body: JSON.stringify({ email, password })
-      });
-      const j = await r.json().catch(()=>({}));
-      if (!r.ok || !j.ok){
-        return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
+      if (typeof renderAuth === "function") return renderAuth();
+    }catch(_e){}
+    try{
+      const a = (typeof getAuth === "function") ? getAuth() : {token:"",role:"",email:""};
+      const st = document.getElementById("psLoginState");
+      if (st){
+        st.textContent = a && a.token ? "Angemeldet" : "Nicht angemeldet";
       }
-      setAuth(j.token, j.role, email, j.expiresAt);
-      renderAuthState();
-      scheduleAutoLogout();
-      toast("✅ Login erfolgreich");
-    }catch(e){
-      console.error(e);
-      toast("⛔ Login fehlgeschlagen");
-    }
-  };
+    }catch(_e){}
+  }
 
-  if (loginBtn) loginBtn.onclick = doLogin;
-  if (emailEl) emailEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
-  if (passEl) passEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+  function wireAuthUI(){
+    const loginBtn = $("btnPsLogin");
+    const emailEl = $("psEmail");
+    const passEl = $("psCode");
+    const logoutBtn = $("btnPsLogout2");
+    const reloadBtn = $("btnPsDashReload");
 
-  if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
+    const doLogin = async ()=>{
+      try{
+        const email = (emailEl?.value || "").trim().toLowerCase();
+        const password = (passEl?.value || "").trim();
+        if (!email || !password) return toast("⛔ E-Mail und Passwort erforderlich");
 
-  if (reloadBtn) reloadBtn.onclick = ()=>{
+        const r = await fetch(API_BASE + "/api/ps/login", {
+          method:"POST",
+          headers:{"content-type":"application/json"},
+          body: JSON.stringify({ email, password })
+        });
+        const j = await r.json().catch(()=>({}));
+        if (!r.ok || !j.ok){
+          return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
+        }
+
+        setAuth(j.token, j.role, email, j.expiresAt);
+        renderAuthState();
+        scheduleAutoLogout();
+        toast("✅ Login erfolgreich");
+      }catch(e){
+        console.error(e);
+        toast("⛔ Login fehlgeschlagen");
+      }
+    };
+
+    if (loginBtn) loginBtn.onclick = doLogin;
+    if (emailEl) emailEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+    if (passEl) passEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+
+    if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
+    if (reloadBtn) reloadBtn.onclick = ()=>{ renderAuthState(); toast("✅ Aktualisiert"); };
+
+    // initial
     renderAuthState();
-    toast("✅ Aktualisiert");
-  };
+    scheduleAutoLogout();
+  }
 
-  // initial
-  renderAuthState();
-  scheduleAutoLogout();
+  // erst nach DOM ready verdrahten
+  document.addEventListener("DOMContentLoaded", wireAuthUI);
 })();
+
 
 
 function downloadCSV(filename, rows){
