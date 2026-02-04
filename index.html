@@ -662,8 +662,8 @@ function toast(msg){
   window.__t = setTimeout(()=> t.style.display="none", 3200);
 }
 function fmtDT(ms){
-  const d = new Date(ms);
-  return d.toLocaleString("de-DE", { timeZone: "Europe/Berlin" });
+  const dt = new Date(ms);
+  return dt.toLocaleString("de-DE", { timeZone: "Europe/Berlin" });
 }
 
 function esc(v){
@@ -676,12 +676,12 @@ function esc(v){
 }
 
 function fmtTime(ms){
-  const d = new Date(ms);
-  return d.toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin", hour:"2-digit", minute:"2-digit" });
+  const dt = new Date(ms);
+  return dt.toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin", hour:"2-digit", minute:"2-digit" });
 }
 function fmtDate(ms){
-  const d = new Date(ms);
-  return d.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
+  const dt = new Date(ms);
+  return dt.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
 }
 function confirm2(step1, step2){
   if (!confirm(step1)) return false;
@@ -1401,8 +1401,8 @@ async function adminLoadMachines(){
 // Admin: Logs + Bookings helpers
 // -----------------------------
 function fmtBerlin(ts){
-  const d = new Date(Number(ts||0));
-  if (!Number.isFinite(d.getTime())) return "";
+  const dt = new Date(Number(ts||0));
+  if (!Number.isFinite(dt.getTime())) return "";
   const parts = new Intl.DateTimeFormat("de-DE", {
     timeZone:"Europe/Berlin",
     year:"numeric", month:"2-digit", day:"2-digit",
@@ -1419,93 +1419,9 @@ let __ADMIN_BOOKINGS_CACHE = [];
 // =====================
 // Auth (PS/VS/Admin) Login + Dashboard (Bearer)
 // =====================
-const AUTH_KEY="wp_token";
-const AUTH_ROLE="wp_role";
-const AUTH_EMAIL="wp_email";
-const AUTH_EXP="wp_exp"; // expiresAt (ms)
 
-function setAuth(t,r,e,exp){
-  localStorage.setItem(AUTH_KEY, t || "");
-  localStorage.setItem(AUTH_ROLE, r || "");
-  localStorage.setItem(AUTH_EMAIL, e || "");
-  localStorage.setItem(AUTH_EXP, String(exp || 0));
-}
-function clearAuth(){
-  localStorage.removeItem(AUTH_KEY);
-  localStorage.removeItem(AUTH_ROLE);
-  localStorage.removeItem(AUTH_EMAIL);
-  localStorage.removeItem(AUTH_EXP);
-}
-function getAuth(){
-  return {
-    token: localStorage.getItem(AUTH_KEY) || "",
-    role:  localStorage.getItem(AUTH_ROLE) || "",
-    email: localStorage.getItem(AUTH_EMAIL) || "",
-    exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
-  };
-}
-function roleLabel(r){
-  if (r === "admin") return "Admin";
-  if (r === "ps") return "Patientensprecher";
-  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
-  return r || "";
-}
 
-let __logoutTimer=null;
-function scheduleAutoLogout(){
-  if (__logoutTimer) clearTimeout(__logoutTimer);
-  const a=getAuth();
-  if(!a.token || !a.exp) return;
-  const msLeft=a.exp-Date.now();
-  if (msLeft <= 0){
-    clearAuth();
-    renderAuthState();
-    return;
-  }
-  __logoutTimer=setTimeout(()=>{
-    clearAuth();
-    renderAuthState();
-    alert("Session abgelaufen – bitte neu anmelden");
-  }, msLeft);
-}
-
-function renderAuthState(){
-  const a=getAuth();
-  const st=$("psLoginState");
-  if (st){
-    st.textContent = a.token ? ("Angemeldet als "+roleLabel(a.role)+" ("+a.email+")") : "Nicht angemeldet";
-  }
-  const logout=$("btnPsLogout2");
-  const reload=$("btnPsDashReload");
-  if (logout) logout.style.display = a.token ? "" : "none";
-  if (reload) reload.style.display = a.token ? "" : "none";
-}
-
-// ---- Auth: Logs ----
-function renderAuthLogs(){
-  const box = $("authLogsBox");
-  if (!box) return;
-  const list = (__ADMIN_LOGS_CACHE||[]);
-  if (!list.length){
-    box.innerHTML = `<div class="small">Keine Logs.</div>`;
-    return;
-  }
-  box.innerHTML = list.map(l=>{
-    let metaTxt = "";
-    try{
-      const meta = l.meta ? JSON.parse(l.meta) : null;
-      if (meta && Number.isFinite(Number(meta.start)) && Number.isFinite(Number(meta.end))){
-        metaTxt = `<div class="small" style="opacity:.85">Slot: ${esc(fmtBerlin(meta.start))} – ${esc(fmtBerlin(meta.end))}</div>`;
-      }
-    }catch(_){}
-    return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)">
-      <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
-      <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${Number(l.machine||0)||""}</div>
-      ${metaTxt}
-      <div class="mono small">${esc(fmtBerlin(l.ts))}</div>
-    </div>`;
-  }).join("");
-}
+// (auth storage helpers moved to first <script> block)
 
 async function authLoadLogs(){
   const a=getAuth();
@@ -1809,7 +1725,7 @@ async function authLoadLogs(){
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
     renderAdminLogs();
     const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const d = document.getElementById("adminLogsDetails"); if (d) d.open = true;
+    const detLogs = document.getElementById("adminLogsDetails"); if (detLogs) detLogs.open = true;
     toast("✅ Logs geladen");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1828,7 +1744,7 @@ async function authLoadBookings(){
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
     renderAdminBookings();
     const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const d = document.getElementById("adminBookingsDetails"); if (d) d.open = true;
+    const detBookings = document.getElementById("adminBookingsDetails"); if (detBookings) detBookings.open = true;
     toast("✅ Buchungen geladen");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1846,7 +1762,7 @@ async function authLoadLogs(){
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderAdminLogs();
     const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const d = $("adminLogsDetails"); if (d) d.open = false;
+    const detLogs1 = $("adminLogsDetails"); if (detLogs1) detLogs1.open = false;
     toast("✅ Logs geladen");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1861,7 +1777,7 @@ async function authLoadBookings(){
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
     renderAdminBookings();
     const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const d = $("adminBookingsDetails"); if (d) d.open = false;
+    const detBookings1 = $("adminBookingsDetails"); if (detBookings1) detBookings1.open = false;
     toast("✅ Buchungen geladen");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1878,7 +1794,7 @@ async function adminLoadLogs(){
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderAdminLogs();
     const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const d = $("adminLogsDetails"); if (d) d.open = false; // nach Laden einklappen
+    const detLogsX = $("adminLogsDetails"); if (detLogsX) detLogsX.open = false;
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
     if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
@@ -1895,7 +1811,7 @@ async function adminLoadBookings(){
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
     renderAdminBookings();
     const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const d = $("adminBookingsDetails"); if (d) d.open = false; // nach Laden einklappen
+    const detBookingsX = $("adminBookingsDetails"); if (detBookingsX) detBookingsX.open = false;
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
     if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(msg)})</div>`;
