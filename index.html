@@ -48,7 +48,8 @@
       position:sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
       background: rgba(11,18,32,.78);
-      border-bottom: 1px so   padding: 14px 14px;
+      border-bottom: 1px solid var(--line);
+      padding: 14px 14px;
     }
     .wrap{max-width:980px;margin:0 auto;padding:0 14px}
     h1{margin:0;font-size:18px}
@@ -167,7 +168,7 @@
 }
 
 /* hide legacy small login row */
-#btnPsLogin,#btnPsLogout,#psLoginState{display:none !important;}
+/* #btnPsLogin,#btnPsLogout,#psLoginState{display:none !important;} */
 </style>
 </head>
 <body>
@@ -357,7 +358,7 @@
             <button class="btn secondary" id="btnAdminExportThreadsCSV">Threads CSV</button>
           </div>
           <div id="adminFeedbackThreads"></div>
-          <div id="adminFeedbackThreadView" style="margin-top:10px"></div><div id="adminFeedbackThreadView"></div>
+          <div id="adminFeedbackThreadView" style="margin-top:10px"></div>
         <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:12px 0">
 
         <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
@@ -398,13 +399,11 @@
     <input id="psCode" type="password" autocomplete="current-password" placeholder="Passwort" style="width:100%">
   </div>
   
-  <div class="gridTiles" style="margin-top:12px">
-    <div class="tile free" onclick="location.href='./admin-users/'">
-      👥<br><b>Benutzer</b><br>
-      <span class="small">Rollen & Rechte</span>
-    </div>
+  
+  <div class="small" id="psDashInfo" style="margin-top:8px; opacity:.9">—</div>
 
-    <div class="tile busy" onclick="authLoadLogs()">
+  <div class="gridTiles" id="psDashTiles" style="margin-top:12px"></div>
+<div class="tile busy" onclick="authLoadLogs()">
       📋<br><b>Logs</b><br>
       <span class="small">Systemverlauf</span>
     </div>
@@ -449,7 +448,7 @@
     <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
   </div>
-  <div class="card" id="psOnly" style="display:none";margin-top:20px">
+  <div class="card" id="psOnly" style="display:none; margin-top:20px">
   <h3>Patientensprecher Bereich</h3>
 
   <div class="muted">
@@ -1425,6 +1424,101 @@ let __ADMIN_BOOKINGS_CACHE = [];
 // Auth (PS/VS/Admin) Login + Dashboard (Bearer)
 // =====================
 
+// ---- Auth: Permissions + Dashboard ----
+async function authMe(){
+  const a = getAuth();
+  if(!a || !a.token) return null;
+  try{
+    const r = await fetch(API_BASE + "/api/auth/me", {
+      headers: { "Authorization": "Bearer " + a.token }
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok || !j.ok) return null;
+    return j; // {ok:true, user:{...}, perms:{...}}
+  }catch(_e){
+    return null;
+  }
+}
+function hasPerm(perms, key){
+  return !!(perms && perms[key]);
+}
+
+async function renderPsVsAdminDash(){
+  const a = getAuth();
+  const tiles = document.getElementById("psDashTiles");
+  const info  = document.getElementById("psDashInfo");
+  if(!tiles || !info) return;
+
+  if(!a || !a.token){
+    info.textContent = "Nicht angemeldet";
+    tiles.innerHTML = "";
+    return;
+  }
+
+  const me = await authMe();
+  const perms = me?.perms || {};
+  const role = me?.user?.role || a.role || "";
+  const email = me?.user?.email || a.email || "";
+
+  info.textContent = `Angemeldet als ${roleLabel(role)} (${email})`;
+
+  const items = [];
+
+  // Benutzer / Rollen & Rechte
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="users">
+        👥<br><b>Benutzer</b><br>
+        <span class="small">Rollen & Rechte</span>
+      </div>
+    `);
+  }
+
+  // Logs
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
+    items.push(`
+      <div class="tile busy" role="button" tabindex="0" data-act="logs">
+        📋<br><b>Logs</b><br>
+        <span class="small">Systemverlauf</span>
+      </div>
+    `);
+  }
+
+  // Buchungen
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "ps_deputy"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="bookings">
+        📅<br><b>Buchungen</b><br>
+        <span class="small">Übersicht</span>
+      </div>
+    `);
+  }
+
+  // Admin-Konfiguration (Super-Admin Bereich)
+  items.push(`
+    <div class="tile bad" role="button" tabindex="0" data-act="sa">
+      ⚙️<br><b>Admin</b><br>
+      <span class="small">Konfiguration</span>
+    </div>
+  `);
+
+  tiles.innerHTML = items.join("") || `<div class="small">Keine Funktionen freigeschaltet.</div>`;
+
+  const wire = (sel, fn)=>{
+    const el = tiles.querySelector(sel);
+    if(!el) return;
+    el.onclick = fn;
+    el.onkeydown = (e)=>{ if(e.key==="Enter" || e.key===" ") fn(); };
+  };
+
+  wire('[data-act="users"]', ()=>{ location.href = "./admin-users/"; });
+  wire('[data-act="logs"]', ()=>{ authLoadLogs(); });
+  wire('[data-act="bookings"]', ()=>{ authLoadBookings(); });
+  wire('[data-act="sa"]', ()=>{ scrollToAdminConfig(); });
+}
+
+
+
 
 // (auth storage helpers moved to first <script> block)
 
@@ -1536,73 +1630,74 @@ function scrollToAdminConfig(){
 function authLogout(){
   clearAuth();
   renderAuthState();
+  try{ renderPsVsAdminDash(); }catch(_e){}
 }
 
 // Wire auth controls
-(function () {
-  // ---- Auth UI state (ensures available before wiring) ----
-  function renderAuthState(){
+(
+// ---- Auth UI state (ensures available before wiring) ----
+function renderAuthState(){
+  try{
+    if (typeof renderAuth === "function") return renderAuth();
+  }catch(_e){}
+  try{
+    const a = (typeof getAuth === "function") ? getAuth() : {token:"",role:"",email:""};
+    const st = document.getElementById("psLoginState");
+    if (st){
+      st.textContent = a && a.token ? "Angemeldet" : "Nicht angemeldet";
+    }
+  }catch(_e){}
+}
+
+function wireAuthUI(){
+  const loginBtn = $("btnPsLogin");
+  const emailEl = $("psEmail");
+  const passEl = $("psCode");
+  const logoutBtn = $("btnPsLogout2");
+  const reloadBtn = $("btnPsDashReload");
+
+  const doLogin = async ()=>{
     try{
-      if (typeof renderAuth === "function") return renderAuth();
-    }catch(_e){}
-    try{
-      const a = (typeof getAuth === "function") ? getAuth() : {token:"",role:"",email:""};
-      const st = document.getElementById("psLoginState");
-      if (st){
-        st.textContent = a && a.token ? "Angemeldet" : "Nicht angemeldet";
+      const email = (emailEl?.value || "").trim().toLowerCase();
+      const password = (passEl?.value || "").trim();
+      if (!email || !password) return toast("⛔ E-Mail und Passwort erforderlich");
+
+      const r = await fetch(API_BASE+"/api/ps/login", {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify({ email, password })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok){
+        return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
       }
-    }catch(_e){}
-  }
+      setAuth(j.token, j.role, email, j.expiresAt);
+      renderAuthState();
+      scheduleAutoLogout();
+      toast("✅ Login erfolgreich");
+    
+      try{ await renderPsVsAdminDash(); }catch(_e){}
+}catch(e){
+      console.error(e);
+      toast("⛔ Login fehlgeschlagen");
+    }
+  };
 
-  function wireAuthUI(){
-    const loginBtn = $("btnPsLogin");
-    const emailEl = $("psEmail");
-    const passEl = $("psCode");
-    const logoutBtn = $("btnPsLogout2");
-    const reloadBtn = $("btnPsDashReload");
+  if (loginBtn) loginBtn.onclick = doLogin;
+  if (emailEl) emailEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+  if (passEl) passEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
 
-    const doLogin = async ()=>{
-      try{
-        const email = (emailEl?.value || "").trim().toLowerCase();
-        const password = (passEl?.value || "").trim();
-        if (!email || !password) return toast("⛔ E-Mail und Passwort erforderlich");
+  if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
 
-        const r = await fetch(API_BASE + "/api/ps/login", {
-          method:"POST",
-          headers:{"content-type":"application/json"},
-          body: JSON.stringify({ email, password })
-        });
-        const j = await r.json().catch(()=>({}));
-        if (!r.ok || !j.ok){
-          return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
-        }
-
-        setAuth(j.token, j.role, email, j.expiresAt);
-        renderAuthState();
-        scheduleAutoLogout();
-        toast("✅ Login erfolgreich");
-      }catch(e){
-        console.error(e);
-        toast("⛔ Login fehlgeschlagen");
-      }
-    };
-
-    if (loginBtn) loginBtn.onclick = doLogin;
-    if (emailEl) emailEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
-    if (passEl) passEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
-
-    if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
-    if (reloadBtn) reloadBtn.onclick = ()=>{ renderAuthState(); toast("✅ Aktualisiert"); };
-
-    // initial
+  if (reloadBtn) reloadBtn.onclick = ()=>{
     renderAuthState();
-    scheduleAutoLogout();
-  }
+    toast("✅ Aktualisiert");
+  };
 
-  // erst nach DOM ready verdrahten
-  document.addEventListener("DOMContentLoaded", wireAuthUI);
+  // initial
+  renderAuthState();
+  scheduleAutoLogout();
 })();
-
 
 
 function downloadCSV(filename, rows){
