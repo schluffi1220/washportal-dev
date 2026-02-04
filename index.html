@@ -402,17 +402,17 @@
       <span class="small">Rollen & Rechte</span>
     </div>
 
-    <div class="tile busy" onclick="adminLoadLogs()">
+    <div class="tile busy" onclick="authLoadLogs()">
       📋<br><b>Logs</b><br>
       <span class="small">Systemverlauf</span>
     </div>
 
-    <div class="tile free" onclick="adminLoadBookings()">
+    <div class="tile free" onclick="authLoadBookings()">
       📅<br><b>Buchungen</b><br>
       <span class="small">Übersicht</span>
     </div>
 
-    <div class="tile bad" onclick="adminReload()">
+    <div class="tile bad" onclick="scrollToAdminConfig()">
       ⚙️<br><b>Admin</b><br>
       <span class="small">Konfiguration</span>
     </div>
@@ -434,28 +434,13 @@
   <div class="card" id="psOnly" style="display:none;margin-top:20px">
   <h3>Patientensprecher Bereich</h3>
 
-  <div class="muted" style="margin-bottom:10px">
-    ✅ Angemeldet – hier kannst du Zimmer direkt anschreiben oder sperren.
+  <div class="muted">
+    ✅ Login erkannt – dieser Bereich erscheint nur für Patientensprecher / Stellvertreter.
   </div>
 
-  <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
-    <input id="psRoomTarget" placeholder="Zimmer (z.B. 103)" style="width:140px" />
-    <label class="small" style="display:flex;gap:6px;align-items:center">
-      <input type="checkbox" id="psAllRooms" />
-      alle Zimmer
-    </label>
-  </div>
-
-  <textarea id="psRoomMsg" placeholder="Nachricht an das Zimmer (Popup beim nächsten Refresh) …" style="width:100%;min-height:80px;margin-top:10px"></textarea>
-
-  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
-    <button class="btn" id="btnPsSendMsg">Nachricht senden</button>
-    <button class="btn secondary" id="btnPsClearMsg">Nachricht löschen</button>
-    <button class="btn warn" id="btnPsBlockRoom">Zimmer sperren</button>
-    <button class="btn secondary" id="btnPsUnblockRoom">Sperre aufheben</button>
-  </div>
-
-  <div id="psRoomCtrlState" class="small muted" style="margin-top:10px"></div>
+  <button class="btn" onclick="alert('PS Funktion aktiv')">
+    Test-Button
+  </button>
 </div>
 </div>
 <script>
@@ -629,72 +614,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     renderAuth();
   };
 
-
-  // PS/VS/Admin: Zimmer anschreiben / sperren
-  const wire = (id, fn)=>{
-    const el = document.getElementById(id);
-    if (el) el.onclick = fn;
-  };
-  const stateEl = document.getElementById("psRoomCtrlState");
-  const roomEl = document.getElementById("psRoomTarget");
-  const allEl = document.getElementById("psAllRooms");
-  const msgEl = document.getElementById("psRoomMsg");
-
-  async function roomAct(patch){
-    const a = getAuth();
-    if (!a?.token) return toast("⛔ Bitte erst anmelden");
-    const allRooms = !!(allEl && allEl.checked);
-    const room = roomEl ? roomEl.value.trim() : "";
-    if (!allRooms && !room) return toast("⛔ Bitte Zimmer eingeben oder 'alle Zimmer' wählen");
-    const body = { room, allRooms, ...patch };
-    const r = await jpostAuth("/api/auth/room/control", body);
-    if (stateEl){
-      if (allRooms){
-        stateEl.textContent = "✅ Gespeichert für alle Zimmer (" + (r.count||0) + ")";
-      } else {
-        const rc = r.roomControl;
-        const parts = [];
-        if (rc?.blocked) parts.push("gesperrt");
-        if (rc?.message) parts.push("Nachricht gesetzt");
-        stateEl.textContent = "✅ Zimmer " + room + ": " + (parts.join(" · ") || "OK");
-      }
-    }
-  }
-
-  wire("btnPsSendMsg", async ()=>{
-    try{
-      await roomAct({ message: (msgEl ? msgEl.value : "").trim() });
-      toast("✅ Nachricht gespeichert");
-    }catch(e){
-      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
-    }
-  });
-  wire("btnPsClearMsg", async ()=>{
-    try{
-      await roomAct({ message: "" });
-      if (msgEl) msgEl.value = "";
-      toast("✅ Nachricht gelöscht");
-    }catch(e){
-      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
-    }
-  });
-  wire("btnPsBlockRoom", async ()=>{
-    try{
-      if (!confirm("Zimmer wirklich sperren?")) return;
-      await roomAct({ blocked: true });
-      toast("✅ Zimmer gesperrt");
-    }catch(e){
-      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
-    }
-  });
-  wire("btnPsUnblockRoom", async ()=>{
-    try{
-      await roomAct({ blocked: false });
-      toast("✅ Sperre aufgehoben");
-    }catch(e){
-      toast("⛔ Fehler (HTTP "+(e?.status||"")+")");
-    }
-  });
 });
 </script>
 
@@ -751,9 +670,10 @@ async function jpost(path, body){
   const data = await r.json().catch(()=> ({}));
   if (!r.ok) throw {status:r.status, data};
   return data;
+}
 
 async function jpostAuth(path, body){
-  const a = getAuth ? getAuth() : null;
+  const a = (typeof getAuth === "function") ? getAuth() : null;
   const token = a && a.token ? a.token : "";
   const r = await fetch(API_BASE + path, {
     method:"POST",
@@ -767,7 +687,7 @@ async function jpostAuth(path, body){
   if (!r.ok) throw {status:r.status, data};
   return data;
 }
-}
+
 async function jget(path){
   const r = await fetch(API_BASE + path);
   const data = await r.json().catch(()=> ({}));
@@ -1592,6 +1512,47 @@ function renderAdminBookings(){
   });
 }
 
+
+function scrollToAdminConfig(){
+  const el = document.getElementById("adminBox") || document.getElementById("cardAccess");
+  if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({behavior:"smooth", block:"start"});
+  toast("ℹ️ Admin-Bereich: bitte oben im Admin-Block mit Admin-Passwort einloggen, um Einstellungen zu ändern.");
+}
+
+async function authLoadLogs(){
+  const a = getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  const box = document.getElementById("adminLogsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/logs", { limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
+    renderAdminLogs();
+    const d = document.getElementById("adminLogsDetails"); if (d) d.open = true;
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Logs laden fehlgeschlagen: "+msg);
+  }
+}
+
+async function authLoadBookings(){
+  const a = getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  const box = document.getElementById("adminBookingsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
+    renderAdminBookings();
+    const d = document.getElementById("adminBookingsDetails"); if (d) d.open = true;
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Buchungen laden fehlgeschlagen: "+msg);
+  }
+}
+
 async function adminLoadLogs(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
@@ -1826,28 +1787,10 @@ async function refreshAll(){
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
 
-    // Zimmer-Sperre / Nachricht (unabhängig vom PIN)
-    if (r.roomControl){
-      if (r.roomControl.message){
-        alert("📩 Nachricht für Zimmer "+c.room+":\n\n"+r.roomControl.message);
-      }
-      if (r.roomControl.blocked){
-        alert("⛔ Zimmer "+c.room+" ist aktuell gesperrt. Buchungen sind deaktiviert.");
-      }
-    }
-
     renderNewsBox();
     renderSlotDropdown();
     renderTiles();
     renderMyBookings();
-
-    // Wenn Zimmer gesperrt: alle Buchungs-Buttons deaktivieren
-    if (STATE?.roomControl?.blocked){
-      document.querySelectorAll("button").forEach(b=>{
-        const t=(b.textContent||"").trim();
-        if (/Buchen|Überbuchen|Fertig|Freigeben/i.test(t)) b.disabled = true;
-      });
-    }
 
     // feedback popup if new
     if (r.feedback && r.feedback.userUnread) {
