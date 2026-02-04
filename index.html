@@ -48,8 +48,7 @@
       position:sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
       background: rgba(11,18,32,.78);
-      border-bottom: 1px solid var(--line);
-      padding: 14px 14px;
+      border-bottom: 1px so   padding: 14px 14px;
     }
     .wrap{max-width:980px;margin:0 auto;padding:0 14px}
     h1{margin:0;font-size:18px}
@@ -166,6 +165,9 @@
   color:#000 !important;
   background:#fff !important;
 }
+
+/* hide legacy small login row */
+#btnPsLogin,#btnPsLogout,#psLoginState{display:none !important;}
 </style>
 </head>
 <body>
@@ -388,89 +390,259 @@
         </details>
       </div>
     </div>
-<div class="card" id="authDashCard" style="margin-top:20px">
-  <h2>PS / VS / Admin Dashboard</h2>
+<div class="card" style="margin-top:20px">
+  <h3>PS / Admin Login</h3>
 
   <div class="row">
-    <input id="authEmail" placeholder="E-Mail" autocomplete="username" />
-    <input id="authPw" type="password" placeholder="Passwort" autocomplete="current-password" />
+    <input id="psEmail" placeholder="E-Mail" style="width:100%">
+    <input id="psCode" type="password" autocomplete="current-password" placeholder="Passwort" style="width:100%">
   </div>
-
-  <div id="authTiles" class="gridTiles" style="margin-top:12px; display:none">
-    <div class="tile free" data-act="users" data-role="admin">
+  
+  <div class="gridTiles" style="margin-top:12px">
+    <div class="tile free" onclick="location.href='./admin-users/'">
       👥<br><b>Benutzer</b><br>
       <span class="small">Rollen & Rechte</span>
     </div>
 
-    <div class="tile busy" data-act="logs" data-role="ps,ps_deputy,admin">
+    <div class="tile busy" onclick="authLoadLogs()">
       📋<br><b>Logs</b><br>
       <span class="small">Systemverlauf</span>
     </div>
 
-    <div class="tile free" data-act="bookings" data-role="ps,ps_deputy,admin">
+    <div class="tile free" onclick="authLoadBookings()">
       📅<br><b>Buchungen</b><br>
       <span class="small">Übersicht</span>
     </div>
 
-    <div class="tile bad" data-act="room" data-role="ps,ps_deputy,admin">
-      🚫<br><b>Zimmer sperren</b><br>
-      <span class="small">Sperre & Nachricht</span>
-    </div>
-
-    <div class="tile bad" data-act="admin" data-role="admin">
-      ⚙️<br><b>Admin-Konfig</b><br>
-      <span class="small">Slots & Regeln</span>
+    <div class="tile bad" onclick="scrollToAdminConfig()">
+      ⚙️<br><b>Admin</b><br>
+      <span class="small">Konfiguration</span>
     </div>
   </div>
 
-  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
-    <button class="btn" id="btnAuthAction">Anmelden</button>
-    <button class="btn secondary" id="btnAuthLogout" style="display:none">Abmelden</button>
-  </div>
-
-  <div id="authState" class="small" style="margin-top:8px;color:var(--muted)"></div>
-
-  <details id="authPanelLogs" style="margin-top:12px;display:none">
+  
+  <!-- Auth-Dashboard Panels -->
+  <details id="authLogsDetails" style="margin-top:12px; display:none" open>
     <summary>Logs</summary>
-    <div id="authOutLogs" class="small" style="margin-top:10px"></div>
+    <div class="card" style="margin-top:10px">
+      <div id="authLogsBox" class="small" style="margin-top:8px"></div>
+    </div>
   </details>
 
-  <details id="authPanelBookings" style="margin-top:12px;display:none">
+  <details id="authBookingsDetails" style="margin-top:12px; display:none" open>
     <summary>Buchungen</summary>
-    <div id="authOutBookings" class="small" style="margin-top:10px"></div>
+    <div class="card" style="margin-top:10px">
+      <div id="authBookingsBox" class="small" style="margin-top:8px"></div>
+    </div>
   </details>
 
-  <details id="authPanelRoom" style="margin-top:12px;display:none">
-    <summary>Zimmer sperren / Nachricht</summary>
-    <div class="small" style="margin-top:8px;color:var(--muted)">
-      Sperre ist unabhängig vom PIN (kann nicht umgangen werden). Nachricht wird beim nächsten „Aktualisieren“ als Popup gezeigt.
-    </div>
-    <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
-      <input id="authRoomTarget" placeholder="Zimmer (z.B. 103)" style="width:140px" />
-      <label class="small" style="display:flex;gap:6px;align-items:center">
-        <input type="checkbox" id="authAllRooms" />
-        alle Zimmer
-      </label>
-    </div>
-    <textarea id="authRoomMsg" placeholder="Nachricht an das Zimmer …" style="width:100%;min-height:80px;margin-top:10px"></textarea>
-    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button class="btn" id="btnAuthSendMsg">Nachricht speichern</button>
-      <button class="btn secondary" id="btnAuthClearMsg">Nachricht löschen</button>
-      <button class="btn secondary" id="btnAuthBlockRoom">Zimmer sperren</button>
-      <button class="btn secondary" id="btnAuthUnblockRoom">Sperre aufheben</button>
-    </div>
-    <div id="authRoomState" class="small" style="margin-top:10px;color:var(--muted)"></div>
-  </details>
-
-  <details id="authPanelAdmin" style="margin-top:12px;display:none">
-    <summary>Admin-Konfiguration</summary>
-    <div class="small" style="margin-top:8px;color:var(--muted)">
-      Dieser Bereich ist im Portal weiterhin über das <b>Admin-Passwort</b> oben im Admin-Abschnitt geschützt.
-      (Super-Admin kann das Admin-Passwort setzen. Admin-Rolle bekommt Zugriff in einem separaten Worker-Schritt.)
-    </div>
-    <button class="btn secondary" id="btnAuthGoAdmin" style="margin-top:10px">Zum Admin-Bereich springen</button>
-  </details>
+<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn secondary" id="btnPsDashReload">Aktualisieren</button>
+    <button class="btn secondary" id="btnPsLogout2">Abmelden</button>
+  </div>
 </div>
+
+</div>
+
+  <div class="row">
+    <button class="btn" id="btnPsLogin">Anmelden</button>
+    <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
+    <div id="psLoginState" class="muted"></div>
+  </div>
+  <div class="card" id="psOnly" style="display:none";margin-top:20px">
+  <h3>Patientensprecher Bereich</h3>
+
+  <div class="muted">
+    ✅ Login erkannt – dieser Bereich erscheint nur für Patientensprecher / Stellvertreter.
+  </div>
+
+  <button class="btn" onclick="alert('PS Funktion aktiv')">
+    Test-Button
+  </button>
+</div>
+</div>
+<script>
+const AUTH_KEY="wp_token";
+const AUTH_ROLE="wp_role";
+const AUTH_EMAIL="wp_email";
+const AUTH_EXP="wp_exp"; // expiresAt (ms)
+
+function setAuth(t,r,e,exp){
+  localStorage.setItem(AUTH_KEY, t || "");
+  localStorage.setItem(AUTH_ROLE, r || "");
+  localStorage.setItem(AUTH_EMAIL, e || "");
+  localStorage.setItem(AUTH_EXP, String(exp || 0));
+}
+  function clearAuth(){
+  localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_ROLE);
+  localStorage.removeItem(AUTH_EMAIL);
+  localStorage.removeItem(AUTH_EXP);
+}
+
+function getAuth(){
+  return {
+    token: localStorage.getItem(AUTH_KEY) || "",
+    role:  localStorage.getItem(AUTH_ROLE) || "",
+    email: localStorage.getItem(AUTH_EMAIL) || "",
+    exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
+  };
+}
+function roleLabel(r){
+  if (r === "admin") return "Admin";
+  if (r === "ps") return "Patientensprecher";
+  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  return r || "";
+}
+
+function renderAuth(){
+  const a=getAuth();
+  const st=document.getElementById("psLoginState");
+  const out=document.getElementById("btnPsLogout");
+
+  if(a.token){
+    st.textContent="Angemeldet als "+roleLabel(a.role)+" ("+a.email+")";
+    out.style.display="";
+  }else{
+    st.textContent="Nicht angemeldet";
+    out.style.display="none";
+  }
+  try{ applyRoleVisibility(); }catch(e){}
+  try{ updatePsDashUI(); }catch(e){}
+}
+let __logoutTimer = null;
+
+function scheduleAutoLogout(){
+  if (__logoutTimer) clearTimeout(__logoutTimer);
+
+  const a = getAuth();
+  if (!a.token || !a.exp) return;
+
+  const msLeft = a.exp - Date.now();
+
+  __logoutTimer = setTimeout(()=>{
+    clearAuth();
+    renderAuth();
+    alert("Session abgelaufen – bitte neu anmelden");
+  }, msLeft);
+}
+function roleLabel(r){
+  if (r === "admin") return "Admin";
+  if (r === "ps") return "Patientensprecher";
+  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  return r || "";
+}
+
+function applyRoleVisibility(){
+  const a = getAuth();
+
+  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
+  const psOnly = document.getElementById("psOnly");
+  const adminOnly = document.getElementById("adminOnly");
+
+  const logged = !!a.token;
+  const isAdmin = logged && a.role === "admin";
+  const isPS = logged && (a.role === "ps" || a.role === "ps_deputy");
+
+  if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
+  if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
+}
+
+function updatePsDashUI(){
+  const a = getAuth();
+  const info = document.getElementById("psDashInfo");
+  const logout2 = document.getElementById("btnPsLogout2");
+  const reloadBtn = document.getElementById("btnPsDashReload");
+
+  if (info){
+    if (a.token && (a.role==="ps" || a.role==="ps_deputy")){
+      info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
+    } else {
+      info.textContent = "—";
+    }
+  }
+
+  // wire buttons once
+  if (logout2 && !logout2._wired){
+    logout2._wired = true;
+    logout2.onclick = ()=>{
+      const btn = document.getElementById("btnPsLogout");
+      if (btn && typeof btn.onclick === "function") return btn.onclick();
+      // fallback
+      clearAuth();
+      renderAuth();
+      applyRoleVisibility();
+      updatePsDashUI();
+    };
+  }
+  if (reloadBtn && !reloadBtn._wired){
+    reloadBtn._wired = true;
+    reloadBtn.onclick = ()=>{
+      // for now just refresh role visibility + info
+      applyRoleVisibility();
+      updatePsDashUI();
+      toast("✅ Aktualisiert");
+    };
+  }
+}
+
+
+document.addEventListener("DOMContentLoaded",()=>{
+  applyRoleVisibility();
+  scheduleAutoLogout();
+  renderAuth();
+
+  document.getElementById("btnPsLogin").onclick=async()=>{
+    try{
+      const email = psEmail.value.trim().toLowerCase();
+      const password = psCode.value.trim();
+
+      if(!email || !password){
+        toast("⛔ E-Mail und Passwort erforderlich");
+        return;
+      }
+
+      const r=await fetch(API_BASE+"/api/ps/login",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({email,password})
+      });
+
+      const j = await r.json();
+
+      if (j.ok) {
+        setAuth(j.token,j.role,email,j.expiresAt);
+        renderAuth();
+        applyRoleVisibility();
+        scheduleAutoLogout();
+        toast("✅ Login erfolgreich");
+      } else {
+        const m = j.message || j.error || "Login fehlgeschlagen";
+        toast("⛔ " + m);
+      }
+    }catch(e){
+      console.error(e);
+      toast("⛔ Login fehlgeschlagen");
+    }
+  };
+
+  
+  // Enter im Passwortfeld = Anmelden
+  const psPwEl = document.getElementById("psCode");
+  if (psPwEl){
+    psPwEl.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") document.getElementById("btnPsLogin").click();
+    });
+  }
+
+document.getElementById("btnPsLogout").onclick=()=>{
+    clearAuth();
+    applyRoleVisibility(); 
+    renderAuth();
+  };
+
+});
+</script>
 
   </main>
 
@@ -526,6 +698,23 @@ async function jpost(path, body){
   if (!r.ok) throw {status:r.status, data};
   return data;
 }
+
+async function jpostAuth(path, body){
+  const a = (typeof getAuth === "function") ? getAuth() : null;
+  const token = a && a.token ? a.token : "";
+  const r = await fetch(API_BASE + path, {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      ...(token ? {"Authorization":"Bearer "+token} : {})
+    },
+    body: JSON.stringify(body||{})
+  });
+  const data = await r.json().catch(()=> ({}));
+  if (!r.ok) throw {status:r.status, data};
+  return data;
+}
+
 async function jget(path){
   const r = await fetch(API_BASE + path);
   const data = await r.json().catch(()=> ({}));
@@ -1226,6 +1415,258 @@ function fmtBerlin(ts){
 let __ADMIN_LOGS_CACHE = [];
 let __ADMIN_BOOKINGS_CACHE = [];
 
+
+// =====================
+// Auth (PS/VS/Admin) Login + Dashboard (Bearer)
+// =====================
+const AUTH_KEY="wp_token";
+const AUTH_ROLE="wp_role";
+const AUTH_EMAIL="wp_email";
+const AUTH_EXP="wp_exp"; // expiresAt (ms)
+
+function setAuth(t,r,e,exp){
+  localStorage.setItem(AUTH_KEY, t || "");
+  localStorage.setItem(AUTH_ROLE, r || "");
+  localStorage.setItem(AUTH_EMAIL, e || "");
+  localStorage.setItem(AUTH_EXP, String(exp || 0));
+}
+function clearAuth(){
+  localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_ROLE);
+  localStorage.removeItem(AUTH_EMAIL);
+  localStorage.removeItem(AUTH_EXP);
+}
+function getAuth(){
+  return {
+    token: localStorage.getItem(AUTH_KEY) || "",
+    role:  localStorage.getItem(AUTH_ROLE) || "",
+    email: localStorage.getItem(AUTH_EMAIL) || "",
+    exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
+  };
+}
+function roleLabel(r){
+  if (r === "admin") return "Admin";
+  if (r === "ps") return "Patientensprecher";
+  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  return r || "";
+}
+
+let __logoutTimer=null;
+function scheduleAutoLogout(){
+  if (__logoutTimer) clearTimeout(__logoutTimer);
+  const a=getAuth();
+  if(!a.token || !a.exp) return;
+  const msLeft=a.exp-Date.now();
+  if (msLeft <= 0){
+    clearAuth();
+    renderAuthState();
+    return;
+  }
+  __logoutTimer=setTimeout(()=>{
+    clearAuth();
+    renderAuthState();
+    alert("Session abgelaufen – bitte neu anmelden");
+  }, msLeft);
+}
+
+function renderAuthState(){
+  const a=getAuth();
+  const st=$("psLoginState");
+  if (st){
+    st.textContent = a.token ? ("Angemeldet als "+roleLabel(a.role)+" ("+a.email+")") : "Nicht angemeldet";
+  }
+  const logout=$("btnPsLogout2");
+  const reload=$("btnPsDashReload");
+  if (logout) logout.style.display = a.token ? "" : "none";
+  if (reload) reload.style.display = a.token ? "" : "none";
+}
+
+// ---- Auth: Logs ----
+function renderAuthLogs(){
+  const box = $("authLogsBox");
+  if (!box) return;
+  const list = (__ADMIN_LOGS_CACHE||[]);
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Logs.</div>`;
+    return;
+  }
+  box.innerHTML = list.map(l=>{
+    let metaTxt = "";
+    try{
+      const meta = l.meta ? JSON.parse(l.meta) : null;
+      if (meta && Number.isFinite(Number(meta.start)) && Number.isFinite(Number(meta.end))){
+        metaTxt = `<div class="small" style="opacity:.85">Slot: ${esc(fmtBerlin(meta.start))} – ${esc(fmtBerlin(meta.end))}</div>`;
+      }
+    }catch(_){}
+    return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
+      <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${Number(l.machine||0)||""}</div>
+      ${metaTxt}
+      <div class="mono small">${esc(fmtBerlin(l.ts))}</div>
+    </div>`;
+  }).join("");
+}
+
+async function authLoadLogs(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authLogsDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authLogsBox"); if(box) box.innerHTML=`<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/logs", { limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
+    renderAuthLogs();
+    if(det) det.scrollIntoView({behavior:"smooth", block:"start"});
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+// ---- Auth: Bookings ----
+function renderAuthBookings(){
+  const box = $("authBookingsBox");
+  if (!box) return;
+  const list = (__ADMIN_BOOKINGS_CACHE||[]);
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Buchungen.</div>`;
+    return;
+  }
+  const now=Date.now();
+  box.innerHTML = list.map(b=>{
+    const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
+    const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+    let st=b.status;
+    if (st==="booked") st=(b.start<=now && b.end>now) ? "läuft" : "gebucht";
+    if (st==="released") st="freigegeben";
+    if (st==="cancelled") st="storniert";
+    if (st==="admin_cancelled") st="ADMIN storniert";
+
+    const canCancel = (b.status==="booked");
+    const btn = canCancel ? `<button class="btn secondary inline" data-auth-cancel="${esc(b.id)}">Storno</button>` : `<span class="small" style="opacity:.7">—</span>`;
+
+    return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:10px;align-items:center">
+      <div>
+        <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
+        <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
+      </div>
+      ${btn}
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll("button[data-auth-cancel]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-auth-cancel");
+      if (!id) return;
+      if (!confirm("Buchung wirklich stornieren?")) return;
+      try{
+        // primary endpoint
+        await jpostAuth("/api/auth/bookings/cancel", { id });
+        toast("✅ Storniert");
+        await authLoadBookings();
+      }catch(e1){
+        // fallback: older path
+        try{
+          await jpostAuth("/api/auth/bookings/cancel", { bookingId: id });
+          toast("✅ Storniert");
+          await authLoadBookings();
+        }catch(e2){
+          const msg = (e2?.data?.message || e2?.data?.error || e1?.data?.message || e1?.data?.error || "Fehler");
+          toast("⛔ Storno fehlgeschlagen: "+msg);
+        }
+      }
+    };
+  });
+}
+
+async function authLoadBookings(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authBookingsDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authBookingsBox"); if(box) box.innerHTML=`<div class="small">Lade Buchungen…</div>`;
+  try{
+    let r;
+    try{
+      r = await jpostAuth("/api/auth/bookings", { limit: 800 });
+    }catch(e0){
+      // fallback to older path
+      r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
+    }
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
+    renderAuthBookings();
+    if(det) det.scrollIntoView({behavior:"smooth", block:"start"});
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+function scrollToAdminConfig(){
+  const a=getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  // Admin-Konfiguration bleibt im Super-Admin Bereich (Admin-Passwort), bewusst getrennt.
+  const el = $("cardAccess") || document.body;
+  el.scrollIntoView({behavior:"smooth", block:"start"});
+  toast("ℹ️ Admin-Konfiguration ist Super-Admin (Admin-Passwort) – nicht im PS/VS/Admin-Login.");
+}
+
+function authLogout(){
+  clearAuth();
+  renderAuthState();
+}
+
+// Wire auth controls
+(function wireAuthUI(){
+  const loginBtn = $("btnPsLogin");
+  const emailEl = $("psEmail");
+  const passEl = $("psCode");
+  const logoutBtn = $("btnPsLogout2");
+  const reloadBtn = $("btnPsDashReload");
+
+  const doLogin = async ()=>{
+    try{
+      const email = (emailEl?.value || "").trim().toLowerCase();
+      const password = (passEl?.value || "").trim();
+      if (!email || !password) return toast("⛔ E-Mail und Passwort erforderlich");
+
+      const r = await fetch(API_BASE+"/api/ps/login", {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify({ email, password })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok){
+        return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
+      }
+      setAuth(j.token, j.role, email, j.expiresAt);
+      renderAuthState();
+      scheduleAutoLogout();
+      toast("✅ Login erfolgreich");
+    }catch(e){
+      console.error(e);
+      toast("⛔ Login fehlgeschlagen");
+    }
+  };
+
+  if (loginBtn) loginBtn.onclick = doLogin;
+  if (emailEl) emailEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+  if (passEl) passEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+
+  if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
+
+  if (reloadBtn) reloadBtn.onclick = ()=>{
+    renderAuthState();
+    toast("✅ Aktualisiert");
+  };
+
+  // initial
+  renderAuthState();
+  scheduleAutoLogout();
+})();
+
+
 function downloadCSV(filename, rows){
   if (!rows || !rows.length){ toast("⛔ Keine Daten"); return; }
   const keys = Object.keys(rows[0]);
@@ -1255,7 +1696,7 @@ function credsComplete(){
 }
 
 function renderAdminLogs(){
-  const box = $("adminLogsBox");
+  const box = $("authLogsBox");
   if (!box) return;
   const q = ($("adminLogsFilter")?.value || "").trim().toLowerCase();
 
@@ -1291,7 +1732,7 @@ function renderAdminLogs(){
 }
 
 function renderAdminBookings(){
-  const box = $("adminBookingsBox");
+  const box = $("authBookingsBox");
   if (!box) return;
   const q = ($("adminBookingsFilter")?.value || "").trim().toLowerCase();
 
@@ -1350,15 +1791,93 @@ function renderAdminBookings(){
   });
 }
 
+
+function scrollToAdminConfig(){
+  const el = document.getElementById("adminBox") || document.getElementById("cardAccess");
+  if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({behavior:"smooth", block:"start"});
+  toast("ℹ️ Admin-Bereich: bitte oben im Admin-Block mit Admin-Passwort einloggen, um Einstellungen zu ändern.");
+}
+
+async function authLoadLogs(){
+  const det = $("authLogsDetails"); if (det) det.style.display="";
+  const a = getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  const box = document.getElementById("adminLogsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/logs", { limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
+    renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const d = document.getElementById("adminLogsDetails"); if (d) d.open = true;
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Logs laden fehlgeschlagen: "+msg);
+  }
+}
+
+async function authLoadBookings(){
+  const det = $("authBookingsDetails"); if (det) det.style.display="";
+  const a = getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  const box = document.getElementById("adminBookingsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
+    renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const d = document.getElementById("adminBookingsDetails"); if (d) d.open = true;
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Buchungen laden fehlgeschlagen: "+msg);
+  }
+}
+
+
+// PS/VS/Admin (Bearer): Logs/Buchungen direkt laden (ohne Admin-Passwort)
+async function authLoadLogs(){
+  const box = $("authLogsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/logs", { limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+    renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const d = $("adminLogsDetails"); if (d) d.open = false;
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Logs: " + msg);
+  }
+}
+async function authLoadBookings(){
+  const box = $("authBookingsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
+    renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const d = $("adminBookingsDetails"); if (d) d.open = false;
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Buchungen: " + msg);
+  }
+}
 async function adminLoadLogs(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
-  const box = $("adminLogsBox");
+  const box = $("authLogsBox");
   if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
   try{
     const r = await jpost("/api/admin/logs", { adminPassword: s.pw, limit: 300 });
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = $("adminLogsDetails"); if (d) d.open = false; // nach Laden einklappen
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1369,12 +1888,13 @@ async function adminLoadLogs(){
 async function adminLoadBookings(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
-  const box = $("adminBookingsBox");
+  const box = $("authBookingsBox");
   if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
   try{
     const r = await jpost("/api/admin/bookings/list", { adminPassword: s.pw });
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
     renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = $("adminBookingsDetails"); if (d) d.open = false; // nach Laden einklappen
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1905,356 +2425,5 @@ if ($("btnLoadLogs")) {
   }
 })();
 </script>
-
-<script>
-(function(){
-/* =========================
-   Role-based Login (Password)
-   ========================= */
-
-const AUTH_STORAGE_KEY = "wp_auth_v1"; // {token, role, email, exp}
-
-function authGet(){
-  try{ return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || "null") || null; }
-  catch{ return null; }
-}
-function authSet(obj){
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(obj || null));
-}
-function authClear(){
-  localStorage.removeItem(AUTH_STORAGE_KEY);
-}
-
-function roleLabel(r){
-  if (r === "admin") return "Admin";
-  if (r === "ps") return "Patientensprecher";
-  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
-  return r || "";
-}
-
-function authRender(){
-  const a = authGet();
-  const st = document.getElementById("authState");
-  const tiles = document.getElementById("authTiles");
-  const btnAction = document.getElementById("btnAuthAction");
-  const btnLogout = document.getElementById("btnAuthLogout");
-
-  const pLogs = document.getElementById("authPanelLogs");
-  const pBookings = document.getElementById("authPanelBookings");
-  const pRoom = document.getElementById("authPanelRoom");
-  const pAdmin = document.getElementById("authPanelAdmin");
-
-  const loggedIn = !!(a && a.token && (!a.exp || Date.now() < a.exp));
-  if (!st || !tiles || !btnAction || !btnLogout) return;
-
-  if (loggedIn){
-    st.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
-    tiles.style.display = "";
-    btnLogout.style.display = "";
-    btnAction.textContent = "Aktualisieren";
-  } else {
-    st.textContent = "Nicht angemeldet";
-    tiles.style.display = "none";
-    btnLogout.style.display = "none";
-    btnAction.textContent = "Anmelden";
-    if (a && a.exp && Date.now() >= a.exp) authClear();
-  }
-
-  // show/hide tiles by role
-  const role = (a && a.role) ? String(a.role) : "";
-  document.querySelectorAll("#authTiles [data-role]").forEach(el=>{
-    const allowed = (el.getAttribute("data-role") || "")
-      .split(",").map(x=>x.trim()).filter(Boolean);
-    el.style.display = (loggedIn && allowed.includes(role)) ? "" : "none";
-  });
-
-  // panels only when logged in
-  [pLogs,pBookings,pRoom,pAdmin].forEach(p=>{
-    if (!p) return;
-    p.style.display = loggedIn ? "" : "none";
-    // collapse on logout
-    if (!loggedIn) p.open = false;
-  });
-}
-
-async function jpostAuth(path, body){
-  const a = authGet();
-  const token = a && a.token ? a.token : "";
-  const r = await fetch(API_BASE + path, {
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      ...(token ? {"Authorization":"Bearer "+token} : {})
-    },
-    body: JSON.stringify(body||{})
-  });
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw {status:r.status, data};
-  return data;
-}
-
-function esc(v){
-  return String(v ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#39;");
-}
-
-function fmtBerlin(ts){
-  const d = new Date(Number(ts||0));
-  if (!Number.isFinite(d.getTime())) return "";
-  return d.toLocaleString("de-DE", { timeZone:"Europe/Berlin" });
-}
-
-async function authLoadLogs(){
-  const out = document.getElementById("authOutLogs");
-  const p = document.getElementById("authPanelLogs");
-  if (p) p.open = true;
-  if (out) out.innerHTML = `<div class="small">Lade Logs…</div>`;
-
-  const r = await jpostAuth("/api/auth/logs", {limit:200});
-  const logs = (r.logs || []);
-  if (!logs.length){
-    if (out) out.innerHTML = `<div class="small">Keine Logs.</div>`;
-    return;
-  }
-
-  if (out){
-    out.innerHTML = logs.map(l=>{
-      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
-        <div>
-          <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
-          <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${Number(l.machine||0)||""}</div>
-        </div>
-        <div class="mono small" style="white-space:nowrap">${esc(fmtBerlin(l.ts))}</div>
-      </div>`;
-    }).join("");
-  }
-}
-
-async function authLoadBookings(){
-  const out = document.getElementById("authOutBookings");
-  out.innerHTML = `<div class="small">Lade…</div>`;
-  try{
-    const r = await jpostAuth("/api/auth/bookings", {});
-    const list = (r.bookings||[]);
-    if (!list.length){
-      out.innerHTML = `<div class="small">Keine Buchungen.</div>`;
-      return;
-    }
-    const now = Date.now();
-    const a = getAuth();
-    const canCancel = !!a.token; // Rechte-Check passiert serverseitig
-
-    out.innerHTML = list.map(b=>{
-      const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
-      const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
-      let st = b.status;
-      if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
-      if (st==="released") st="freigegeben";
-      if (st==="cancelled") st="storniert";
-      if (st==="admin_cancelled") st="ADMIN gelöscht";
-
-      const btn = (canCancel && b.status==="booked")
-        ? `<button class="btn inline secondary" data-auth-cancel="${esc(b.id)}">Storno</button>`
-        : `<span class="small" style="opacity:.7">—</span>`;
-
-      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin:6px 0">
-        <div>
-          <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
-          <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
-        </div>
-        ${btn}
-      </div>`;
-    }).join("");
-
-    out.querySelectorAll("button[data-auth-cancel]").forEach(btn=>{
-      btn.onclick = async ()=>{
-        const id = btn.getAttribute("data-auth-cancel");
-        if (!id) return;
-        if (!confirm("Buchung wirklich stornieren?")) return;
-        try{
-          await jpostAuth("/api/auth/bookings/cancel", { id });
-          toast("✅ Storniert");
-          await authLoadBookings();
-        }catch(e){
-          const msg = e?.data?.message || e?.data?.error || "Fehler";
-          toast("⛔ Storno fehlgeschlagen ("+msg+")");
-        }
-      };
-    });
-
-  }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    out.innerHTML = `<div class="small">⛔ Fehler (${esc(msg)})</div>`;
-  }
-}
-
-function authScrollToAdmin(){
-  const adminCard = document.querySelector("#adminBox")?.closest(".card") || document.querySelector("#adminLoginBox")?.closest(".card");
-  if (adminCard){
-    adminCard.scrollIntoView({behavior:"smooth", block:"start"});
-    toast("ℹ️ Für Konfiguration bitte oben im Admin-Abschnitt mit Admin-Passwort einloggen (Super-Admin).");
-  }else{
-    toast("ℹ️ Admin-Abschnitt nicht gefunden.");
-  }
-}
-
-document.addEventListener("DOMContentLoaded", ()=>{
-  const emailEl = document.getElementById("authEmail");
-  const pwEl = document.getElementById("authPw");
-  const btnAction = document.getElementById("btnAuthAction");
-  const btnLogout = document.getElementById("btnAuthLogout");
-
-  const pLogs = document.getElementById("authPanelLogs");
-  const pBookings = document.getElementById("authPanelBookings");
-  const pRoom = document.getElementById("authPanelRoom");
-  const pAdmin = document.getElementById("authPanelAdmin");
-
-  const closePanels = ()=>{
-    [pLogs,pBookings,pRoom,pAdmin].forEach(p=>{ if (p) p.open = false; });
-  };
-
-  authRender();
-
-  async function doLogin(){
-    const email = (emailEl?.value || "").trim().toLowerCase();
-    const password = (pwEl?.value || "").trim();
-    if (!email || !password){ toast("⛔ E-Mail und Passwort erforderlich"); return; }
-
-    const r = await fetch(API_BASE + "/api/ps/login", {
-      method:"POST",
-      headers:{"content-type":"application/json"},
-      body: JSON.stringify({email, password})
-    });
-    const j = await r.json().catch(()=> ({}));
-    if (!r.ok || !j.ok){
-      toast("⛔ " + (j.message || j.error || "Login fehlgeschlagen"));
-      return;
-    }
-    authSet({token:j.token, role:j.role, email, exp:j.expiresAt||0});
-    toast("✅ Login erfolgreich");
-    closePanels();
-    authRender();
-  }
-
-  function doRefresh(){
-    closePanels();
-    const outL = document.getElementById("authOutLogs"); if (outL) outL.innerHTML = "";
-    const outB = document.getElementById("authOutBookings"); if (outB) outB.innerHTML = "";
-    const st = document.getElementById("authRoomState"); if (st) st.textContent = "";
-    authRender();
-    toast("✅ Aktualisiert");
-  }
-
-  if (btnAction){
-    btnAction.onclick = async ()=>{
-      const a = authGet();
-      try{
-        if (a && a.token && (!a.exp || Date.now() < a.exp)){
-          doRefresh();
-        } else {
-          await doLogin();
-        }
-      }catch(e){
-        console.error(e);
-        toast("⛔ Aktion fehlgeschlagen");
-      }
-    };
-  }
-
-  // Enter im Passwortfeld => Login/Refresh
-  if (pwEl){
-    pwEl.addEventListener("keydown", (e)=>{
-      if (e.key === "Enter") btnAction?.click();
-    });
-  }
-
-  if (btnLogout){
-    btnLogout.onclick = ()=>{
-      authClear();
-      closePanels();
-      toast("✅ Abgemeldet");
-      authRender();
-    };
-  }
-
-  // tiles
-  document.querySelectorAll("#authTiles [data-act]").forEach(tile=>{
-    tile.addEventListener("click", async ()=>{
-      const act = tile.getAttribute("data-act");
-      try{
-        if (act === "users"){
-          location.href = "./admin-users/";
-          return;
-        }
-        if (act === "logs"){
-          await authLoadLogs();
-          return;
-        }
-        if (act === "bookings"){
-          await authLoadBookings();
-          return;
-        }
-        if (act === "room"){
-          if (pRoom) pRoom.open = true;
-          return;
-        }
-        if (act === "admin"){
-          if (pAdmin) pAdmin.open = true;
-          return;
-        }
-      }catch(e){
-        console.error(e);
-        const msg = e?.data?.message || e?.data?.error || e?.message || "Fehler";
-        toast("⛔ " + msg);
-      }
-    });
-  });
-
-  const goAdmin = document.getElementById("btnAuthGoAdmin");
-  if (goAdmin){
-    goAdmin.onclick = authScrollToAdmin;
-  }
-
-  // room control actions
-  const stateEl = document.getElementById("authRoomState");
-  const roomEl = document.getElementById("authRoomTarget");
-  const allEl = document.getElementById("authAllRooms");
-  const msgEl = document.getElementById("authRoomMsg");
-
-  async function roomAct(patch){
-    const a = authGet();
-    if (!a?.token) return toast("⛔ Bitte erst anmelden");
-    const allRooms = !!(allEl && allEl.checked);
-    const room = roomEl ? roomEl.value.trim() : "";
-    if (!allRooms && !room) return toast("⛔ Bitte Zimmer eingeben oder 'alle Zimmer' wählen");
-    const body = { room, allRooms, ...patch };
-    const r = await jpostAuth("/api/auth/room/control", body);
-    if (stateEl){
-      if (allRooms){
-        stateEl.textContent = "✅ Gespeichert für alle Zimmer (" + (r.count||0) + ")";
-      } else {
-        const rc = r.roomControl;
-        const parts = [];
-        if (rc?.blocked) parts.push("gesperrt");
-        if (rc?.message) parts.push("Nachricht gesetzt");
-        stateEl.textContent = "✅ Zimmer " + room + ": " + (parts.join(" · ") || "OK");
-      }
-    }
-  }
-
-  const w = (id, fn)=>{ const el = document.getElementById(id); if (el) el.onclick = fn; };
-  w("btnAuthSendMsg", async ()=>{ await roomAct({ message: (msgEl ? msgEl.value : "").trim() }); toast("✅ Nachricht gespeichert"); });
-  w("btnAuthClearMsg", async ()=>{ await roomAct({ message: "" }); if (msgEl) msgEl.value=""; toast("✅ Nachricht gelöscht"); });
-  w("btnAuthBlockRoom", async ()=>{ if (!confirm("Zimmer wirklich sperren?")) return; await roomAct({ blocked: true }); toast("✅ Zimmer gesperrt"); });
-  w("btnAuthUnblockRoom", async ()=>{ await roomAct({ blocked: false }); toast("✅ Sperre aufgehoben"); });
-});
-})();
-
-</script>
-
 </body>
 </html>
