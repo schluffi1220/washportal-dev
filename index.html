@@ -1520,36 +1520,74 @@ function scrollToAdminConfig(){
 }
 
 async function authLoadLogs(){
-  const a = getAuth();
-  if (!a.token) return toast("⛔ Bitte erst anmelden");
-  const box = document.getElementById("adminLogsBox");
+  const box = document.getElementById("authLogsBox");
+  const det = document.getElementById("authLogsDetails");
+  if (det) { det.style.display=""; det.open = true; }
   if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+
   try{
     const r = await jpostAuth("/api/auth/logs", { limit: 300 });
-    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
-    renderAdminLogs();
-    const d = document.getElementById("adminLogsDetails"); if (d) d.open = true;
+
+    const logs = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+    if (!logs.length){
+      if (box) box.innerHTML = `<div class="small">Keine Logs.</div>`;
+      return;
+    }
+
+    if (box) box.innerHTML = logs.map(l=>{
+      return `<div style="margin:6px 0;border-bottom:1px solid rgba(255,255,255,.10);padding-bottom:6px">
+        <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
+        <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${esc(l.machine||"")}</div>
+        <div class="mono small">${esc(fmtBerlin(l.ts))}</div>
+      </div>`;
+    }).join("");
+
     toast("✅ Logs geladen");
   }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast("⛔ Logs laden fehlgeschlagen: "+msg);
+    console.error(e);
+    const msg = e?.data?.message || e?.data?.error || ("HTTP "+(e?.status||""));
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Logs laden fehlgeschlagen");
   }
 }
 
 async function authLoadBookings(){
-  const a = getAuth();
-  if (!a.token) return toast("⛔ Bitte erst anmelden");
-  const box = document.getElementById("adminBookingsBox");
+  const box = document.getElementById("authBookingsBox");
+  const det = document.getElementById("authBookingsDetails");
+  if (det) { det.style.display=""; det.open = true; }
   if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+
   try{
-    const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
-    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
-    renderAdminBookings();
-    const d = document.getElementById("adminBookingsDetails"); if (d) d.open = true;
+    const r = await jpostAuth("/api/auth/bookings/list", { limit: 500 });
+
+    const list = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
+    if (!list.length){
+      if (box) box.innerHTML = `<div class="small">Keine Buchungen.</div>`;
+      return;
+    }
+
+    const now = Date.now();
+    if (box) box.innerHTML = list.map(b=>{
+      const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
+      const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+      let st = b.status;
+      if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
+      if (st==="released") st="freigegeben";
+      if (st==="cancelled") st="storniert";
+      if (st==="admin_cancelled") st="ADMIN gelöscht";
+
+      return `<div style="margin:6px 0;border-bottom:1px solid rgba(255,255,255,.10);padding-bottom:6px">
+        <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
+        <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
+      </div>`;
+    }).join("");
+
     toast("✅ Buchungen geladen");
   }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast("⛔ Buchungen laden fehlgeschlagen: "+msg);
+    console.error(e);
+    const msg = e?.data?.message || e?.data?.error || ("HTTP "+(e?.status||""));
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Buchungen laden fehlgeschlagen");
   }
 }
 
