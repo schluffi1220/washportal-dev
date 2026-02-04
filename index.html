@@ -2008,7 +2008,7 @@ function fmtBerlin(ts){
   return d.toLocaleString("de-DE", { timeZone:"Europe/Berlin" });
 }
 
-async function authLoadLogs(){
+async async function authLoadLogs(){
   const out = document.getElementById("authOutLogs");
   const p = document.getElementById("authPanelLogs");
   if (p) p.open = true;
@@ -2034,8 +2034,8 @@ async function authLoadLogs(){
   }
 }
 
-async function authLoadBookings(){
-  const out = document.getElementById("authBookingsOut");
+async async function authLoadBookings(){
+  const out = document.getElementById("authOutBookings");
   out.innerHTML = `<div class="small">Lade…</div>`;
   try{
     const r = await jpostAuth("/api/auth/bookings", {});
