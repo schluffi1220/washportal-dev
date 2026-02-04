@@ -2008,7 +2008,7 @@ function fmtBerlin(ts){
   return d.toLocaleString("de-DE", { timeZone:"Europe/Berlin" });
 }
 
-async async function authLoadLogs(){
+async function authLoadLogs(){
   const out = document.getElementById("authOutLogs");
   const p = document.getElementById("authPanelLogs");
   if (p) p.open = true;
@@ -2034,7 +2034,7 @@ async async function authLoadLogs(){
   }
 }
 
-async async function authLoadBookings(){
+async function authLoadBookings(){
   const out = document.getElementById("authOutBookings");
   out.innerHTML = `<div class="small">Lade…</div>`;
   try{
