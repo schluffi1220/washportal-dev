@@ -2035,30 +2035,60 @@ async function authLoadLogs(){
 }
 
 async function authLoadBookings(){
-  const out = document.getElementById("authOutBookings");
-  const p = document.getElementById("authPanelBookings");
-  if (p) p.open = true;
-  if (out) out.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  const out = document.getElementById("authBookingsOut");
+  out.innerHTML = `<div class="small">Lade…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/bookings", {});
+    const list = (r.bookings||[]);
+    if (!list.length){
+      out.innerHTML = `<div class="small">Keine Buchungen.</div>`;
+      return;
+    }
+    const now = Date.now();
+    const a = getAuth();
+    const canCancel = !!a.token; // Rechte-Check passiert serverseitig
 
-  const r = await jpostAuth("/api/auth/bookings", {});
-  const bookings = (r.bookings || []);
-  if (!bookings.length){
-    if (out) out.innerHTML = `<div class="small">Keine Buchungen.</div>`;
-    return;
-  }
-
-  const list = bookings.slice(0, 300);
-  if (out){
     out.innerHTML = list.map(b=>{
       const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
-      const when = `${fmtBerlin(b.start)} – ${fmtBerlin(b.end)}`;
-      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
+      const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+      let st = b.status;
+      if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
+      if (st==="released") st="freigegeben";
+      if (st==="cancelled") st="storniert";
+      if (st==="admin_cancelled") st="ADMIN gelöscht";
+
+      const btn = (canCancel && b.status==="booked")
+        ? `<button class="btn inline secondary" data-auth-cancel="${esc(b.id)}">Storno</button>`
+        : `<span class="small" style="opacity:.7">—</span>`;
+
+      return `<div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin:6px 0">
         <div>
           <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
-          <div class="small">${esc(when)} · ${esc(b.status||"")}</div>
+          <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
         </div>
+        ${btn}
       </div>`;
     }).join("");
+
+    out.querySelectorAll("button[data-auth-cancel]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.getAttribute("data-auth-cancel");
+        if (!id) return;
+        if (!confirm("Buchung wirklich stornieren?")) return;
+        try{
+          await jpostAuth("/api/auth/bookings/cancel", { id });
+          toast("✅ Storniert");
+          await authLoadBookings();
+        }catch(e){
+          const msg = e?.data?.message || e?.data?.error || "Fehler";
+          toast("⛔ Storno fehlgeschlagen ("+msg+")");
+        }
+      };
+    });
+
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    out.innerHTML = `<div class="small">⛔ Fehler (${esc(msg)})</div>`;
   }
 }
 
