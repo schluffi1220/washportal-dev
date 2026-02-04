@@ -1539,7 +1539,22 @@ function authLogout(){
 }
 
 // Wire auth controls
-(function wireAuthUI(){
+(
+// ---- Auth UI state (ensures available before wiring) ----
+function renderAuthState(){
+  try{
+    if (typeof renderAuth === "function") return renderAuth();
+  }catch(_e){}
+  try{
+    const a = (typeof getAuth === "function") ? getAuth() : {token:"",role:"",email:""};
+    const st = document.getElementById("psLoginState");
+    if (st){
+      st.textContent = a && a.token ? "Angemeldet" : "Nicht angemeldet";
+    }
+  }catch(_e){}
+}
+
+function wireAuthUI(){
   const loginBtn = $("btnPsLogin");
   const emailEl = $("psEmail");
   const passEl = $("psCode");
