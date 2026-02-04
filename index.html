@@ -421,7 +421,23 @@
     </div>
   </div>
 
-  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
+  
+  <!-- Auth-Dashboard Panels -->
+  <details id="authLogsDetails" style="margin-top:12px; display:none" open>
+    <summary>Logs</summary>
+    <div class="card" style="margin-top:10px">
+      <div id="authLogsBox" class="small" style="margin-top:8px"></div>
+    </div>
+  </details>
+
+  <details id="authBookingsDetails" style="margin-top:12px; display:none" open>
+    <summary>Buchungen</summary>
+    <div class="card" style="margin-top:10px">
+      <div id="authBookingsBox" class="small" style="margin-top:8px"></div>
+    </div>
+  </details>
+
+<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
     <button class="btn secondary" id="btnPsDashReload">Aktualisieren</button>
     <button class="btn secondary" id="btnPsLogout2">Abmelden</button>
   </div>
@@ -434,7 +450,7 @@
     <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
   </div>
-  <div class="card" id="psOnly" style="display:none;margin-top:20px">
+  <div class="card" id="psOnly" style="display:none";margin-top:20px">
   <h3>Patientensprecher Bereich</h3>
 
   <div class="muted">
@@ -529,7 +545,7 @@ function applyRoleVisibility(){
   const isAdmin = logged && a.role === "admin";
   const isPS = logged && (a.role === "ps" || a.role === "ps_deputy");
 
-  if (psOnly) psOnly.style.display = isPS ? "" : "none";
+  if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
@@ -611,7 +627,16 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   };
 
-  document.getElementById("btnPsLogout").onclick=()=>{
+  
+  // Enter im Passwortfeld = Anmelden
+  const psPwEl = document.getElementById("psCode");
+  if (psPwEl){
+    psPwEl.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") document.getElementById("btnPsLogin").click();
+    });
+  }
+
+document.getElementById("btnPsLogout").onclick=()=>{
     clearAuth();
     applyRoleVisibility(); 
     renderAuth();
@@ -1420,7 +1445,7 @@ function credsComplete(){
 }
 
 function renderAdminLogs(){
-  const box = $("adminLogsBox");
+  const box = $("authLogsBox");
   if (!box) return;
   const q = ($("adminLogsFilter")?.value || "").trim().toLowerCase();
 
@@ -1456,7 +1481,7 @@ function renderAdminLogs(){
 }
 
 function renderAdminBookings(){
-  const box = $("adminBookingsBox");
+  const box = $("authBookingsBox");
   if (!box) return;
   const q = ($("adminBookingsFilter")?.value || "").trim().toLowerCase();
 
@@ -1523,6 +1548,7 @@ function scrollToAdminConfig(){
 }
 
 async function authLoadLogs(){
+  const det = $("authLogsDetails"); if (det) det.style.display="";
   const a = getAuth();
   if (!a.token) return toast("⛔ Bitte erst anmelden");
   const box = document.getElementById("adminLogsBox");
@@ -1531,6 +1557,7 @@ async function authLoadLogs(){
     const r = await jpostAuth("/api/auth/logs", { limit: 300 });
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
     renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = document.getElementById("adminLogsDetails"); if (d) d.open = true;
     toast("✅ Logs geladen");
   }catch(e){
@@ -1540,6 +1567,7 @@ async function authLoadLogs(){
 }
 
 async function authLoadBookings(){
+  const det = $("authBookingsDetails"); if (det) det.style.display="";
   const a = getAuth();
   if (!a.token) return toast("⛔ Bitte erst anmelden");
   const box = document.getElementById("adminBookingsBox");
@@ -1548,6 +1576,7 @@ async function authLoadBookings(){
     const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
     renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = document.getElementById("adminBookingsDetails"); if (d) d.open = true;
     toast("✅ Buchungen geladen");
   }catch(e){
@@ -1559,12 +1588,13 @@ async function authLoadBookings(){
 
 // PS/VS/Admin (Bearer): Logs/Buchungen direkt laden (ohne Admin-Passwort)
 async function authLoadLogs(){
-  const box = $("adminLogsBox");
+  const box = $("authLogsBox");
   if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
   try{
     const r = await jpostAuth("/api/auth/logs", { limit: 300 });
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = $("adminLogsDetails"); if (d) d.open = false;
     toast("✅ Logs geladen");
   }catch(e){
@@ -1573,12 +1603,13 @@ async function authLoadLogs(){
   }
 }
 async function authLoadBookings(){
-  const box = $("adminBookingsBox");
+  const box = $("authBookingsBox");
   if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
   try{
     const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
     renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = $("adminBookingsDetails"); if (d) d.open = false;
     toast("✅ Buchungen geladen");
   }catch(e){
@@ -1589,12 +1620,13 @@ async function authLoadBookings(){
 async function adminLoadLogs(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
-  const box = $("adminLogsBox");
+  const box = $("authLogsBox");
   if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
   try{
     const r = await jpost("/api/admin/logs", { adminPassword: s.pw, limit: 300 });
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = $("adminLogsDetails"); if (d) d.open = false; // nach Laden einklappen
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1605,12 +1637,13 @@ async function adminLoadLogs(){
 async function adminLoadBookings(){
   const s = getAdminSession();
   if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
-  const box = $("adminBookingsBox");
+  const box = $("authBookingsBox");
   if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
   try{
     const r = await jpost("/api/admin/bookings/list", { adminPassword: s.pw });
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
     renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
     const d = $("adminBookingsDetails"); if (d) d.open = false; // nach Laden einklappen
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
