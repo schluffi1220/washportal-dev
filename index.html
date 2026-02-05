@@ -746,14 +746,23 @@ function renderAuth(){
     out.style.display="none";
   }
 
-  try{ applyRoleVisibility(); }catch(e){}
-  try{ updatePsDashUI(); }catch(e){}
 }
 
-// Backwards-compat alias (older patches referenced renderAuthState)
-function renderAuthState(){
-  return document.body.setAttribute("data-authed","0");
-  renderAuth();
+// Auth gate: only show dashboard after /api/auth/me succeeds
+async function renderAuthState(){
+  document.body.setAttribute("data-authed","0");
+  const me = await authMe();
+  if(me){
+    window.__ME = me;
+    document.body.setAttribute("data-authed","1");
+  }else{
+    clearAuth();
+    window.__ME = null;
+    document.body.setAttribute("data-authed","0");
+  }
+  renderAuthState();
+  try{ applyRoleVisibility(me); }catch(e){}
+  try{ updatePsDashUI(me); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
 
@@ -840,6 +849,7 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
 document.addEventListener("DOMContentLoaded",()=>{
   applyRoleVisibility();
   scheduleAutoLogout();
+  await renderAuthState();
   renderAuth();
 
   document.getElementById("btnPsLogin").onclick=async()=>{
@@ -1693,12 +1703,21 @@ async function authMe(){
   if(!a || !a.token) return null;
   try{
     const r = await fetch(API_BASE + "/api/auth/me", {
-      headers: { "Authorization": "Bearer " + a.token }
+      method: "POST",
+      headers: { 
+        "Authorization": "Bearer " + a.token,
+        "Content-Type": "application/json"
+      },
+      body: "{}"
     });
     const j = await r.json().catch(()=>({}));
-    if(!r.ok || !j.ok) return null;
+    if(!r.ok || !j.ok){
+      console.warn("authMe failed", r.status, j);
+      return null;
+    }
     return j; // {ok:true, user:{...}, perms:{...}}
-  }catch(_e){
+  }catch(e){
+    console.warn("authMe exception", e);
     return null;
   }
 }
