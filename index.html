@@ -3951,7 +3951,15 @@ async function rbacLoad(){
       r = { users: u.users||[], permsCatalog: [], rolePerms: [], userPerms: [] };
     } else { throw e; }
   }
-  __RBAC = { users: r.users||[], perms: r.perms||[], userPerms: r.userPerms||[] };
+  // normalize catalog shape for UI (label/category)
+const catalog = (r.permsCatalog || r.perms || []).map(p=>({
+  permKey: p.permKey,
+  label: p.title ?? p.label ?? "",
+  category: p.permGroup ?? p.category ?? "Allgemein",
+  sort: Number(p.sort ?? 0)
+})).filter(p=>p.permKey);
+
+__RBAC = { users: r.users||[], perms: catalog, rolePerms: r.rolePerms||[], userPerms: r.userPerms||[] };
   __RBAC_SELECTED = __RBAC_SELECTED ? (__RBAC.users||[]).find(u=>String(u.id)===String(__RBAC_SELECTED.id)) : null;
   renderRbacUserList();
   renderRbacSelected();
