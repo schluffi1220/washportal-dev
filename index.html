@@ -575,7 +575,22 @@
 </details>
 </div>
 <!-- Auth-Dashboard Panels -->
-  <details id="authLogsDetails" style="margin-top:12px; display:none" open>
+  <details id="authUsersDetails" style="display:none; margin-top:12px">
+  <summary><b>Benutzerverwaltung</b></summary>
+
+  <div class="small" style="margin-top:8px; opacity:.85">
+    PS/VS Übergabe: Es gibt immer genau 1× PS und 1× VS. Bei „Als PS setzen“ wird der bisherige PS automatisch VS und der bisherige VS wird „user“ (sofern kein Admin).
+  </div>
+
+  <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px">
+    <button id="btnAuthUsersLoad" class="btn secondary">Benutzer laden</button>
+    <input id="authUsersSearch" placeholder="Suche Email" style="flex:1; min-width:240px">
+  </div>
+
+  <div id="authUsersBox" class="small" style="margin-top:10px"></div>
+</details>
+
+<details id="authLogsDetails" style="margin-top:12px; display:none" open>
     <summary>Logs</summary>
     <div class="card" style="margin-top:10px">
 <div class="row" style="flex-wrap:wrap; gap:10px">
@@ -3733,6 +3748,95 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if ($("btnAuthUsersLoad")) $("btnAuthUsersLoad").onclick = authUsersLoad;
   if ($("authUsersSearch")) $("authUsersSearch").oninput = ()=>renderUsers(__USERS_CACHE);
 });
+
+
+
+/* ============================
+   Users UI (PS/VS transfer)
+   ============================ */
+let __AUTH_USERS_CACHE = [];
+
+function canSeeUsers(me){
+  const role = String(me?.user?.role || "");
+  const perms = me?.perms || {};
+  return !!(perms["admin.users.manage"] || ["admin","superadmin","super_admin"].includes(role));
+}
+
+function renderAuthUsers(){
+  const box = $("authUsersBox"); if (!box) return;
+  const q = ($("authUsersSearch")?.value || "").trim().toLowerCase();
+  let list = (__AUTH_USERS_CACHE||[]);
+  if (q) list = list.filter(u => String(u.email||"").toLowerCase().includes(q));
+  if (!list.length){ box.innerHTML = `<div class="small">Keine Benutzer.</div>`; return; }
+
+  box.innerHTML = `
+    <div style="overflow:auto">
+      <table style="width:100%; border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left; opacity:.85">
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Email</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Rolle</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Status</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Aktion</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(u => `
+            <tr>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(u.email||"")}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)"><span class="pill">${esc(u.role||"user")}</span></td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(u.status||"")}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">
+                <button class="btn secondary inline" data-setrole="ps" data-uid="${esc(u.id)}">Als PS</button>
+                <button class="btn secondary inline" data-setrole="ps_deputy" data-uid="${esc(u.id)}">Als VS</button>
+                <button class="btn secondary inline" data-setrole="admin" data-uid="${esc(u.id)}">Als Admin</button>
+                <button class="btn secondary inline" data-setrole="user" data-uid="${esc(u.id)}">User</button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  box.querySelectorAll("button[data-setrole]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const role = btn.getAttribute("data-setrole");
+      const userId = btn.getAttribute("data-uid");
+      if (!role || !userId) return;
+      if (!confirm(`Rolle wirklich setzen: ${role}?`)) return;
+      try{
+        await jpostAuth("/api/auth/admin/users/set-role", { userId, role });
+        toast("✅ Rolle gesetzt");
+        await authLoadUsers();
+      }catch(e){
+        const msg = e?.data?.message || e?.data?.error || "Fehler";
+        toast("⛔ "+msg);
+      }
+    };
+  });
+}
+
+async function authLoadUsers(){
+  const det = $("authUsersDetails"); if(det){det.style.display=""; det.open=true;}
+  const box = $("authUsersBox"); if(box) box.innerHTML = `<div class="small">Lade…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/admin/users/list", {});
+    __AUTH_USERS_CACHE = (r.users||[]).slice();
+    renderAuthUsers();
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ ${esc(msg)}</div>`;
+    toast("⛔ Users: "+msg);
+  }
+}
+
+(function wireUsersUI(){
+  document.addEventListener("DOMContentLoaded", ()=>{
+    if ($("btnAuthUsersLoad")) $("btnAuthUsersLoad").onclick = authLoadUsers;
+    if ($("authUsersSearch")) $("authUsersSearch").oninput = renderAuthUsers;
+  });
+})();
 
 </script>
 </body>
