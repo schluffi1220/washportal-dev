@@ -175,9 +175,12 @@ body[data-authed="1"] .auth-only{display:block}
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
+
+.sa-only{display:none}
+body[data-sa="1"] .sa-only{display:block}
 </style>
 </head>
-<body data-authed="0">
+<body data-authed="0" data-sa="0">
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
@@ -709,6 +712,7 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_EXP, String(exp || 0));
   // do NOT mark authed yet; /api/auth/me will verify
   document.body.setAttribute("data-authed","0");
+    document.body.setAttribute("data-sa","0");
 }
 function clearAuth(){
   sessionStorage.removeItem(AUTH_KEY);
@@ -755,6 +759,7 @@ async function renderAuthState(){
   if(me){
     window.__ME = me;
     document.body.setAttribute("data-authed","1");
+    document.body.setAttribute("data-sa", ["superadmin","super_admin"].includes(String(me?.user?.role||"")) ? "1" : "0");
   }else{
     clearAuth();
     window.__ME = null;
@@ -4026,6 +4031,12 @@ async function rbacSaveRole(){
 document.addEventListener("DOMContentLoaded", ()=>{
   if ($("btnRbacLoadRole")) $("btnRbacLoadRole").onclick = rbacLoadRole;
   if ($("btnRbacSaveRole")) $("btnRbacSaveRole").onclick = rbacSaveRole;
+  if ($("btnRbacSeedDefaults")) $("btnRbacSeedDefaults").onclick = async ()=>{
+    if(!confirm("Standardsets wirklich zurücksetzen? (Role-Perms werden neu gesetzt)")) return;
+    await jpostAuth("/api/auth/admin/rbac/seed-defaults", {});
+    toast("✅ Standardsets zurückgesetzt");
+    await rbacLoad();
+  };
   if ($("rbacRoleSelect")) $("rbacRoleSelect").onchange = ()=>{ renderRolePerms(); };
 });
 
