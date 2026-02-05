@@ -107,60 +107,99 @@ Stand: 27.01.2026
   </div>
 </main>
 
-<!-- ===================== -->
+<script>
+function pad(n){return String(n).padStart(2,"0");}
+function fmt(ts){
+  const d=new Date(Number(ts));
+  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+
+function pad(n){return String(n).padStart(2,"0");}
+function fmt(ts){
+  const d = new Date(Number(ts));
+  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+
+async function loadMeta(){
+  const res = await fetch(API_BASE + "/api/privacy/meta");
+  const j = await res.json();
+  if(!j.ok) throw new Error("meta");
+
+  const del = fmt(j.deleteAt);
+
+  const metaLine = document.getElementById("metaLine");
+  const deleteInfo = document.getElementById("deleteInfo");
+  const psList = document.getElementById("psList");
+
+  if(metaLine) metaLine.textContent = "Stand: " + del;
+
+  if(deleteInfo){
+    deleteInfo.innerHTML =
+      "Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation erforderlich ist. "+
+      "Bei der aktuellen Einstellung werden Daten spätestens am <span class='mono'>"+del+"</span> gelöscht "+
+      "(Fenster: "+j.daysPast+" Tage zurück, "+j.daysFuture+" Tage voraus).";
+  }
+
+  const ps = j.patientSpeakers || [];
+  if(psList){
+    if(!ps.length){
+      psList.textContent = "Noch keine Registrierungen.";
+    } else {
+      psList.innerHTML = ps.map(p=>{
+        const name = (p.name || [p.firstName, p.lastName].filter(Boolean).join(" ")).trim();
+        const email = p.emailMasked || p.email || "";
+        const status = p.status || "";
+        return "• " + (name || "—") + (email ? " ("+email+")" : "") + (status ? " – "+status : "");
+      }).join("<br/>");
+    }
+  }
+}
+
+async function jpost(path,data){
+  const res = await fetch(API_BASE + path,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
+  });
+  const txt = await res.text();
+  let j={}; try{j=JSON.parse(txt);}catch(_){}
+  if(!res.ok) throw Object.assign(new Error("http"), {status:res.status, data:j});
+  return j;
+}
+
+// Registrierung nur verdrahten, wenn das Formular auf dieser Seite existiert
+const psRegisterBtn = document.getElementById("psRegister");
+if(psRegisterBtn){
+  psRegisterBtn.onclick = async ()=>{
+    const firstName = (document.getElementById("psFirst")?.value || "").trim();
+    const lastName  = (document.getElementById("psLast")?.value || "").trim();
+    const email     = (document.getElementById("psEmail")?.value || "").trim();
+    const msg = document.getElementById("psRegMsg");
+    if(msg) msg.textContent="";
+    try{
+      await jpost("/api/ps/register",{firstName,lastName,email});
+      if(msg) msg.textContent="✅ Registrierung gespeichert (Freischaltung durch Admin).";
+      if(document.getElementById("psFirst")) document.getElementById("psFirst").value="";
+      if(document.getElementById("psLast")) document.getElementById("psLast").value="";
+      if(document.getElementById("psEmail")) document.getElementById("psEmail").value="";
+      await loadMeta();
+    }catch(e){
+      const m = e?.data?.message || e?.data?.error || "Fehler";
+      if(msg) msg.textContent="⛔ "+m;
+    }
+  };
+}
+
+loadMeta().catch(()=>{
+  const metaLine = document.getElementById("metaLine");
+  if(metaLine) metaLine.textContent="";
+});
+</script>
+  <!-- ===================== -->
 <!-- Registrierung Patientensprecher/Admin -->
 <!-- ===================== -->
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-
-  function pad(n){ return String(n).padStart(2,"0"); }
-  function fmt(ts){
-    const d = new Date(Number(ts));
-    return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
-  }
-
-  async function loadMeta(){
-    const r = await fetch(API_BASE + "/api/privacy/meta");
-    const j = await r.json();
-    if(!j || !j.ok) throw new Error("meta");
-
-    const del = fmt(j.deleteAt);
-    const metaLine = document.getElementById("metaLine");
-    const deleteInfo = document.getElementById("deleteInfo");
-    const psList = document.getElementById("psList");
-
-    if(metaLine) metaLine.textContent = "Stand: " + del;
-
-    if(deleteInfo){
-      deleteInfo.innerHTML =
-        "Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation erforderlich ist. " +
-        "Bei der aktuellen Einstellung werden Daten spätestens am <span class='mono'>"+del+"</span> gelöscht " +
-        "(Fenster: "+j.daysPast+" Tage zurück, "+j.daysFuture+" Tage voraus).";
-    }
-
-    const ps = j.patientSpeakers || [];
-    if(psList){
-      if(!ps.length){
-        psList.textContent = "Noch keine Registrierungen.";
-      } else {
-        psList.innerHTML = ps.map(p=>{
-          const name = (p.name || [p.firstName, p.lastName].filter(Boolean).join(" ")).trim();
-          const email = p.emailMasked || p.email || "";
-          const status = p.status || "";
-          return "• " + (name || "—") + (email ? " ("+email+")" : "") + (status ? " – "+status : "");
-        }).join("<br/>");
-      }
-    }
-  }
-
-  loadMeta().catch(() => {
-    const metaLine = document.getElementById("metaLine");
-    if(metaLine) metaLine.textContent = "";
-  });
-});
-</script>
 <hr style="margin:40px 0; opacity:.2">
 
 <h3>Registrierung</h3>
