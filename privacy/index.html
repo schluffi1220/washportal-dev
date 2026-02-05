@@ -230,8 +230,8 @@ z-index:9999;
 
     <label for="regRole">Rolle</label>
     <select id="regRole">
-      <option value="patient_speaker">Patientensprecher</option>
-      <option value="deputy_patient_speaker">Stellvertretender Patientensprecher</option>
+      <option value="ps">Patientensprecher</option>
+      <option value="ps_deputy">Stellvertretender Patientensprecher</option>
       <option value="admin">Admin</option>
       <option value="moderator">Moderator</option>
     </select>
@@ -363,6 +363,11 @@ function bindRegister(){
     msg.className = "msg";
 
     const role = document.getElementById("regRole").value;
+
+    if(role === "moderator"){
+      setMsg(msg, "Moderator ist aktuell (noch) nicht im Worker freigeschaltet.", false);
+      return;
+    }
     const firstName = document.getElementById("firstName").value.trim();
     const lastName  = document.getElementById("lastName").value.trim();
     const email     = document.getElementById("email").value.trim();
@@ -384,7 +389,7 @@ function bindRegister(){
 
     btn.disabled = true;
     try{
-      await jpost("/api/patient-speaker/register", { role, firstName, lastName, email, password: pw });
+      await jpost("/api/ps/register", { role, firstName, lastName, email, password: pw });
       setMsg(msg, "Registrierung erfolgreich. Liste wird aktualisiert …", true);
       await loadMeta();
     }catch(e){
