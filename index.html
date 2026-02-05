@@ -169,9 +169,12 @@
 
 /* hide legacy small login row */
 /* #btnPsLogin,#btnPsLogout,#psLoginState{display:none !important;} */
+
+.auth-only{display:none}
+body[data-authed="1"] .auth-only{display:block}
 </style>
 </head>
-<body>
+<body data-authed="0">
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
@@ -405,7 +408,7 @@
 
   <div class="small" id="psDashInfo" style="margin-top:8px; opacity:.9">—</div>
   <div class="gridTiles" id="psDashTiles" style="margin-top:12px"></div>
-<details id="authConfigDetails" style="display:none; margin-top:12px">
+<details id="authConfigDetails" class="auth-only" style="display:none; margin-top:12px">
   <summary><b>Konfiguration / News</b></summary>
   <div class="small" style="margin-top:8px; opacity:.85">
     Diese Einstellungen entsprechen dem Super-Admin Bereich, laufen aber über deinen Token und die gesetzten Haken (Permissions).
@@ -494,7 +497,7 @@
 
   
 
-  <details id="authRoomControlDetails" style="display:none; margin-top:12px">
+  <details id="authRoomControlDetails" class="auth-only" style="display:none; margin-top:12px">
   <summary><b>Zimmer sperren / Hinweis</b></summary>
 
   <div class="small" style="margin-top:8px; opacity:.85">
@@ -532,7 +535,7 @@
   </div>
 </details>
 
-<details id="authFeedbackDetails" style="display:none; margin-top:12px">
+<details id="authFeedbackDetails" class="auth-only" style="display:none; margin-top:12px">
   <summary><b>Feedback / Nachrichten</b></summary>
 
   <div class="row" style="margin-top:10px; flex-wrap:wrap">
@@ -575,7 +578,7 @@
 </details>
 </div>
 <!-- Auth-Dashboard Panels -->
-  <details id="authUsersDetails" style="display:none; margin-top:12px">
+  <details id="authUsersDetails" class="auth-only" style="display:none; margin-top:12px">
   <summary><b>Benutzer & Berechtigungen</b></summary>
 
   <div class="small" style="margin-top:8px; opacity:.85">
@@ -635,7 +638,7 @@
       </div>
     </div>
   </div>
-</details><details id="authLogsDetails" style="margin-top:12px; display:none" open>
+</details><details id="authLogsDetails" class="auth-only" style="margin-top:12px; display:none" open>
     <summary>Logs</summary>
     <div class="card" style="margin-top:10px">
 <div class="row" style="flex-wrap:wrap; gap:10px">
