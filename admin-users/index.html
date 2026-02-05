@@ -91,35 +91,6 @@
       return data;
     }
 
-    function getAuth(){
-      try{
-        const raw = localStorage.getItem("wp_auth");
-        if (!raw) return null;
-        const o = JSON.parse(raw);
-        if (!o || !o.token) return null;
-        if (o.expiresAt && Date.now() > Number(o.expiresAt)) return null;
-        return o; // {token, role, email, expiresAt}
-      }catch(_){ return null; }
-    }
-
-    async function jpostAuth(path, body){
-      const a = getAuth();
-      const token = a?.token || "";
-      const r = await fetch(API_BASE + path, {
-        method:"POST",
-        headers:{
-          "content-type":"application/json",
-          ...(token ? {"Authorization":"Bearer "+token} : {})
-        },
-        body: JSON.stringify(body||{})
-      });
-      const t = await r.text();
-      let data={}; try{ data=t?JSON.parse(t):{} }catch(_){ data={raw:t}; }
-      if (!r.ok) throw {status:r.status, data};
-      return data;
-    }
-
-
     let __users = [];
     let __perms = [];
     let __userPermsMap = {}; // userId -> permKey -> 0/1
@@ -137,27 +108,25 @@
     }
 
     async function loadUsers(){
-      const a = getAuth();
       const pw = ($("adminPw").value||"").trim();
-
-      $("usersBox").innerHTML = "<div class='small'>Lade…</div>";
+      $("msg").textContent = "lade…";
       try{
-        let r;
-        if (a?.token){
-          r = await jpostAuth("/api/auth/admin/users/list", {});
-        }else{
-          if (!pw) { $("usersBox").innerHTML = "<div class='small'>Bitte Super-Admin Passwort eingeben (oder im Haupt-Portal als Admin einloggen).</div>"; return; }
-          r = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
-        }
+        const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
 
-        __USERS = r.users || [];
-        __USER_PERMS = r.userPerms || [];
-        renderUsers();
-      }catch(e){
-        console.error(e);
-        $("usersBox").innerHTML = `<div class='small'>Fehler: Laden fehlgeschlagen (HTTP ${e?.status||"?"})</div>`;
-      }
-    }
+        __users = res.users || [];
+        __perms = res.perms || [];
+
+        // accept either userPermsMap or raw rows
+        if (res.userPermsMap && typeof res.userPermsMap === "object") {
+          __userPermsMap = res.userPermsMap || {};
+        } else {
+          __userPermsMap = {};
+          const rows = Array.isArray(res.userPerms) ? res.userPerms : [];
+          for (const r of rows){
+            if (!r || !r.userId || !r.permKey) continue;
+            if (!__userPermsMap[r.userId]) __userPermsMap[r.userId] = {};
+            __userPermsMap[r.userId][r.permKey] = Number(r.allowed) ? 1 : 0;
+          }
         }
 
         ensureDefaultPerms();
@@ -267,28 +236,29 @@ async function deleteNow(userId){
     }
 
     async function saveUser(userId){
-      const a = getAuth();
       const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
 
       const role1 = (document.getElementById(`role1__${userId}`)?.value || "").trim();
       const role2 = (document.getElementById(`role2__${userId}`)?.value || "").trim();
       const perms = readPermsFromUI(userId);
 
       try{
-        if (a?.token){
-          await jpostAuth("/api/auth/admin/users/update", { userId, role1, role2, perms });
-        }else{
-          if (!pw) return alert("Bitte Super-Admin Passwort eingeben (oder vorher im Haupt-Portal mit Token einloggen)");
-          await jpost("/api/admin/auth/users/update", { adminPassword: pw, userId, role1, role2, perms });
-        }
+        await jpost("/api/admin/auth/users/update", {
+          adminPassword: pw,
+          userId,
+          role1,
+          role2,
+          perms
+        });
         alert("Gespeichert.");
         await loadUsers();
       }catch(e){
         console.error(e);
-        const msg = e?.data?.message ? `\n${e.data.message}` : "";
+        const msg = e?.data?.message ? `
+${e.data.message}` : "";
         alert(`Fehler: Speichern fehlgeschlagen (HTTP ${e?.status||"?"})${msg}`);
       }
-    }
     }
 
     function render(){
