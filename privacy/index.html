@@ -1,70 +1,250 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Datenschutzerklärung</title>
 
-<title>Datenschutz</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"/>
+  <meta http-equiv="Pragma" content="no-cache"/>
+  <meta http-equiv="Expires" content="0"/>
 
-<style>
-body{
-  font-family:system-ui;
-  background:#0f172a;
-  color:#e5e7eb;
-  margin:0;
-  padding:32px;
-  line-height:1.55;
-}
-h1{margin-top:0}
-.section{
-  background:#111827;
-  padding:18px;
-  border-radius:12px;
-  margin-bottom:18px;
-}
-h3{margin:0 0 10px}
-p{margin:10px 0}
-.mono{font-family:monospace}
-.list-line{margin:6px 0}
-</style>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --card:#111827;
+      --text:#e5e7eb;
+      --muted:#cbd5e1;
+      --border:rgba(255,255,255,.14);
+      --accent:#34d399;
+      --danger:#fb7185;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      padding:32px;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.6;
+    }
+    h1{margin:0 0 18px;font-size:28px}
+    h2{margin:26px 0 10px;font-size:20px}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:18px;
+      margin:14px 0;
+    }
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .pill{
+      display:inline-block;
+      padding:2px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .numTitle{
+      margin:0 0 8px;
+      font-weight:700;
+    }
+    p{margin:10px 0}
+    ul{margin:8px 0 8px 18px}
+    li{margin:6px 0}
+    hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 800px){
+      body{padding:18px}
+      .grid{grid-template-columns:1fr}
+    }
+    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
+    input, select{
+      width:100%;
+      padding:12px 12px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.18);
+      color:var(--text);
+      outline:none;
+    }
+    button{
+      width:100%;
+      margin-top:14px;
+      padding:12px 12px;
+      border-radius:12px;
+      border:0;
+      background:var(--accent);
+      color:#062013;
+      font-weight:800;
+      cursor:pointer;
+    }
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .msg{margin-top:10px;font-size:13px}
+    .msg.ok{color:var(--accent)}
+    .msg.err{color:var(--danger)}
+    .kv{margin:8px 0}
+  </style>
 </head>
 
 <body>
+  <h1>Datenschutzerklärung</h1>
 
-<h1>Datenschutz</h1>
+  <div class="card">
+    <p class="numTitle">1. Verantwortlicher:</p>
+    <p class="muted">
+      Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz‑Grundverordnung (DSGVO) ist:
+    </p>
 
-<div class="section" id="privacyText">
-  <p><strong>1. Verantwortlicher</strong></p>
-  <p>
-    Ansprechpartner für Datenschutzanfragen:<br>
-    <strong id="psContact">Lade...</strong>
-  </p>
+    <p class="kv">
+      <strong id="psName">Lade...</strong><br>
+      Salzburgweg 7, 97616 Bad Neustadt an der Saale
+    </p>
 
-  <p><strong>2. Speicherdauer</strong></p>
-  <p id="deleteInfo">Lade...</p>
+    <p class="kv">
+      Kontakt: <span id="psEmail">Lade...</span>
+    </p>
 
-  <p><strong>3. Ihre Rechte</strong></p>
-  <p>
-    • Auskunft über gespeicherte Daten (Art. 15 DSGVO)<br>
-    • Berichtigung (Art. 16 DSGVO)<br>
-    • Löschung (Art. 17 DSGVO)<br>
-    • Einschränkung (Art. 18 DSGVO)<br>
-    • Widerspruch (Art. 21 DSGVO)
-  </p>
-</div>
+    <p class="muted">
+      Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
+    </p>
+  </div>
 
+  <div class="card">
+    <p class="numTitle">2. Zweck der Website</p>
+    <p>
+      Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt.
+      Sie ist nur für Patienten der Klinik bestimmt.
+    </p>
+  </div>
 
-<div class="section">
-  <h3>Automatischer Löschzeitpunkt</h3>
-  <div id="metaLine">Lade...</div>
-</div>
+  <div class="card">
+    <p class="numTitle">3. Welche Daten werden verarbeitet?</p>
+    <p>Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:</p>
+    <ul>
+      <li>Zimmernummer (als Benutzerkennung)</li>
+      <li>selbstgewählter PIN‑Code</li>
+      <li>gebuchte Waschmaschinen‑Zeiten</li>
+      <li>technische Zugriffsdaten (z. B. IP‑Adresse, Datum und Uhrzeit des Zugriffs)</li>
+    </ul>
+    <p>
+      Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
+    </p>
+  </div>
 
+  <div class="card">
+    <p class="numTitle">4. Zweck der Datenverarbeitung:</p>
+    <p>Die Verarbeitung erfolgt ausschließlich zum Zweck:</p>
+    <ul>
+      <li>der Identifikation der jeweiligen Nutzer bei der Buchung</li>
+      <li>der Verwaltung der Waschmaschinenbelegung</li>
+      <li>der technischen Bereitstellung und Sicherheit der Website</li>
+    </ul>
+    <p>Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.</p>
+  </div>
 
-<div class="section">
-  <h3>Registrierte Patientensprecher</h3>
-  <div id="psList">Lade...</div>
-</div>
+  <div class="card">
+    <p class="numTitle">5. Rechtsgrundlage</p>
+    <p>
+      Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht möglich wäre und keine überwiegenden Interessen der betroffenen Personen entgegenstehen.
+    </p>
+  </div>
 
+  <div class="card">
+    <p class="numTitle">6. Speicherung und Löschung</p>
+    <p id="deleteInfo">Lade...</p>
+    <p>
+      Server‑Logdaten (z. B. IP‑Adressen) werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
+    </p>
+  </div>
+
+  <div class="card">
+    <p class="numTitle">7. Datensicherheit:</p>
+    <p>
+      Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.
+    </p>
+  </div>
+
+  <div class="card">
+    <p class="numTitle">8. Rechte der betroffenen Personen:</p>
+    <p>Nutzer haben jederzeit das Recht auf:</p>
+    <ul>
+      <li>Auskunft über ihre gespeicherten Daten (Art. 15 DSGVO)</li>
+      <li>Berichtigung unrichtiger Daten (Art. 16 DSGVO)</li>
+      <li>Löschung ihrer Daten (Art. 17 DSGVO)</li>
+      <li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+      <li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
+    </ul>
+    <p>Anfragen können an den oben genannten Verantwortlichen gerichtet werden.</p>
+  </div>
+
+  <div class="card">
+    <p class="numTitle">9. Beschwerderecht:</p>
+    <p>
+      Es besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde, hier das Bayerische Landesamt für Datenschutzaufsicht.
+    </p>
+  </div>
+
+  <div class="card">
+    <p class="numTitle">10. Änderungen dieser Datenschutzerklärung:</p>
+    <p>
+      Diese Datenschutzerklärung kann angepasst werden, falls sich technische oder rechtliche Änderungen ergeben.
+    </p>
+    <p class="pill">Stand: <span id="standDate">Lade...</span></p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px">Automatischer Löschzeitpunkt</h2>
+    <div id="metaLine" class="muted">Lade...</div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px">Registrierte Patientensprecher</h2>
+    <div id="psList" class="muted">Lade...</div>
+  </div>
+
+  <div class="card" id="regCard">
+    <h2 style="margin:0 0 12px">Registrierung</h2>
+
+    <label for="regRole">Rolle</label>
+    <select id="regRole">
+      <option value="patient_speaker">Patientensprecher</option>
+    </select>
+
+    <div class="grid">
+      <div>
+        <label for="firstName">Vorname</label>
+        <input id="firstName" autocomplete="given-name"/>
+      </div>
+      <div>
+        <label for="lastName">Nachname</label>
+        <input id="lastName" autocomplete="family-name"/>
+      </div>
+    </div>
+
+    <label for="email">E‑Mail</label>
+    <input id="email" type="email" autocomplete="email"/>
+
+    <div class="grid">
+      <div>
+        <label for="password">Passwort (mind. 8 Zeichen)</label>
+        <input id="password" type="password" autocomplete="new-password"/>
+      </div>
+      <div>
+        <label for="password2">Passwort wiederholen</label>
+        <input id="password2" type="password" autocomplete="new-password"/>
+      </div>
+    </div>
+
+    <button id="registerBtn">Registrieren</button>
+    <div id="regMsg" class="msg"></div>
+  </div>
 
 <script>
 const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
@@ -75,63 +255,129 @@ function fmt(ts){
   return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+
          pad(d.getHours())+":"+pad(d.getMinutes());
 }
+function fmtDate(d){
+  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear();
+}
+function setMsg(el, text, ok){
+  el.textContent = text;
+  el.className = "msg " + (ok ? "ok" : "err");
+}
+
+async function jpost(path, data){
+  const r = await fetch(API_BASE + path, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(data),
+    cache:"no-store",
+  });
+  const j = await r.json().catch(()=> ({}));
+  if(!r.ok || !j.ok){
+    throw new Error(j.error || ("HTTP " + r.status));
+  }
+  return j;
+}
 
 async function loadMeta(){
-
   const r = await fetch(API_BASE + "/api/privacy/meta", {cache:"no-store"});
   const j = await r.json();
 
   if(!j.ok) throw new Error("meta");
 
-  const del = fmt(j.deleteAt);
+  // Stand (aktuelles Datum – clientseitig)
+  document.getElementById("standDate").textContent = fmtDate(new Date());
 
-  document.getElementById("metaLine").textContent = "Stand: " + del;
+  // Löschzeitpunkt
+  const del = fmt(j.deleteAt);
+  document.getElementById("metaLine").textContent =
+    "Stand: " + del;
 
   document.getElementById("deleteInfo").innerHTML =
-    "Buchungsdaten werden nur so lange gespeichert wie erforderlich. "+
-    "Spätestens am <span class='mono'>"+del+"</span> werden sie automatisch gelöscht.";
+    "Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. " +
+    "Spätestens am <span class='mono'>" + del + "</span> werden Daten gelöscht " +
+    "(Fenster: " + j.daysPast + " Tage zurück, " + j.daysFuture + " Tage voraus).";
 
-  const list = document.getElementById("psList");
+  // Patientensprecher
   const ps = j.patientSpeakers || [];
+  const psList = document.getElementById("psList");
 
   if(!ps.length){
-    list.textContent = "Noch keine Registrierungen.";
-    document.getElementById("psContact").textContent = "–";
+    psList.textContent = "Noch keine Registrierungen.";
+    document.getElementById("psName").textContent = "—";
+    document.getElementById("psEmail").textContent = "—";
     return;
   }
 
-  // ===== Liste unten =====
-  list.innerHTML = ps.map(p=>{
-    const name =
-      p.name ||
-      [p.firstName, p.lastName].filter(Boolean).join(" ");
+  const normalize = (p) => {
+    const name = (p.name || [p.firstName, p.lastName].filter(Boolean).join(" ").trim() || "(ohne Name)");
+    const email = (p.emailMasked || p.email || "(ohne E‑Mail)");
+    const status = (p.status || "");
+    return {name, email, status};
+  };
 
-    const email =
-      p.emailMasked || p.email || "";
+  const first = normalize(ps[0]);
+  document.getElementById("psName").textContent = first.name;
+  document.getElementById("psEmail").textContent = first.email;
 
-    const status = p.status ? " – " + p.status : "";
-
-    return "• " + name + " (" + email + ")" + status;
+  psList.innerHTML = ps.map(p=>{
+    const x = normalize(p);
+    return "• " + x.name + " (" + x.email + ")" + (x.status ? " – " + x.status : "");
   }).join("<br/>");
-
-
-  // ===== erster Sprecher oben im Text =====
-  const first = ps[0];
-  const name =
-      first.name ||
-      [first.firstName, first.lastName].filter(Boolean).join(" ");
-
-  const email =
-      first.emailMasked || first.email || "";
-
-  document.getElementById("psContact").textContent =
-    name + " (" + email + ")";
 }
 
+function bindRegister(){
+  const btn = document.getElementById("registerBtn");
+  if(!btn) return;
+
+  btn.addEventListener("click", async ()=>{
+    const msg = document.getElementById("regMsg");
+    msg.textContent = "";
+    msg.className = "msg";
+
+    const role = document.getElementById("regRole").value;
+    const firstName = document.getElementById("firstName").value.trim();
+    const lastName  = document.getElementById("lastName").value.trim();
+    const email     = document.getElementById("email").value.trim();
+    const pw        = document.getElementById("password").value;
+    const pw2       = document.getElementById("password2").value;
+
+    if(!firstName || !lastName || !email){
+      setMsg(msg, "Bitte Vorname, Nachname und E‑Mail ausfüllen.", false);
+      return;
+    }
+    if(!pw || pw.length < 8){
+      setMsg(msg, "Passwort muss mindestens 8 Zeichen haben.", false);
+      return;
+    }
+    if(pw !== pw2){
+      setMsg(msg, "Passwörter stimmen nicht überein.", false);
+      return;
+    }
+
+    btn.disabled = true;
+    try{
+      await jpost("/api/patient-speaker/register", { role, firstName, lastName, email, password: pw });
+      setMsg(msg, "Registrierung erfolgreich. Liste wird aktualisiert …", true);
+      await loadMeta();
+    }catch(e){
+      setMsg(msg, "Registrierung fehlgeschlagen: " + (e?.message || e), false);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+}
 
 window.addEventListener("DOMContentLoaded", ()=>{
+  // Stand-Date immer sofort setzen, auch wenn Meta noch lädt
+  document.getElementById("standDate").textContent = fmtDate(new Date());
+
+  bindRegister();
   loadMeta().catch(e=>{
     console.error(e);
+    document.getElementById("metaLine").textContent = "⛔ Konnte Daten nicht laden.";
+    document.getElementById("deleteInfo").textContent = "⛔ Konnte Daten nicht laden.";
+    document.getElementById("psList").textContent = "⛔ Konnte Daten nicht laden.";
+    document.getElementById("psName").textContent = "—";
+    document.getElementById("psEmail").textContent = "—";
   });
 });
 </script>
