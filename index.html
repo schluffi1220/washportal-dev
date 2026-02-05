@@ -779,6 +779,7 @@ function renderAuth(){
 function renderAuthState(){
   return renderAuth();
 }
+window.renderAuthState = renderAuthState;
   try{ applyRoleVisibility(); }catch(e){}
   try{ updatePsDashUI(); }catch(e){}
 }
@@ -1948,7 +1949,7 @@ function scrollToAdminConfig(){
 
 function authLogout(){
   clearAuth();
-  renderAuthState();
+  if (window.renderAuthState) window.renderAuthState();
   try{ renderPsVsAdminDash(); }catch(_e){}
 }
 
@@ -1991,7 +1992,7 @@ function wireAuthUI(){
         return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
       }
       setAuth(j.token, j.role, email, j.expiresAt);
-      renderAuthState();
+      if (window.renderAuthState) window.renderAuthState();
       scheduleAutoLogout();
       toast("✅ Login erfolgreich");
     
@@ -2009,7 +2010,7 @@ function wireAuthUI(){
   if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
 
   if (reloadBtn) reloadBtn.onclick = ()=>{
-    renderAuthState();
+    if (window.renderAuthState) window.renderAuthState();
     toast("✅ Aktualisiert");
   };
   // Auth Admin-Tools (per Permissions)
@@ -2031,7 +2032,7 @@ function wireAuthUI(){
 
 
   // initial
-  renderAuthState();
+  if (window.renderAuthState) window.renderAuthState();
   scheduleAutoLogout();
 }
 
