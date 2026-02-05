@@ -3902,7 +3902,16 @@ function renderRbacSelected(){
 async function rbacLoad(){
   const box = $("rbacUserList");
   if (box) box.innerHTML = `<div class="small">Lade…</div>`;
-  const r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
+  let r;
+  try{
+    r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
+  }catch(e){
+    // fallback: older workers may not have snapshot
+    if (String(e?.status||"") === "404"){
+      const u = await jpostAuth("/api/auth/admin/users/list", {});
+      r = { users: u.users||[], permsCatalog: [], rolePerms: [], userPerms: [] };
+    } else { throw e; }
+  }
   __RBAC = { users: r.users||[], perms: r.perms||[], userPerms: r.userPerms||[] };
   __RBAC_SELECTED = __RBAC_SELECTED ? (__RBAC.users||[]).find(u=>String(u.id)===String(__RBAC_SELECTED.id)) : null;
   renderRbacUserList();
