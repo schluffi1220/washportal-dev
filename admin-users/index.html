@@ -345,7 +345,22 @@ ${e.data.message}` : "";
     window.deleteNow = deleteNow;
     window.saveUser = saveUser;
 
-  </script>
+  
+
+// Delete user (soft delete)
+async function authDeleteUser(userId){
+  if(!confirm("User wirklich löschen? (soft delete)")) return;
+  try{
+    await jpostAuth("/api/auth/admin/users/delete",{userId});
+    toast("✅ User gelöscht");
+    if (typeof authLoadUsers === "function") await authLoadUsers();
+  }catch(e){
+    toast("⛔ Löschen fehlgeschlagen");
+    console.warn(e);
+  }
+}
+
+</script>
 
 </body>
 </html>
