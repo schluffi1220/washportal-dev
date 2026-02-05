@@ -109,12 +109,13 @@ Stand: 27.01.2026
 
 <script>
 function pad(n){return String(n).padStart(2,"0");}
+const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 function fmt(ts){
   const d=new Date(Number(ts));
   return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
 }
 async function loadMeta(){
-  const r = await fetch("/api/privacy/meta");
+  const r = await fetch(API_BASE + "/api/privacy/meta");
   const j = await r.json();
   if(!j.ok) throw new Error("meta");
   const del = fmt(j.deleteAt);
@@ -133,13 +134,15 @@ async function loadMeta(){
   }
 }
 async function jpost(url,data){
-  const res = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    const fullUrl = (url.startsWith("http") ? url : (API_BASE + url));
+  const res = await fetch(fullUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
   const txt = await res.text();
   let j={}; try{j=JSON.parse(txt);}catch(_){}
   if(!res.ok) throw Object.assign(new Error("http"), {status:res.status, data:j});
   return j;
 }
-document.getElementById("psRegister").onclick = async ()=>{
+const psRegisterBtn = document.getElementById("psRegister");
+if (psRegisterBtn) psRegisterBtn.onclick = async ()=>{
   const firstName = document.getElementById("psFirst").value.trim();
   const lastName = document.getElementById("psLast").value.trim();
   const email = document.getElementById("psEmail").value.trim();
@@ -190,7 +193,8 @@ loadMeta().catch(()=>{document.getElementById("metaLine").textContent="";});
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  // API_BASE ist oben definiert
+
 
   async function jpost(path, body){
     const r = await fetch(API_BASE + path,{
