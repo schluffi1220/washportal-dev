@@ -675,13 +675,13 @@ window.AUTH_EMAIL = AUTH_EMAIL;
 window.AUTH_EXP = AUTH_EXP;
 
 function setAuth(t,r,e,exp){
-  localStorage.setItem(AUTH_KEY, t || "");
+  sessionStorage.setItem(AUTH_KEY, t || "");
   localStorage.setItem(AUTH_ROLE, r || "");
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
 }
   function clearAuth(){
-  localStorage.removeItem(AUTH_KEY);
+  sessionStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(AUTH_ROLE);
   localStorage.removeItem(AUTH_EMAIL);
   localStorage.removeItem(AUTH_EXP);
@@ -689,7 +689,7 @@ function setAuth(t,r,e,exp){
 
 function getAuth(){
   return {
-    token: localStorage.getItem(AUTH_KEY) || "",
+    token: sessionStorage.getItem(AUTH_KEY) || "",
     role:  localStorage.getItem(AUTH_ROLE) || "",
     email: localStorage.getItem(AUTH_EMAIL) || "",
     exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
