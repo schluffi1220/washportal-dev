@@ -852,7 +852,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         return;
       }
 
-      const r=await fetch(API_BASE+"/api/ps/login",{
+      const r=await fetch(API_BASE+"/api/auth/login",{
         method:"POST",
         headers:{"content-type":"application/json"},
         body:JSON.stringify({email,password})
@@ -861,7 +861,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const j = await r.json();
 
       if (j.ok) {
-        setAuth(j.token,j.role,email,j.expiresAt);
+        setAuth(j.token, (j.role || (j.user && j.user.role) || ""), email, (j.expiresAt || j.exp || j.expiresAtMs || 0));
         renderAuth();
         applyRoleVisibility();
         scheduleAutoLogout();
@@ -1960,7 +1960,7 @@ function wireAuthUI(){
       const password = (passEl?.value || "").trim();
       if (!email || !password) return toast("⛔ E-Mail und Passwort erforderlich");
 
-      const r = await fetch(API_BASE+"/api/ps/login", {
+      const r = await fetch(API_BASE+"/api/auth/login", {
         method:"POST",
         headers:{"content-type":"application/json"},
         body: JSON.stringify({ email, password })
@@ -1969,7 +1969,7 @@ function wireAuthUI(){
       if (!r.ok || !j.ok){
         return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
       }
-      setAuth(j.token, j.role, email, j.expiresAt);
+      setAuth(j.token, (j.role || (j.user && j.user.role) || ""), email, (j.expiresAt || j.exp || j.expiresAtMs || 0));
       if (window.renderAuthState) window.renderAuthState();
       scheduleAutoLogout();
       toast("✅ Login erfolgreich");
