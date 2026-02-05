@@ -847,62 +847,6 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
 }
 
 
-document.addEventListener("DOMContentLoaded", async ()=>{
-  applyRoleVisibility();
-  scheduleAutoLogout();
-  await renderAuthState();
-  wireAuthUI();
-
-  document.getElementById("btnPsLogin").onclick=async()=>{
-    try{
-      const email = psEmail.value.trim().toLowerCase();
-      const password = psCode.value.trim();
-
-      if(!email || !password){
-        toast("⛔ E-Mail und Passwort erforderlich");
-        return;
-      }
-
-      const r=await fetch(API_BASE+"/api/auth/login",{
-        method:"POST",
-        headers:{"content-type":"application/json"},
-        body:JSON.stringify({email,password})
-      });
-
-      const j = await r.json();
-
-      if (j.ok) {
-        setAuth(j.token, (j.role || (j.user && j.user.role) || ""), email, (j.expiresAt || j.exp || j.expiresAtMs || 0));
-        renderAuth();
-        applyRoleVisibility();
-        scheduleAutoLogout();
-        toast("✅ Login erfolgreich");
-      } else {
-        const m = j.message || j.error || "Login fehlgeschlagen";
-        toast("⛔ " + m);
-      }
-    }catch(e){
-      console.error(e);
-      toast("⛔ Login fehlgeschlagen");
-    }
-  };
-
-  
-  // Enter im Passwortfeld = Anmelden
-  const psPwEl = document.getElementById("psCode");
-  if (psPwEl){
-    psPwEl.addEventListener("keydown", (e)=>{
-      if (e.key === "Enter") document.getElementById("btnPsLogin").click();
-    });
-  }
-
-document.getElementById("btnPsLogout").onclick=()=>{
-    clearAuth();
-    applyRoleVisibility(); 
-    renderAuth();
-  };
-
-});
 </script>
 
   </main>
