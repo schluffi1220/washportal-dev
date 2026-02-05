@@ -215,6 +215,9 @@
     <label for="regRole">Rolle</label>
     <select id="regRole">
       <option value="patient_speaker">Patientensprecher</option>
+      <option value="deputy_patient_speaker">Stellvertretender Patientensprecher</option>
+      <option value="admin">Admin</option>
+      <option value="moderator">Moderator</option>
     </select>
 
     <div class="grid">
@@ -309,7 +312,7 @@ async function loadMeta(){
 
   const normalize = (p) => {
     const name = (p.name || [p.firstName, p.lastName].filter(Boolean).join(" ").trim() || "(ohne Name)");
-    const email = (p.emailMasked || p.email || "(ohne E‑Mail)");
+    const email = (p.email || p.emailMasked || "(ohne E‑Mail)");
     const status = (p.status || "");
     return {name, email, status};
   };
