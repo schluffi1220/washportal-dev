@@ -764,8 +764,19 @@ async function jpostAuth(path, body){
     },
     body: JSON.stringify(body||{})
   });
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw {status:r.status, data};
+
+  // read as text first (some workers return non-json on 404)
+  const t = await r.text();
+  let data = {};
+  try{ data = t ? JSON.parse(t) : {}; }catch(_e){ data = { raw: t }; }
+
+  if (!r.ok){
+    // 404 usually means: backend worker not updated to the version this UI expects
+    if (r.status === 404){
+      throw { status:r.status, data:{...data, message:"endpoint_not_found", hint:"Backend/Worker ist nicht auf dem Stand der UI (fehlender Endpoint: "+path+"). Bitte Worker aktualisieren/deployen."} };
+    }
+    throw { status:r.status, data };
+  }
   return data;
 }
 
