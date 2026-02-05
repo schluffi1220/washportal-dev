@@ -3531,6 +3531,177 @@ function wireV8UI(){
 
 document.addEventListener("DOMContentLoaded", wireV8UI);
 
+
+
+/* ============================
+   UI v9: Auth sections + Users
+   ============================ */
+
+function hasPerm(p){ try{ return !!(__AUTH_ME?.perms && __AUTH_ME.perms[p]); }catch(_e){ return false; } }
+function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.includes(r); }
+
+function updateAuthSections(){
+  const loggedIn = !!(getAuth()?.token);
+  const me = __AUTH_ME || null;
+
+  const show = (id, ok)=>{
+    const el = $(id);
+    if (!el) return;
+    el.style.display = (loggedIn && ok) ? "" : "none";
+  };
+
+  // Config
+  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
+
+  // Logs + bookings
+  show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.logs.view"));
+  show("authBookingsDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.bookings.view"));
+
+  // Feedback
+  show("authFeedbackDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.feedback.view") || hasPerm("admin.feedback.reply"));
+
+  // Room control
+  show("authRoomControlDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.roomcontrol.manage") || hasPerm("ps.rooms.manage"));
+
+  // Users
+  show("authUsersDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.users.manage"));
+}
+
+let __AUTH_ME = null;
+
+async function authMe(){
+  const a=getAuth();
+  if(!a.token) return null;
+  const r = await jpostAuth("/api/auth/me", {});
+  __AUTH_ME = r;
+  updateAuthSections();
+  return r;
+}
+
+// Patch existing renderAuth to call authMe when logged in
+try{
+  const _oldRenderAuth = window.renderAuth;
+  window.renderAuth = async function(){
+    const out = await _oldRenderAuth();
+    try{ await authMe(); }catch(_e){}
+    return out;
+  };
+}catch(_e){}
+
+// ---- Users UI ----
+const PERM_GROUPS = [
+  {title:"Allgemein", keys:[
+    ["admin.logs.view","Logs ansehen"],
+    ["admin.bookings.view","Buchungen ansehen"],
+    ["admin.bookings.cancel","Buchungen stornieren"],
+  ]},
+  {title:"Konfiguration / News", keys:[
+    ["admin.config.manage","Konfiguration ändern"],
+    ["admin.news.edit","News ändern"],
+  ]},
+  {title:"Feedback / Zimmer", keys:[
+    ["admin.feedback.view","Feedback sehen"],
+    ["admin.feedback.reply","Feedback antworten"],
+    ["admin.roomcontrol.manage","Zimmer sperren/anschreiben"],
+  ]},
+  {title:"Benutzer", keys:[
+    ["admin.users.manage","Benutzerverwaltung"],
+  ]},
+];
+
+function renderUsers(list){
+  const box=$("authUsersBox"); if(!box) return;
+  const q = ($("authUsersSearch")?.value||"").trim().toLowerCase();
+  let items = list || [];
+  if(q) items = items.filter(u=>String(u.email||"").toLowerCase().includes(q));
+
+  if(!items.length){ box.innerHTML = `<div class="small">Keine Benutzer.</div>`; return; }
+
+  box.innerHTML = items.map(u=>{
+    const role = String(u.role||"");
+    const status = String(u.status||"");
+    const perms = u.perms || {};
+
+    const permHtml = PERM_GROUPS.map(g=>{
+      return `<div style="margin-top:10px; padding:10px; border:1px solid rgba(255,255,255,.08); border-radius:12px">
+        <div><b>${esc(g.title)}</b></div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:8px; margin-top:8px">
+          ${g.keys.map(([k,lab])=>`
+            <label class="small" style="display:flex;gap:8px;align-items:center">
+              <input type="checkbox" data-up="${esc(u.id)}" data-perm="${esc(k)}" ${perms[k] ? "checked":""} />
+              ${esc(lab)} <span style="opacity:.65">(${esc(k)})</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>`;
+    }).join("");
+
+    return `<div style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,.10)">
+      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center">
+        <div>
+          <div><b>${esc(u.email||"")}</b></div>
+          <div class="small" style="opacity:.8">Rolle: ${esc(role)} · Status: ${esc(status)}</div>
+        </div>
+        <div class="row" style="gap:8px; flex-wrap:wrap">
+          <select data-role="${esc(u.id)}">
+            ${["ps","ps_deputy","admin","super_admin","superadmin"].map(r=>`<option value="${r}" ${r===role?"selected":""}>${r}</option>`).join("")}
+          </select>
+          <select data-status="${esc(u.id)}">
+            ${["pending","active","disabled"].map(s=>`<option value="${s}" ${s===status?"selected":""}>${s}</option>`).join("")}
+          </select>
+          <button class="btn" data-save="${esc(u.id)}">Speichern</button>
+        </div>
+      </div>
+      ${permHtml}
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll("button[data-save]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-save");
+      const role = box.querySelector(`select[data-role="${CSS.escape(id)}"]`)?.value;
+      const status = box.querySelector(`select[data-status="${CSS.escape(id)}"]`)?.value;
+
+      const perms = {};
+      box.querySelectorAll(`input[type="checkbox"][data-up="${CSS.escape(id)}"]`).forEach(cb=>{
+        perms[cb.getAttribute("data-perm")] = cb.checked;
+      });
+
+      try{
+        await jpostAuth("/api/auth/admin/users/update", { userId:id, role, status, perms });
+        toast("✅ Benutzer gespeichert");
+        await authUsersLoad();
+      }catch(e){
+        const msg = e?.data?.message || e?.data?.error || "Fehler";
+        toast("⛔ Benutzer: "+msg);
+      }
+    };
+  });
+}
+
+let __USERS_CACHE = [];
+async function authUsersLoad(){
+  const a=getAuth(); if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authUsersDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authUsersBox"); if(box) box.innerHTML = `<div class="small">Lade…</div>`;
+  try{
+    const includePending = $("authUsersIncludePending")?.checked !== false;
+    const r = await jpostAuth("/api/auth/admin/users/list", { includePending });
+    __USERS_CACHE = r.users || [];
+    renderUsers(__USERS_CACHE);
+    toast("✅ Benutzer geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if(box) box.innerHTML = `<div class="small">⛔ Laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Benutzer: "+msg);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  if ($("btnAuthUsersLoad")) $("btnAuthUsersLoad").onclick = authUsersLoad;
+  if ($("authUsersSearch")) $("authUsersSearch").oninput = ()=>renderUsers(__USERS_CACHE);
+});
+
 </script>
 </body>
 </html>
