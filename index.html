@@ -707,10 +707,10 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_ROLE, r || "");
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
+  // do NOT mark authed yet; /api/auth/me will verify
   document.body.setAttribute("data-authed","0");
-    clearAuth(); // will flip to 1 after /api/auth/me succeeds
 }
-  function clearAuth(){
+function clearAuth(){
   sessionStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(AUTH_ROLE);
   localStorage.removeItem(AUTH_EMAIL);
@@ -760,11 +760,12 @@ async function renderAuthState(){
     window.__ME = null;
     document.body.setAttribute("data-authed","0");
   }
-  renderAuthState();
+  renderAuth();
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
+
 
 let __logoutTimer = null;
 
@@ -846,11 +847,11 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
 }
 
 
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded", async ()=>{
   applyRoleVisibility();
   scheduleAutoLogout();
   await renderAuthState();
-  renderAuth();
+  wireAuthUI();
 
   document.getElementById("btnPsLogin").onclick=async()=>{
     try{
