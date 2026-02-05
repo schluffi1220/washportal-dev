@@ -66,15 +66,24 @@
     }
     label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
     input, select{
-      color:#000 !important;
-      background:#fff;
       width:100%;
       padding:12px 12px;
       border-radius:10px;
       border:1px solid var(--border);
+      outline:none;
+    }
+    /* Inputs: dark like the page */
+    input{
       background:rgba(0,0,0,.18);
       color:var(--text);
-      outline:none;
+    }
+    /* Dropdown: high contrast, always readable */
+    select{
+      background:#ffffff;
+      color:#000000;
+    }
+    select option{
+      color:#000000;
     }
     button{
       width:100%;
@@ -225,6 +234,17 @@ z-index:9999;
     <div id="psList" class="muted">Lade...</div>
   </div>
 
+  <div class="card">
+    <p class="numTitle">11. Urheberrecht</p>
+    <p>
+      Dieser Code bzw. die Funktionen sind urheberrechtlich geschützt.
+      Sollte ein Interesse an einer Version bestehen, kontaktiere bitte
+      <strong>schluffi1220@googlemail.com</strong> mit dem Betreff: Waschportal.
+    </p>
+  </div>
+
+
+
   <div class="card" id="regCard">
     <h2 style="margin:0 0 12px">Registrierung</h2>
 
@@ -266,16 +286,7 @@ z-index:9999;
   </div>
 
 
-  <div class="card">
-    <p class="numTitle">11. Urheberrecht</p>
-    <p>
-      Dieser Code bzw. die Funktionen sind urheberrechtlich geschützt.
-      Sollte ein Interesse an einer Version bestehen, kontaktiere bitte
-      <strong>schluffi1220@googlemail.com</strong> mit dem Betreff: Waschportal.
-    </p>
-  </div>
-
-<script>
+  <script>
 const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
 function pad(n){return String(n).padStart(2,"0");}
