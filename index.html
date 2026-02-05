@@ -1700,6 +1700,10 @@ function wireAuthUI(){
   // initial
   renderAuthState();
   scheduleAutoLogout();
+}
+
+document.addEventListener("DOMContentLoaded", wireAuthUI);
+})();
 
 
 function downloadCSV(filename, rows){
