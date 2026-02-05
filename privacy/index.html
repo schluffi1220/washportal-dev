@@ -66,7 +66,8 @@
     }
     label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
     input, select{
-      color:#000;
+      color:#000 !important;
+      background:#fff;
       width:100%;
       padding:12px 12px;
       border-radius:10px;
@@ -99,14 +100,14 @@
 <a href="/washportal-dev/" style="
 position:fixed;
 top:18px;
-right:22px;
+right:20px;
 background:#34d399;
 color:#000;
 padding:8px 14px;
 border-radius:10px;
 font-weight:700;
 text-decoration:none;
-z-index:999;
+z-index:9999;
 ">← Zurück zum Portal</a>
 
   <h1>Datenschutzerklärung</h1>
@@ -262,6 +263,16 @@ z-index:999;
 
     <button id="registerBtn">Registrieren</button>
     <div id="regMsg" class="msg"></div>
+  </div>
+
+
+  <div class="card">
+    <p class="numTitle">11. Urheberrecht</p>
+    <p>
+      Dieser Code bzw. die Funktionen sind urheberrechtlich geschützt.
+      Sollte ein Interesse an einer Version bestehen, kontaktiere bitte
+      <strong>schluffi1220@googlemail.com</strong> mit dem Betreff: Waschportal.
+    </p>
   </div>
 
 <script>
