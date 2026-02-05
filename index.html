@@ -495,52 +495,118 @@
     <div id="authMachinesBox" class="small" style="margin-top:10px"></div>
   </details>
 
-  <details id="authRoomControlDetails" style="display:none; margin-top:12px">
-    <summary><b>Zimmer sperren / Hinweis</b></summary>
-    <div class="row" style="margin-top:10px">
-      <input id="authRcRoom" placeholder="Zimmer (oder leer für * mit Haken unten)" style="width:100%">
-      <label style="display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="authRcAll" />
-        <span class="small">Alle Zimmer (*)</span>
-      </label>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <label style="display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="authRcBlocked" />
-        <span>Gesperrt</span>
-      </label>
-      <input id="authRcMsg" placeholder="Hinweistext (optional)" style="width:100%">
-      <button id="btnAuthRcSave" class="btn">Speichern</button>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button id="btnAuthRcList" class="btn secondary">Aktuelle Sperren laden</button>
-    </div>
-    <div id="authRoomControlBox" class="small" style="margin-top:10px"></div>
-  </details>
+  
 
   <details id="authFeedbackDetails" style="display:none; margin-top:12px">
-    <summary><b>Feedback / Nachrichten</b></summary>
-    <div class="row" style="margin-top:10px">
-      <button id="btnAuthFbList" class="btn secondary">Threads laden</button>
-    </div>
-    <div id="authFeedbackBox" class="small" style="margin-top:10px"></div>
-  </details>
-</div>
+  <summary><b>Feedback / Nachrichten</b></summary>
 
-  
-  <!-- Auth-Dashboard Panels -->
+  <div class="row" style="margin-top:10px; flex-wrap:wrap">
+    <button id="btnAuthFbList" class="btn secondary">Threads laden</button>
+    <input id="authFbSearch" placeholder="Suche Zimmer / Thread-ID" style="flex:1; min-width:220px">
+    <button id="btnAuthFbRefresh" class="btn secondary">Aktualisieren</button>
+  </div>
+
+  <div class="grid" style="margin-top:10px; grid-template-columns: 1fr 2fr; gap:12px">
+    <div class="card">
+      <div class="small" style="opacity:.8">Threads</div>
+      <div id="authFbThreadsBox" class="small" style="margin-top:8px; max-height:420px; overflow:auto"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+        <div>
+          <div id="authFbActiveTitle"><b>Thread</b></div>
+          <div id="authFbActiveMeta" class="small" style="opacity:.8"></div>
+        </div>
+        <div class="row" style="gap:8px">
+          <label class="small" style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="authFbVisibleToUser" checked />
+            sichtbar für Zimmer
+          </label>
+        </div>
+      </div>
+
+      <div id="authFbMsgsBox" class="small" style="margin-top:10px; max-height:360px; overflow:auto; padding-right:6px"></div>
+
+      <div style="margin-top:10px">
+        <textarea id="authFbMsg" placeholder="Antwort schreiben…" style="width:100%; min-height:90px"></textarea>
+        <div class="row" style="margin-top:8px; justify-content:space-between; align-items:center; flex-wrap:wrap">
+          <div class="small" style="opacity:.75">Tipp: „Zimmer anschreiben“ geht hier – Admins sehen es immer.</div>
+          <button id="btnAuthFbSend" class="btn">Senden</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>
+</div>
+<!-- Auth-Dashboard Panels -->
   <details id="authLogsDetails" style="margin-top:12px; display:none" open>
     <summary>Logs</summary>
     <div class="card" style="margin-top:10px">
-      <div id="authLogsBox" class="small" style="margin-top:8px"></div>
-    </div>
+<div class="row" style="flex-wrap:wrap; gap:10px">
+  <button id="btnAuthLogsReload" class="btn secondary">Neu laden</button>
+  <input id="authLogsSearch" placeholder="Suche: Zimmer / Aktion / Actor / Maschine" style="flex:1; min-width:260px">
+  <select id="authLogsAction" style="min-width:200px">
+    <option value="">Alle Aktionen</option>
+  </select>
+  <button id="btnAuthLogsExport" class="btn">CSV Export</button>
+</div>
+<div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center">
+  <label class="small" style="display:flex; gap:8px; align-items:center">
+    <span>Zeitraum</span>
+    <select id="authLogsRange">
+      <option value="1">1 Tag</option>
+      <option value="3">3 Tage</option>
+      <option value="7" selected>7 Tage</option>
+      <option value="14">14 Tage</option>
+      <option value="30">30 Tage</option>
+      <option value="90">90 Tage</option>
+      <option value="365">365 Tage</option>
+    </select>
+  </label>
+  <span class="small" id="authLogsCount" style="opacity:.8"></span>
+</div>
+<div id="authLogsBox" class="small" style="margin-top:10px"></div>
+  </div>
   </details>
 
   <details id="authBookingsDetails" style="margin-top:12px; display:none" open>
     <summary>Buchungen</summary>
     <div class="card" style="margin-top:10px">
-      <div id="authBookingsBox" class="small" style="margin-top:8px"></div>
-    </div>
+<div class="row" style="flex-wrap:wrap; gap:10px">
+  <button id="btnAuthBookingsReload" class="btn secondary">Neu laden</button>
+  <input id="authBookingsSearch" placeholder="Suche: Zimmer / Maschine / Status / ID" style="flex:1; min-width:260px">
+  <select id="authBookingsStatus" style="min-width:200px">
+    <option value="">Alle Status</option>
+    <option value="booked">gebucht</option>
+    <option value="released">freigegeben</option>
+    <option value="cancelled">storniert</option>
+    <option value="admin_cancelled">ADMIN storniert</option>
+  </select>
+  <select id="authBookingsType" style="min-width:180px">
+    <option value="">WM+TR</option>
+    <option value="washer">Waschmaschine</option>
+    <option value="dryer">Trockner</option>
+  </select>
+  <button id="btnAuthBookingsExport" class="btn">CSV Export</button>
+</div>
+<div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center">
+  <label class="small" style="display:flex; gap:8px; align-items:center">
+    <span>Zeitraum</span>
+    <select id="authBookingsRange">
+      <option value="1">1 Tag</option>
+      <option value="3">3 Tage</option>
+      <option value="7" selected>7 Tage</option>
+      <option value="14">14 Tage</option>
+      <option value="30">30 Tage</option>
+      <option value="90">90 Tage</option>
+      <option value="365">365 Tage</option>
+    </select>
+  </label>
+  <span class="small" id="authBookingsCount" style="opacity:.8"></span>
+</div>
+<div id="authBookingsBox" class="small" style="margin-top:10px"></div>
+  </div>
   </details>
 
 <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -3005,6 +3071,466 @@ async function authOpenFeedback(threadId){
     toast("⛔ "+msg);
   }
 }
+
+
+/* ============================
+   UI v8: Logs/Bookings/Feedback/RoomControl
+   ============================ */
+
+function fmtTs(ts){
+  const n = Number(ts||0);
+  if (!Number.isFinite(n) || n<=0) return "";
+  const d = new Date(n);
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone:"Europe/Berlin",
+    year:"numeric", month:"2-digit", day:"2-digit",
+    hour:"2-digit", minute:"2-digit", second:"2-digit"
+  }).format(d);
+}
+
+function parseMeta(m){
+  if (!m) return {};
+  if (typeof m === "object") return m;
+  try{ return JSON.parse(String(m)); }catch(_e){ return { raw: String(m) }; }
+}
+
+function logRowToView(r){
+  const meta = parseMeta(r.meta);
+  const type = meta.type || r.type || "";
+  const machine = meta.machine || r.machine || "";
+  const mTxt = (type && machine) ? `${type==="washer"?"WM":"TR"} ${machine}` : "";
+  return {
+    ts: Number(r.ts||0),
+    time: fmtTs(r.ts),
+    room: r.room || meta.room || "",
+    actor: r.actor || "",
+    action: r.action || "",
+    machine: mTxt,
+    details: meta.message || meta.reason || meta.note || meta.error || meta.raw || JSON.stringify(meta)
+  };
+}
+
+function bookingToView(b){
+  const now = Date.now();
+  const typeTxt = b.type==="washer" ? "Waschmaschine" : (b.type==="dryer" ? "Trockner" : (b.type||""));
+  let st = b.status || "";
+  if (st==="booked") st = (Number(b.start)<=now && Number(b.end)>now) ? "läuft" : "gebucht";
+  if (st==="released") st="freigegeben";
+  if (st==="cancelled") st="storniert";
+  if (st==="admin_cancelled") st="ADMIN storniert";
+  return {
+    id: b.id,
+    room: b.room,
+    type: b.type,
+    typeTxt,
+    machine: b.machine,
+    when: `${fmtTs(b.start)} – ${fmtTs(b.end)}`,
+    status: st,
+    rawStatus: b.status
+  };
+}
+
+function applyRangeFilter(list, rangeDays, tsGetter){
+  const days = Number(rangeDays||0);
+  if (!Number.isFinite(days) || days<=0) return list;
+  const since = Date.now() - days*24*60*60*1000;
+  return list.filter(x => Number(tsGetter(x)||0) >= since);
+}
+
+/* ---- Logs UI ---- */
+function renderAuthLogs(){
+  const box = $("authLogsBox"); if (!box) return;
+  const q = ( $("authLogsSearch")?.value || "" ).trim().toLowerCase();
+  const action = $("authLogsAction")?.value || "";
+  const range = $("authLogsRange")?.value || "7";
+
+  const viewsAll = (__ADMIN_LOGS_CACHE||[]).map(logRowToView);
+  let list = applyRangeFilter(viewsAll, range, x=>x.ts);
+
+  // filter action list
+  if (action) list = list.filter(x => x.action === action);
+
+  if (q){
+    list = list.filter(x =>
+      (x.room||"").toLowerCase().includes(q) ||
+      (x.action||"").toLowerCase().includes(q) ||
+      (x.actor||"").toLowerCase().includes(q) ||
+      (x.machine||"").toLowerCase().includes(q) ||
+      (x.details||"").toLowerCase().includes(q)
+    );
+  }
+
+  const cnt = $("authLogsCount"); if (cnt) cnt.textContent = `${list.length} Einträge`;
+
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Logs im Filter.</div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="overflow:auto">
+      <table style="width:100%; border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left; opacity:.85">
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Zeit</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Zimmer</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Maschine</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Aktion</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.slice(0, 800).map(r => `
+            <tr>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap">${esc(r.time)}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(r.room||"")}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(r.machine||"—")}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)"><span class="pill">${esc(r.action||"")}</span></td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06); max-width:520px">${esc(r.details||"")}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function authLoadLogs(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authLogsDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authLogsBox"); if(box) box.innerHTML=`<div class="small">Lade Logs…</div>`;
+  try{
+    const range = $("authLogsRange")?.value || 7;
+    const r = await jpostAuth("/api/auth/logs", { limit: 2000, rangeDays: Number(range) });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
+    // fill action dropdown
+    const sel = $("authLogsAction");
+    if (sel){
+      const actions = Array.from(new Set(__ADMIN_LOGS_CACHE.map(x=>x.action).filter(Boolean))).sort();
+      sel.innerHTML = '<option value="">Alle Aktionen</option>' + actions.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join("");
+    }
+    renderAuthLogs();
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Logs: "+msg);
+  }
+}
+
+/* ---- Bookings UI ---- */
+function renderAuthBookings(){
+  const box = $("authBookingsBox"); if(!box) return;
+  const q = ( $("authBookingsSearch")?.value || "" ).trim().toLowerCase();
+  const st = $("authBookingsStatus")?.value || "";
+  const tp = $("authBookingsType")?.value || "";
+  const range = $("authBookingsRange")?.value || "7";
+
+  const all = (__ADMIN_BOOKINGS_CACHE||[]);
+  let list = applyRangeFilter(all, range, b=>b.start);
+  if (st) list = list.filter(b => String(b.status||"") === st);
+  if (tp) list = list.filter(b => String(b.type||"") === tp);
+  if (q){
+    list = list.filter(b => 
+      String(b.room||"").toLowerCase().includes(q) ||
+      String(b.id||"").toLowerCase().includes(q) ||
+      String(b.type||"").toLowerCase().includes(q) ||
+      String(b.machine||"").toLowerCase().includes(q) ||
+      String(b.status||"").toLowerCase().includes(q)
+    );
+  }
+
+  const cnt = $("authBookingsCount"); if (cnt) cnt.textContent = `${list.length} Buchungen`;
+
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Buchungen im Filter.</div>`;
+    return;
+  }
+
+  const views = list.map(bookingToView);
+  box.innerHTML = `
+    <div style="overflow:auto">
+      <table style="width:100%; border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left; opacity:.85">
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Zeit</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Zimmer</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Maschine</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Status</th>
+            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Aktion</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${views.slice(0, 1200).map(v => `
+            <tr>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06); white-space:nowrap">${esc(v.when)}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(v.room||"")}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(v.typeTxt)} ${esc(String(v.machine||""))}</td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)"><span class="pill">${esc(v.status)}</span></td>
+              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">
+                ${v.rawStatus==="booked" ? `<button class="btn secondary inline" data-auth-cancel="${esc(v.id)}">Admin-Storno</button>` : `<span class="small" style="opacity:.7">—</span>`}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  box.querySelectorAll("button[data-auth-cancel]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-auth-cancel");
+      if (!id) return;
+      if (!confirm("Buchung wirklich admin-stornieren?")) return;
+      try{
+        await jpostAuth("/api/auth/bookings/cancel", { id });
+        toast("✅ ADMIN-Storno ok");
+        await authLoadBookings();
+      }catch(e){
+        const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+        toast("⛔ Storno: "+msg);
+      }
+    };
+  });
+}
+
+async function authLoadBookings(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authBookingsDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authBookingsBox"); if(box) box.innerHTML=`<div class="small">Lade Buchungen…</div>`;
+  try{
+    const range = $("authBookingsRange")?.value || 7;
+    let r;
+    try{ r = await jpostAuth("/api/auth/bookings", { limit: 2000, rangeDays: Number(range) }); }
+    catch(_e){ r = await jpostAuth("/api/auth/bookings/list", { limit: 2000, rangeDays: Number(range) }); }
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
+    renderAuthBookings();
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Buchungen: "+msg);
+  }
+}
+
+/* ---- Feedback UI ---- */
+let __FB_THREADS = [];
+let __FB_ACTIVE = null;
+let __FB_MESSAGES = [];
+
+function renderFbThreads(){
+  const box = $("authFbThreadsBox"); if(!box) return;
+  const q = ($("authFbSearch")?.value || "").trim().toLowerCase();
+  let list = (__FB_THREADS||[]);
+  if (q){
+    list = list.filter(t => String(t.room||"").toLowerCase().includes(q) || String(t.id||"").toLowerCase().includes(q));
+  }
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Threads.</div>`;
+    return;
+  }
+  box.innerHTML = list.map(t=>{
+    const room = t.room || "—";
+    const badge = (t.adminUnread ? "• neu" : "");
+    return `<div class="pill" style="display:block; margin-bottom:8px; cursor:pointer" data-thread="${esc(t.id)}">
+      <b>Zimmer ${esc(room)}</b> <span class="small" style="opacity:.8">${esc(badge)}</span><br/>
+      <span class="small" style="opacity:.8">${esc(fmtTs(t.updatedAt || t.updated_at || t.updatedAtMs || t.updatedAtTs || t.updatedAt))}</span>
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll("[data-thread]").forEach(el=>{
+    el.onclick = async ()=>{
+      const id = el.getAttribute("data-thread");
+      if (!id) return;
+      await authFbOpenThread(id);
+    };
+  });
+}
+
+function renderFbMessages(){
+  const box = $("authFbMsgsBox"); if(!box) return;
+  if (!__FB_ACTIVE){
+    box.innerHTML = `<div class="small">Thread auswählen…</div>`;
+    return;
+  }
+  const msgs = (__FB_MESSAGES||[]);
+  if (!msgs.length){
+    box.innerHTML = `<div class="small">Keine Nachrichten.</div>`;
+    return;
+  }
+  box.innerHTML = msgs.map(m=>{
+    const who = m.sender==="admin" ? "Admin" : "Zimmer";
+    const align = m.sender==="admin" ? "flex-end" : "flex-start";
+    const bg = m.sender==="admin" ? "rgba(255,255,255,.10)" : "rgba(255,255,255,.06)";
+    return `<div style="display:flex;justify-content:${align}; margin-bottom:10px">
+      <div style="max-width:85%; background:${bg}; padding:10px; border-radius:12px">
+        <div class="small" style="opacity:.75">${esc(who)} · ${esc(fmtTs(m.ts))}${m.visibleToUser===0 ? " · (nicht sichtbar)" : ""}</div>
+        <div style="white-space:pre-wrap">${esc(m.message||"")}</div>
+      </div>
+    </div>`;
+  }).join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+async function authFbLoadThreads(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authFeedbackDetails"); if(det){det.style.display=""; det.open=true;}
+  const listBox = $("authFbThreadsBox"); if(listBox) listBox.innerHTML = `<div class="small">Lade Threads…</div>`;
+  try{
+    let r;
+    try{ r = await jpostAuth("/api/auth/feedback/threads", { limit: 300 }); }
+    catch(_e){ r = await jpostAuth("/api/auth/feedback/list", { limit: 300 }); }
+    __FB_THREADS = (r.threads || r.items || []).slice().sort((a,b)=>(Number(b.updatedAt||b.updated_at||0)-Number(a.updatedAt||a.updated_at||0)));
+    renderFbThreads();
+    toast("✅ Threads geladen");
+  }catch(e){
+    const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    if (listBox) listBox.innerHTML = `<div class="small">⛔ Threads laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Feedback: "+msg);
+  }
+}
+
+async function authFbOpenThread(threadId){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const msgsBox = $("authFbMsgsBox"); if(msgsBox) msgsBox.innerHTML = `<div class="small">Lade…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/feedback/thread", { threadId });
+    __FB_ACTIVE = r.thread;
+    __FB_MESSAGES = r.messages || [];
+    $("authFbActiveTitle").innerHTML = `<b>Zimmer ${esc(__FB_ACTIVE.room || "")}</b>`;
+    $("authFbActiveMeta").textContent = `Thread ${threadId}`;
+    const vis = $("authFbVisibleToUser");
+    if (vis) vis.checked = true;
+    renderFbMessages();
+  }catch(e){
+    const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    if (msgsBox) msgsBox.innerHTML = `<div class="small">⛔ Thread laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Thread: "+msg);
+  }
+}
+
+async function authFbSend(){
+  if (!__FB_ACTIVE) return toast("⛔ Erst Thread auswählen");
+  const msgEl = $("authFbMsg");
+  const message = String(msgEl?.value || "").trim();
+  if (!message) return toast("⛔ Nachricht leer");
+  const visibleToUser = $("authFbVisibleToUser")?.checked !== false;
+  try{
+    await jpostAuth("/api/auth/feedback/send", { threadId: __FB_ACTIVE.id || __FB_ACTIVE.threadId || __FB_ACTIVE, message, visibleToUser });
+    if (msgEl) msgEl.value = "";
+    toast("✅ Gesendet");
+    await authFbOpenThread(__FB_ACTIVE.id || __FB_ACTIVE.threadId || __FB_ACTIVE);
+    await authFbLoadThreads();
+  }catch(e){
+    const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Senden: "+msg);
+  }
+}
+
+/* ---- Room control UI ---- */
+let __RC_CACHE = [];
+function renderRcList(){
+  const box = $("authRcListBox"); if(!box) return;
+  const q = ($("authRcSearch")?.value || "").trim().toLowerCase();
+  let list = (__RC_CACHE||[]);
+  if (q) list = list.filter(r => String(r.room||"").toLowerCase().includes(q));
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Einträge.</div>`;
+    return;
+  }
+  box.innerHTML = list.map(r=>{
+    const state = r.blocked ? "GESPERRT" : "Hinweis";
+    const pill = r.blocked ? "pill" : "pill";
+    const msg = r.message ? `<div class="small" style="opacity:.85; white-space:pre-wrap">${esc(r.message)}</div>` : `<div class="small" style="opacity:.6">—</div>`;
+    return `<div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+        <div><b>Zimmer ${esc(r.room)}</b> · <span class="${pill}">${esc(state)}</span></div>
+        <div class="small" style="opacity:.75">${esc(fmtTs(r.updatedAt))}</div>
+      </div>
+      ${msg}
+    </div>`;
+  }).join("");
+}
+
+async function authRcLoadList(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authRoomControlDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authRcListBox"); if(box) box.innerHTML = `<div class="small">Lade…</div>`;
+  try{
+    let r;
+    try{ r = await jpostAuth("/api/auth/room/control/list", {}); }
+    catch(_e){ r = await jpostAuth("/api/auth/room/control", { list:true }); }
+    __RC_CACHE = (r.rooms || r.items || []).slice().sort((a,b)=>(Number(b.updatedAt||0)-Number(a.updatedAt||0)));
+    renderRcList();
+    toast("✅ Übersicht geladen");
+  }catch(e){
+    const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ Zimmer: "+msg);
+  }
+}
+
+async function authRcSave(blocked){
+  const room = String($("authRcRoom")?.value || "").trim();
+  const message = String($("authRcMsg")?.value || "").trim();
+  if (!room) return toast("⛔ Zimmer fehlt");
+  try{
+    await jpostAuth("/api/auth/room/control", { room, blocked: !!blocked, message });
+    $("authRcHint").textContent = "✅ gespeichert";
+    await authRcLoadList();
+  }catch(e){
+    const msg = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    $("authRcHint").textContent = "⛔ "+msg;
+  }
+}
+
+function wireV8UI(){
+  // logs
+  if ($("btnAuthLogsReload")) $("btnAuthLogsReload").onclick = authLoadLogs;
+  if ($("authLogsSearch")) $("authLogsSearch").oninput = ()=>renderAuthLogs();
+  if ($("authLogsAction")) $("authLogsAction").onchange = ()=>renderAuthLogs();
+  if ($("authLogsRange")) $("authLogsRange").onchange = ()=>authLoadLogs();
+  if ($("btnAuthLogsExport")) $("btnAuthLogsExport").onclick = ()=>{
+    const views = (__ADMIN_LOGS_CACHE||[]).map(logRowToView);
+    downloadCSV("logs.csv", views);
+  };
+
+  // bookings
+  if ($("btnAuthBookingsReload")) $("btnAuthBookingsReload").onclick = authLoadBookings;
+  if ($("authBookingsSearch")) $("authBookingsSearch").oninput = ()=>renderAuthBookings();
+  if ($("authBookingsStatus")) $("authBookingsStatus").onchange = ()=>renderAuthBookings();
+  if ($("authBookingsType")) $("authBookingsType").onchange = ()=>renderAuthBookings();
+  if ($("authBookingsRange")) $("authBookingsRange").onchange = ()=>authLoadBookings();
+  if ($("btnAuthBookingsExport")) $("btnAuthBookingsExport").onclick = ()=>{
+    const rows = (__ADMIN_BOOKINGS_CACHE||[]).map(bookingToView);
+    downloadCSV("bookings.csv", rows);
+  };
+
+  // feedback
+  if ($("btnAuthFbList")) $("btnAuthFbList").onclick = authFbLoadThreads;
+  if ($("btnAuthFbRefresh")) $("btnAuthFbRefresh").onclick = authFbLoadThreads;
+  if ($("authFbSearch")) $("authFbSearch").oninput = ()=>renderFbThreads();
+  if ($("btnAuthFbSend")) $("btnAuthFbSend").onclick = authFbSend;
+
+  // room control
+  if ($("btnAuthRcList")) $("btnAuthRcList").onclick = authRcLoadList;
+  if ($("btnAuthRcRefresh")) $("btnAuthRcRefresh").onclick = authRcLoadList;
+  if ($("authRcSearch")) $("authRcSearch").oninput = ()=>renderRcList();
+  if ($("btnAuthRcSave")) $("btnAuthRcSave").onclick = ()=>authRcSave($("authRcBlocked")?.checked);
+  if ($("btnAuthRcClear")) $("btnAuthRcClear").onclick = async ()=>{
+    $("authRcBlocked").checked = false;
+    $("authRcMsg").value = "";
+    await authRcSave(false);
+  };
+}
+
+document.addEventListener("DOMContentLoaded", wireV8UI);
+
 </script>
 </body>
 </html>
