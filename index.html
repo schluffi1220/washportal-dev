@@ -409,16 +409,82 @@
   <div class="small" id="psDashInfo" style="margin-top:8px; opacity:.9">—</div>
   <div class="gridTiles" id="psDashTiles" style="margin-top:12px"></div>
 <details id="authConfigDetails" style="display:none; margin-top:12px">
-    <summary><b>Konfiguration / News</b></summary>
-    <div class="small" style="margin-top:8px; opacity:.85">
-      Diese Einstellungen entsprechen dem Super-Admin Bereich, laufen aber über deinen Token und die gesetzten Haken (Permissions).
+  <summary><b>Konfiguration / News</b></summary>
+  <div class="small" style="margin-top:8px; opacity:.85">
+    Diese Einstellungen entsprechen dem Super-Admin Bereich, laufen aber über deinen Token und die gesetzten Haken (Permissions).
+  </div>
+
+  <div class="row" style="margin-top:10px; flex-wrap:wrap">
+    <button id="btnAuthConfigLoad" class="btn secondary">Konfig laden</button>
+    <button id="btnAuthConfigSave" class="btn">Konfig speichern</button>
+    <label class="small" style="display:flex; align-items:center; gap:8px; margin-left:auto">
+      <input id="authBumpNewsVersion" type="checkbox" />
+      News-Version erhöhen (Popup für User)
+    </label>
+  </div>
+
+  <div id="authConfigMsg" class="small" style="margin-top:10px"></div>
+
+  <div class="grid2" style="margin-top:12px; gap:12px">
+    <div class="card" style="padding:12px">
+      <div class="small" style="opacity:.8; margin-bottom:8px"><b>Zeitraum</b></div>
+      <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
+        <label class="small">Tage zurück:
+          <input id="authDaysPast" type="number" min="0" max="30" style="width:90px; margin-left:6px">
+        </label>
+        <label class="small">Tage voraus:
+          <input id="authDaysFuture" type="number" min="0" max="30" style="width:90px; margin-left:6px">
+        </label>
+      </div>
     </div>
-    <div class="row" style="margin-top:10px">
-      <button id="btnAuthConfigLoad" class="btn secondary">Konfig laden</button>
-      <button id="btnAuthConfigSave" class="btn">Konfig speichern</button>
+
+    <div class="card" style="padding:12px">
+      <div class="small" style="opacity:.8; margin-bottom:8px"><b>Trockner</b></div>
+      <label class="small">Standarddauer:
+        <select id="authDryerMinutes" style="margin-left:6px">
+          <option value="60">60 Minuten</option>
+          <option value="90">90 Minuten</option>
+          <option value="120">120 Minuten</option>
+        </select>
+      </label>
     </div>
-    <div id="authConfigBox" class="small" style="margin-top:10px"></div>
-  </details>
+  </div>
+
+  <div class="card" style="padding:12px; margin-top:12px">
+    <div class="small" style="opacity:.8; margin-bottom:8px"><b>Waschzeiten (Slots)</b></div>
+    <div id="authWasherHoursWrap" class="small" style="display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap:6px"></div>
+  </div>
+
+  <div class="grid2" style="margin-top:12px; gap:12px">
+    <div class="card" style="padding:12px">
+      <div class="small" style="opacity:.8; margin-bottom:8px"><b>Defektmeldung durch User</b></div>
+      <label class="small" style="display:flex; align-items:center; gap:8px">
+        <input id="authUserDefectEnabled" type="checkbox">
+        User dürfen Defekt melden
+      </label>
+
+      <div class="small" style="opacity:.8; margin-top:10px"><b>Erlaubte Maschinen</b></div>
+      <div class="small" style="margin-top:6px">
+        <div style="opacity:.75; margin-bottom:4px">Waschmaschinen</div>
+        <div id="authAllowWasher" style="display:flex; gap:10px; flex-wrap:wrap"></div>
+      </div>
+      <div class="small" style="margin-top:8px">
+        <div style="opacity:.75; margin-bottom:4px">Trockner</div>
+        <div id="authAllowDryer" style="display:flex; gap:10px; flex-wrap:wrap"></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:12px">
+      <div class="small" style="opacity:.8; margin-bottom:8px"><b>News</b></div>
+      <label class="small" style="display:flex; align-items:center; gap:8px">
+        <input id="authNewsEnabled" type="checkbox">
+        News aktiv
+      </label>
+      <div class="small" style="margin-top:8px; opacity:.75">Text (wird den Usern im Portal angezeigt)</div>
+      <textarea id="authNewsText" rows="10" style="width:100%; margin-top:6px"></textarea>
+    </div>
+  </div>
+</details>
 
   <details id="authMachinesDetails" style="display:none; margin-top:12px">
     <summary><b>Maschinen verwalten</b></summary>
@@ -2577,6 +2643,121 @@ if ($("btnLoadLogs")) {
 // =====================
 
 let __AUTH_CONFIG_CACHE = null;
+function ensureAuthConfigOptions(){
+  // washer hour checkboxes (0..23) created once
+  const wrap = $("authWasherHoursWrap");
+  if (wrap && !wrap.__built){
+    wrap.__built = true;
+    let html = "";
+    for (let h=0; h<24; h++){
+      const hh = String(h).padStart(2,"0")+":00";
+      html += `<label class="small" style="display:flex; gap:6px; align-items:center; padding:4px 6px; border:1px solid var(--line); border-radius:10px">
+        <input type="checkbox" data-hour="${h}">
+        <span class="mono">${hh}</span>
+      </label>`;
+    }
+    wrap.innerHTML = html;
+  }
+
+  const mkAllow = (id)=>{
+    const el = $(id);
+    if (el && !el.__built){
+      el.__built = true;
+      el.innerHTML = [1,2,3,4].map(n=>`
+        <label class="small" style="display:flex; gap:6px; align-items:center">
+          <input type="checkbox" data-n="${n}"> #${n}
+        </label>
+      `).join("");
+    }
+  };
+  mkAllow("authAllowWasher");
+  mkAllow("authAllowDryer");
+}
+
+function renderAuthConfigForm(cfg){
+  ensureAuthConfigOptions();
+  // numbers
+  const daysPast = $("authDaysPast"); if (daysPast) daysPast.value = Number(cfg.daysPast ?? 1);
+  const daysFuture = $("authDaysFuture"); if (daysFuture) daysFuture.value = Number(cfg.daysFuture ?? 6);
+
+  // dryer
+  const dryer = $("authDryerMinutes"); if (dryer) dryer.value = String(Number(cfg.dryerMinutes ?? 90));
+
+  // washer hours
+  const wrap = $("authWasherHoursWrap");
+  const set = new Set((cfg.washerHours || []).map(Number));
+  if (wrap){
+    wrap.querySelectorAll('input[type="checkbox"][data-hour]').forEach(cb=>{
+      const h = Number(cb.getAttribute("data-hour"));
+      cb.checked = set.has(h);
+    });
+  }
+
+  // defect
+  const ude = $("authUserDefectEnabled"); if (ude) ude.checked = !!cfg.userDefectEnabled;
+
+  const allowed = cfg.userDefectAllowed || { washer:{}, dryer:{} };
+  const setAllow = (containerId, obj)=>{
+    const el = $(containerId);
+    if (!el) return;
+    el.querySelectorAll('input[type="checkbox"][data-n]').forEach(cb=>{
+      const n = String(cb.getAttribute("data-n"));
+      cb.checked = !!(obj && obj[n]);
+    });
+  };
+  setAllow("authAllowWasher", allowed.washer || {});
+  setAllow("authAllowDryer", allowed.dryer || {});
+
+  // news
+  const ne = $("authNewsEnabled"); if (ne) ne.checked = !!cfg.newsEnabled;
+  const nt = $("authNewsText"); if (nt) nt.value = String(cfg.newsText || "");
+  const bump = $("authBumpNewsVersion"); if (bump) bump.checked = false;
+}
+
+function collectAuthConfigFromForm(){
+  ensureAuthConfigOptions();
+  const cfg = __AUTH_CONFIG_CACHE || {};
+
+  const daysPast = clampInt($("authDaysPast")?.value, 0, 30, cfg.daysPast);
+  const daysFuture = clampInt($("authDaysFuture")?.value, 0, 30, cfg.daysFuture);
+
+  const dryerMinutes = Number($("authDryerMinutes")?.value || cfg.dryerMinutes || 90);
+
+  const wrap = $("authWasherHoursWrap");
+  let washerHours = cfg.washerHours || [];
+  if (wrap){
+    washerHours = Array.from(wrap.querySelectorAll('input[type="checkbox"][data-hour]'))
+      .filter(cb=>cb.checked)
+      .map(cb=>Number(cb.getAttribute("data-hour")))
+      .filter(n=>Number.isFinite(n) && n>=0 && n<=23)
+      .sort((a,b)=>a-b);
+  }
+
+  const userDefectEnabled = !!$("authUserDefectEnabled")?.checked;
+
+  const readAllow = (containerId)=>{
+    const el = $(containerId);
+    const out = {};
+    if (!el) return out;
+    el.querySelectorAll('input[type="checkbox"][data-n]').forEach(cb=>{
+      const n = String(cb.getAttribute("data-n"));
+      out[n] = !!cb.checked;
+    });
+    return out;
+  };
+  const userDefectAllowed = {
+    washer: readAllow("authAllowWasher"),
+    dryer: readAllow("authAllowDryer"),
+  };
+
+  const newsEnabled = !!$("authNewsEnabled")?.checked;
+  const newsText = String($("authNewsText")?.value || "");
+
+  const bumpNewsVersion = !!$("authBumpNewsVersion")?.checked;
+
+  return { daysPast, daysFuture, washerHours, dryerMinutes, userDefectEnabled, userDefectAllowed, newsEnabled, newsText, bumpNewsVersion };
+}
+
 let __AUTH_MACHINES_CACHE = null;
 let __AUTH_ROOMCONTROL_CACHE = null;
 let __AUTH_FB_THREADS = null;
@@ -2598,43 +2779,32 @@ async function authMeCached(){
 
 async function authLoadConfig(){
   const det = $("authConfigDetails"); if(det){det.style.display=""; det.open=true;}
-  const box = $("authConfigBox"); if (box) box.innerHTML = `<div class="small">Lade Konfiguration…</div>`;
+  const msg = $("authConfigMsg"); if (msg) msg.innerHTML = `<div class="small">Lade Konfiguration…</div>`;
   try{
     await authMeCached();
     const r = await jpostAuth("/api/auth/admin/config/get", {});
     __AUTH_CONFIG_CACHE = r.config || {};
-    // Reuse existing admin render if available
-    if (typeof renderAdminConfigUI === "function"){
-      renderAdminConfigUI(__AUTH_CONFIG_CACHE, r.newsSeenCount || 0);
-      if (box) box.innerHTML = `<div class="small">✅ Konfiguration geladen (oben im Super-Admin UI sichtbar).</div>`;
-    }else{
-      if (box) box.innerHTML = `<pre class="mono" style="white-space:pre-wrap">${esc(JSON.stringify(__AUTH_CONFIG_CACHE, null, 2))}</pre>`;
-    }
+    renderAuthConfigForm(__AUTH_CONFIG_CACHE);
     toast("✅ Konfiguration geladen");
+    if (msg) msg.innerHTML = `<div class="small">✅ Konfiguration geladen.</div>`;
   }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    if (box) box.innerHTML = `<div class="small">⛔ Konfiguration laden fehlgeschlagen (${esc(msg)})</div>`;
-    toast("⛔ "+msg);
+    const m = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Konfig laden: "+m);
+    if (msg) msg.innerHTML = `<div class="small">⛔ Laden fehlgeschlagen (${esc(m)})</div>`;
   }
 }
 
 async function authSaveConfig(){
-  const box = $("authConfigBox");
+  const msg = $("authConfigMsg");
   try{
-    // Prefer reading from existing SA admin form if present, else save cached
-    let payload = null;
-    if (typeof collectAdminConfigFromUI === "function"){
-      payload = collectAdminConfigFromUI();
-    }else{
-      payload = __AUTH_CONFIG_CACHE || {};
-    }
+    const payload = collectAuthConfigFromForm();
     await jpostAuth("/api/auth/admin/config/set", payload);
     toast("✅ Konfiguration gespeichert");
-    if (box) box.innerHTML = `<div class="small">✅ Gespeichert.</div>`;
+    if (msg) msg.innerHTML = `<div class="small">✅ Gespeichert.</div>`;
   }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast("⛔ Speichern fehlgeschlagen: "+msg);
-    if (box) box.innerHTML = `<div class="small">⛔ Speichern fehlgeschlagen (${esc(msg)})</div>`;
+    const m = e?.data?.hint || e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Speichern: "+m);
+    if (msg) msg.innerHTML = `<div class="small">⛔ Speichern fehlgeschlagen (${esc(m)})</div>`;
   }
 }
 
