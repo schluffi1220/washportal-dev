@@ -3,34 +3,68 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
 <title>Datenschutz</title>
 
-<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"/>
-<meta http-equiv="Pragma" content="no-cache"/>
-<meta http-equiv="Expires" content="0"/>
-
 <style>
-body{font-family:system-ui;background:#0f172a;color:#e5e7eb;margin:0;padding:24px}
-.card{background:#111827;border-radius:12px;padding:16px;margin-bottom:14px}
-h3{margin:0 0 8px}
+body{
+  font-family:system-ui;
+  background:#0f172a;
+  color:#e5e7eb;
+  margin:0;
+  padding:32px;
+  line-height:1.55;
+}
+h1{margin-top:0}
+.section{
+  background:#111827;
+  padding:18px;
+  border-radius:12px;
+  margin-bottom:18px;
+}
+h3{margin:0 0 10px}
+p{margin:10px 0}
 .mono{font-family:monospace}
+.list-line{margin:6px 0}
 </style>
 </head>
 
 <body>
 
-<h2>Datenschutz</h2>
+<h1>Datenschutz</h1>
 
-<div class="card">
-  <h3>Automatischer Löschzeitpunkt</h3>
-  <div id="metaLine">Lade...</div>
-  <div id="deleteInfo"></div>
+<div class="section" id="privacyText">
+  <p><strong>1. Verantwortlicher</strong></p>
+  <p>
+    Ansprechpartner für Datenschutzanfragen:<br>
+    <strong id="psContact">Lade...</strong>
+  </p>
+
+  <p><strong>2. Speicherdauer</strong></p>
+  <p id="deleteInfo">Lade...</p>
+
+  <p><strong>3. Ihre Rechte</strong></p>
+  <p>
+    • Auskunft über gespeicherte Daten (Art. 15 DSGVO)<br>
+    • Berichtigung (Art. 16 DSGVO)<br>
+    • Löschung (Art. 17 DSGVO)<br>
+    • Einschränkung (Art. 18 DSGVO)<br>
+    • Widerspruch (Art. 21 DSGVO)
+  </p>
 </div>
 
-<div class="card">
+
+<div class="section">
+  <h3>Automatischer Löschzeitpunkt</h3>
+  <div id="metaLine">Lade...</div>
+</div>
+
+
+<div class="section">
   <h3>Registrierte Patientensprecher</h3>
   <div id="psList">Lade...</div>
 </div>
+
 
 <script>
 const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
@@ -43,51 +77,61 @@ function fmt(ts){
 }
 
 async function loadMeta(){
+
   const r = await fetch(API_BASE + "/api/privacy/meta", {cache:"no-store"});
   const j = await r.json();
 
-  if(!j.ok) throw new Error("meta failed");
+  if(!j.ok) throw new Error("meta");
 
   const del = fmt(j.deleteAt);
+
   document.getElementById("metaLine").textContent = "Stand: " + del;
 
   document.getElementById("deleteInfo").innerHTML =
     "Buchungsdaten werden nur so lange gespeichert wie erforderlich. "+
-    "Spätestens am <span class='mono'>"+del+"</span> werden sie gelöscht.";
+    "Spätestens am <span class='mono'>"+del+"</span> werden sie automatisch gelöscht.";
 
-  // ===============================
-  // ✅ FIX: kompatibles Rendering
-  // ===============================
   const list = document.getElementById("psList");
   const ps = j.patientSpeakers || [];
 
   if(!ps.length){
     list.textContent = "Noch keine Registrierungen.";
+    document.getElementById("psContact").textContent = "–";
     return;
   }
 
+  // ===== Liste unten =====
   list.innerHTML = ps.map(p=>{
     const name =
       p.name ||
-      [p.firstName, p.lastName].filter(Boolean).join(" ").trim() ||
-      "(ohne Name)";
+      [p.firstName, p.lastName].filter(Boolean).join(" ");
 
     const email =
-      p.emailMasked ||
-      p.email ||
-      "(ohne E‑Mail)";
+      p.emailMasked || p.email || "";
 
     const status = p.status ? " – " + p.status : "";
 
     return "• " + name + " (" + email + ")" + status;
   }).join("<br/>");
+
+
+  // ===== erster Sprecher oben im Text =====
+  const first = ps[0];
+  const name =
+      first.name ||
+      [first.firstName, first.lastName].filter(Boolean).join(" ");
+
+  const email =
+      first.emailMasked || first.email || "";
+
+  document.getElementById("psContact").textContent =
+    name + " (" + email + ")";
 }
+
 
 window.addEventListener("DOMContentLoaded", ()=>{
   loadMeta().catch(e=>{
     console.error(e);
-    document.getElementById("metaLine").textContent = "Fehler beim Laden";
-    document.getElementById("psList").textContent = "Fehler beim Laden";
   });
 });
 </script>
