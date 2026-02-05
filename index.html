@@ -707,7 +707,8 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_ROLE, r || "");
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
-  document.body.setAttribute("data-authed", t ? "1" : "0");
+  document.body.setAttribute("data-authed","0");
+    clearAuth(); // will flip to 1 after /api/auth/me succeeds
 }
   function clearAuth(){
   sessionStorage.removeItem(AUTH_KEY);
@@ -751,7 +752,7 @@ function renderAuth(){
 
 // Backwards-compat alias (older patches referenced renderAuthState)
 function renderAuthState(){
-  return document.body.setAttribute("data-authed", getAuth().token ? "1" : "0");
+  return document.body.setAttribute("data-authed","0");
   renderAuth();
 }
 window.renderAuthState = renderAuthState;
@@ -798,6 +799,9 @@ function updatePsDashUI(){
   const a = getAuth();
   const info = document.getElementById("psDashInfo");
   const logout2 = document.getElementById("btnPsLogout2");
+  const fl = $("btnForceLogout");
+if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); location.reload(); };
+
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
@@ -1980,6 +1984,8 @@ function wireAuthUI(){
   if (loginBtn) loginBtn.onclick = doLogin;
   if (emailEl) emailEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
   if (passEl) passEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+
+  const flBtn = $("btnForceLogout"); if (flBtn) flBtn.style.display = getAuth().token ? "" : "none";
 
   if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
 
