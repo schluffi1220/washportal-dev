@@ -707,12 +707,14 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_ROLE, r || "");
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
+  document.body.setAttribute("data-authed", t ? "1" : "0");
 }
   function clearAuth(){
   sessionStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(AUTH_ROLE);
   localStorage.removeItem(AUTH_EMAIL);
   localStorage.removeItem(AUTH_EXP);
+  document.body.setAttribute("data-authed","0");
 }
 
 function getAuth(){
@@ -743,14 +745,17 @@ function renderAuth(){
     out.style.display="none";
   }
 
-// Backwards-compat alias (older patches referenced renderAuthState)
-function renderAuthState(){
-  return renderAuth();
-}
-window.renderAuthState = renderAuthState;
   try{ applyRoleVisibility(); }catch(e){}
   try{ updatePsDashUI(); }catch(e){}
 }
+
+// Backwards-compat alias (older patches referenced renderAuthState)
+function renderAuthState(){
+  return document.body.setAttribute("data-authed", getAuth().token ? "1" : "0");
+  renderAuth();
+}
+window.renderAuthState = renderAuthState;
+
 let __logoutTimer = null;
 
 function scheduleAutoLogout(){
