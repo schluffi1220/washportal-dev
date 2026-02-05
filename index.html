@@ -175,12 +175,9 @@ body[data-authed="1"] .auth-only{display:block}
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
-
-.sa-only{display:none}
-body[data-sa="1"] .sa-only{display:block}
 </style>
 </head>
-<body data-authed="0" data-sa="0">
+<body data-authed="0">
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
@@ -712,7 +709,6 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_EXP, String(exp || 0));
   // do NOT mark authed yet; /api/auth/me will verify
   document.body.setAttribute("data-authed","0");
-    document.body.setAttribute("data-sa","0");
 }
 function clearAuth(){
   sessionStorage.removeItem(AUTH_KEY);
@@ -759,7 +755,6 @@ async function renderAuthState(){
   if(me){
     window.__ME = me;
     document.body.setAttribute("data-authed","1");
-    document.body.setAttribute("data-sa", ["superadmin","super_admin"].includes(String(me?.user?.role||"")) ? "1" : "0");
   }else{
     clearAuth();
     window.__ME = null;
@@ -851,6 +846,114 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
   }
 }
 
+
+function getAdminPw(){
+  const el = document.getElementById("adminPw");
+  return el ? String(el.value||"").trim() : "";
+}
+async function jpostAdmin(path, body){
+  const r = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body||{})
+  });
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok || !j.ok) throw {status:r.status, data:j};
+  return j;
+}
+
+function renderSaRolePerms(catalog, allowedSet){
+  const box = document.getElementById("saRolePermsBox");
+  if(!box) return;
+  if(!catalog || !catalog.length){
+    box.innerHTML = '<div class="small">Keine Permissions gefunden.</div>';
+    return;
+  }
+  // group by permGroup/category
+  const groups = {};
+  for(const p of catalog){
+    const g = p.permGroup || p.category || "Allgemein";
+    (groups[g] ||= []).push(p);
+  }
+  const parts=[];
+  for(const g of Object.keys(groups).sort()){
+    parts.push(`<div style="margin-top:10px"><b>${escapeHtml(g)}</b></div>`);
+    parts.push('<div class="grid2" style="margin-top:8px">');
+    for(const p of groups[g]){
+      const key = p.permKey || p.key;
+      const label = p.title || p.label || key;
+      const checked = allowedSet.has(key) ? "checked" : "";
+      parts.push(`<label class="small" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" class="saPermChk" data-perm="${escapeHtml(key)}" ${checked}> <span><b>${escapeHtml(label)}</b><br><span style="opacity:.75">${escapeHtml(key)}</span></span></label>`);
+    }
+    parts.push("</div>");
+  }
+  box.innerHTML = parts.join("");
+}
+
+async function saRoleLoad(){
+  const pw = getAdminPw();
+  const role = document.getElementById("saRoleSelect")?.value || "admin";
+  const hint = document.getElementById("saRoleHint");
+  if(hint) hint.textContent = "lade…";
+  const j = await jpostAdmin("/api/admin/rbac/role/get", {adminPassword: pw, role});
+  const allowed = new Set((j.perms||[]).filter(x=>x.allowed).map(x=>x.permKey));
+  renderSaRolePerms(j.catalog||[], allowed);
+  if(hint) hint.textContent = "✅ geladen";
+}
+
+async function saRoleSave(){
+  const pw = getAdminPw();
+  const role = document.getElementById("saRoleSelect")?.value || "admin";
+  const hint = document.getElementById("saRoleHint");
+  const keys = Array.from(document.querySelectorAll(".saPermChk:checked")).map(el=>el.getAttribute("data-perm"));
+  if(hint) hint.textContent = "speichere…";
+  await jpostAdmin("/api/admin/rbac/role/set", {adminPassword: pw, role, permKeys: keys});
+  if(hint) hint.textContent = "✅ gespeichert";
+}
+
+async function saRoleSeed(){
+  const pw = getAdminPw();
+  if(!confirm("Standardsets wirklich zurücksetzen?")) return;
+  await jpostAdmin("/api/admin/rbac/seed-defaults", {adminPassword: pw});
+  toast("✅ Standardsets zurückgesetzt");
+  await saRoleLoad();
+}
+
+function renderSaRoomList(rooms){
+  const box = document.getElementById("saRoomList");
+  if(!box) return;
+  if(!rooms || !rooms.length){
+    box.innerHTML = '<div class="small">Keine Einträge.</div>';
+    return;
+  }
+  const rows = rooms.map(r=>{
+    const ts = r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "";
+    const lock = r.locked ? "🔒" : "🟢";
+    const msg = r.message ? escapeHtml(r.message) : '<span style="opacity:.5">–</span>';
+    return `<div class="row" style="justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.08)">
+      <div><b>${escapeHtml(r.room)}</b> ${lock}<div class="small" style="opacity:.8">${msg}</div></div>
+      <div class="small" style="opacity:.7; text-align:right">${escapeHtml(r.updatedBy||"")}${ts?("<br>"+escapeHtml(ts)):""}</div>
+    </div>`;
+  }).join("");
+  box.innerHTML = `<div class="card" style="padding:10px">${rows}</div>`;
+}
+
+async function saRoomReload(){
+  const pw = getAdminPw();
+  const j = await jpostAdmin("/api/admin/room/control/list", {adminPassword: pw});
+  renderSaRoomList(j.rooms||[]);
+}
+
+async function saRoomSave(){
+  const pw = getAdminPw();
+  const room = String(document.getElementById("saRoomName")?.value||"").trim();
+  const message = String(document.getElementById("saRoomMsg")?.value||"").trim();
+  const locked = !!document.getElementById("saRoomLocked")?.checked;
+  if(!room){ toast("⛔ room fehlt"); return; }
+  await jpostAdmin("/api/admin/room/control", {adminPassword: pw, room, message, locked});
+  toast(locked ? "🔒 Gesperrt" : "✅ Freigegeben");
+  await saRoomReload();
+}
 
 </script>
 
@@ -4031,12 +4134,6 @@ async function rbacSaveRole(){
 document.addEventListener("DOMContentLoaded", ()=>{
   if ($("btnRbacLoadRole")) $("btnRbacLoadRole").onclick = rbacLoadRole;
   if ($("btnRbacSaveRole")) $("btnRbacSaveRole").onclick = rbacSaveRole;
-  if ($("btnRbacSeedDefaults")) $("btnRbacSeedDefaults").onclick = async ()=>{
-    if(!confirm("Standardsets wirklich zurücksetzen? (Role-Perms werden neu gesetzt)")) return;
-    await jpostAuth("/api/auth/admin/rbac/seed-defaults", {});
-    toast("✅ Standardsets zurückgesetzt");
-    await rbacLoad();
-  };
   if ($("rbacRoleSelect")) $("rbacRoleSelect").onchange = ()=>{ renderRolePerms(); };
 });
 
