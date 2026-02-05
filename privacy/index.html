@@ -289,6 +289,56 @@ z-index:9999;
   <script>
 const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
+function findAuthToken(){
+  // Try common places where the portal might store its bearer token.
+  const candidates = [];
+  const storages = [localStorage, sessionStorage];
+  for (const st of storages){
+    try{
+      for (let i=0;i<st.length;i++){
+        const k = st.key(i);
+        if(!k) continue;
+        const v = st.getItem(k);
+        if(!v) continue;
+        // keys that mention token/auth/session
+        if (/token|auth|session/i.test(k)) candidates.push(v);
+      }
+    }catch(_){}
+  }
+  // also accept direct keys
+  for (const k of ["token","authToken","washportalToken","wp_token"]){
+    try{
+      const v = localStorage.getItem(k) || sessionStorage.getItem(k);
+      if(v) candidates.unshift(v);
+    }catch(_){}
+  }
+  // pick first plausible bearer (long random string)
+  const uniq = [...new Set(candidates.map(String))];
+  return uniq.find(v => v.length >= 24) || "";
+}
+
+async function tryEnrichEmailFromAuth(){
+  const token = findAuthToken();
+  if(!token) return null;
+  try{
+    const r = await fetch(API_BASE + "/api/auth/me", {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + token },
+      cache: "no-store",
+    });
+    const j = await r.json().catch(()=> ({}));
+    if(!r.ok || !j.ok) return null;
+    const u = j.user || {};
+    // only accept if role is ps/admin-ish
+    const role = String(u.role||"");
+    if(!["ps","ps_deputy","admin","super_admin","superadmin"].includes(role)) return null;
+    return { name: [u.firstName, u.lastName].filter(Boolean).join(" ").trim(), email: u.email || "" };
+  }catch(_){
+    return null;
+  }
+}
+
+
 function pad(n){return String(n).padStart(2,"0");}
 function fmt(ts){
   const d=new Date(Number(ts));
@@ -357,6 +407,16 @@ async function loadMeta(){
   const first = normalize(ps[0]);
   document.getElementById("psName").textContent = first.name;
   document.getElementById("psEmail").textContent = first.email;
+
+  // Wenn /api/privacy/meta nur maskiert liefert: versuche (falls jemand eingeloggt ist)
+  // die volle E-Mail über /api/auth/me nachzuladen.
+  if (String(first.email || "").includes("***")) {
+    const authInfo = await tryEnrichEmailFromAuth();
+    if (authInfo && authInfo.email) {
+      if (authInfo.name) document.getElementById("psName").textContent = authInfo.name;
+      document.getElementById("psEmail").textContent = authInfo.email;
+    }
+  }
 
   psList.innerHTML = ps.map(p=>{
     const x = normalize(p);
