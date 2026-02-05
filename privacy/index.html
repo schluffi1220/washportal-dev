@@ -1,279 +1,94 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8"/>
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"/>
-  <meta http-equiv="Pragma" content="no-cache"/>
-  <meta http-equiv="Expires" content="0"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Datenschutz</title>
 
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Datenschutzbestimmungen</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; margin:0; background:#0b1020; color:#e9eefc;}
-    a{color:inherit;}
-    header{padding:18px 16px; background:linear-gradient(135deg,#15224a,#0b1020); border-bottom:1px solid rgba(255,255,255,.08);}
-    .wrap{max-width:980px; margin:0 auto; padding:16px;}
-    .card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:16px; box-shadow:0 10px 25px rgba(0,0,0,.25);}
-    .muted{opacity:.8}
-    .policy{line-height:1.45}
-    ul{margin:8px 0 8px 22px}
-    .box{margin-top:14px; padding:12px; border-radius:12px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08);}
-    input,button{font:inherit;}
-    input{width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:#fff;}
-    button{padding:10px 12px; border-radius:10px; border:0; background:linear-gradient(135deg,#7fd6ff,#6ee7b7); color:#0b1b2b; font-weight:700; cursor:pointer;}
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-    .row > *{flex:1; min-width:200px;}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
-  </style>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+
+<style>
+body{font-family:system-ui;background:#0f172a;color:#e5e7eb;margin:0;padding:24px}
+.card{background:#111827;border-radius:12px;padding:16px;margin-bottom:14px}
+h3{margin:0 0 8px}
+.mono{font-family:monospace}
+</style>
 </head>
+
 <body>
-<div id="debugPill" style="position:fixed;right:12px;bottom:12px;z-index:9999;
-  background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px);
-  color:#e9eefc;border-radius:999px;padding:8px 10px;font:12px/1.2 system-ui;max-width:70vw">
-  JS: <span id="debugState">init</span>
+
+<h2>Datenschutz</h2>
+
+<div class="card">
+  <h3>Automatischer Löschzeitpunkt</h3>
+  <div id="metaLine">Lade...</div>
+  <div id="deleteInfo"></div>
 </div>
 
-<header>
-  <div class="wrap">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-      <div>
-        <div style="font-size:20px;font-weight:800;">Datenschutzbestimmungen</div>
-        <div class="muted">Washportal · <a href="https://schluffi1220.github.io/washportal-dev/" style="color:inherit;text-decoration:underline;font-weight:700;">
-  ← Zurück zum Portal
-</a>
-      </div>
-      <div class="muted" id="metaLine">Lade Infos…</div>
-    </div>
-  </div>
-</header>
-
-<main class="wrap">
-  <div class="card policy">
-    Datenschutzerklärung
-1. Verantwortlicher
-Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
-[Vor- und Nachname des Betreibers]
-Salzburgweg 7, 97616 Bad Neustadt an der Saale
-Kontakt: [E-Mail-Adresse oder alternative Kontaktmöglichkeit]
-Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
-2. Zweck der Website
-Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.
-3. Welche Daten werden verarbeitet?
-Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:
-<ul>
-<li>Zimmernummer (als Benutzerkennung)</li>
-<li>selbstgewählter PIN-Code</li>
-<li>gebuchte Waschmaschinen-Zeiten</li>
-<li>technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)</li>
-</ul>
-Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
-4. Zweck der Datenverarbeitung
-Die Verarbeitung erfolgt ausschließlich zum Zweck:
-<ul>
-<li>der Identifikation der jeweiligen Nutzer bei der Buchung</li>
-<li>der Verwaltung der Waschmaschinenbelegung</li>
-<li>der technischen Bereitstellung und Sicherheit der Website</li>
-</ul>
-Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.
-<br/>
-<br/>
-<br/>
-<br/>
-5. Rechtsgrundlage
-Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht möglich wäre und keine überwiegenden Interessen der betroffenen Personen entgegenstehen.
-6. Speicherung und Löschung
-Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. [Frist?]
-Server-Logdaten (z. B. IP-Adressen) werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
-7. Datensicherheit
-Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.
-8. Rechte der betroffenen Personen
-Nutzer haben jederzeit das Recht auf:
-<ul>
-<li>Auskunft über ihre gespeicherten Daten (Art. 15 DSGVO)</li>
-<li>Berichtigung unrichtiger Daten (Art. 16 DSGVO)</li>
-<li>Löschung ihrer Daten (Art. 17 DSGVO)</li>
-<li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
-<li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
-</ul>
-Anfragen können an den oben genannten Verantwortlichen gerichtet werden.
-9. Beschwerderecht
-Es besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde, hier das Bayerisches Landesamt für Datenschutzaufsicht.
-10. Änderungen dieser Datenschutzerklärung
-Diese Datenschutzerklärung kann angepasst werden, falls sich technische oder rechtliche Änderungen ergeben.
-Stand: 27.01.2026
-<br/>
-<br/>
-
-    <div class="box" id="dynDeleteBox">
-      <b>Automatischer Löschzeitpunkt</b><br/>
-      <span id="deleteInfo" class="muted">Lade…</span>
-    </div>
-
-    <div class="box" id="dynPsBox">
-      <b>Registrierte Patientensprecher</b><br/>
-      <div id="psList" class="muted">Lade…</div>
-    </div>
-  </div>
-  </div>
-</main>
+<div class="card">
+  <h3>Registrierte Patientensprecher</h3>
+  <div id="psList">Lade...</div>
+</div>
 
 <script>
-function setDebug(v){const el=document.getElementById('debugState'); if(el) el.textContent=v;}
-function pad(n){return String(n).padStart(2,"0");}
 const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+
+function pad(n){return String(n).padStart(2,"0");}
 function fmt(ts){
   const d=new Date(Number(ts));
-  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+
+         pad(d.getHours())+":"+pad(d.getMinutes());
 }
+
 async function loadMeta(){
-  setDebug("fetch meta");
   const r = await fetch(API_BASE + "/api/privacy/meta", {cache:"no-store"});
   const j = await r.json();
-  if(!j.ok) throw new Error("meta");
-  setDebug("meta ok");
+
+  if(!j.ok) throw new Error("meta failed");
+
   const del = fmt(j.deleteAt);
   document.getElementById("metaLine").textContent = "Stand: " + del;
+
   document.getElementById("deleteInfo").innerHTML =
-    "Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation erforderlich ist. "+
-    "Bei der aktuellen Einstellung werden Daten spätestens am <span class='mono'>"+del+"</span> gelöscht "+
-    "(Fenster: "+j.daysPast+" Tage zurück, "+j.daysFuture+" Tage voraus).";
+    "Buchungsdaten werden nur so lange gespeichert wie erforderlich. "+
+    "Spätestens am <span class='mono'>"+del+"</span> werden sie gelöscht.";
+
+  // ===============================
+  // ✅ FIX: kompatibles Rendering
+  // ===============================
+  const list = document.getElementById("psList");
   const ps = j.patientSpeakers || [];
+
   if(!ps.length){
-    document.getElementById("psList").textContent = "Noch keine Registrierungen.";
-  } else {
-    document.getElementById("psList").innerHTML = ps.map(p=>(
-      "• "+p.firstName+" "+p.lastName+" ("+p.email+") – "+(p.status||"")
-    )).join("<br/>");
+    list.textContent = "Noch keine Registrierungen.";
+    return;
   }
+
+  list.innerHTML = ps.map(p=>{
+    const name =
+      p.name ||
+      [p.firstName, p.lastName].filter(Boolean).join(" ").trim() ||
+      "(ohne Name)";
+
+    const email =
+      p.emailMasked ||
+      p.email ||
+      "(ohne E‑Mail)";
+
+    const status = p.status ? " – " + p.status : "";
+
+    return "• " + name + " (" + email + ")" + status;
+  }).join("<br/>");
 }
-async function jpost(url,data){
-    const fullUrl = (url.startsWith("http") ? url : (API_BASE + url));
-  const res = await fetch(fullUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
-  const txt = await res.text();
-  let j={}; try{j=JSON.parse(txt);}catch(_){}
-  if(!res.ok) throw Object.assign(new Error("http"), {status:res.status, data:j});
-  return j;
-}
-const psRegisterBtn = document.getElementById("psRegister");
-if (psRegisterBtn) psRegisterBtn.onclick = async ()=>{
-  const firstName = document.getElementById("psFirst").value.trim();
-  const lastName = document.getElementById("psLast").value.trim();
-  const email = document.getElementById("psEmail").value.trim();
-  const msg = document.getElementById("psRegMsg");
-  msg.textContent="";
-  try{
-    await jpost("/api/ps/register",{firstName,lastName,email});
-    msg.textContent="✅ Registrierung gespeichert (Freischaltung durch Admin).";
-    document.getElementById("psFirst").value="";
-    document.getElementById("psLast").value="";
-    document.getElementById("psEmail").value="";
-    await loadMeta();
-  }catch(e){
-    const m = e?.data?.message || e?.data?.error || "Fehler";
-    msg.textContent="⛔ "+m;
-  }
-};
-loadMeta().catch((e)=>{
-    setDebug("meta error");
-    const meta = document.getElementById("metaLine");
-    if(meta) meta.textContent = "Stand: —";
-    const del = document.getElementById("deleteInfo");
-    if(del) del.textContent = "⛔ Konnte Daten nicht laden (API nicht erreichbar oder CORS).";
-    const ps = document.getElementById("psList");
-    if(ps) ps.textContent = "⛔ Konnte Daten nicht laden.";
+
+window.addEventListener("DOMContentLoaded", ()=>{
+  loadMeta().catch(e=>{
     console.error(e);
+    document.getElementById("metaLine").textContent = "Fehler beim Laden";
+    document.getElementById("psList").textContent = "Fehler beim Laden";
   });
-</script>
-  <!-- ===================== -->
-<!-- Registrierung Patientensprecher/Admin -->
-<!-- ===================== -->
-
-<hr style="margin:40px 0; opacity:.2">
-
-<h3>Registrierung</h3>
-
-<form id="psForm" style="display:flex;flex-direction:column;gap:10px;max-width:400px">
-
-  <select id="psRole" required>
-    <option value="ps">Patientensprecher</option>
-    <option value="ps_deputy">Stellv. Patientensprecher</option>
-    <option value="admin">Admin</option>
-  </select>
-
-  <input id="psFirst" placeholder="Vorname" required>
-  <input id="psLast" placeholder="Nachname" required>
-  <input id="psEmail" type="email" placeholder="E-Mail" required>
-  <input id="psPass" type="password" placeholder="Passwort (mind. 8 Zeichen)" required>
-  <input id="psPass2" type="password" placeholder="Passwort wiederholen" required>
-
-  <button type="submit">Registrieren</button>
-
-  <div id="psMsg" style="opacity:.8"></div>
-</form>
-
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-  // API_BASE ist oben definiert
-
-
-  async function jpost(path, body){
-    const r = await fetch(API_BASE + path,{
-      method:"POST",
-      headers:{"content-type":"application/json"},
-      body: JSON.stringify(body||{})
-    });
-
-    const t = await r.text();
-    return t ? JSON.parse(t) : {};
-  }
-
-  const form = document.getElementById("psForm");
-  const msg  = document.getElementById("psMsg");
-
-  if(!form) return;
-
-  form.addEventListener("submit", async (e)=>{
-    e.preventDefault();
-
-    const fn = document.getElementById("psFirst").value.trim();
-    const ln = document.getElementById("psLast").value.trim();
-    const em = document.getElementById("psEmail").value.trim();
-    const pw1 = document.getElementById("psPass").value;
-    const pw2 = document.getElementById("psPass2").value;
-    const role = document.getElementById("psRole").value;
-
-    if(!fn || !ln || !em || !pw1 || !pw2){
-      msg.textContent = "Bitte alle Felder ausfüllen";
-      return;
-    }
-    if(pw1.length < 8){
-      msg.textContent = "Passwort muss mind. 8 Zeichen haben";
-      return;
-    }
-    if(pw1 !== pw2){
-      msg.textContent = "Passwörter stimmen nicht überein";
-      return;
-    }
-
-    try{
-      await jpost("/api/ps/register", {
-        firstName: fn,
-        lastName: ln,
-        email: em,
-        role,
-        password: pw1
-      });
-
-      msg.textContent = "✅ Registrierung gespeichert. Admin schaltet frei.";
-      form.reset();
-
-    }catch{
-      msg.textContent = "⛔ Fehler bei Registrierung";
-    }
-  });
-
 });
 </script>
 
