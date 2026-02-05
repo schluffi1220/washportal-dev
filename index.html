@@ -579,7 +579,7 @@
   <summary><b>Benutzer & Berechtigungen</b></summary>
 
   <div class="small" style="margin-top:8px; opacity:.85">
-    RBAC: Rechte kommen ausschließlich über Haken (Permissions). Rolle ist nur ein Label + PS/VS Logik. Änderungen sind nur für Admins möglich.
+    RBAC: Rechte kommen ausschließlich über Haken (Permissions). <span class="small" style="opacity:.75">Hinweis: Haken erscheinen nach „Neu laden“ (Snapshot).</span> Rolle ist nur ein Label + PS/VS Logik. Änderungen sind nur für Admins möglich.
   </div>
 
   <div class="grid" style="margin-top:12px; grid-template-columns: 360px 1fr; gap:12px">
@@ -3908,6 +3908,7 @@ async function rbacLoad(){
   }catch(e){
     // fallback: older workers may not have snapshot
     if (String(e?.status||"") === "404"){
+      toast("⛔ RBAC Snapshot fehlt im Worker. Bitte Worker V5 deployen und /api/_routes prüfen.");
       const u = await jpostAuth("/api/auth/admin/users/list", {});
       r = { users: u.users||[], permsCatalog: [], rolePerms: [], userPerms: [] };
     } else { throw e; }
