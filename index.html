@@ -665,45 +665,7 @@
   </div>
   </details>
 
-  <details id="authBookingsDetails" style="margin-top:12px; display:none" open>
-    <summary>Buchungen</summary>
-    <div class="card" style="margin-top:10px">
-<div class="row" style="flex-wrap:wrap; gap:10px">
-  <button id="btnAuthBookingsReload" class="btn secondary">Neu laden</button>
-  <input id="authBookingsSearch" placeholder="Suche: Zimmer / Maschine / Status / ID" style="flex:1; min-width:260px">
-  <select id="authBookingsStatus" style="min-width:200px">
-    <option value="">Alle Status</option>
-    <option value="booked">gebucht</option>
-    <option value="released">freigegeben</option>
-    <option value="cancelled">storniert</option>
-    <option value="admin_cancelled">ADMIN storniert</option>
-  </select>
-  <select id="authBookingsType" style="min-width:180px">
-    <option value="">WM+TR</option>
-    <option value="washer">Waschmaschine</option>
-    <option value="dryer">Trockner</option>
-  </select>
-  <button id="btnAuthBookingsExport" class="btn">CSV Export</button>
-</div>
-<div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px; align-items:center">
-  <label class="small" style="display:flex; gap:8px; align-items:center">
-    <span>Zeitraum</span>
-    <select id="authBookingsRange">
-      <option value="1">1 Tag</option>
-      <option value="3">3 Tage</option>
-      <option value="7" selected>7 Tage</option>
-      <option value="14">14 Tage</option>
-      <option value="30">30 Tage</option>
-      <option value="90">90 Tage</option>
-      <option value="365">365 Tage</option>
-    </select>
-  </label>
-  <span class="small" id="authBookingsCount" style="opacity:.8"></span>
-</div>
-<div id="authBookingsBox" class="small" style="margin-top:10px"></div>
-  </div>
-  </details>
-<div class="row">
+  <div class="row">
     <button class="btn" id="btnPsLogin">Anmelden</button>
     <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
@@ -3990,6 +3952,81 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if ($("btnSaveUser")) $("btnSaveUser").onclick = rbacSaveUser;
   if ($("btnPermAllOn")) $("btnPermAllOn").onclick = ()=>rbacAll(true);
   if ($("btnPermAllOff")) $("btnPermAllOff").onclick = ()=>rbacAll(false);
+});
+
+
+
+/* ============================
+   RBAC Role Editor
+   ============================ */
+let __RBAC_ROLE_PERMS = {}; // role -> Set(keys)
+
+function buildPermCheckboxes(permsCatalog, selectedSet, onChange){
+  // group by permGroup
+  const groups = {};
+  for (const p of permsCatalog){
+    const g = p.permGroup || "Sonstiges";
+    (groups[g] ||= []).push(p);
+  }
+  const orderGroups = Object.keys(groups).sort();
+  return orderGroups.map(g=>{
+    const items = groups[g].sort((a,b)=>(a.sort||0)-(b.sort||0));
+    return `
+      <div class="card" style="margin-top:10px">
+        <b>${esc(g)}</b>
+        <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:10px">
+          ${items.map(p=>{
+            const key = p.permKey;
+            const checked = selectedSet.has(key) ? "checked" : "";
+            return `<label class="small" style="display:flex;gap:8px;align-items:center;min-width:240px">
+              <input type="checkbox" data-perm="${esc(key)}" ${checked}>
+              <span><span class="pill">${esc(key)}</span> ${esc(p.title||"")}</span>
+            </label>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function rbacLoadRole(){
+  const role = $("rbacRoleSelect")?.value || "ps";
+  $("rbacRoleHint").textContent = "Lade…";
+  const r = await jpostAuth("/api/auth/admin/rbac/role/get", { role });
+  const set = new Set((r.perms||[]).filter(x=>x.allowed).map(x=>x.permKey));
+  __RBAC_ROLE_PERMS[role] = set;
+  renderRolePerms();
+  $("rbacRoleHint").textContent = `geladen (${set.size})`;
+}
+
+function renderRolePerms(){
+  const role = $("rbacRoleSelect")?.value || "ps";
+  const box = $("rbacRolePermsBox"); if (!box) return;
+  const set = __RBAC_ROLE_PERMS[role] || new Set();
+  box.innerHTML = buildPermCheckboxes(__RBAC_CATALOG||[], set);
+  box.querySelectorAll("input[type=checkbox][data-perm]").forEach(cb=>{
+    cb.onchange = ()=>{
+      const k = cb.getAttribute("data-perm");
+      if (!k) return;
+      if (cb.checked) set.add(k); else set.delete(k);
+    };
+  });
+}
+
+async function rbacSaveRole(){
+  const role = $("rbacRoleSelect")?.value || "ps";
+  const set = __RBAC_ROLE_PERMS[role] || new Set();
+  $("rbacRoleHint").textContent = "Speichere…";
+  await jpostAuth("/api/auth/admin/rbac/role/set", { role, permKeys: Array.from(set) });
+  toast("✅ Rolle gespeichert");
+  $("rbacRoleHint").textContent = `gespeichert (${set.size})`;
+}
+
+// wire
+document.addEventListener("DOMContentLoaded", ()=>{
+  if ($("btnRbacLoadRole")) $("btnRbacLoadRole").onclick = rbacLoadRole;
+  if ($("btnRbacSaveRole")) $("btnRbacSaveRole").onclick = rbacSaveRole;
+  if ($("rbacRoleSelect")) $("rbacRoleSelect").onchange = ()=>{ renderRolePerms(); };
 });
 
 </script>
