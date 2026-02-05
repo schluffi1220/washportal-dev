@@ -576,21 +576,66 @@
 </div>
 <!-- Auth-Dashboard Panels -->
   <details id="authUsersDetails" style="display:none; margin-top:12px">
-  <summary><b>Benutzerverwaltung</b></summary>
+  <summary><b>Benutzer & Berechtigungen</b></summary>
 
   <div class="small" style="margin-top:8px; opacity:.85">
-    PS/VS Übergabe: Es gibt immer genau 1× PS und 1× VS. Bei „Als PS setzen“ wird der bisherige PS automatisch VS und der bisherige VS wird „user“ (sofern kein Admin).
+    RBAC: Rechte kommen ausschließlich über Haken (Permissions). Rolle ist nur ein Label + PS/VS Logik. Änderungen sind nur für Admins möglich.
   </div>
 
-  <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px">
-    <button id="btnAuthUsersLoad" class="btn secondary">Benutzer laden</button>
-    <input id="authUsersSearch" placeholder="Suche Email" style="flex:1; min-width:240px">
+  <div class="grid" style="margin-top:12px; grid-template-columns: 360px 1fr; gap:12px">
+    <div class="card">
+      <div class="row" style="gap:10px; flex-wrap:wrap">
+        <button id="btnRbacLoad" class="btn secondary">Neu laden</button>
+        <input id="rbacUserSearch" placeholder="Suche Name/Email" style="flex:1; min-width:200px">
+      </div>
+      <div id="rbacUserList" class="small" style="margin-top:10px; max-height:520px; overflow:auto"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:flex-start; gap:12px; flex-wrap:wrap">
+        <div style="flex:1; min-width:260px">
+          <div class="small" style="opacity:.8">Ausgewählter Benutzer</div>
+          <div id="rbacSelHeader" style="margin-top:6px; font-weight:700">–</div>
+          <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
+            <input id="rbacFirstName" placeholder="Vorname" style="flex:1; min-width:160px">
+            <input id="rbacLastName" placeholder="Nachname" style="flex:1; min-width:160px">
+          </div>
+          <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
+            <select id="rbacStatus" style="min-width:200px">
+              <option value="">Status (unverändert)</option>
+              <option value="pending">pending</option>
+              <option value="active">active</option>
+              <option value="disabled">disabled</option>
+              <option value="pending_delete">pending_delete</option>
+            </select>
+
+            <label class="small" style="display:flex; align-items:center; gap:8px">
+              <input type="checkbox" id="rbacIsAdmin2" />
+              Admin-Zweitrolle (role2)
+            </label>
+          </div>
+
+          <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
+            <button id="btnSetPS" class="btn secondary">Als PS setzen</button>
+            <button id="btnSetVS" class="btn secondary">Als VS setzen</button>
+            <button id="btnSaveUser" class="btn">Speichern</button>
+          </div>
+
+          <div id="rbacUserHint" class="small" style="margin-top:8px; opacity:.75"></div>
+        </div>
+
+        <div style="flex:2; min-width:320px">
+          <div class="row" style="gap:10px; flex-wrap:wrap">
+            <input id="rbacPermSearch" placeholder="Suche Berechtigung" style="flex:1; min-width:220px">
+            <button id="btnPermAllOn" class="btn secondary">Alle an</button>
+            <button id="btnPermAllOff" class="btn secondary">Alle aus</button>
+          </div>
+          <div id="rbacPermBox" class="small" style="margin-top:10px; max-height:520px; overflow:auto"></div>
+        </div>
+      </div>
+    </div>
   </div>
-
-  <div id="authUsersBox" class="small" style="margin-top:10px"></div>
-</details>
-
-<details id="authLogsDetails" style="margin-top:12px; display:none" open>
+</details><details id="authLogsDetails" style="margin-top:12px; display:none" open>
     <summary>Logs</summary>
     <div class="card" style="margin-top:10px">
 <div class="row" style="flex-wrap:wrap; gap:10px">
@@ -1518,7 +1563,7 @@ async function adminReload(){
   const s = getAdminSession();
   if (!s){ toast("Admin Session abgelaufen"); return; }
   try{
-    const r = await jpost("/api/admin/config/get", {adminPassword: s.pw});
+    const r = await jpost("/api/auth/admin/config/get", {adminPassword: s.pw});
     renderAdminConfig(r.config, r.newsSeenCount||0);
     await adminLoadMachines();
     await adminLoadFeedbackThreads();
@@ -2587,7 +2632,7 @@ $("btnSaveWasherHours").onclick = async ()=>{
       const cb = document.getElementById(`wh_${h}`);
       if (cb && cb.checked) hours.push(h);
     }
-    await jpost("/api/admin/config/set", {adminPassword:s.pw, washerHours: hours});
+    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, washerHours: hours});
     toast("✅ Waschzeiten gespeichert");
     await adminReload();
     await refreshAll();
@@ -2601,7 +2646,7 @@ $("btnSaveDryerMinutes").onclick = async ()=>{
   try{
     const ok = confirm2("Trockner-Dauer speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
+    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
     toast("✅ Trockner-Dauer gespeichert");
     await adminReload();
     await refreshAll();
@@ -2615,7 +2660,7 @@ $("btnSaveDaysWindow").onclick = async ()=>{
   try{
     const ok = confirm2("Tage-Fenster speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/admin/config/set", {
+    await jpost("/api/auth/admin/config/set", {
       adminPassword:s.pw,
       daysPast: Number($("daysPast").value),
       daysFuture: Number($("daysFuture").value),
@@ -2633,7 +2678,7 @@ $("btnSaveNews").onclick = async ()=>{
   try{
     const ok = confirm2("News speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/admin/config/set", {
+    await jpost("/api/auth/admin/config/set", {
       adminPassword:s.pw,
       newsEnabled: $("newsEnabled").checked,
       newsText: $("newsText").value,
@@ -2684,7 +2729,7 @@ $("btnSaveDefectRules").onclick = async ()=>{
       }
     }
 
-    await jpost("/api/admin/config/set", {
+    await jpost("/api/auth/admin/config/set", {
       adminPassword: s.pw,
       userDefectEnabled: $("userDefectEnabled").checked,
       userDefectAllowed: allowed
@@ -3751,10 +3796,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 
 
+
+
 /* ============================
-   Users UI (PS/VS transfer)
+   RBAC UI (Users + Permissions)
    ============================ */
-let __AUTH_USERS_CACHE = [];
+let __RBAC = { users:[], perms:[], userPerms:[] };
+let __RBAC_SELECTED = null;
 
 function canSeeUsers(me){
   const role = String(me?.user?.role || "");
@@ -3762,81 +3810,186 @@ function canSeeUsers(me){
   return !!(perms["admin.users.manage"] || ["admin","superadmin","super_admin"].includes(role));
 }
 
-function renderAuthUsers(){
-  const box = $("authUsersBox"); if (!box) return;
-  const q = ($("authUsersSearch")?.value || "").trim().toLowerCase();
-  let list = (__AUTH_USERS_CACHE||[]);
-  if (q) list = list.filter(u => String(u.email||"").toLowerCase().includes(q));
-  if (!list.length){ box.innerHTML = `<div class="small">Keine Benutzer.</div>`; return; }
+function rbacUserName(u){
+  const n = (String(u.firstName||"").trim()+" "+String(u.lastName||"").trim()).trim();
+  return n || "(ohne Namen)";
+}
 
-  box.innerHTML = `
-    <div style="overflow:auto">
-      <table style="width:100%; border-collapse:collapse">
-        <thead>
-          <tr style="text-align:left; opacity:.85">
-            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Email</th>
-            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Rolle</th>
-            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Status</th>
-            <th style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.10)">Aktion</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${list.map(u => `
-            <tr>
-              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(u.email||"")}</td>
-              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)"><span class="pill">${esc(u.role||"user")}</span></td>
-              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">${esc(u.status||"")}</td>
-              <td style="padding:8px 6px; border-bottom:1px solid rgba(255,255,255,.06)">
-                <button class="btn secondary inline" data-setrole="ps" data-uid="${esc(u.id)}">Als PS</button>
-                <button class="btn secondary inline" data-setrole="ps_deputy" data-uid="${esc(u.id)}">Als VS</button>
-                <button class="btn secondary inline" data-setrole="admin" data-uid="${esc(u.id)}">Als Admin</button>
-                <button class="btn secondary inline" data-setrole="user" data-uid="${esc(u.id)}">User</button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
+function rbacPermAllowedMap(userId){
+  const m = {};
+  (__RBAC.userPerms||[]).forEach(p=>{
+    if (String(p.userId)===String(userId)) m[p.permKey]=!!p.allowed;
+  });
+  return m;
+}
 
-  box.querySelectorAll("button[data-setrole]").forEach(btn=>{
-    btn.onclick = async ()=>{
-      const role = btn.getAttribute("data-setrole");
-      const userId = btn.getAttribute("data-uid");
-      if (!role || !userId) return;
-      if (!confirm(`Rolle wirklich setzen: ${role}?`)) return;
+function renderRbacUserList(){
+  const box = $("rbacUserList"); if (!box) return;
+  const q = ($("rbacUserSearch")?.value||"").trim().toLowerCase();
+  let list = (__RBAC.users||[]);
+  if (q){
+    list = list.filter(u=>{
+      const hay = (rbacUserName(u)+" "+(u.email||"")+" "+(u.role||"")+" "+(u.role2||"")).toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  box.innerHTML = list.map(u=>{
+    const sel = (__RBAC_SELECTED && String(__RBAC_SELECTED.id)===String(u.id));
+    const pill = (t)=>`<span class="pill" style="margin-left:6px">${esc(t)}</span>`;
+    return `
+      <div class="card ${sel?"soft":""}" style="padding:10px; margin:8px 0; cursor:pointer" data-uid="${esc(u.id)}">
+        <div style="font-weight:700">${esc(rbacUserName(u))}</div>
+        <div class="small" style="opacity:.85">${esc(u.email||"")}</div>
+        <div class="small" style="opacity:.85; margin-top:6px">
+          ${pill(u.role||"user")}${u.role2?pill(u.role2):""}
+          <span style="opacity:.7; margin-left:6px">${esc(u.status||"")}</span>
+        </div>
+      </div>
+    `;
+  }).join("") || `<div class="small">Keine Benutzer.</div>`;
+
+  box.querySelectorAll("[data-uid]").forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.getAttribute("data-uid");
+      const u = (__RBAC.users||[]).find(x=>String(x.id)===String(id));
+      if (!u) return;
+      __RBAC_SELECTED = u;
+      renderRbacSelected();
+      renderRbacUserList();
+    };
+  });
+}
+
+function renderRbacSelected(){
+  const h = $("rbacSelHeader");
+  const pb = $("rbacPermBox");
+  const hint = $("rbacUserHint");
+  if (!h || !pb) return;
+
+  if (!__RBAC_SELECTED){
+    h.textContent = "–";
+    pb.innerHTML = `<div class="small">Wähle links einen Benutzer.</div>`;
+    return;
+  }
+
+  h.textContent = `${rbacUserName(__RBAC_SELECTED)} – ${__RBAC_SELECTED.email || ""}`;
+  $("rbacFirstName").value = __RBAC_SELECTED.firstName || "";
+  $("rbacLastName").value  = __RBAC_SELECTED.lastName  || "";
+  $("rbacIsAdmin2").checked = String(__RBAC_SELECTED.role2||"") === "admin";
+  if (hint) hint.textContent = `ID: ${__RBAC_SELECTED.id}`;
+
+  const allowed = rbacPermAllowedMap(__RBAC_SELECTED.id);
+  const q = ($("rbacPermSearch")?.value||"").trim().toLowerCase();
+  let perms = (__RBAC.perms||[]);
+  if (q){
+    perms = perms.filter(p=>{
+      const hay = ((p.permKey||"")+" "+(p.label||"")+" "+(p.category||"")).toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  // group by category
+  const groups = {};
+  perms.forEach(p=>{
+    const cat = p.category || "Allgemein";
+    if (!groups[cat]) groups[cat]=[];
+    groups[cat].push(p);
+  });
+
+  pb.innerHTML = Object.keys(groups).sort().map(cat=>{
+    const items = groups[cat].map(p=>{
+      const on = !!allowed[p.permKey];
+      return `
+        <label class="row" style="align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.06)">
+          <input type="checkbox" data-perm="${esc(p.permKey)}" ${on?"checked":""}/>
+          <div style="display:flex; flex-direction:column">
+            <div style="font-weight:650">${esc(p.permKey)}</div>
+            <div class="small" style="opacity:.8">${esc(p.label || "")}</div>
+          </div>
+        </label>
+      `;
+    }).join("");
+
+    return `
+      <details open style="margin:8px 0">
+        <summary><b>${esc(cat)}</b> <span class="small" style="opacity:.7">(${groups[cat].length})</span></summary>
+        <div style="margin-top:6px">${items}</div>
+      </details>
+    `;
+  }).join("") || `<div class="small">Keine Permissions.</div>`;
+
+  pb.querySelectorAll("input[type=checkbox][data-perm]").forEach(cb=>{
+    cb.onchange = async ()=>{
+      const permKey = cb.getAttribute("data-perm");
+      const allowed = cb.checked;
       try{
-        await jpostAuth("/api/auth/admin/users/set-role", { userId, role });
-        toast("✅ Rolle gesetzt");
-        await authLoadUsers();
+        await jpostAuth("/api/auth/admin/users/set-perm", { userId: __RBAC_SELECTED.id, permKey, allowed });
+        // update cache
+        const ex = (__RBAC.userPerms||[]).find(x=>String(x.userId)===String(__RBAC_SELECTED.id) && x.permKey===permKey);
+        if (ex) ex.allowed = allowed ? 1 : 0;
+        else __RBAC.userPerms.push({ userId: __RBAC_SELECTED.id, permKey, allowed: allowed?1:0 });
       }catch(e){
-        const msg = e?.data?.message || e?.data?.error || "Fehler";
-        toast("⛔ "+msg);
+        toast("⛔ Perm speichern fehlgeschlagen");
+        cb.checked = !allowed;
       }
     };
   });
 }
 
-async function authLoadUsers(){
-  const det = $("authUsersDetails"); if(det){det.style.display=""; det.open=true;}
-  const box = $("authUsersBox"); if(box) box.innerHTML = `<div class="small">Lade…</div>`;
-  try{
-    const r = await jpostAuth("/api/auth/admin/users/list", {});
-    __AUTH_USERS_CACHE = (r.users||[]).slice();
-    renderAuthUsers();
-  }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    if (box) box.innerHTML = `<div class="small">⛔ ${esc(msg)}</div>`;
-    toast("⛔ Users: "+msg);
-  }
+async function rbacLoad(){
+  const box = $("rbacUserList");
+  if (box) box.innerHTML = `<div class="small">Lade…</div>`;
+  const r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
+  __RBAC = { users: r.users||[], perms: r.perms||[], userPerms: r.userPerms||[] };
+  __RBAC_SELECTED = __RBAC_SELECTED ? (__RBAC.users||[]).find(u=>String(u.id)===String(__RBAC_SELECTED.id)) : null;
+  renderRbacUserList();
+  renderRbacSelected();
 }
 
-(function wireUsersUI(){
-  document.addEventListener("DOMContentLoaded", ()=>{
-    if ($("btnAuthUsersLoad")) $("btnAuthUsersLoad").onclick = authLoadUsers;
-    if ($("authUsersSearch")) $("authUsersSearch").oninput = renderAuthUsers;
+async function rbacSetRole(role){
+  if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
+  if (!confirm(`Rolle wirklich setzen: ${role}?`)) return;
+  await jpostAuth("/api/auth/admin/users/set-role", { userId: __RBAC_SELECTED.id, role });
+  toast("✅ Rolle gesetzt");
+  await rbacLoad();
+}
+
+async function rbacSaveUser(){
+  if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
+  await jpostAuth("/api/auth/admin/users/update", {
+    userId: __RBAC_SELECTED.id,
+    firstName: $("rbacFirstName").value,
+    lastName: $("rbacLastName").value,
+    status: $("rbacStatus").value,
+    role2: $("rbacIsAdmin2").checked ? "admin" : ""
   });
-})();
+  toast("✅ Gespeichert");
+  await rbacLoad();
+}
+
+async function rbacAll(on){
+  if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
+  const perms = (__RBAC.perms||[]).map(p=>p.permKey);
+  for (const permKey of perms){
+    await jpostAuth("/api/auth/admin/users/set-perm", { userId: __RBAC_SELECTED.id, permKey, allowed: !!on });
+    const ex = (__RBAC.userPerms||[]).find(x=>String(x.userId)===String(__RBAC_SELECTED.id) && x.permKey===permKey);
+    if (ex) ex.allowed = on?1:0;
+    else __RBAC.userPerms.push({ userId: __RBAC_SELECTED.id, permKey, allowed: on?1:0 });
+  }
+  toast(on ? "✅ Alle an" : "✅ Alle aus");
+  renderRbacSelected();
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  if ($("btnRbacLoad")) $("btnRbacLoad").onclick = rbacLoad;
+  if ($("rbacUserSearch")) $("rbacUserSearch").oninput = renderRbacUserList;
+  if ($("rbacPermSearch")) $("rbacPermSearch").oninput = renderRbacSelected;
+  if ($("btnSetPS")) $("btnSetPS").onclick = ()=>rbacSetRole("ps");
+  if ($("btnSetVS")) $("btnSetVS").onclick = ()=>rbacSetRole("ps_deputy");
+  if ($("btnSaveUser")) $("btnSaveUser").onclick = rbacSaveUser;
+  if ($("btnPermAllOn")) $("btnPermAllOn").onclick = ()=>rbacAll(true);
+  if ($("btnPermAllOff")) $("btnPermAllOff").onclick = ()=>rbacAll(false);
+});
 
 </script>
 </body>
