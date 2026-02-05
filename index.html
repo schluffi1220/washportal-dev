@@ -461,6 +461,9 @@
 </div>
 </div>
 <script>
+// API base (global)
+var API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+
 const AUTH_KEY="wp_token";
 const AUTH_ROLE="wp_role";
 const AUTH_EMAIL="wp_email";
@@ -654,7 +657,7 @@ document.getElementById("btnPsLogout").onclick=()=>{
 
 <script>
 /*** SET THIS ***/
-const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-- DEV Worker URL
+var API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-- DEV Worker URL
 
 // ---------- UI helpers ----------
 const $ = (id)=>document.getElementById(id);
@@ -1634,7 +1637,7 @@ function authLogout(){
 }
 
 // Wire auth controls
-(
+(function(){
 // ---- Auth UI state (ensures available before wiring) ----
 function renderAuthState(){
   try{
