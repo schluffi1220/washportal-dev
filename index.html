@@ -172,6 +172,9 @@
 
 .auth-only{display:none}
 body[data-authed="1"] .auth-only{display:block}
+
+.hide-on-auth{display:block}
+body[data-authed="1"] .hide-on-auth{display:none}
 </style>
 </head>
 <body data-authed="0">
@@ -264,7 +267,7 @@ body[data-authed="1"] .auth-only{display:block}
     </div>
 
     <!-- 6) Admin -->
-    <div class="card">
+    <div class="card hide-on-auth">
       <h2>6) Admin</h2>
 
       <div id="adminLoginBox">
@@ -394,7 +397,7 @@ body[data-authed="1"] .auth-only{display:block}
         </details>
       </div>
     </div>
-<div class="card" style="margin-top:20px">
+<div class="card hide-on-auth" id="psLoginCard" style="margin-top:20px">
   <h3>PS / VS / Admin Login (E-Mail + Passwort)</h3>
 
   <div class="row">
@@ -669,8 +672,8 @@ body[data-authed="1"] .auth-only{display:block}
   </details>
 
   <div class="row">
-    <button class="btn" id="btnPsLogin">Anmelden</button>
-    <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
+    <button class="btn" class="hide-on-auth" id="btnPsLogin">Anmelden</button>
+    <button class="btn inline" class="hide-on-auth" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
   </div>
   <div class="card" id="psOnly" style="display:none; margin-top:20px">
@@ -1912,7 +1915,8 @@ function scrollToAdminConfig(){
   toast("ℹ️ Admin-Konfiguration ist Super-Admin (Admin-Passwort) – nicht im PS/VS/Admin-Login.");
 }
 
-function authLogout(){
+function authLogout(){  document.body.setAttribute("data-authed","0");
+
   clearAuth();
   if (window.renderAuthState) window.renderAuthState();
   try{ renderPsVsAdminDash(); }catch(_e){}
