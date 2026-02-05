@@ -869,7 +869,6 @@ function renderSaRolePerms(catalog, allowedSet){
     box.innerHTML = '<div class="small">Keine Permissions gefunden.</div>';
     return;
   }
-  // group by permGroup/category
   const groups = {};
   for(const p of catalog){
     const g = p.permGroup || p.category || "Allgemein";
