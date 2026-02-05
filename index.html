@@ -9,7 +9,2832 @@
     :root{
       --bg:#0b1220;
       --card:#111a2b;
+      --line:rgba(255,255,255,.10);<!doctype html>
+<html lang="de">
+<head>
+  <link rel="icon" href="./icon.ico">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Washportal</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#111a2b;
       --line:rgba(255,255,255,.10);
+      --txt:#e9f1ff;
+      --muted:#9cb0d4;
+      --accent:#79d6ff;
+
+      --pastelGreen: rgba(54, 211, 153, .18);
+      --pastelBlue:  rgba(84, 211, 255, .18);
+      --pastelRed:   rgba(251, 113, 133, .20);
+      --pastelGray:  rgba(255,255,255,.06);
+    }
+
+/* Slot-Dropdown: lesbar (freie Slots schwarz) */
+#slotSelect{
+  background: rgba(255,255,255,.92);
+  color:#000;
+  border-color: rgba(255,255,255,.25);
+}
+#slotSelect option{ color:#000; }
+
+/* deaktivierte Slots bleiben grau */
+#slotSelect option.disabledOpt,
+#slotSelect option:disabled{
+  color:#8a94a8;
+}
+
+    
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: radial-gradient(900px 500px at 10% 10%, rgba(121,214,255,.10), transparent 60%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(54,211,153,.08), transparent 55%),
+                  var(--bg);
+      color:var(--txt);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    header{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(11,18,32,.78);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 14px;
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:0 14px}
+    h1{margin:0;font-size:18px}
+    .sub a{color:inherit;text-decoration:underline;}
+    .sub{margin-top:4px;color:var(--muted);font-size:13px}
+    main{padding:14px 0 70px}
+    .card{
+      background: rgba(17,26,43,.90);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.20);
+      margin-bottom:12px;
+    }
+    .card h2{margin:0 0 10px;font-size:14px;color:#d7e6ff}
+    label{display:block;color:var(--muted);font-size:12px;margin:10px 0 6px}
+    input,select,textarea{
+      width:100%;
+      background: rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      color:var(--txt);
+      padding:10px 12px;
+      border-radius:14px;
+      outline:none;
+      font-size:14px;
+    }
+    textarea{min-height:96px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:740px){ .row{grid-template-columns:1fr} }
+
+    .btn{
+      width:100%;
+      margin-top:10px;
+      border:none;
+      cursor:pointer;
+      border-radius:14px;
+      padding:12px 12px;
+      font-weight:800;
+      background: linear-gradient(135deg, rgba(121,214,255,.95), rgba(54,211,153,.92));
+      color:#07101e;
+    }
+    .btn.secondary{
+      background: transparent;
+      border:1px solid var(--line);
+      color:var(--txt);
+      font-weight:700;
+    }
+    .btn.inline{ width:auto; margin:0; padding:10px 12px; }
+
+    details{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      background: rgba(255,255,255,.03);
+    }
+    summary{cursor:pointer;color:#cfe3ff;font-weight:800}
+
+    .toast{
+      position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+      background: rgba(17,26,43,.96);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 12px;
+      box-shadow: 0 12px 35px rgba(0,0,0,.35);
+      max-width: min(92vw, 680px);
+      display:none;
+      z-index:9999;
+      font-size:13px;
+    }
+    .mono{font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    .small{font-size:12px;color:var(--muted);line-height:1.45}
+    .gridTiles{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+    }
+    @media (max-width:900px){ .gridTiles{grid-template-columns: repeat(2, 1fr);} }
+
+    .tile{
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:12px;
+      background: var(--pastelGray);
+    }
+    .tile.free{ background: var(--pastelGreen); }
+    .tile.busy{ background: var(--pastelBlue); }
+    .tile.bad { background: var(--pastelRed); }
+
+    .tileTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .title{font-weight:900;font-size:14px}
+    .tag{
+      font-size:11px;
+      border:1px solid var(--line);
+      padding:4px 8px;
+      border-radius:999px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .meta{margin-top:6px;font-size:12px;color:var(--muted)}
+    .tileBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tileBtns button{
+      border-radius:999px;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.0);
+      color: var(--txt);
+      cursor:pointer;
+      font-size:12px;
+    }
+    .disabledOpt{color:#9aa9c6}
+  
+/* Ensure dropdown text is readable */
+.tileBtns select, .tile select{
+  color:#000 !important;
+  background:#fff !important;
+}
+
+/* hide legacy small login row */
+/* #btnPsLogin,#btnPsLogout,#psLoginState{display:none !important;} */
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Washportal</h1>
+      <div style="font-size:13px; opacity:.9;">
+  <a href="/washportal-dev/admin-users/"
+     style="color:inherit; font-weight:700;">
+    DEV-Stand
+  </a>
+  – Mit der Benutzung der Seite erklärst du dich mit den
+  <a href="/washportal-dev/privacy/"
+     style="color:inherit; text-decoration:underline; font-weight:700;">
+    Datenschutzbestimmungen
+  </a>
+  einverstanden.
+</div>
+
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- 1) Zugang -->
+    <div class="card" id="cardAccess">
+      <h2>1) Zugang</h2>
+      <div class="row">
+        <div>
+          <label>Zimmernummer (0–400)</label>
+          <input id="room" inputmode="numeric" placeholder="z.B. 316" />
+        </div>
+        <div>
+          <label>PIN (4-stellig)</label>
+          <input id="pin" type="password" inputmode="numeric" placeholder="****" />
+        </div>
+      </div>
+      <label>Stations-PIN (4-stellig)</label>
+      <input id="stationPin" type="password" inputmode="numeric" placeholder="****" />
+
+      <button class="btn" id="btnRefresh">Aktualisieren</button>
+      <div class="small" style="margin-top:10px">
+        Hinweis: Beim ersten Login einer Zimmernummer wird der PIN automatisch gespeichert (verschlüsselt). Danach muss er stimmen.
+      </div>
+
+      <div id="newsBoxWrap" style="margin-top:12px; display:none;"></div>
+    </div>
+
+    <!-- 2) Slots buchen -->
+    <div class="card">
+      <h2>2) Slots buchen</h2>
+      <label>Wasch-Slot auswählen</label>
+      <select id="slotSelect">
+        <option value="">Bitte erst „Aktualisieren“ drücken</option>
+      </select>
+      <button class="btn" id="btnBookWasher">Buchen</button>
+      <div class="small" id="slotHint" style="margin-top:10px"></div>
+    </div>
+
+    <!-- 3) Maschinenübersicht -->
+    <div class="card">
+      <h2>3) Maschinenübersicht</h2>
+      <div class="small" style="margin-bottom:10px">
+        Grün = frei · Blau = läuft/gebucht · Rot = defekt/gesperrt
+      </div>
+      <div class="gridTiles" id="tiles"></div>
+    </div>
+
+    <!-- 4) Meine Buchungen -->
+    <div class="card">
+      <h2>4) Meine Buchungen</h2>
+      <div id="myBookings"></div>
+    </div>
+
+    <!-- 5) Feedback / Antworten -->
+    <div class="card">
+      <h2>5) Feedback / Antworten</h2>
+
+      <div class="small" style="margin-bottom:10px">
+        Feedback ist ein Chat zwischen Zimmer & Admin. Neue Antworten erscheinen als Popup.
+      </div>
+
+      <button class="btn secondary" id="btnLoadFeedback">Feedback laden</button>
+
+      <div id="feedbackList" style="margin-top:10px"></div>
+
+      <label>Neue Nachricht</label>
+      <textarea id="feedbackText" placeholder="Deine Nachricht…"></textarea>
+      <button class="btn" id="btnSendFeedback">Senden</button>
+    </div>
+
+    <!-- 6) Admin -->
+    <div class="card">
+      <h2>6) Admin</h2>
+
+      <div id="adminLoginBox">
+        <label>Admin-Passwort</label>
+        <input id="adminPw" type="password" placeholder="initial (falls neu)" />
+        <button class="btn" id="btnAdminLogin">Login</button>
+      </div>
+
+      <div id="adminBox" style="display:none">
+        <div class="row">
+          <button class="btn secondary" id="btnAdminLogout">Logout</button>
+          <button class="btn secondary" id="btnAdminReload">Admin aktualisieren</button>
+        </div>
+
+        <details style="margin-top:12px" open>
+          <summary>Stations-PIN setzen/ändern</summary>
+          <label>Stations-PIN (4-stellig)</label>
+          <input id="adminStationPin" type="password" inputmode="numeric" placeholder="1111" />
+          <button class="btn" id="btnSetStationPin">Speichern</button>
+        </details>
+
+        <details style="margin-top:12px">
+          <summary>Admin-Passwort ändern</summary>
+          <label>Neues Admin-Passwort</label>
+          <input id="adminNewPw" type="password" placeholder="Neues Passwort" />
+          <label>Neues Admin-Passwort (Bestätigung)</label>
+          <input id="adminNewPw2" type="password" placeholder="Neues Passwort wiederholen" />
+          <button class="btn" id="btnChangeAdminPw">Ändern</button>
+        </details>
+
+        <details style="margin-top:12px" open>
+          <summary>Wasch-Slots (Uhrzeiten per Haken)</summary>
+          <div class="small">Waschdauer ist fix 2 Stunden.</div>
+          <div id="washerHoursBox" style="margin-top:10px"></div>
+          <button class="btn" id="btnSaveWasherHours">Waschzeiten speichern</button>
+        </details>
+
+        <details style="margin-top:12px" open>
+          <summary>Trockner-Dauer</summary>
+          <label>Dauer</label>
+          <select id="dryerMinutes">
+            <option value="60">1 Stunde</option>
+            <option value="90">1,5 Stunden</option>
+            <option value="120">2 Stunden</option>
+          </select>
+          <button class="btn" id="btnSaveDryerMinutes">Speichern</button>
+        </details>
+
+        <details style="margin-top:12px">
+          <summary>Tage-Fenster + Auto-Purge</summary>
+          <div class="row">
+            <div>
+              <label>Vergangene Tage anzeigen</label>
+              <input id="daysPast" inputmode="numeric" />
+            </div>
+            <div>
+              <label>Folgende Tage anzeigen</label>
+              <input id="daysFuture" inputmode="numeric" />
+            </div>
+          </div>
+          <button class="btn" id="btnSaveDaysWindow">Speichern</button>
+          <div class="small">Purge (Löschen alter Buchungen) bauen wir nach Alpha sauber ein – Logs bleiben.</div>
+        </details>
+
+        <details style="margin-top:12px" open>
+          <summary>News („Was ist neu?“)</summary>
+          <label><input type="checkbox" id="newsEnabled" /> Aktiv</label>
+          <label>Text</label>
+          <textarea id="newsText" placeholder="Was ist neu…"></textarea>
+          <label><input type="checkbox" id="bumpNewsVersion" /> Version erhöhen (Popup erneut bei allen)</label>
+          <button class="btn" id="btnSaveNews">Speichern</button>
+          <div class="small" id="newsSeenCount"></div>
+        </details>
+
+        <details style="margin-top:12px" open>
+          <summary>Maschinen sperren/entsperren + Defekt</summary>
+          <div class="small">Sperren = rot, User kann nicht buchen. Defekt = rot, Buchungen bleiben rot markiert.</div>
+          <div id="adminMachines" style="margin-top:10px"></div>
+          <button class="btn" id="btnSaveMachines">Maschinen speichern</button>
+        </details>
+
+        <details style="margin-top:12px" open>
+          <summary>Defektmeldung durch User erlauben</summary>
+          <label><input type="checkbox" id="userDefectEnabled" /> User dürfen Defekte melden</label>
+          <div id="defectAllowedBox" style="margin-top:10px"></div>
+          <button class="btn" id="btnSaveDefectRules">Speichern</button>
+        </details>
+
+        <details style="margin-top:12px" open>
+          <summary>Feedback (Admin-Chat)</summary>
+          <div class="row" style="gap:8px;flex-wrap:wrap;margin:8px 0">
+            <input id="adminThreadFilter" placeholder="Filter (Zimmer/Text)..." style="flex:1;min-width:180px" />
+            <button class="btn danger" id="btnAdminDeleteSelectedThreads">Ausgewählte löschen</button>
+            <button class="btn secondary" id="btnAdminExportThreadsCSV">Threads CSV</button>
+          </div>
+          <div id="adminFeedbackThreads"></div>
+          <div id="adminFeedbackThreadView" style="margin-top:10px"></div>
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:12px 0">
+
+        <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+  <div class="pill">Admin Tools</div>
+  <button class="btn" id="btnAdminLoadLogs">Logs laden</button>
+  <button class="btn secondary" id="btnAdminExportLogsCSV">Logs CSV</button>
+  <input id="adminLogsFilter" placeholder="Logs filtern (Zimmer/Text)…" style="flex:1;min-width:220px" />
+</div>
+
+<details id="adminLogsDetails" style="margin-top:10px" open>
+  <summary>Logs</summary>
+  <div class="card" style="margin-top:10px">
+    <div id="adminLogsBox" class="small" style="margin-top:8px"></div>
+  </div>
+</details>
+
+<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+  <button class="btn" id="btnAdminLoadBookings">Buchungen laden</button>
+  <button class="btn secondary" id="btnAdminExportBookingsCSV">Buchungen CSV</button>
+  <input id="adminBookingsFilter" placeholder="Buchungen filtern (Zimmer/Maschine)…" style="flex:1;min-width:220px" />
+</div>
+
+<details id="adminBookingsDetails" style="margin-top:10px" open>
+  <summary>Buchungen (Admin)</summary>
+  <div class="card" style="margin-top:10px">
+    <div id="adminBookingsBox" class="small" style="margin-top:8px"></div>
+  </div>
+</details>
+
+        </details>
+      </div>
+    </div>
+<div class="card" style="margin-top:20px">
+  <h3>PS / VS / Admin Login (E-Mail + Passwort)</h3>
+
+  <div class="row">
+    <input id="psEmail" placeholder="E-Mail" style="width:100%">
+    <input id="psCode" type="password" autocomplete="current-password" placeholder="Passwort" style="width:100%">
+  </div>
+
+  <div class="row" style="margin-top:10px; align-items:center">
+    <button id="btnPsLogin" class="btn">Anmelden</button>
+    <button id="btnPsLogout" class="btn secondary">Abmelden</button>
+    <button id="btnPsDashReload" class="btn secondary">Aktualisieren</button>
+    <span id="psLoginState" class="small" style="opacity:.9"></span>
+  </div>
+
+  <div class="small" id="psDashInfo" style="margin-top:8px; opacity:.9">—</div>
+  <div class="gridTiles" id="psDashTiles" style="margin-top:12px"></div>
+<details id="authConfigDetails" style="display:none; margin-top:12px">
+    <summary><b>Konfiguration / News</b></summary>
+    <div class="small" style="margin-top:8px; opacity:.85">
+      Diese Einstellungen entsprechen dem Super-Admin Bereich, laufen aber über deinen Token und die gesetzten Haken (Permissions).
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnAuthConfigLoad" class="btn secondary">Konfig laden</button>
+      <button id="btnAuthConfigSave" class="btn">Konfig speichern</button>
+    </div>
+    <div id="authConfigBox" class="small" style="margin-top:10px"></div>
+  </details>
+
+  <details id="authMachinesDetails" style="display:none; margin-top:12px">
+    <summary><b>Maschinen verwalten</b></summary>
+    <div class="row" style="margin-top:10px">
+      <button id="btnAuthMachinesLoad" class="btn secondary">Maschinen laden</button>
+      <button id="btnAuthMachinesSave" class="btn">Änderungen speichern</button>
+    </div>
+    <div id="authMachinesBox" class="small" style="margin-top:10px"></div>
+  </details>
+
+  <details id="authRoomControlDetails" style="display:none; margin-top:12px">
+    <summary><b>Zimmer sperren / Hinweis</b></summary>
+    <div class="row" style="margin-top:10px">
+      <input id="authRcRoom" placeholder="Zimmer (oder leer für * mit Haken unten)" style="width:100%">
+      <label style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="authRcAll" />
+        <span class="small">Alle Zimmer (*)</span>
+      </label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="authRcBlocked" />
+        <span>Gesperrt</span>
+      </label>
+      <input id="authRcMsg" placeholder="Hinweistext (optional)" style="width:100%">
+      <button id="btnAuthRcSave" class="btn">Speichern</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnAuthRcList" class="btn secondary">Aktuelle Sperren laden</button>
+    </div>
+    <div id="authRoomControlBox" class="small" style="margin-top:10px"></div>
+  </details>
+
+  <details id="authFeedbackDetails" style="display:none; margin-top:12px">
+    <summary><b>Feedback / Nachrichten</b></summary>
+    <div class="row" style="margin-top:10px">
+      <button id="btnAuthFbList" class="btn secondary">Threads laden</button>
+    </div>
+    <div id="authFeedbackBox" class="small" style="margin-top:10px"></div>
+  </details>
+</div>
+
+  
+  <!-- Auth-Dashboard Panels -->
+  <details id="authLogsDetails" style="margin-top:12px; display:none" open>
+    <summary>Logs</summary>
+    <div class="card" style="margin-top:10px">
+      <div id="authLogsBox" class="small" style="margin-top:8px"></div>
+    </div>
+  </details>
+
+  <details id="authBookingsDetails" style="margin-top:12px; display:none" open>
+    <summary>Buchungen</summary>
+    <div class="card" style="margin-top:10px">
+      <div id="authBookingsBox" class="small" style="margin-top:8px"></div>
+    </div>
+  </details>
+
+<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn secondary" id="btnPsDashReload">Aktualisieren</button>
+    <button class="btn secondary" id="btnPsLogout2">Abmelden</button>
+  </div>
+</div>
+
+</div>
+
+  <div class="row">
+    <button class="btn" id="btnPsLogin">Anmelden</button>
+    <button class="btn inline" id="btnPsLogout" style="display:none">Abmelden</button>
+    <div id="psLoginState" class="muted"></div>
+  </div>
+  <div class="card" id="psOnly" style="display:none; margin-top:20px">
+  <h3>Patientensprecher Bereich</h3>
+
+  <div class="muted">
+    ✅ Login erkannt – dieser Bereich erscheint nur für Patientensprecher / Stellvertreter.
+  </div>
+
+  <button class="btn" onclick="alert('PS Funktion aktiv')">
+    Test-Button
+  </button>
+</div>
+</div>
+<script>
+// API base (global)
+var API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+
+const AUTH_KEY="wp_token";
+const AUTH_ROLE="wp_role";
+const AUTH_EMAIL="wp_email";
+const AUTH_EXP="wp_exp"; // expiresAt (ms)
+
+function setAuth(t,r,e,exp){
+  localStorage.setItem(AUTH_KEY, t || "");
+  localStorage.setItem(AUTH_ROLE, r || "");
+  localStorage.setItem(AUTH_EMAIL, e || "");
+  localStorage.setItem(AUTH_EXP, String(exp || 0));
+}
+  function clearAuth(){
+  localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_ROLE);
+  localStorage.removeItem(AUTH_EMAIL);
+  localStorage.removeItem(AUTH_EXP);
+}
+
+function getAuth(){
+  return {
+    token: localStorage.getItem(AUTH_KEY) || "",
+    role:  localStorage.getItem(AUTH_ROLE) || "",
+    email: localStorage.getItem(AUTH_EMAIL) || "",
+    exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
+  };
+}
+function roleLabel(r){
+  if (r === "admin") return "Admin";
+  if (r === "ps") return "Patientensprecher";
+  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  return r || "";
+}
+
+function renderAuth(){
+  const a=getAuth();
+  const st=document.getElementById("psLoginState");
+  const out=document.getElementById("btnPsLogout");
+
+  if(a.token){
+    st.textContent="Angemeldet als "+roleLabel(a.role)+" ("+a.email+")";
+    out.style.display="";
+  }else{
+    st.textContent="Nicht angemeldet";
+    out.style.display="none";
+  }
+
+// Backwards-compat alias (older patches referenced renderAuthState)
+function renderAuthState(){
+  return renderAuth();
+}
+  try{ applyRoleVisibility(); }catch(e){}
+  try{ updatePsDashUI(); }catch(e){}
+}
+let __logoutTimer = null;
+
+function scheduleAutoLogout(){
+  if (__logoutTimer) clearTimeout(__logoutTimer);
+
+  const a = getAuth();
+  if (!a.token || !a.exp) return;
+
+  const msLeft = a.exp - Date.now();
+
+  __logoutTimer = setTimeout(()=>{
+    clearAuth();
+    renderAuth();
+    alert("Session abgelaufen – bitte neu anmelden");
+  }, msLeft);
+}
+function roleLabel(r){
+  if (r === "admin") return "Admin";
+  if (r === "ps") return "Patientensprecher";
+  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  return r || "";
+}
+
+function applyRoleVisibility(){
+  const a = getAuth();
+
+  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
+  const psOnly = document.getElementById("psOnly");
+  const adminOnly = document.getElementById("adminOnly");
+
+  const logged = !!a.token;
+  const isAdmin = logged && a.role === "admin";
+  const isPS = logged && (a.role === "ps" || a.role === "ps_deputy");
+
+  if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
+  if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
+}
+
+function updatePsDashUI(){
+  const a = getAuth();
+  const info = document.getElementById("psDashInfo");
+  const logout2 = document.getElementById("btnPsLogout2");
+  const reloadBtn = document.getElementById("btnPsDashReload");
+
+  if (info){
+    if (a.token && (a.role==="ps" || a.role==="ps_deputy")){
+      info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
+    } else {
+      info.textContent = "—";
+    }
+  }
+
+  // wire buttons once
+  if (logout2 && !logout2._wired){
+    logout2._wired = true;
+    logout2.onclick = ()=>{
+      const btn = document.getElementById("btnPsLogout");
+      if (btn && typeof btn.onclick === "function") return btn.onclick();
+      // fallback
+      clearAuth();
+      renderAuth();
+      applyRoleVisibility();
+      updatePsDashUI();
+    };
+  }
+  if (reloadBtn && !reloadBtn._wired){
+    reloadBtn._wired = true;
+    reloadBtn.onclick = ()=>{
+      // for now just refresh role visibility + info
+      applyRoleVisibility();
+      updatePsDashUI();
+      toast("✅ Aktualisiert");
+    };
+  }
+}
+
+
+document.addEventListener("DOMContentLoaded",()=>{
+  applyRoleVisibility();
+  scheduleAutoLogout();
+  renderAuth();
+
+  document.getElementById("btnPsLogin").onclick=async()=>{
+    try{
+      const email = psEmail.value.trim().toLowerCase();
+      const password = psCode.value.trim();
+
+      if(!email || !password){
+        toast("⛔ E-Mail und Passwort erforderlich");
+        return;
+      }
+
+      const r=await fetch(API_BASE+"/api/ps/login",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({email,password})
+      });
+
+      const j = await r.json();
+
+      if (j.ok) {
+        setAuth(j.token,j.role,email,j.expiresAt);
+        renderAuth();
+        applyRoleVisibility();
+        scheduleAutoLogout();
+        toast("✅ Login erfolgreich");
+      } else {
+        const m = j.message || j.error || "Login fehlgeschlagen";
+        toast("⛔ " + m);
+      }
+    }catch(e){
+      console.error(e);
+      toast("⛔ Login fehlgeschlagen");
+    }
+  };
+
+  
+  // Enter im Passwortfeld = Anmelden
+  const psPwEl = document.getElementById("psCode");
+  if (psPwEl){
+    psPwEl.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") document.getElementById("btnPsLogin").click();
+    });
+  }
+
+document.getElementById("btnPsLogout").onclick=()=>{
+    clearAuth();
+    applyRoleVisibility(); 
+    renderAuth();
+  };
+
+});
+</script>
+
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+/*** SET THIS ***/
+var API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-- DEV Worker URL
+
+// ---------- UI helpers ----------
+const $ = (id)=>document.getElementById(id);
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(window.__t);
+  window.__t = setTimeout(()=> t.style.display="none", 3200);
+}
+function fmtDT(ms){
+  const dt = new Date(ms);
+  return dt.toLocaleString("de-DE", { timeZone: "Europe/Berlin" });
+}
+
+function esc(v){
+  return String(v ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
+function fmtTime(ms){
+  const dt = new Date(ms);
+  return dt.toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin", hour:"2-digit", minute:"2-digit" });
+}
+function fmtDate(ms){
+  const dt = new Date(ms);
+  return dt.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
+}
+function confirm2(step1, step2){
+  if (!confirm(step1)) return false;
+  alert(step2);
+  return true;
+}
+async function jpost(path, body){
+  const r = await fetch(API_BASE + path, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(body||{})
+  });
+  const data = await r.json().catch(()=> ({}));
+  if (!r.ok) throw {status:r.status, data};
+  return data;
+}
+
+async function jpostAuth(path, body){
+  const a = (typeof getAuth === "function") ? getAuth() : null;
+  const token = a && a.token ? a.token : "";
+  const r = await fetch(API_BASE + path, {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      ...(token ? {"Authorization":"Bearer "+token} : {})
+    },
+    body: JSON.stringify(body||{})
+  });
+  const data = await r.json().catch(()=> ({}));
+  if (!r.ok) throw {status:r.status, data};
+  return data;
+}
+
+async function jget(path){
+  const r = await fetch(API_BASE + path);
+  const data = await r.json().catch(()=> ({}));
+  if (!r.ok) throw {status:r.status, data};
+  return data;
+}
+function getCreds(){
+  return {
+    room: $("room").value.trim(),
+    pin: $("pin").value.trim(),
+    stationPin: $("stationPin").value.trim()
+  };
+}
+function getAdminSession(){
+  try{
+    const raw = sessionStorage.getItem("wp_admin");
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o.pw || !o.exp) return null;
+    if (Date.now() > o.exp) return null;
+    return o;
+  }catch{ return null; }
+}
+function setAdminSession(pw){
+  sessionStorage.setItem("wp_admin", JSON.stringify({pw, exp: Date.now()+5*60*1000}));
+}
+function clearAdminSession(){
+  sessionStorage.removeItem("wp_admin");
+}
+
+// ---------- state ----------
+let STATE = {
+  ok:false,
+  build:"",
+  now: Date.now(),
+  config:null,
+  machines:[],
+  bookings:[],
+  feedback:{hasThread:false,userUnread:false,allowUserView:true},
+  news:{enabled:false,text:"",version:0,seen:true},
+  window:{from:0,to:0}
+};
+
+// ---------- compute slots client-side ----------
+function berlinMidnightMs(dayOffset){
+  const now = new Date();
+  // Berlin local date today:
+  const parts = new Intl.DateTimeFormat("de-DE", { timeZone:"Europe/Berlin", year:"numeric", month:"2-digit", day:"2-digit" }).formatToParts(now);
+  const y = Number(parts.find(p=>p.type==="year").value);
+  const m = Number(parts.find(p=>p.type==="month").value);
+  const d = Number(parts.find(p=>p.type==="day").value);
+  const base = new Date(y, m-1, d, 0,0,0); // local browser is Berlin in your use-case
+  base.setDate(base.getDate() + dayOffset);
+  return base.getTime();
+}
+
+function buildWasherOptions(){
+  const now = Date.now();
+  const cfg = STATE.config || {};
+  const machines = [1,2,3,4];
+  const hours = (cfg.washerHours || []).slice();
+  const durMs = 120*60*1000; // 2h fix
+
+  // Nur gebuchte Washer-Buchungen
+  const washerBookings = (STATE.bookings || []).filter(b => b.type==="washer" && b.status==="booked");
+
+  // Buchungen nach Maschine
+  const byM = {1:[],2:[],3:[],4:[]};
+  for (const b of washerBookings){
+    if (byM[b.machine]) byM[b.machine].push(b);
+  }
+
+  // Maschinenstatus Map
+  const machineMap = {};
+  for (const m of (STATE.machines || [])){
+    if (m.type==="washer") machineMap[m.machine] = m;
+  }
+
+  const options = [];
+
+  // WICHTIG: ab HEUTE (kein vergangener Tag mehr)
+  for (let dayOff = 0; dayOff <= (cfg.daysFuture ?? 6); dayOff++){
+    const day0 = berlinMidnightMs(dayOff);
+
+    for (const h of hours){
+      const start = day0 + h*60*60*1000;
+      const end = start + durMs;
+
+      for (const mac of machines){
+        const ms = machineMap[mac];
+        const disabledMachine = !ms || ms.enabled===0;
+        const defect = !!(ms && ms.defect===1);
+
+        // Vergangenheit: nicht buchbar, wenn Slot schon vorbei ist
+        const isPast = end <= now;
+
+        // Overlap mit bestehender Buchung?
+        let booked = false;
+        for (const b of (byM[mac]||[])){
+          if (!(b.end <= start || b.start >= end)){
+            booked = true;
+            break;
+          }
+        }
+
+        let label = `${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)} – Waschmaschine ${mac}`;
+        let disabled = false;
+
+        if (disabledMachine){
+          label += " (gesperrt)";
+          disabled = true;
+        } else if (defect){
+          label += " (defekt)";
+          disabled = true;
+        } else if (isPast){
+          label += " (vergangen)";
+          disabled = true;
+        } else if (booked){
+          label += " (belegt)";
+          disabled = true;
+        }
+
+        options.push({ type:"washer", machine:mac, start, end, label, disabled });
+      }
+    }
+  }
+
+  options.sort((a,b)=> a.start-b.start || a.machine-b.machine);
+  return options;
+}
+
+function buildWasherOptionsForMachine(machine){
+  const all = buildWasherOptions();
+  return all.filter(o => Number(o.machine) === Number(machine));
+}
+
+function bookingForMachineRunning(type, machine){
+  const now = Date.now();
+  const bs = (STATE.bookings||[]).filter(b => b.type===type && b.machine===machine && b.status==="booked");
+  return bs.find(b => b.start <= now && b.end > now) || null;
+}
+
+// ---------- render ----------
+function renderNewsBox(){
+  const wrap = $("newsBoxWrap");
+  const n = STATE.news;
+  if (!n.enabled || !n.text){
+    wrap.style.display="none";
+    wrap.innerHTML="";
+    return;
+  }
+  wrap.style.display="block";
+
+  const details = document.createElement("details");
+  details.open = !n.seen; // open only when unseen
+  const sum = document.createElement("summary");
+  sum.textContent = "Was ist neu?";
+  const txt = document.createElement("div");
+  txt.className="small";
+  txt.style.marginTop="8px";
+  txt.style.whiteSpace="pre-wrap";
+  txt.textContent = n.text;
+
+  const btn = document.createElement("button");
+  btn.className="btn secondary";
+  btn.style.marginTop="10px";
+  btn.textContent = "Gelesen";
+  btn.onclick = async ()=>{
+    try{
+      const c = getCreds();
+      await jpost("/api/news/seen", c);
+      STATE.news.seen = true;
+      details.open = false;
+      toast("✅ Als gelesen markiert");
+    }catch(e){
+      toast("⛔ Konnte nicht speichern");
+    }
+  };
+
+  details.appendChild(sum);
+  details.appendChild(txt);
+  details.appendChild(btn);
+  wrap.innerHTML="";
+  wrap.appendChild(details);
+
+  if (!n.seen){
+    alert("📢 Neue Info:\n\n" + n.text);
+  }
+}
+
+function renderSlotDropdown(){
+  const sel = $("slotSelect");
+  sel.innerHTML = "";
+  const opts = buildWasherOptions();
+  if (opts.length===0){
+    sel.appendChild(new Option("Keine Slots verfügbar", ""));
+    return;
+  }
+
+  sel.appendChild(new Option("Bitte auswählen…", ""));
+  for (const o of opts){
+    const opt = new Option(o.label, JSON.stringify({machine:o.machine,start:o.start,end:o.end}));
+    opt.disabled = !!o.disabled;
+    if (o.disabled) opt.className = "disabledOpt";
+    sel.appendChild(opt);
+  }
+
+  const freeCount = opts.filter(o=>!o.disabled).length;
+  $("slotHint").textContent = `Freie Wasch-Slots: ${freeCount} (grau = belegt/defekt/gesperrt/vergangen)`;
+}
+
+function tileStatus(type, machine){
+  const m = STATE.machines.find(x=>x.type===type && x.machine===machine);
+  if (!m) return {cls:"bad", tag:"FEHLT", text:"Nicht vorhanden"};
+  if (m.enabled===0) return {cls:"bad", tag:"GESPERRT", text:"Maschine gesperrt"};
+  if (m.defect===1) return {cls:"bad", tag:"DEFEKT", text:`Defekt gemeldet von ${m.defectBy || "?"}`};
+  const running = bookingForMachineRunning(type, machine);
+  if (running) return {cls:"busy", tag:"LÄUFT", text:`Zimmer ${running.room} bis ${fmtTime(running.end)}`};
+    // last user info (when free)
+  const last = (m.lastRoom && String(m.lastRoom).trim() !== "")
+    ? ` • zuletzt: Zimmer ${m.lastRoom}`
+    : "";
+  return {cls:"free", tag:"FREI", text:"Frei" + last};
+}
+
+function renderTiles(){
+  const box = $("tiles");
+  box.innerHTML = "";
+    // Guard: wenn STATE (noch) nicht da ist, nicht alles leer lassen
+  if (!STATE || !Array.isArray(STATE.machines) || !Array.isArray(STATE.bookings)) {
+    box.innerHTML = `<div class="small">Keine Daten geladen. Bitte auf „Aktualisieren“ drücken.</div>`;
+    return;
+  }
+
+  const types = [
+    {type:"washer", title:"Waschmaschine", machines:[1,2,3,4]},
+    {type:"dryer",  title:"Trockner",      machines:[1,2,3,4]},
+  ];
+
+  for (const group of types){
+    for (const m of group.machines){
+      const st = tileStatus(group.type, m);
+      const tile = document.createElement("div");
+      tile.className = "tile " + st.cls;
+
+      const top = document.createElement("div");
+      top.className = "tileTop";
+      const title = document.createElement("div");
+      title.innerHTML = `<div class="title">${group.title} ${m}</div><div class="meta">${st.text}</div>`;
+      const tag = document.createElement("div");
+      tag.className = "tag";
+      tag.textContent = st.tag;
+      top.appendChild(title);
+      top.appendChild(tag);
+
+      const btns = document.createElement("div");
+      btns.className = "tileBtns";
+
+      // Buttons depending on state
+      const creds = getCreds();
+      const running = bookingForMachineRunning(group.type, m);
+
+      if (group.type === "washer") {
+        // Freigeben nur wenn läuft + gehört mir
+        if (running && creds.room && running.room === creds.room) {
+          const b = document.createElement("button");
+          b.textContent = "Freigeben";
+          b.onclick = async ()=>{
+            try{
+              await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+              toast("✅ Freigegeben");
+              await refreshAll();
+            }catch(e){
+              toast("⛔ Freigeben fehlgeschlagen");
+            }
+          };
+          btns.appendChild(b);
+        }
+
+        // Quick-Booking UI (Dropdown + Buchen) unter den Buttons
+        const bookRow = document.createElement("div");
+        bookRow.className = "row";
+        bookRow.style.gap = "8px";
+        bookRow.style.marginTop = "8px";
+        bookRow.style.width = "100%";
+
+        const sel = document.createElement("select");
+        sel.style.flex = "1";
+
+        if (!creds.room || !creds.pin || !creds.stationPin) {
+          sel.appendChild(new Option("Bitte erst Zugang eingeben", ""));
+          sel.disabled = true;
+        } else {
+          sel.appendChild(new Option("Bitte Slot wählen…", ""));
+          const opts = buildWasherOptionsForMachine(m);
+          for (const o of opts){
+            const opt = new Option(o.label, `${o.start}|${o.end}|${o.machine}`);
+            opt.disabled = !!o.disabled;
+            sel.appendChild(opt);
+          }
+        }
+
+        const bBook = document.createElement("button");
+        bBook.textContent = "Buchen";
+        bBook.className = "bookBtn";
+        bBook.disabled = (!creds.room || !creds.pin || !creds.stationPin);
+
+        bBook.onclick = async ()=>{
+          try{
+            if (!sel.value) { toast("⛔ Bitte Slot wählen"); return; }
+            const [startS, endS, machineS] = String(sel.value).split("|");
+            const start = Number(startS);
+            const end = Number(endS);
+            const machine = Number(machineS);
+            if (!Number.isFinite(start) || !Number.isFinite(end) || !machine){
+              toast("⛔ Ungültiger Slot");
+              return;
+            }
+
+            await jpost("/api/washer/book", {
+              room: creds.room,
+              pin: creds.pin,
+              stationPin: creds.stationPin,
+              machine,
+              start,
+              end
+            });
+
+            toast("✅ Gebucht");
+            await refreshAll();
+          }catch(e){
+            toast("⛔ Buchen fehlgeschlagen");
+          }
+        };
+
+        bookRow.appendChild(sel);
+        bookRow.appendChild(bBook);
+        btns.appendChild(bookRow);
+
+      } else {
+        // dryer
+        if (!running) {
+          const b = document.createElement("button");
+          b.textContent = "Jetzt buchen";
+          b.onclick = async ()=>{
+            try{
+              await jpost("/api/dryer/book", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, machine:m});
+              toast("✅ Trockner gebucht");
+              await refreshAll();
+            }catch(e){
+              toast("⛔ Buchen fehlgeschlagen");
+            }
+          };
+          btns.appendChild(b);
+        } else {
+          if (creds.room && running.room === creds.room) {
+            const b = document.createElement("button");
+            b.textContent = "Fertig (Freigeben)";
+            b.onclick = async ()=>{
+              try{
+                await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+                toast("✅ Freigegeben");
+                await refreshAll();
+              }catch(e){
+                toast("⛔ Freigeben fehlgeschlagen");
+              }
+            };
+            btns.appendChild(b);
+          } else {
+            const b = document.createElement("button");
+            b.textContent = "Überbuchen";
+            b.onclick = async ()=>{
+              const ok = confirm("Überbuchen nur wenn bestätigt:\n\nDie Wäsche vom Vorgänger ist sauber und vorsichtig im Korb oben/nebendran abgelegt.");
+              if (!ok) return;
+              try{
+                await jpost("/api/dryer/book", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, machine:m, force:true, confirmed:true});
+                toast("✅ Überbucht & gebucht");
+                await refreshAll();
+              }catch(e){
+                toast("⛔ Überbuchen fehlgeschlagen");
+              }
+            };
+            btns.appendChild(b);
+          }
+        }
+      }
+
+// Defekt melden / freigeben (user rule)
+      const cfg = STATE.config || {};
+      const allowDef = cfg.userDefectEnabled && cfg.userDefectAllowed && cfg.userDefectAllowed[group.type] && cfg.userDefectAllowed[group.type][String(m)];
+      if (allowDef) {
+        const mm = STATE.machines.find(x=>x.type===group.type && x.machine===m);
+        const isDef = mm && mm.defect===1;
+        const b = document.createElement("button");
+        b.textContent = isDef ? "Defekt freigeben" : "Defekt melden";
+        b.onclick = async ()=>{
+          try{
+            await jpost("/api/defect/report", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, type:group.type, machine:m, defect: !isDef});
+            toast("✅ Gespeichert");
+            await refreshAll();
+          }catch(e){
+            toast("⛔ Nicht möglich");
+          }
+        };
+        btns.appendChild(b);
+      }
+
+      tile.appendChild(top);
+      tile.appendChild(btns);
+      box.appendChild(tile);
+    }
+  }
+}
+
+function myBookingState(b){
+  const m = STATE.machines.find(x=>x.type===b.type && x.machine===b.machine);
+  if (m && (m.enabled===0 || m.defect===1)) return "bad";
+  const now = Date.now();
+  if (b.status === "released") return "free";
+  if (b.status === "cancelled") return "bad";
+  if (b.start <= now && b.end > now) return "busy";
+  return "pastel"; // upcoming booked
+}
+
+function renderMyBookings(){
+  const box = $("myBookings");
+  const c = getCreds();
+  const room = c.room;
+  if (!room){
+    box.innerHTML = `<div class="small">Bitte erst Zugang eingeben und Aktualisieren.</div>`;
+    return;
+  }
+
+  const list = (STATE.myBookings || []);
+  if (list.length===0){
+    box.innerHTML = `<div class="small">Keine Buchungen.</div>`;
+    return;
+  }
+
+  const now = Date.now();
+  const html = [];
+  for (const b of list.sort((a,b)=>a.start-b.start)){
+    const state = myBookingState(b);
+    const cls = state==="bad" ? "bad" : state==="busy" ? "busy" : state==="free" ? "free" : "";
+    const title = `${b.type==="washer" ? "Waschmaschine" : "Trockner"} ${b.machine}`;
+    const line = `${fmtDate(b.start)} ${fmtTime(b.start)}–${fmtTime(b.end)}`;
+    let statusTxt = b.status;
+    if (b.status==="booked") statusTxt = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
+    if (b.status==="released") statusTxt = "freigegeben";
+    if (b.status==="cancelled") statusTxt = "storniert";
+
+    html.push(`
+      <div class="tile ${cls}" style="margin-bottom:10px">
+        <div class="tileTop">
+          <div>
+            <div class="title">${title}</div>
+            <div class="meta mono">${line}</div>
+            <div class="meta">${statusTxt}</div>
+          </div>
+          <div class="tag">${statusTxt}</div>
+        </div>
+        <div class="tileBtns">
+          ${renderMyBookingButtons(b, now)}
+        </div>
+      </div>
+    `);
+  }
+  box.innerHTML = html.join("");
+
+  // attach button handlers
+  for (const b of list){
+    const btnCancel = document.querySelector(`[data-cancel="${b.id}"]`);
+    if (btnCancel){
+      btnCancel.onclick = async ()=>{
+        try{
+          await jpost("/api/booking/cancel", {room:c.room, pin:c.pin, id:b.id});
+          toast("✅ Storniert");
+          await refreshAll();
+        }catch(e){
+          toast("⛔ Storno nicht möglich");
+        }
+      };
+    }
+    const btnRel = document.querySelector(`[data-release="${b.id}"]`);
+    if (btnRel){
+      btnRel.onclick = async ()=>{
+        try{
+          await jpost("/api/booking/release", {room:c.room, pin:c.pin, id:b.id});
+          toast("✅ Freigegeben");
+          await refreshAll();
+        }catch(e){
+          toast("⛔ Freigeben nicht möglich");
+        }
+      };
+    }
+  }
+}
+
+function renderMyBookingButtons(b, now){
+  // stornieren: only if booked & not started & not dryer
+  const canCancel = b.status==="booked" && now < b.start && b.type==="washer";
+  const canRelease = b.status==="booked" && b.start <= now && b.end > now;
+
+  let out = "";
+  if (canCancel) out += `<button data-cancel="${b.id}">Stornieren</button>`;
+  if (canRelease) out += `<button data-release="${b.id}">Freigeben</button>`;
+  if (!out) out = `<span class="small">Keine Aktion möglich.</span>`;
+  return out;
+}
+
+// ---------- Feedback ----------
+async function loadFeedback(showPopup=false){
+  const c = getCreds();
+  try{
+    const r = await jpost("/api/feedback/load", c);
+    const box = $("feedbackList");
+    if (!r.hasThread){
+      box.innerHTML = `<div class="small">Noch kein Feedback vorhanden.</div>`;
+      return;
+    }
+    if (!r.allowUserView){
+      box.innerHTML = `<div class="small">Admin hat den Thread aktuell nicht für User freigegeben.</div>`;
+      return;
+    }
+    const msgs = r.messages || [];
+    box.innerHTML = msgs.map(m=>{
+      const who = m.sender==="admin" ? "Admin" : "Du";
+      return `<div class="tile ${m.sender==="admin" ? "busy" : "free"}" style="margin-bottom:10px">
+        <div class="title">${who}</div>
+        <div class="meta mono">${fmtDT(m.ts)}</div>
+        <div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(m.message)}</div>
+      </div>`;
+    }).join("");
+
+    if (showPopup){
+      alert("💬 Neue Nachricht im Feedback vorhanden.");
+    }
+  }catch(e){
+    toast("⛔ Feedback laden fehlgeschlagen");
+  }
+}
+
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+// ---------- Admin UI ----------
+async function adminLogin(){
+  const pw = $("adminPw").value.trim();
+  if (!pw) return toast("Admin Passwort fehlt");
+  try{
+    await jpost("/api/admin/login", {adminPassword: pw});
+    setAdminSession(pw);
+    $("adminLoginBox").style.display = "none";
+    $("adminBox").style.display = "block";
+    toast("✅ Admin Login OK");
+    await adminReload();
+  }catch(e){
+    toast("⛔ Admin Login forbidden");
+  }
+}
+async function adminReload(){
+  const s = getAdminSession();
+  if (!s){ toast("Admin Session abgelaufen"); return; }
+  try{
+    const r = await jpost("/api/admin/config/get", {adminPassword: s.pw});
+    renderAdminConfig(r.config, r.newsSeenCount||0);
+    await adminLoadMachines();
+    await adminLoadFeedbackThreads();
+  }catch(e){
+    toast("⛔ Admin Daten laden fehlgeschlagen");
+  }
+}
+function renderAdminConfig(cfg, newsSeenCount){
+  // washer hours
+  const box = $("washerHoursBox");
+  box.innerHTML = "";
+  const selected = new Set((cfg.washerHours||[]).map(String));
+  for (let h=0; h<=23; h++){
+    const id = `wh_${h}`;
+    const div = document.createElement("div");
+    div.style.display="inline-block";
+    div.style.margin="4px 8px 4px 0";
+    div.innerHTML = `<label style="display:inline-flex;gap:8px;align-items:center">
+      <input type="checkbox" id="${id}" ${selected.has(String(h)) ? "checked":""} />
+      <span class="mono">${String(h).padStart(2,"0")}:00</span>
+    </label>`;
+    box.appendChild(div);
+  }
+
+  // dryer minutes
+  $("dryerMinutes").value = String(cfg.dryerMinutes || 120);
+
+  // days window
+  $("daysPast").value = String(cfg.daysPast ?? 1);
+  $("daysFuture").value = String(cfg.daysFuture ?? 6);
+
+  // news
+  $("newsEnabled").checked = !!cfg.newsEnabled;
+  $("newsText").value = cfg.newsText || "";
+  $("bumpNewsVersion").checked = false;
+  $("newsSeenCount").textContent = cfg.newsEnabled
+    ? `Gelesen-Zähler (aktuelle Version ${cfg.newsVersion||0}): ${newsSeenCount}`
+    : `News ist aktuell deaktiviert.`;
+  // defect
+  $("userDefectEnabled").checked = !!cfg.userDefectEnabled;
+
+  // defect allowed matrix
+  const da = cfg.userDefectAllowed || {washer:{},dryer:{}};
+  const target = $("defectAllowedBox");
+  target.innerHTML = "";
+  target.appendChild(document.createElement("div")).innerHTML = `<div class="small">Pro Maschine aktivieren:</div>`;
+  for (const t of ["washer","dryer"]){
+    const title = document.createElement("div");
+    title.style.marginTop="8px";
+    title.innerHTML = `<div class="title">${t==="washer"?"Waschmaschinen":"Trockner"}</div>`;
+    target.appendChild(title);
+    for (let i=1;i<=4;i++){
+      const id = `da_${t}_${i}`;
+      const on = !!(da[t] && da[t][String(i)]);
+      const row = document.createElement("div");
+      row.style.display="inline-block";
+      row.style.margin="4px 8px 4px 0";
+      row.innerHTML = `<label style="display:inline-flex;gap:8px;align-items:center">
+        <input type="checkbox" id="${id}" ${on?"checked":""} />
+        <span>${t==="washer"?"WM":"TR"} ${i}</span>
+      </label>`;
+      target.appendChild(row);
+    }
+  }
+}
+
+async function adminLoadMachines(){
+  // use current STATE from last refresh for display if possible; else refresh via user refresh is not admin
+  // For simplicity: use STATE.machines (must have been loaded at least once)
+  const m = STATE.machines || [];
+  const box = $("adminMachines");
+  box.innerHTML = "";
+
+  const groups = [
+    {type:"washer", label:"Waschmaschinen"},
+    {type:"dryer", label:"Trockner"},
+  ];
+
+  for (const g of groups){
+    const title = document.createElement("div");
+    title.innerHTML = `<div class="title">${g.label}</div>`;
+    title.style.margin="8px 0";
+    box.appendChild(title);
+
+    for (let i=1;i<=4;i++){
+      const mm = m.find(x=>x.type===g.type && x.machine===i) || {enabled:1, defect:0};
+      const idEn = `m_${g.type}_${i}_en`;
+      const idDe = `m_${g.type}_${i}_de`;
+
+      const row = document.createElement("div");
+      row.style.border="1px solid var(--line)";
+      row.style.borderRadius="14px";
+      row.style.padding="10px";
+      row.style.marginBottom="8px";
+      row.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div><b>${g.type==="washer"?"WM":"TR"} ${i}</b></div>
+          <div class="small">letztes Zimmer: ${mm.lastRoom || "-"}</div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
+          <label style="display:inline-flex;gap:8px;align-items:center">
+            <input type="checkbox" id="${idEn}" ${mm.enabled? "checked":""}/>
+            <span>aktiv (nicht gesperrt)</span>
+          </label>
+          <label style="display:inline-flex;gap:8px;align-items:center">
+            <input type="checkbox" id="${idDe}" ${mm.defect? "checked":""}/>
+            <span>defekt</span>
+          </label>
+        </div>
+      `;
+      box.appendChild(row);
+    }
+  }
+}
+
+
+// -----------------------------
+// Admin: Logs + Bookings helpers
+// -----------------------------
+function fmtBerlin(ts){
+  const dt = new Date(Number(ts||0));
+  if (!Number.isFinite(dt.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("de-DE", {
+    timeZone:"Europe/Berlin",
+    year:"numeric", month:"2-digit", day:"2-digit",
+    hour:"2-digit", minute:"2-digit"
+  }).formatToParts(d);
+  const get = (t)=> (parts.find(p=>p.type===t)?.value || "");
+  return `${get("day")}.${get("month")}.${get("year")} ${get("hour")}:${get("minute")}`;
+}
+
+let __ADMIN_LOGS_CACHE = [];
+let __ADMIN_BOOKINGS_CACHE = [];
+
+
+// =====================
+// Auth (PS/VS/Admin) Login + Dashboard (Bearer)
+// =====================
+
+// ---- Auth: Permissions + Dashboard ----
+async function authMe(){
+  const a = getAuth();
+  if(!a || !a.token) return null;
+  try{
+    const r = await fetch(API_BASE + "/api/auth/me", {
+      headers: { "Authorization": "Bearer " + a.token }
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok || !j.ok) return null;
+    return j; // {ok:true, user:{...}, perms:{...}}
+  }catch(_e){
+    return null;
+  }
+}
+function hasPerm(perms, key){
+  return !!(perms && perms[key]);
+}
+
+async function renderPsVsAdminDash(){
+  const a = getAuth();
+  const tiles = document.getElementById("psDashTiles");
+  const info  = document.getElementById("psDashInfo");
+  if(!tiles || !info) return;
+
+  if(!a || !a.token){
+    info.textContent = "Nicht angemeldet";
+    tiles.innerHTML = "";
+    return;
+  }
+
+  const me = await authMe();
+  const perms = me?.perms || {};
+  const role = me?.user?.role || a.role || "";
+  const email = me?.user?.email || a.email || "";
+
+  info.textContent = `Angemeldet als ${roleLabel(role)} (${email})`;
+
+  const items = [];
+
+  // Benutzer / Rollen & Rechte
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="users">
+        👥<br><b>Benutzer</b><br>
+        <span class="small">Rollen & Rechte</span>
+      </div>
+    `);
+  }
+
+  // Logs
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
+    items.push(`
+      <div class="tile busy" role="button" tabindex="0" data-act="logs">
+        📋<br><b>Logs</b><br>
+        <span class="small">Systemverlauf</span>
+      </div>
+    `);
+  }
+
+  // Buchungen
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "ps_deputy"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="bookings">
+        📅<br><b>Buchungen</b><br>
+        <span class="small">Übersicht</span>
+      </div>
+    `);
+  }
+
+  // Konfiguration / News
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
+    items.push(`
+      <div class="tile bad" role="button" tabindex="0" data-act="config">
+        ⚙️<br><b>Konfiguration</b><br>
+        <span class="small">News · Regeln</span>
+      </div>
+    `);
+  }
+
+  // Maschinen
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="machines">
+        🧺<br><b>Maschinen</b><br>
+        <span class="small">aktiv/defekt</span>
+      </div>
+    `);
+  }
+
+  // Zimmer sperren
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+    items.push(`
+      <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
+        🚫<br><b>Zimmer</b><br>
+        <span class="small">Sperren/Hinweis</span>
+      </div>
+    `);
+  }
+
+  // Feedback
+  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="feedback">
+        💬<br><b>Feedback</b><br>
+        <span class="small">Threads</span>
+      </div>
+    `);
+  }
+tiles.innerHTML = items.join("") || `<div class="small">Keine Funktionen freigeschaltet.</div>`;
+
+  const wire = (sel, fn)=>{
+    const el = tiles.querySelector(sel);
+    if(!el) return;
+    el.onclick = fn;
+    el.onkeydown = (e)=>{ if(e.key==="Enter" || e.key===" ") fn(); };
+  };
+
+  wire('[data-act="users"]', ()=>{ location.href = "./admin-users/"; });
+  wire('[data-act="logs"]', ()=>{ authLoadLogs(); });
+  wire('[data-act="bookings"]', ()=>{ authLoadBookings(); });
+  wire('[data-act="config"]', ()=>{ const d=$('authConfigDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+  wire('[data-act="machines"]', ()=>{ const d=$('authMachinesDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+  wire('[data-act="roomctrl"]', ()=>{ const d=$('authRoomControlDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+  wire('[data-act="feedback"]', ()=>{ const d=$('authFeedbackDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+});
+  });
+}
+
+
+
+
+// (auth storage helpers moved to first <script> block)
+
+async function authLoadLogs(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authLogsDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authLogsBox"); if(box) box.innerHTML=`<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/logs", { limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
+    renderAuthLogs();
+    if(det) det.scrollIntoView({behavior:"smooth", block:"start"});
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+// ---- Auth: Bookings ----
+function renderAuthBookings(){
+  const box = $("authBookingsBox");
+  if (!box) return;
+  const list = (__ADMIN_BOOKINGS_CACHE||[]);
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Buchungen.</div>`;
+    return;
+  }
+  const now=Date.now();
+  box.innerHTML = list.map(b=>{
+    const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
+    const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+    let st=b.status;
+    if (st==="booked") st=(b.start<=now && b.end>now) ? "läuft" : "gebucht";
+    if (st==="released") st="freigegeben";
+    if (st==="cancelled") st="storniert";
+    if (st==="admin_cancelled") st="ADMIN storniert";
+
+    const canCancel = (b.status==="booked");
+    const btn = canCancel ? `<button class="btn secondary inline" data-auth-cancel="${esc(b.id)}">Storno</button>` : `<span class="small" style="opacity:.7">—</span>`;
+
+    return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:10px;align-items:center">
+      <div>
+        <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
+        <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
+      </div>
+      ${btn}
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll("button[data-auth-cancel]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-auth-cancel");
+      if (!id) return;
+      if (!confirm("Buchung wirklich stornieren?")) return;
+      try{
+        // primary endpoint
+        await jpostAuth("/api/auth/bookings/cancel", { id });
+        toast("✅ Storniert");
+        await authLoadBookings();
+      }catch(e1){
+        // fallback: older path
+        try{
+          await jpostAuth("/api/auth/bookings/cancel", { bookingId: id });
+          toast("✅ Storniert");
+          await authLoadBookings();
+        }catch(e2){
+          const msg = (e2?.data?.message || e2?.data?.error || e1?.data?.message || e1?.data?.error || "Fehler");
+          toast("⛔ Storno fehlgeschlagen: "+msg);
+        }
+      }
+    };
+  });
+}
+
+async function authLoadBookings(){
+  const a=getAuth();
+  if(!a.token) return toast("⛔ Bitte erst anmelden");
+  const det=$("authBookingsDetails"); if(det){det.style.display=""; det.open=true;}
+  const box=$("authBookingsBox"); if(box) box.innerHTML=`<div class="small">Lade Buchungen…</div>`;
+  try{
+    let r;
+    try{
+      r = await jpostAuth("/api/auth/bookings", { limit: 800 });
+    }catch(e0){
+      // fallback to older path
+      r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
+    }
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
+    renderAuthBookings();
+    if(det) det.scrollIntoView({behavior:"smooth", block:"start"});
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+function scrollToAdminConfig(){
+  const a=getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  // Admin-Konfiguration bleibt im Super-Admin Bereich (Admin-Passwort), bewusst getrennt.
+  const el = $("cardAccess") || document.body;
+  el.scrollIntoView({behavior:"smooth", block:"start"});
+  toast("ℹ️ Admin-Konfiguration ist Super-Admin (Admin-Passwort) – nicht im PS/VS/Admin-Login.");
+}
+
+function authLogout(){
+  clearAuth();
+  renderAuthState();
+  try{ renderPsVsAdminDash(); }catch(_e){}
+}
+
+// Wire auth controls
+(function(){
+// ---- Auth UI state (ensures available before wiring) ----
+function renderAuthState(){
+  try{
+    if (typeof renderAuth === "function") return renderAuth();
+  }catch(_e){}
+  try{
+    const a = (typeof getAuth === "function") ? getAuth() : {token:"",role:"",email:""};
+    const st = document.getElementById("psLoginState");
+    if (st){
+      st.textContent = a && a.token ? "Angemeldet" : "Nicht angemeldet";
+    }
+  }catch(_e){}
+}
+
+function wireAuthUI(){
+  const loginBtn = $("btnPsLogin");
+  const emailEl = $("psEmail");
+  const passEl = $("psCode");
+  const logoutBtn = $("btnPsLogout");
+  const reloadBtn = $("btnPsDashReload");
+
+  const doLogin = async ()=>{
+    try{
+      const email = (emailEl?.value || "").trim().toLowerCase();
+      const password = (passEl?.value || "").trim();
+      if (!email || !password) return toast("⛔ E-Mail und Passwort erforderlich");
+
+      const r = await fetch(API_BASE+"/api/ps/login", {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify({ email, password })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || !j.ok){
+        return toast("⛔ " + (j.message || j.error || ("Login fehlgeschlagen (HTTP "+r.status+")")));
+      }
+      setAuth(j.token, j.role, email, j.expiresAt);
+      renderAuthState();
+      scheduleAutoLogout();
+      toast("✅ Login erfolgreich");
+    
+      try{ await renderPsVsAdminDash(); }catch(_e){}
+}catch(e){
+      console.error(e);
+      toast("⛔ Login fehlgeschlagen");
+    }
+  };
+
+  if (loginBtn) loginBtn.onclick = doLogin;
+  if (emailEl) emailEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+  if (passEl) passEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+
+  if (logoutBtn) logoutBtn.onclick = ()=>{ authLogout(); toast("✅ Abgemeldet"); };
+
+  if (reloadBtn) reloadBtn.onclick = ()=>{
+    renderAuthState();
+    toast("✅ Aktualisiert");
+  };
+  // Auth Admin-Tools (per Permissions)
+  const btnCfgLoad = $("btnAuthConfigLoad");
+  const btnCfgSave = $("btnAuthConfigSave");
+  const btnMachLoad = $("btnAuthMachinesLoad");
+  const btnMachSave = $("btnAuthMachinesSave");
+  const btnRcSave = $("btnAuthRcSave");
+  const btnRcList = $("btnAuthRcList");
+  const btnFbList = $("btnAuthFbList");
+
+  if (btnCfgLoad) btnCfgLoad.onclick = ()=>authLoadConfig();
+  if (btnCfgSave) btnCfgSave.onclick = ()=>authSaveConfig();
+  if (btnMachLoad) btnMachLoad.onclick = ()=>authLoadMachines();
+  if (btnMachSave) btnMachSave.onclick = ()=>authSaveMachines();
+  if (btnRcSave) btnRcSave.onclick = ()=>authSaveRoomControl();
+  if (btnRcList) btnRcList.onclick = ()=>authLoadRoomControls();
+  if (btnFbList) btnFbList.onclick = ()=>authLoadFeedbackThreads();
+
+
+  // initial
+  renderAuthState();
+  scheduleAutoLogout();
+}
+
+document.addEventListener("DOMContentLoaded", wireAuthUI);
+})();
+
+
+function downloadCSV(filename, rows){
+  if (!rows || !rows.length){ toast("⛔ Keine Daten"); return; }
+  const keys = Object.keys(rows[0]);
+  const escCsv = (v)=> {
+    const s = String(v ?? "");
+    if (/[;"\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+    return s;
+  };
+  const csv = [
+    keys.join(";"),
+    ...rows.map(r => keys.map(k=>escCsv(r[k])).join(";"))
+  ].join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function credsComplete(){
+  const c = getCreds();
+  return !!(c.room && c.pin && c.stationPin);
+}
+
+function renderAdminLogs(){
+  const box = $("authLogsBox");
+  if (!box) return;
+  const q = ($("adminLogsFilter")?.value || "").trim().toLowerCase();
+
+  const list = __ADMIN_LOGS_CACHE.filter(l=>{
+    if (!q) return true;
+    const hay = `${l.ts} ${l.actor} ${l.action} ${l.room} ${l.type} ${l.machine} ${l.meta}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Logs (Filter?).</div>`;
+    return;
+  }
+
+  box.innerHTML = list.map(l=>{
+    let metaTxt = "";
+    try{
+      const meta = l.meta ? JSON.parse(l.meta) : null;
+      if (meta && Number.isFinite(Number(meta.start)) && Number.isFinite(Number(meta.end))){
+        metaTxt = `<div class="small" style="opacity:.85">Slot: ${esc(fmtBerlin(meta.start))} – ${esc(fmtBerlin(meta.end))}</div>`;
+      }
+    }catch(_){}
+
+    return `<div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;margin:6px 0">
+      <div>
+        <div><b>${esc(l.actor||"")}</b> · ${esc(l.action||"")}</div>
+        <div class="small">Zimmer ${esc(l.room||"")} · ${esc(l.type||"")} ${Number(l.machine||0)||""}</div>
+        ${metaTxt}
+      </div>
+      <div class="mono small" style="white-space:nowrap">${esc(fmtBerlin(l.ts))}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderAdminBookings(){
+  const box = $("authBookingsBox");
+  if (!box) return;
+  const q = ($("adminBookingsFilter")?.value || "").trim().toLowerCase();
+
+  const list = __ADMIN_BOOKINGS_CACHE.filter(b=>{
+    if (!q) return true;
+    const hay = `${b.type} ${b.machine} ${b.room} ${b.id} ${b.status}`.toLowerCase();
+    return hay.includes(q);
+  });
+
+  if (!list.length){
+    box.innerHTML = `<div class="small">Keine Buchungen (Filter?).</div>`;
+    return;
+  }
+
+  const now = Date.now();
+  box.innerHTML = list.map(b=>{
+    const title = `${b.type==="washer"?"Waschmaschine":"Trockner"} ${b.machine}`;
+    const when = `${fmtBerlin(b.start)}–${fmtBerlin(b.end)}`;
+    let st = b.status;
+    if (st==="booked") st = (b.start<=now && b.end>now) ? "läuft" : "gebucht";
+    if (st==="released") st="freigegeben";
+    if (st==="cancelled") st="storniert";
+    if (st==="admin_cancelled") st="ADMIN gelöscht";
+
+    const canCancel = (b.status==="booked");
+    const btn = canCancel
+      ? `<button class="btn" data-bid="${esc(b.id)}">Storno (Admin)</button>`
+      : `<span class="small" style="opacity:.7">—</span>`;
+
+    return `<div class="row" style="justify-content:space-between;gap:10px;align-items:center;margin:6px 0">
+      <div>
+        <div><b>${esc(title)}</b> · Zimmer ${esc(b.room||"")}</div>
+        <div class="small">${esc(when)} · <span class="pill">${esc(st)}</span></div>
+      </div>
+      ${btn}
+    </div>`;
+  }).join("");
+
+  // wire buttons
+  box.querySelectorAll("button[data-bid]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-bid");
+      if (!id) return;
+      if (!confirm("Admin-Storno wirklich ausführen?")) return;
+      try{
+        const s = getAdminSession();
+        await jpost("/api/admin/bookings/cancel", { adminPassword: s.pw, id });
+        toast("✅ Admin-Storno ausgeführt");
+        await adminLoadBookings();
+        if (credsComplete()) await refreshAll(); // nur wenn User-Zugang gesetzt ist
+      }catch(e){
+        const msg = e?.data?.message || e?.data?.error || "Fehler";
+        toast("⛔ Admin-Storno: " + msg);
+      }
+    };
+  });
+}
+
+
+function scrollToAdminConfig(){
+  const el = document.getElementById("adminBox") || document.getElementById("cardAccess");
+  if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({behavior:"smooth", block:"start"});
+  toast("ℹ️ Admin-Bereich: bitte oben im Admin-Block mit Admin-Passwort einloggen, um Einstellungen zu ändern.");
+}
+
+async function authLoadLogs(){
+  const det = $("authLogsDetails"); if (det) det.style.display="";
+  const a = getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  const box = document.getElementById("adminLogsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/logs", { limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
+    renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const detLogs = document.getElementById("adminLogsDetails"); if (detLogs) detLogs.open = true;
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Logs laden fehlgeschlagen: "+msg);
+  }
+}
+
+async function authLoadBookings(){
+  const det = $("authBookingsDetails"); if (det) det.style.display="";
+  const a = getAuth();
+  if (!a.token) return toast("⛔ Bitte erst anmelden");
+  const box = document.getElementById("adminBookingsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
+    renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const detBookings = document.getElementById("adminBookingsDetails"); if (detBookings) detBookings.open = true;
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Buchungen laden fehlgeschlagen: "+msg);
+  }
+}
+
+
+// PS/VS/Admin (Bearer): Logs/Buchungen direkt laden (ohne Admin-Passwort)
+async function authLoadLogs(){
+  const box = $("authLogsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/logs", { limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+    renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const detLogs1 = $("adminLogsDetails"); if (detLogs1) detLogs1.open = false;
+    toast("✅ Logs geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Logs: " + msg);
+  }
+}
+async function authLoadBookings(){
+  const box = $("authBookingsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/bookings/list", { limit: 800 });
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
+    renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const detBookings1 = $("adminBookingsDetails"); if (detBookings1) detBookings1.open = false;
+    toast("✅ Buchungen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Buchungen: " + msg);
+  }
+}
+async function adminLoadLogs(){
+  const s = getAdminSession();
+  if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
+  const box = $("authLogsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Logs…</div>`;
+  try{
+    const r = await jpost("/api/admin/logs", { adminPassword: s.pw, limit: 300 });
+    __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+    renderAdminLogs();
+    const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const detLogsX = $("adminLogsDetails"); if (detLogsX) detLogsX.open = false;
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+async function adminLoadBookings(){
+  const s = getAdminSession();
+  if (!s?.pw){ toast("⛔ Bitte erst Admin-Login"); return; }
+  const box = $("authBookingsBox");
+  if (box) box.innerHTML = `<div class="small">Lade Buchungen…</div>`;
+  try{
+    const r = await jpost("/api/admin/bookings/list", { adminPassword: s.pw });
+    __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((a,b)=>(b.start||0)-(a.start||0));
+    renderAdminBookings();
+    const d = $("authBookingsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
+    const detBookingsX = $("adminBookingsDetails"); if (detBookingsX) detBookingsX.open = false;
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Buchungen laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+async function adminLoadFeedbackThreads(){
+  const s = getAdminSession(); if (!s) return;
+  const box = $("adminFeedbackThreads");
+  box.innerHTML = `<div class="small mono">Lade…</div>`;
+  try{
+    const r = await jpost("/api/admin/feedback/list", {adminPassword: s.pw});
+    const threads = r.threads || [];
+    if (threads.length===0){
+      box.innerHTML = `<div class="small">Keine Feedbacks.</div>`;
+      return;
+    }
+    box.innerHTML = threads.map(t=>{
+      const unread = t.adminUnread ? " (NEU)" : "";
+      return `<div class="tile ${t.adminUnread? "busy":"free"}" data-search="${t.room} ${t.id}" style="margin-bottom:10px">
+        <div class="tileTop">
+          <div>
+            <div class="title">Zimmer ${t.room}${unread}</div>
+            <div class="meta mono">updated: ${fmtDT(t.updatedAt)}</div>
+            <div class="meta">User-Sichtbar: ${t.allowUserView ? "ja":"nein"}</div>
+          </div>
+          <label class="small" style="display:flex;align-items:center;gap:6px;margin-right:8px"><input type="checkbox" class="threadChk" data-thread-id="${t.id}">auswählen</label><button class="btn inline secondary" data-open-thread="${t.id}">Öffnen</button>
+        </div>
+      </div>`;
+    }).join("");
+
+    document.querySelectorAll("[data-open-thread]").forEach(btn=>{
+      btn.onclick = ()=> adminOpenThread(btn.getAttribute("data-open-thread"));
+    });
+
+  }catch(e){
+    box.innerHTML = `<div class="small">Fehler beim Laden.</div>`;
+  }
+}
+
+
+
+// Admin: thread filter + bulk delete + CSV
+(function initAdminThreadTools(){
+  const filter = $("adminThreadFilter");
+  if (filter){
+    filter.oninput = ()=>{
+      const q = filter.value.trim().toLowerCase();
+      document.querySelectorAll("#adminFeedbackThreads .tile").forEach(tile=>{
+        const txt = tile.getAttribute("data-search") || tile.textContent || "";
+        tile.style.display = txt.toLowerCase().includes(q) ? "" : "none";
+      });
+    };
+  }
+
+  const delSel = $("btnAdminDeleteSelectedThreads");
+  if (delSel){
+    delSel.onclick = async ()=>{
+      const s = getAdminSession();
+      if (!s?.pw) return toast("⛔ Bitte erst Admin-Login");
+      const ids = Array.from(document.querySelectorAll(".threadChk:checked")).map(x=>x.getAttribute("data-thread-id"));
+      if (!ids.length) return toast("⛔ Keine Threads gewählt");
+      if (!confirm(`Wirklich ${ids.length} Thread(s) löschen?`)) return;
+      try{
+        for (const id of ids){
+          await jpost("/api/admin/feedback/delete", { adminPassword: s.pw, threadId: id });
+        }
+        toast("✅ Threads gelöscht");
+        await adminLoadFeedbackThreads();
+      }catch(e){
+        const status = e?.status ? `HTTP ${e.status}` : "";
+        const msg = e?.data?.error || e?.data?.message || "";
+        toast(`⛔ Löschen fehlgeschlagen ${status} ${msg}`.trim());
+      }
+    };
+  }
+
+  const csvBtn = $("btnAdminExportThreadsCSV");
+  if (csvBtn){
+    csvBtn.onclick = ()=>{
+      // read tiles into csv
+      const rows = [];
+      document.querySelectorAll("#adminFeedbackThreads [data-thread-id]").forEach(chk=>{
+        const id = chk.getAttribute("data-thread-id");
+        const tile = chk.closest(".tile");
+        const room = (tile?.querySelector(".title")?.textContent || "").replace("Zimmer","").trim();
+        const updated = tile?.querySelector(".meta.mono")?.textContent?.replace("updated:","").trim() || "";
+        const allow = tile?.textContent?.includes("User-Sichtbar: ja") ? "ja" : "nein";
+        const unread = tile?.textContent?.includes("(NEU)") ? "ja" : "nein";
+        rows.push({id, room, updated, allowUserView:allow, adminUnread:unread});
+      });
+      if (!rows.length) return toast("⛔ Keine Threads zum Export");
+      const keys = Object.keys(rows[0]);
+      const csv = [keys.join(";"), ...rows.map(r=>keys.map(k=>String(r[k]??"")).join(";"))].join("\n");
+      const blob = new Blob([csv],{type:"text/csv"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "threads.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast("✅ CSV exportiert");
+    };
+  }
+})();
+async function adminOpenThread(threadId){
+  const s = getAdminSession(); if (!s) return;
+  const view = $("adminFeedbackThreadView");
+  view.innerHTML = `<div class="small mono">Lade Thread…</div>`;
+  try{
+    const r = await jpost("/api/admin/feedback/thread", {adminPassword:s.pw, threadId});
+    const t = r.thread;
+    const msgs = r.messages || [];
+
+    const allowId = "allowUserViewToggle";
+    view.innerHTML = `
+      <div class="tile busy">
+        <div class="title">Thread Zimmer ${t.room}</div>
+        <div class="meta mono">created: ${fmtDT(t.createdAt)} · updated: ${fmtDT(t.updatedAt)}</div>
+        <div style="margin-top:8px">
+          <label style="display:inline-flex;gap:8px;align-items:center">
+            <input type="checkbox" id="${allowId}" ${t.allowUserView? "checked":""}/>
+            <span>User darf Antworten sehen</span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        ${msgs.map(m=>`
+          <div class="tile ${m.sender==="admin" ? "busy":"free"}" style="margin-bottom:10px">
+            <div class="tileTop">
+              <div>
+                <div class="title">${m.sender==="admin" ? "Admin" : "User"}</div>
+                <div class="meta mono">${fmtDT(m.ts)}</div>
+              </div>
+              <div class="tag">sichtbar: ${m.visibleToUser? "ja":"nein"}</div>
+            </div>
+            <div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(m.message)}</div>
+          </div>
+        `).join("")}
+      </div>
+
+      <label>Antwort</label>
+      <textarea id="adminReplyText" placeholder="Antwort an User…"></textarea>
+
+      <label style="display:inline-flex;gap:8px;align-items:center;margin-top:8px">
+        <input type="checkbox" id="adminVisibleToUser" checked />
+        <span>Antwort für User sichtbar</span>
+      </label>
+
+      <button class="btn" id="btnAdminSendReply">Antwort senden</button>
+              <button class="btn danger" id="btnAdminDeleteThread">Thread löschen</button>
+    `;
+
+    const sendBtn = $("btnAdminSendReply");
+    if (sendBtn) sendBtn.onclick = async ()=>{
+      const msg = $("adminReplyText").value.trim();
+      if (!msg) return toast("Antwort fehlt");
+      const visible = $("adminVisibleToUser").checked;
+      const allowUserView = $(allowId).checked;
+
+      try{
+        await jpost("/api/admin/feedback/send", {adminPassword:s.pw, threadId, message:msg, visibleToUser:visible, allowUserView});
+        toast("✅ Antwort gesendet");
+        await adminOpenThread(threadId);
+        await adminLoadFeedbackThreads();
+      }catch(e){
+        toast("⛔ Senden fehlgeschlagen");
+      }
+    };
+
+  // Thread löschen (Admin)
+  const delBtn = $("btnAdminDeleteThread");
+  if (delBtn){
+    delBtn.onclick = async ()=>{
+      if (!confirm("Thread wirklich löschen?")) return;
+      try{
+        await jpost("/api/admin/feedback/delete", { adminPassword: s.pw, threadId });
+        toast("✅ Thread gelöscht");
+        $("adminMsgs").innerHTML = "";
+        $("adminReplyText").value = "";
+        await adminLoadFeedbackThreads();
+      }catch(e){
+        const status = e?.status ? `HTTP ${e.status}` : "";
+        const msg = e?.data?.error || e?.data?.message || "";
+        toast(`⛔ Thread löschen fehlgeschlagen ${status} ${msg}`.trim());
+      }
+    };
+  }
+
+  }catch(e){
+    view.innerHTML = `<div class="small">Fehler beim Thread laden.</div>`;
+  }
+}
+
+// ---------- main refresh ----------
+async function refreshAll(){
+  const c = getCreds();
+  if (!c.room || !c.pin || !c.stationPin){
+    toast("Bitte Zugang vollständig eingeben");
+    return;
+  }
+  $("btnRefresh").disabled = true;
+  $("btnRefresh").textContent = "Lade…";
+
+  try{
+    const r = await jpost("/api/user/refresh", c);
+    STATE = r;
+
+    renderNewsBox();
+    renderSlotDropdown();
+    renderTiles();
+    renderMyBookings();
+
+    // feedback popup if new
+    if (r.feedback && r.feedback.userUnread) {
+      alert("💬 Neues Feedback vom Admin vorhanden.");
+    }
+
+    toast("✅ Bereit");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ " + msg);
+  }finally{
+    $("btnRefresh").disabled = false;
+    $("btnRefresh").textContent = "Aktualisieren";
+  }
+}
+
+// ---------- events ----------
+$("btnRefresh").onclick = refreshAll;
+
+// Enter triggers
+$("pin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
+$("stationPin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
+
+// Book washer from dropdown
+$("btnBookWasher").onclick = async ()=>{
+  const c = getCreds();
+  const v = $("slotSelect").value;
+  if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
+  if (!v) return toast("Bitte Slot auswählen");
+
+  const slot = JSON.parse(v);
+  try{
+    const r = await jpost("/api/washer/book", {
+      room: c.room, pin: c.pin, stationPin: c.stationPin,
+      machine: slot.machine,
+      start: slot.start,
+      end: slot.end
+    });
+    alert("✅ Gebucht!");
+    await refreshAll();
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    alert("⛔ " + msg);
+  }
+};
+
+// Feedback
+$("btnLoadFeedback").onclick = ()=> loadFeedback(false);
+$("btnSendFeedback").onclick = async ()=>{
+  const c = getCreds();
+  const msg = $("feedbackText").value.trim();
+  if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
+  if (!msg) return toast("Nachricht fehlt");
+  try{
+    await jpost("/api/feedback/send", { ...c, message: msg });
+    $("feedbackText").value = "";
+    toast("✅ Gesendet");
+    await loadFeedback(false);
+    await refreshAll();
+  }catch(e){
+    toast("⛔ Feedback senden fehlgeschlagen");
+  }
+};
+
+// Admin
+$("btnAdminLogin").onclick = adminLogin;
+$("adminPw").addEventListener("keydown", (e)=>{ if (e.key==="Enter") adminLogin(); });
+
+$("btnAdminLogout").onclick = ()=>{
+  clearAdminSession();
+  $("adminBox").style.display = "none";
+  $("adminLoginBox").style.display = "block";
+  toast("✅ Logout");
+};
+
+$("btnAdminReload").onclick = adminReload;
+
+$("btnAdminLoadLogs").onclick = adminLoadLogs;
+$("btnAdminLoadBookings").onclick = adminLoadBookings;
+
+// Admin: Filter + CSV
+if ($("adminLogsFilter")) $("adminLogsFilter").addEventListener("input", renderAdminLogs);
+if ($("adminBookingsFilter")) $("adminBookingsFilter").addEventListener("input", renderAdminBookings);
+
+if ($("btnAdminExportLogsCSV")) $("btnAdminExportLogsCSV").onclick = ()=>{
+  const rows = (__ADMIN_LOGS_CACHE||[]).map(l=>({
+    Zeit: fmtBerlin(l.ts),
+    Actor: l.actor||"",
+    Action: l.action||"",
+    Room: l.room||"",
+    Type: l.type||"",
+    Machine: l.machine||"",
+    Meta: l.meta||""
+  }));
+  downloadCSV("logs.csv", rows);
+};
+
+if ($("btnAdminExportBookingsCSV")) $("btnAdminExportBookingsCSV").onclick = ()=>{
+  const rows = (__ADMIN_BOOKINGS_CACHE||[]).map(b=>({
+    Type: b.type||"",
+    Machine: b.machine||"",
+    Room: b.room||"",
+    Start: fmtBerlin(b.start),
+    End: fmtBerlin(b.end),
+    Status: b.status||"",
+    Id: b.id||""
+  }));
+  downloadCSV("bookings.csv", rows);
+};
+
+$("btnSetStationPin").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  const sp = $("adminStationPin").value.trim();
+  try{
+    const ok = confirm2("Stations-PIN speichern?", "Wird gespeichert…");
+    if (!ok) return;
+    await jpost("/api/admin/set-station-pin", {adminPassword:s.pw, stationPin: sp});
+    toast("✅ Stations-PIN gespeichert");
+  }catch(e){
+    toast("⛔ Fehler beim Speichern");
+  }
+};
+
+$("btnChangeAdminPw").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  const npw = $("adminNewPw").value.trim();
+  const npw2 = $("adminNewPw2").value.trim();
+  if (!npw) return toast("Neues Passwort fehlt");
+  if (npw !== npw2) return toast("⛔ Passwörter stimmen nicht überein");
+  try{
+    const ok = confirm2("Admin-Passwort ändern?", "Wird geändert…");
+    if (!ok) return;
+    await jpost("/api/admin/change-password", {adminPassword:s.pw, newPassword: npw});
+    toast("✅ Admin Passwort geändert");
+    // keep session but update stored pw to new
+    setAdminSession(npw);
+  }catch(e){
+    toast("⛔ Fehler beim Ändern");
+  }
+};
+
+$("btnSaveWasherHours").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  try{
+    const ok = confirm2("Waschzeiten speichern?", "Gespeichert.");
+    if (!ok) return;
+
+    const hours = [];
+    for (let h=0; h<=23; h++){
+      const cb = document.getElementById(`wh_${h}`);
+      if (cb && cb.checked) hours.push(h);
+    }
+    await jpost("/api/admin/config/set", {adminPassword:s.pw, washerHours: hours});
+    toast("✅ Waschzeiten gespeichert");
+    await adminReload();
+    await refreshAll();
+  }catch(e){
+    toast("⛔ Fehler beim Speichern");
+  }
+};
+
+$("btnSaveDryerMinutes").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  try{
+    const ok = confirm2("Trockner-Dauer speichern?", "Gespeichert.");
+    if (!ok) return;
+    await jpost("/api/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
+    toast("✅ Trockner-Dauer gespeichert");
+    await adminReload();
+    await refreshAll();
+  }catch(e){
+    toast("⛔ Fehler beim Speichern");
+  }
+};
+
+$("btnSaveDaysWindow").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  try{
+    const ok = confirm2("Tage-Fenster speichern?", "Gespeichert.");
+    if (!ok) return;
+    await jpost("/api/admin/config/set", {
+      adminPassword:s.pw,
+      daysPast: Number($("daysPast").value),
+      daysFuture: Number($("daysFuture").value),
+    });
+    toast("✅ Tage-Fenster gespeichert");
+    await adminReload();
+    await refreshAll();
+  }catch(e){
+    toast("⛔ Fehler beim Speichern");
+  }
+};
+
+$("btnSaveNews").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  try{
+    const ok = confirm2("News speichern?", "Gespeichert.");
+    if (!ok) return;
+    await jpost("/api/admin/config/set", {
+      adminPassword:s.pw,
+      newsEnabled: $("newsEnabled").checked,
+      newsText: $("newsText").value,
+      bumpNewsVersion: $("bumpNewsVersion").checked
+    });
+    toast("✅ News gespeichert");
+    await adminReload();
+    await refreshAll();
+  }catch(e){
+    toast("⛔ Fehler beim Speichern");
+  }
+};
+
+$("btnSaveMachines").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  try{
+    const ok = confirm2("Maschinen speichern?", "Gespeichert.");
+    if (!ok) return;
+
+    const updates = [];
+    for (const type of ["washer","dryer"]){
+      for (let i=1;i<=4;i++){
+        const en = document.getElementById(`m_${type}_${i}_en`)?.checked ? 1 : 0;
+        const de = document.getElementById(`m_${type}_${i}_de`)?.checked ? 1 : 0;
+        updates.push({type, machine:i, enabled: en, defect: de});
+      }
+    }
+    await jpost("/api/admin/machines/set", {adminPassword:s.pw, updates});
+    toast("✅ Maschinen gespeichert");
+    await refreshAll();
+    await adminReload();
+  }catch(e){
+    toast("⛔ Fehler beim Speichern");
+  }
+};
+
+$("btnSaveDefectRules").onclick = async ()=>{
+  const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+  try{
+    const ok = confirm2("Defekt-Regeln speichern?", "Gespeichert.");
+    if (!ok) return;
+
+    const allowed = { washer:{}, dryer:{} };
+    for (const t of ["washer","dryer"]){
+      for (let i=1;i<=4;i++){
+        const id = `da_${t}_${i}`;
+        allowed[t][String(i)] = !!document.getElementById(id)?.checked;
+      }
+    }
+
+    await jpost("/api/admin/config/set", {
+      adminPassword: s.pw,
+      userDefectEnabled: $("userDefectEnabled").checked,
+      userDefectAllowed: allowed
+    });
+    toast("✅ Defekt-Regeln gespeichert");
+    await adminReload();
+    await refreshAll();
+  }catch(e){
+    toast("⛔ Fehler beim Speichern");
+  }
+};
+
+if ($("btnLoadLogs")) {
+  $("btnLoadLogs").onclick = async ()=>{
+    const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
+    const box = $("logsBox");
+    box.innerHTML = `<div class="small mono">Lade…</div>`;
+    try{
+      const r = await jpost("/api/admin/logs", {adminPassword:s.pw, limit:200});
+      const logs = r.logs || [];
+      box.innerHTML = logs.map(l=>{
+        const meta = l.meta ? escapeHtml(l.meta) : "{}";
+        return `<div class="tile" style="margin-bottom:10px;background:var(--pastelGray)">
+          <div class="title">${escapeHtml(l.action)}</div>
+          <div class="meta mono">${fmtDT(l.ts)} · ${escapeHtml(l.actor)} · ${escapeHtml(l.room)}</div>
+          <div class="small mono" style="margin-top:6px;white-space:pre-wrap">${meta}</div>
+        </div>`;
+      }).join("");
+    }catch(e){
+      box.innerHTML = `<div class="small">Fehler.</div>`;
+    }
+  };
+}
+
+// Boot: if admin session exists, show admin box
+(async function boot(){
+  try{
+    const s = await jget("/api/_status?ts="+Date.now());
+    console.log("status", s);
+  }catch(e){
+    toast("⚠️ Worker nicht erreichbar – API_BASE prüfen");
+  }
+
+  const sess = getAdminSession();
+  if (sess){
+    $("adminLoginBox").style.display="none";
+    $("adminBox").style.display="block";
+    await adminReload();
+
+    // Realtime Logs: alle 8s neu laden, solange Admin eingeloggt ist
+    if (!window.__logPoll){
+      window.__logPoll = setInterval(async ()=>{
+        try{
+          const sess2 = getAdminSession();
+          if (!sess2) return;
+          // nur wenn Admin-Bereich sichtbar
+          const ab = $("adminBox");
+          if (ab && ab.style.display !== "none"){
+            await adminLoadLogs();
+          }
+        }catch(e){}
+      }, 8000);
+    }
+
+  }
+})();
+// =====================
+// Auth Admin Tools (Bearer + Permissions)
+// =====================
+
+let __AUTH_CONFIG_CACHE = null;
+let __AUTH_MACHINES_CACHE = null;
+let __AUTH_ROOMCONTROL_CACHE = null;
+let __AUTH_FB_THREADS = null;
+
+function authHas(p){
+  try{
+    const me = window.__AUTH_ME_CACHE || null;
+    const perms = me?.perms || {};
+    const role = me?.user?.role || (getAuth()?.role||"");
+    return !!(perms[p] || role==="admin");
+  }catch{ return false; }
+}
+
+async function authMeCached(){
+  const me = await authMe();
+  if (me) window.__AUTH_ME_CACHE = me;
+  return me;
+}
+
+async function authLoadConfig(){
+  const det = $("authConfigDetails"); if(det){det.style.display=""; det.open=true;}
+  const box = $("authConfigBox"); if (box) box.innerHTML = `<div class="small">Lade Konfiguration…</div>`;
+  try{
+    await authMeCached();
+    const r = await jpostAuth("/api/auth/admin/config/get", {});
+    __AUTH_CONFIG_CACHE = r.config || {};
+    // Reuse existing admin render if available
+    if (typeof renderAdminConfigUI === "function"){
+      renderAdminConfigUI(__AUTH_CONFIG_CACHE, r.newsSeenCount || 0);
+      if (box) box.innerHTML = `<div class="small">✅ Konfiguration geladen (oben im Super-Admin UI sichtbar).</div>`;
+    }else{
+      if (box) box.innerHTML = `<pre class="mono" style="white-space:pre-wrap">${esc(JSON.stringify(__AUTH_CONFIG_CACHE, null, 2))}</pre>`;
+    }
+    toast("✅ Konfiguration geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Konfiguration laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ "+msg);
+  }
+}
+
+async function authSaveConfig(){
+  const box = $("authConfigBox");
+  try{
+    // Prefer reading from existing SA admin form if present, else save cached
+    let payload = null;
+    if (typeof collectAdminConfigFromUI === "function"){
+      payload = collectAdminConfigFromUI();
+    }else{
+      payload = __AUTH_CONFIG_CACHE || {};
+    }
+    await jpostAuth("/api/auth/admin/config/set", payload);
+    toast("✅ Konfiguration gespeichert");
+    if (box) box.innerHTML = `<div class="small">✅ Gespeichert.</div>`;
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Speichern fehlgeschlagen: "+msg);
+    if (box) box.innerHTML = `<div class="small">⛔ Speichern fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+function renderAuthMachinesUI(list){
+  const box = $("authMachinesBox");
+  if (!box) return;
+  const m = (list||[]);
+  const groups = [
+    {type:"washer", label:"Waschmaschinen"},
+    {type:"dryer", label:"Trockner"},
+  ];
+  let html = "";
+  for (const g of groups){
+    html += `<div class="title" style="margin-top:10px">${g.label}</div>`;
+    for (let i=1;i<=4;i++){
+      const row = m.find(x=>x.type===g.type && Number(x.machine)===i) || {type:g.type, machine:i, enabled:1, defect:0};
+      const enId = `auth_m_${g.type}_${i}_en`;
+      const deId = `auth_m_${g.type}_${i}_de`;
+      html += `
+        <div style="border:1px solid var(--line); border-radius:14px; padding:10px; margin:8px 0">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+            <div><b>${g.type==="washer"?"WM":"TR"} ${i}</b></div>
+            <div class="small">ID: ${esc(row.id||"")}</div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
+            <label style="display:inline-flex;gap:8px;align-items:center">
+              <input type="checkbox" id="${enId}" ${row.enabled? "checked":""}/>
+              <span>aktiv</span>
+            </label>
+            <label style="display:inline-flex;gap:8px;align-items:center">
+              <input type="checkbox" id="${deId}" ${row.defect? "checked":""}/>
+              <span>defekt</span>
+            </label>
+          </div>
+        </div>
+      `;
+    }
+  }
+  box.innerHTML = html || `<div class="small">Keine Maschinen.</div>`;
+}
+
+async function authLoadMachines(){
+  const det = $("authMachinesDetails"); if(det){det.style.display=""; det.open=true;}
+  const box = $("authMachinesBox"); if (box) box.innerHTML = `<div class="small">Lade Maschinen…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/machines/list", {});
+    __AUTH_MACHINES_CACHE = r.machines || [];
+    renderAuthMachinesUI(__AUTH_MACHINES_CACHE);
+    toast("✅ Maschinen geladen");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    if (box) box.innerHTML = `<div class="small">⛔ Maschinen laden fehlgeschlagen (${esc(msg)})</div>`;
+    toast("⛔ "+msg);
+  }
+}
+
+async function authSaveMachines(){
+  const box = $("authMachinesBox");
+  try{
+    if (!__AUTH_MACHINES_CACHE) await authLoadMachines();
+    const updates = [];
+    for (const g of ["washer","dryer"]){
+      for (let i=1;i<=4;i++){
+        const en = document.getElementById(`auth_m_${g}_${i}_en`);
+        const de = document.getElementById(`auth_m_${g}_${i}_de`);
+        if (!en || !de) continue;
+        updates.push({ type:g, machine:i, enabled: !!en.checked, defect: !!de.checked });
+      }
+    }
+    await jpostAuth("/api/auth/machines/set", { updates });
+    toast("✅ Maschinen gespeichert");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ Speichern fehlgeschlagen: "+msg);
+    if (box) box.insertAdjacentHTML("beforeend", `<div class="small">⛔ (${esc(msg)})</div>`);
+  }
+}
+
+async function authSaveRoomControl(){
+  const det = $("authRoomControlDetails"); if(det){det.style.display=""; det.open=true;}
+  const room = ($("authRcRoom")?.value || "").trim();
+  const allRooms = !!$("authRcAll")?.checked;
+  const blocked = !!$("authRcBlocked")?.checked;
+  const message = ($("authRcMsg")?.value || "").trim();
+  const box = $("authRoomControlBox"); if (box) box.innerHTML = `<div class="small">Speichere…</div>`;
+  try{
+    const payload = { allRooms, room, blocked, message };
+    await jpostAuth("/api/auth/room/control", payload);
+    toast("✅ Gespeichert");
+    if (box) box.innerHTML = `<div class="small">✅ Gespeichert.</div>`;
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ "+msg);
+    if (box) box.innerHTML = `<div class="small">⛔ Speichern fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+async function authLoadRoomControls(){
+  const det = $("authRoomControlDetails"); if(det){det.style.display=""; det.open=true;}
+  const box = $("authRoomControlBox"); if (box) box.innerHTML = `<div class="small">Lade…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/room/control/list", {});
+    __AUTH_ROOMCONTROL_CACHE = r.rooms || [];
+    if (!__AUTH_ROOMCONTROL_CACHE.length){
+      if (box) box.innerHTML = `<div class="small">Keine Einträge.</div>`;
+      return;
+    }
+    if (box) box.innerHTML = __AUTH_ROOMCONTROL_CACHE.map(x=>{
+      const rr = x.room==="*" ? "*" : esc(x.room);
+      return `<div style="border-bottom:1px solid rgba(255,255,255,.08); padding:8px 0">
+        <div><b>Zimmer ${rr}</b> · ${x.blocked?'<span class="pill">gesperrt</span>':'<span class="pill">frei</span>'}</div>
+        <div class="small">${esc(x.message||"")}</div>
+        <div class="small" style="opacity:.7">${fmtDT(x.updatedAt||0)}</div>
+      </div>`;
+    }).join("");
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ "+msg);
+    if (box) box.innerHTML = `<div class="small">⛔ Laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+async function authLoadFeedbackThreads(){
+  const det = $("authFeedbackDetails"); if(det){det.style.display=""; det.open=true;}
+  const box = $("authFeedbackBox"); if (box) box.innerHTML = `<div class="small">Lade Threads…</div>`;
+  try{
+    const r = await jpostAuth("/api/auth/feedback/threads", { limit: 200 });
+    __AUTH_FB_THREADS = r.threads || [];
+    if (!__AUTH_FB_THREADS.length){
+      if (box) box.innerHTML = `<div class="small">Keine Threads.</div>`;
+      return;
+    }
+    if (box) box.innerHTML = __AUTH_FB_THREADS.map(t=>{
+      const id = esc(t.id);
+      const badge = t.adminUnread ? '<span class="pill">neu</span>' : '<span class="pill">—</span>';
+      return `<div style="border-bottom:1px solid rgba(255,255,255,.08); padding:8px 0">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div><b>${esc(t.subject||"Feedback")}</b> · Zimmer ${esc(t.room||"")}</div>
+          ${badge}
+        </div>
+        <div class="small">${fmtDT(t.updatedAt||t.createdAt||0)}</div>
+        <div class="tileBtns" style="margin-top:8px">
+          <button class="btn secondary inline" data-fb-open="${id}">Öffnen</button>
+        </div>
+      </div>`;
+    }).join("");
+    box.querySelectorAll("button[data-fb-open]").forEach(btn=>{
+      btn.onclick = ()=>authOpenFeedback(btn.getAttribute("data-fb-open"));
+    });
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ "+msg);
+    if (box) box.innerHTML = `<div class="small">⛔ Laden fehlgeschlagen (${esc(msg)})</div>`;
+  }
+}
+
+async function authOpenFeedback(threadId){
+  const box = $("authFeedbackBox"); if (!box) return;
+  try{
+    const r = await jpostAuth("/api/auth/feedback/thread", { threadId });
+    const thread = r.thread || {};
+    const msgs = r.messages || [];
+    box.innerHTML = `
+      <div class="small"><button class="btn secondary inline" id="btnFbBack">← Zurück</button></div>
+      <div style="margin-top:8px"><b>${esc(thread.subject||"Feedback")}</b> · Zimmer ${esc(thread.room||"")}</div>
+      <div style="margin-top:10px">
+        ${msgs.map(m=>{
+          const who = m.sender==="admin" ? "Admin" : "User";
+          const vis = (m.visibleToUser===0) ? " (intern)" : "";
+          return `<div style="border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px; margin:8px 0">
+            <div class="small" style="opacity:.8">${who}${vis} · ${fmtDT(m.ts||0)}</div>
+            <div style="margin-top:6px; white-space:pre-wrap">${esc(m.message||"")}</div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div style="margin-top:10px">
+        <textarea id="fbReplyMsg" rows="4" placeholder="Antwort…" style="width:100%; padding:10px; border-radius:12px"></textarea>
+        <div class="row" style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="fbVisibleToUser" checked />
+            <span class="small">Für User sichtbar</span>
+          </label>
+          <button class="btn" id="btnFbSend">Senden</button>
+        </div>
+      </div>
+    `;
+    $("btnFbBack").onclick = ()=>authLoadFeedbackThreads();
+    $("btnFbSend").onclick = async ()=>{
+      const message = ($("fbReplyMsg")?.value||"").trim();
+      if (!message) return toast("⛔ Nachricht leer");
+      const visibleToUser = !!$("fbVisibleToUser")?.checked;
+      await jpostAuth("/api/auth/feedback/send", { threadId, message, visibleToUser });
+      toast("✅ Gesendet");
+      await authOpenFeedback(threadId);
+    };
+  }catch(e){
+    const msg = e?.data?.message || e?.data?.error || "Fehler";
+    toast("⛔ "+msg);
+  }
+}
+</script>
+</body>
+</html>
       --txt:#e9f1ff;
       --muted:#9cb0d4;
       --accent:#79d6ff;
