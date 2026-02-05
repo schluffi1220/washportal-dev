@@ -1,292 +1,351 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Datenschutzbestimmungen</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Benutzerverwaltung</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; margin:0; background:#0b1020; color:#e9eefc;}
-    a{color:inherit;}
-    header{padding:18px 16px; background:linear-gradient(135deg,#15224a,#0b1020); border-bottom:1px solid rgba(255,255,255,.08);}
-    .wrap{max-width:980px; margin:0 auto; padding:16px;}
-    .card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:16px; box-shadow:0 10px 25px rgba(0,0,0,.25);}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial; margin:18px; color:#eaeaea; background:#111316;}
+    a{color:inherit}
+    input,select,button{padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#eaeaea}
+    button{cursor:pointer}
+    button:disabled{opacity:.5; cursor:not-allowed}
     .muted{opacity:.8}
-    .policy{line-height:1.45}
-    ul{margin:8px 0 8px 22px}
-    .box{margin-top:14px; padding:12px; border-radius:12px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08);}
-    input,button{font:inherit;}
-    input{width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:#fff;}
-    button{padding:10px 12px; border-radius:10px; border:0; background:linear-gradient(135deg,#7fd6ff,#6ee7b7); color:#0b1b2b; font-weight:700; cursor:pointer;}
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-    .row > *{flex:1; min-width:200px;}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
+    .top{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;margin:12px 0}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}
+    .badge{padding:2px 8px;border-radius:999px;font-size:12px}
+    .b-active{background:rgba(0,255,0,.14)}
+    .b-pending{background:rgba(255,200,0,.16)}
+    .b-disabled{background:rgba(255,0,0,.14)}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
   </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
-      <div>
-        <div style="font-size:20px;font-weight:800;">Datenschutzbestimmungen</div>
-        <div class="muted">Washportal · <a href="https://schluffi1220.github.io/washportal-dev/" style="color:inherit;text-decoration:underline;font-weight:700;">
-  ← Zurück zum Portal
-</a>
-      </div>
-      <div class="muted" id="metaLine">Lade Infos…</div>
+
+  <div class="muted">
+    Washportal ·
+    <a href="https://schluffi1220.github.io/washportal-dev/">← Portal</a>
+    ·
+    <a href="https://schluffi1220.github.io/washportal-dev/privacy/">Datenschutz</a>
+  </div>
+
+  <h2>Benutzerverwaltung</h2>
+
+  <div class="card">
+    <div class="top">
+      <input id="adminPw" type="password" placeholder="Super-Admin Passwort" />
+      <button id="btnLoad">Liste laden</button>
+      <span id="msg" class="muted"></span>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      Freischalten deaktiviert automatisch den bisherigen aktiven Patientensprecher / Stellvertreter derselben Rolle.
     </div>
   </div>
-</header>
 
-<main class="wrap">
-  <div class="card policy">
-    Datenschutzerklärung
-1. Verantwortlicher
-Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
-[Vor- und Nachname des Betreibers]
-Salzburgweg 7, 97616 Bad Neustadt an der Saale
-Kontakt: [E-Mail-Adresse oder alternative Kontaktmöglichkeit]
-Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
-2. Zweck der Website
-Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.
-3. Welche Daten werden verarbeitet?
-Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:
-<ul>
-<li>Zimmernummer (als Benutzerkennung)</li>
-<li>selbstgewählter PIN-Code</li>
-<li>gebuchte Waschmaschinen-Zeiten</li>
-<li>technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)</li>
-</ul>
-Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
-4. Zweck der Datenverarbeitung
-Die Verarbeitung erfolgt ausschließlich zum Zweck:
-<ul>
-<li>der Identifikation der jeweiligen Nutzer bei der Buchung</li>
-<li>der Verwaltung der Waschmaschinenbelegung</li>
-<li>der technischen Bereitstellung und Sicherheit der Website</li>
-</ul>
-Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.
-<br/>
-<br/>
-<br/>
-<br/>
-5. Rechtsgrundlage
-Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht möglich wäre und keine überwiegenden Interessen der betroffenen Personen entgegenstehen.
-6. Speicherung und Löschung
-Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. [Frist?]
-Server-Logdaten (z. B. IP-Adressen) werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
-7. Datensicherheit
-Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.
-8. Rechte der betroffenen Personen
-Nutzer haben jederzeit das Recht auf:
-<ul>
-<li>Auskunft über ihre gespeicherten Daten (Art. 15 DSGVO)</li>
-<li>Berichtigung unrichtiger Daten (Art. 16 DSGVO)</li>
-<li>Löschung ihrer Daten (Art. 17 DSGVO)</li>
-<li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
-<li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
-</ul>
-Anfragen können an den oben genannten Verantwortlichen gerichtet werden.
-9. Beschwerderecht
-Es besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde, hier das Bayerisches Landesamt für Datenschutzaufsicht.
-10. Änderungen dieser Datenschutzerklärung
-Diese Datenschutzerklärung kann angepasst werden, falls sich technische oder rechtliche Änderungen ergeben.
-Stand: 27.01.2026
-<br/>
-<br/>
-
-    <div class="box" id="dynDeleteBox">
-      <b>Automatischer Löschzeitpunkt</b><br/>
-      <span id="deleteInfo" class="muted">Lade…</span>
+  <div class="card">
+    <div class="top" style="justify-content:space-between">
+      <h3 style="margin:0">Registrierungen</h3>
+      <select id="filterRole">
+        <option value="">Alle Rollen</option>
+        <option value="ps">Patientensprecher</option>
+        <option value="ps_deputy">Stellvertreter</option>
+        <option value="admin">Admin</option>
+      </select>
     </div>
-
-    <div class="box" id="dynPsBox">
-      <b>Registrierte Patientensprecher</b><br/>
-      <div id="psList" class="muted">Lade…</div>
-    </div>
+    <div id="tbl" style="margin-top:8px"></div>
   </div>
-  </div>
-</main>
 
-<script>
-function pad(n){return String(n).padStart(2,"0");}
-function fmt(ts){
-  const d=new Date(Number(ts));
-  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
-}
-const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  <script>
 
-function pad(n){return String(n).padStart(2,"0");}
-function fmt(ts){
-  const d = new Date(Number(ts));
-  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
-}
+    const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
-async function loadMeta(){
-  const res = await fetch(API_BASE + "/api/privacy/meta");
-  const j = await res.json();
-  if(!j.ok) throw new Error("meta");
+    const $ = (id)=>document.getElementById(id);
+    const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
 
-  const del = fmt(j.deleteAt);
-
-  const metaLine = document.getElementById("metaLine");
-  const deleteInfo = document.getElementById("deleteInfo");
-  const psList = document.getElementById("psList");
-
-  if(metaLine) metaLine.textContent = "Stand: " + del;
-
-  if(deleteInfo){
-    deleteInfo.innerHTML =
-      "Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation erforderlich ist. "+
-      "Bei der aktuellen Einstellung werden Daten spätestens am <span class='mono'>"+del+"</span> gelöscht "+
-      "(Fenster: "+j.daysPast+" Tage zurück, "+j.daysFuture+" Tage voraus).";
-  }
-
-  const ps = j.patientSpeakers || [];
-  if(psList){
-    if(!ps.length){
-      psList.textContent = "Noch keine Registrierungen.";
-    } else {
-      psList.innerHTML = ps.map(p=>{
-        const name = (p.name || [p.firstName, p.lastName].filter(Boolean).join(" ")).trim();
-        const email = p.emailMasked || p.email || "";
-        const status = p.status || "";
-        return "• " + (name || "—") + (email ? " ("+email+")" : "") + (status ? " – "+status : "");
-      }).join("<br/>");
-    }
-  }
-}
-
-async function jpost(path,data){
-  const res = await fetch(API_BASE + path,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(data)
-  });
-  const txt = await res.text();
-  let j={}; try{j=JSON.parse(txt);}catch(_){}
-  if(!res.ok) throw Object.assign(new Error("http"), {status:res.status, data:j});
-  return j;
-}
-
-// Registrierung nur verdrahten, wenn das Formular auf dieser Seite existiert
-const psRegisterBtn = document.getElementById("psRegister");
-if(psRegisterBtn){
-  psRegisterBtn.onclick = async ()=>{
-    const firstName = (document.getElementById("psFirst")?.value || "").trim();
-    const lastName  = (document.getElementById("psLast")?.value || "").trim();
-    const email     = (document.getElementById("psEmail")?.value || "").trim();
-    const msg = document.getElementById("psRegMsg");
-    if(msg) msg.textContent="";
-    try{
-      await jpost("/api/ps/register",{firstName,lastName,email});
-      if(msg) msg.textContent="✅ Registrierung gespeichert (Freischaltung durch Admin).";
-      if(document.getElementById("psFirst")) document.getElementById("psFirst").value="";
-      if(document.getElementById("psLast")) document.getElementById("psLast").value="";
-      if(document.getElementById("psEmail")) document.getElementById("psEmail").value="";
-      await loadMeta();
-    }catch(e){
-      const m = e?.data?.message || e?.data?.error || "Fehler";
-      if(msg) msg.textContent="⛔ "+m;
-    }
-  };
-}
-
-loadMeta().catch(()=>{
-  const metaLine = document.getElementById("metaLine");
-  if(metaLine) metaLine.textContent="";
-});
-</script>
-  <!-- ===================== -->
-<!-- Registrierung Patientensprecher/Admin -->
-<!-- ===================== -->
-
-<hr style="margin:40px 0; opacity:.2">
-
-<h3>Registrierung</h3>
-
-<form id="psForm" style="display:flex;flex-direction:column;gap:10px;max-width:400px">
-
-  <select id="psRole" required>
-    <option value="ps">Patientensprecher</option>
-    <option value="ps_deputy">Stellv. Patientensprecher</option>
-    <option value="admin">Admin</option>
-  </select>
-
-  <input id="psFirst" placeholder="Vorname" required>
-  <input id="psLast" placeholder="Nachname" required>
-  <input id="psEmail" type="email" placeholder="E-Mail" required>
-  <input id="psPass" type="password" placeholder="Passwort (mind. 8 Zeichen)" required>
-  <input id="psPass2" type="password" placeholder="Passwort wiederholen" required>
-
-  <button type="submit">Registrieren</button>
-
-  <div id="psMsg" style="opacity:.8"></div>
-</form>
-
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-
-  async function jpost(path, body){
-    const r = await fetch(API_BASE + path,{
-      method:"POST",
-      headers:{"content-type":"application/json"},
-      body: JSON.stringify(body||{})
-    });
-
-    const t = await r.text();
-    return t ? JSON.parse(t) : {};
-  }
-
-  const form = document.getElementById("psForm");
-  const msg  = document.getElementById("psMsg");
-
-  if(!form) return;
-
-  form.addEventListener("submit", async (e)=>{
-    e.preventDefault();
-
-    const fn = document.getElementById("psFirst").value.trim();
-    const ln = document.getElementById("psLast").value.trim();
-    const em = document.getElementById("psEmail").value.trim();
-    const pw1 = document.getElementById("psPass").value;
-    const pw2 = document.getElementById("psPass2").value;
-    const role = document.getElementById("psRole").value;
-
-    if(!fn || !ln || !em || !pw1 || !pw2){
-      msg.textContent = "Bitte alle Felder ausfüllen";
-      return;
-    }
-    if(pw1.length < 8){
-      msg.textContent = "Passwort muss mind. 8 Zeichen haben";
-      return;
-    }
-    if(pw1 !== pw2){
-      msg.textContent = "Passwörter stimmen nicht überein";
-      return;
+    function badge(status){
+      if (status==="active") return `<span class="badge b-active">active</span>`;
+      if (status==="disabled") return `<span class="badge b-disabled">disabled</span>`;
+      return `<span class="badge b-pending">pending</span>`;
     }
 
-    try{
-      await jpost("/api/ps/register", {
-        firstName: fn,
-        lastName: ln,
-        email: em,
-        role,
-        password: pw1
+    function roleLabel(r){
+      if (r==="ps") return "Patientensprecher";
+      if (r==="ps_deputy") return "Stellvertreter";
+      if (r==="admin") return "Admin";
+      if (r==="") return "—";
+      return r || "";
+    }
+
+    async function jpost(path, body){
+      const r = await fetch(API_BASE + path, {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify(body||{})
       });
-
-      msg.textContent = "✅ Registrierung gespeichert. Admin schaltet frei.";
-      form.reset();
-
-    }catch{
-      msg.textContent = "⛔ Fehler bei Registrierung";
+      const t = await r.text();
+      let data={}; try{ data=t?JSON.parse(t):{} }catch(_){ data={raw:t} }
+      if (!r.ok) throw {status:r.status,data};
+      return data;
     }
-  });
 
-});
-</script>
+    let __users = [];
+    let __perms = [];
+    let __userPermsMap = {}; // userId -> permKey -> 0/1
+
+    function ensureDefaultPerms(){
+      // If worker didn't return per-user perms, default everyone to all allowed
+      if (__perms.length === 0 || __users.length === 0) return;
+      if (__userPermsMap && Object.keys(__userPermsMap).length > 0) return;
+
+      __userPermsMap = {};
+      for (const u of __users){
+        __userPermsMap[u.id] = {};
+        for (const p of __perms) __userPermsMap[u.id][p.permKey] = 1;
+      }
+    }
+
+    async function loadUsers(){
+      const pw = ($("adminPw").value||"").trim();
+      $("msg").textContent = "lade…";
+      try{
+        const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
+
+        __users = res.users || [];
+        __perms = res.perms || [];
+
+        // accept either userPermsMap or raw rows
+        if (res.userPermsMap && typeof res.userPermsMap === "object") {
+          __userPermsMap = res.userPermsMap || {};
+        } else {
+          __userPermsMap = {};
+          const rows = Array.isArray(res.userPerms) ? res.userPerms : [];
+          for (const r of rows){
+            if (!r || !r.userId || !r.permKey) continue;
+            if (!__userPermsMap[r.userId]) __userPermsMap[r.userId] = {};
+            __userPermsMap[r.userId][r.permKey] = Number(r.allowed) ? 1 : 0;
+          }
+        }
+
+        ensureDefaultPerms();
+
+        $("msg").textContent = `ok (${__users.length})`;
+        render();
+      }catch(e){
+        console.error(e);
+        $("msg").textContent = `Fehler (HTTP ${e?.status||"?"})`;
+        $("tbl").innerHTML = "";
+      }
+    }
+
+    async function approve(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      if (!confirm("Freischalten? (Alter aktiver derselben Rolle wird deaktiviert)")) return;
+      try{
+        await jpost("/api/admin/auth/users/approve", { adminPassword: pw, userId });
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Freischalten fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
+    }
+
+    async function genCode(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      try{
+        const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
+        const until = new Date(r.expiresAt).toLocaleString();
+        // show mail status if present
+        const mailInfo = (typeof r.mailSent === "boolean")
+          ? (`
+Mail: ${r.mailSent ? "gesendet" : ("FEHLER - " + (r.mailError||""))}`)
+          : "";
+        alert(`Login-Code (${roleLabel(r.role)}): ${r.code}
+Gültig bis: ${until}${mailInfo}`);
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Code erzeugen fehlgeschlagen (HTTP ${e?.status||"?"})`);
+      }
+    }
+
+    
+function fmtDT(ms){
+  if (!ms) return "";
+  try{
+    return new Date(Number(ms)).toLocaleString("de-DE");
+  }catch(_){ return String(ms); }
+}
+
+async function disableUser(userId, disabled){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  const msg = disabled ? "User deaktivieren? (alle Rechte werden entfernt)" : "User reaktivieren? (Status -> pending)";
+  if (!confirm(msg)) return;
+  try{
+    if (disabled){
+      await jpost("/api/admin/auth/users/disable", { adminPassword: pw, userId, disabled:true });
+    }else{
+      await jpost("/api/admin/auth/users/reactivate", { adminPassword: pw, userId });
+    }
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Aktion fehlgeschlagen (HTTP ${e?.status||"?"})`);
+  }
+}
+
+async function markDelete(userId){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  if (!confirm("Zum Löschen freigeben? (deaktiviert sofort, endgültiges Löschen nach 14 Tagen)")) return;
+  try{
+    const r = await jpost("/api/admin/auth/users/mark-delete", { adminPassword: pw, userId, days:14 });
+    alert("✅ Markiert. Wird gelöscht ab: " + fmtDT(r.deleteAfter));
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Markieren fehlgeschlagen (HTTP ${e?.status||"?"})`);
+  }
+}
+
+async function deleteNow(userId){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  if (!confirm("Wirklich SOFORT endgültig löschen? (nicht rückgängig)")) return;
+  try{
+    await jpost("/api/admin/auth/users/delete-now", { adminPassword: pw, userId });
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Löschen fehlgeschlagen (HTTP ${e?.status||"?"})`);
+  }
+}
+
+    function readPermsFromUI(userId){
+      const m = {};
+      for (const p of __perms){
+        const id = `perm__${userId}__${p.permKey}`;
+        const el = document.getElementById(id);
+        m[p.permKey] = !!(el && el.checked);
+      }
+      return m;
+    }
+
+    async function saveUser(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+
+      const role1 = (document.getElementById(`role1__${userId}`)?.value || "").trim();
+      const role2 = (document.getElementById(`role2__${userId}`)?.value || "").trim();
+      const perms = readPermsFromUI(userId);
+
+      try{
+        await jpost("/api/admin/auth/users/update", {
+          adminPassword: pw,
+          userId,
+          role1,
+          role2,
+          perms
+        });
+        alert("Gespeichert.");
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        const msg = e?.data?.message ? `
+${e.data.message}` : "";
+        alert(`Fehler: Speichern fehlgeschlagen (HTTP ${e?.status||"?"})${msg}`);
+      }
+    }
+
+    function render(){
+      const f = $("filterRole").value;
+      const users = f ? __users.filter(u=>u.role===f) : __users;
+
+      const roleOpts = [
+        ["admin","Admin"],
+        ["ps","Patientensprecher"],
+        ["ps_deputy","Stellvertreter"],
+      ];
+
+      const roleSelect = (id, val, allowEmpty=false) => {
+        const opts = (allowEmpty ? [["","—"]] : []).concat(roleOpts).map(([k,lab])=>{
+          const sel = (String(val||"")===k) ? "selected" : "";
+          return `<option value="${esc(k)}" ${sel}>${esc(lab)}</option>`;
+        }).join("");
+        return `<select id="${esc(id)}">${opts}</select>`;
+      };
+
+      const permBox = (userId, permKey, label, checked) => {
+        const id = `perm__${userId}__${permKey}`;
+        const ch = checked ? "checked" : "";
+        return `<label class="perm"><input type="checkbox" id="${esc(id)}" ${ch}/> <span>${esc(label)}</span></label>`;
+      };
+
+      const rows = users.map(u=>{
+        const approveDisabled = u.status === "active";
+        const codeDisabled = u.status !== "active";
+
+        const up = __userPermsMap[u.id] || {};
+        const permHtml = (__perms||[]).map(p=>permBox(u.id, p.permKey, p.label, up[p.permKey] !== 0)).join("") || `<div class="muted">Keine Permissions</div>`;
+
+        // role2 not provided by backend yet -> default empty
+        const role2Val = u.role2 || "";
+
+        return `<tr>
+          <td class="mono">${esc(u.id)}</td>
+          <td>${esc(u.firstName||"")} ${esc(u.lastName||"")}</td>
+          <td>${esc(u.email||"")}</td>
+          <td>${roleSelect(`role1__${u.id}`, u.role)}</td>
+          <td>${roleSelect(`role2__${u.id}`, role2Val, true)}</td>
+          <td>${badge(u.status)}</td>
+          <td class="mono">${u.deleteAfter ? esc(fmtDT(u.deleteAfter)) : ""}</td>
+          <td>
+            <div class="permwrap">${permHtml}</div>
+          </td>
+          <td>
+            <div class="rowbtns">
+              <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
+              <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
+              <button onclick="saveUser('${esc(u.id)}')">Speichern</button>
+              <button onclick="disableUser('${esc(u.id)}', true)">Deaktivieren</button>
+              <button onclick="disableUser('${esc(u.id)}', false)">Reaktivieren</button>
+              <button onclick="markDelete('${esc(u.id)}')">Zum Löschen freigeben</button>
+              <button onclick="deleteNow('${esc(u.id)}')">Sofort löschen</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+
+      $("tbl").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>2. Rolle</th><th>Status</th><th>Rechte</th><th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="8" class="muted">Keine Einträge</td></tr>`}
+          </tbody>
+        </table>
+      `;
+    }
+
+    $("btnLoad").onclick = loadUsers;
+    $("filterRole").onchange = render;
+
+    window.approve = approve;
+    window.genCode = genCode;
+    window.saveUser = saveUser;
+    window.disableUser = disableUser;
+    window.markDelete = markDelete;
+    window.deleteNow = deleteNow;
+    window.saveUser = saveUser;
+
+  </script>
 
 </body>
 </html>
