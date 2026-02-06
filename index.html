@@ -3817,7 +3817,7 @@ async function authLoadBookings(){
   try{
     const range = $("authBookingsRange")?.value || 7;
     let r;
-    try{ r = await jpostAuth("/api/auth/bookings", { limit: 2000, rangeDays: Number(range) })); }
+    try{ r = await jpostAuth("/api/auth/bookings", { limit: 2000, rangeDays: Number(range) }); }
     catch(_e){ r = await jpostAuth("/api/auth/bookings/list", { limit: 2000, rangeDays: Number(range) }); }
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
     renderAuthBookings();
