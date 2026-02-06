@@ -1735,13 +1735,13 @@ async function adminLogin(){
     $("adminBox").style.display = "block";
     toast("✅ Admin Login OK");
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
@@ -2854,13 +2854,13 @@ $("btnSaveWasherHours").onclick = async ()=>{
     await jpost("/api/admin/config/set", {adminPassword:s.pw, washerHours: hours});
     toast("✅ Waschzeiten gespeichert");
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
@@ -2878,13 +2878,13 @@ $("btnSaveDryerMinutes").onclick = async ()=>{
     await jpost("/api/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
     toast("✅ Trockner-Dauer gespeichert");
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
@@ -2906,13 +2906,13 @@ $("btnSaveDaysWindow").onclick = async ()=>{
     });
     toast("✅ Tage-Fenster gespeichert");
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
@@ -2935,13 +2935,13 @@ $("btnSaveNews").onclick = async ()=>{
     });
     toast("✅ News gespeichert");
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
@@ -2969,13 +2969,13 @@ $("btnSaveMachines").onclick = async ()=>{
     toast("✅ Maschinen gespeichert");
     await refreshAll();
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
@@ -3005,13 +3005,13 @@ $("btnSaveDefectRules").onclick = async ()=>{
     });
     toast("✅ Defekt-Regeln gespeichert");
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
@@ -3057,13 +3057,13 @@ if ($("btnLoadLogs")) {
     $("adminLoginBox").style.display="none";
     $("adminBox").style.display="block";
     await adminReload();
-    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
-    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
-    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
-    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
-    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnJumpRoom"); if(_el) _el.onclick = ()=>document.getElementById("saRoomEditor")&&document.getElementById("saRoomEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleLoad"); if(_el) _el.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSave"); if(_el) _el.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoleSeed"); if(_el) _el.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomReload"); if(_el) _el.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ const _el=document.getElementById("btnSaRoomSave"); if(_el) _el.onclick = ()=>saRoomSave(); }catch(e){}
     // Auto-load Admin role so Haken appear immediately
     try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
     try{ await saRoomReload(); }catch(e){}
