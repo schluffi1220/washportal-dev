@@ -299,7 +299,7 @@ body[data-authed="1"] .hide-on-auth{display:none}
       <option value="sa">SA</option>
           <option value="admin">Admin</option>
       <option value="ps">PS</option>
-      <option value="ps_deputy">VS</option>
+      <option value="vs">VS</option>
       <option value="moderator">Moderator</option>
       <option value="user">User</option>
     </select>
@@ -852,7 +852,7 @@ function getAuth(){
 function roleLabel(r){
   if (r === "admin") return "Admin";
   if (r === "ps") return "Patientensprecher";
-  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  if (r === "vs") return "Stellvertretender Patientensprecher";
   return r || "";
 }
 
@@ -909,7 +909,7 @@ function scheduleAutoLogout(){
 function roleLabel(r){
   if (r === "admin") return "Admin";
   if (r === "ps") return "Patientensprecher";
-  if (r === "ps_deputy") return "Stellvertretender Patientensprecher";
+  if (r === "vs") return "Stellvertretender Patientensprecher";
   return r || "";
 }
 
@@ -922,7 +922,7 @@ function applyRoleVisibility(){
 
   const logged = !!a.token;
   const isAdmin = logged && a.role === "admin";
-  const isPS = logged && (a.role === "ps" || a.role === "ps_deputy");
+  const isPS = logged && (a.role === "ps" || a.role === "vs");
 
   if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
@@ -938,7 +938,7 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
-    if (a.token && (a.role==="ps" || a.role==="ps_deputy")){
+    if (a.token && (a.role==="ps" || a.role==="vs")){
       info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
     } else {
       info.textContent = "—";
@@ -2199,7 +2199,7 @@ let __ADMIN_BOOKINGS_CACHE = [];
 function canRoomControl(me){
   const role = String(me?.user?.role || me?.role || "");
   const perms = me?.perms || {};
-  return !!(perms["admin.roomcontrol.manage"] || perms["ps.rooms.manage"] || ["admin","ps","ps_deputy","superadmin","super_admin","super_admin"].includes(role));
+  return !!(perms["admin.roomcontrol.manage"] || perms["ps.rooms.manage"] || ["admin","ps","vs","superadmin","super_admin","super_admin"].includes(role));
 }
 
 async function authMe(){
@@ -2271,7 +2271,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "ps_deputy"){
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -4237,14 +4237,14 @@ function updateAuthSections(){
   show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
 
   // Logs + bookings
-  show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.logs.view"));
-  show("authBookingsDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.bookings.view"));
+  show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.logs.view"));
+  show("authBookingsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.bookings.view"));
 
   // Feedback
-  show("authFeedbackDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.feedback.view") || hasPerm("admin.feedback.reply"));
+  show("authFeedbackDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.feedback.view") || hasPerm("admin.feedback.reply"));
 
   // Room control
-  show("authRoomControlDetails", roleIs("admin","superadmin","super_admin","ps","ps_deputy") || hasPerm("admin.roomcontrol.manage") || hasPerm("ps.rooms.manage"));
+  show("authRoomControlDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.roomcontrol.manage") || hasPerm("ps.rooms.manage"));
 
   // Users
   show("authUsersDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.users.manage"));
@@ -4327,7 +4327,7 @@ function renderUsers(list){
         </div>
         <div class="row" style="gap:8px; flex-wrap:wrap">
           <select data-role="${esc(u.id)}">
-            ${["ps","ps_deputy","admin","super_admin","superadmin"].map(r=>`<option value="${r}" ${r===role?"selected":""}>${r}</option>`).join("")}
+            ${["ps","vs","admin","super_admin","superadmin"].map(r=>`<option value="${r}" ${r===role?"selected":""}>${r}</option>`).join("")}
           </select>
           <select data-status="${esc(u.id)}">
             ${["pending","active","disabled"].map(s=>`<option value="${s}" ${s===status?"selected":""}>${s}</option>`).join("")}
@@ -4594,7 +4594,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if ($("rbacUserSearch")) $("rbacUserSearch").oninput = renderRbacUserList;
   if ($("rbacPermSearch")) $("rbacPermSearch").oninput = renderRbacSelected;
   if ($("btnSetPS")) $("btnSetPS").onclick = ()=>rbacSetRole("ps");
-  if ($("btnSetVS")) $("btnSetVS").onclick = ()=>rbacSetRole("ps_deputy");
+  if ($("btnSetVS")) $("btnSetVS").onclick = ()=>rbacSetRole("vs");
   if ($("btnSaveUser")) $("btnSaveUser").onclick = rbacSaveUser;
   if ($("btnPermAllOn")) $("btnPermAllOn").onclick = ()=>rbacAll(true);
   if ($("btnPermAllOff")) $("btnPermAllOff").onclick = ()=>rbacAll(false);
