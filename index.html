@@ -1330,7 +1330,7 @@ function protoPdf(){
       <h3>Für die Pflege</h3><p>${escapeHtml(f.care_to||"Keine Information")}</p>
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
-      <script>window.onload=()=>window.print();</script>
+      <script>window.onload=()=>window.print();<\/script>
     </body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
