@@ -180,7 +180,7 @@ body[data-authed="1"] .hide-on-auth{display:none}
 <body data-authed="0">
   <header>
     <div class="wrap">
-      <h1>Washportal</h1>
+      <h1>Washportal</h1><div id="roleBadge" class="small" style="opacity:.85;margin-top:4px"></div>
       <div style="font-size:13px; opacity:.9;">
   <a href="/washportal-dev/admin-users/"
      style="color:inherit; font-weight:700;">
@@ -334,6 +334,43 @@ body[data-authed="1"] .hide-on-auth{display:none}
 
   <div id="saRoomList" style="margin-top:10px"></div>
 </details>
+
+<hr style="margin:14px 0; opacity:.25">
+<details id="saPopupEditor">
+  <summary><b>Pop-Up Bilder (SA)</b></summary>
+  <div class="small" style="margin-top:8px; opacity:.85">
+    Optionaler Bestätigungs-Pop-Up vor der Buchung. Wenn deaktiviert, wird kein Pop-Up angezeigt.
+  </div>
+
+  <div class="grid2" style="margin-top:10px">
+    <div class="card" style="padding:12px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <b>Waschmaschine</b>
+        <label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="saWasherPopupEnabled"> anzeigen</label>
+      </div>
+      <div class="small" style="opacity:.75;margin-top:6px">Bild (optional)</div>
+      <input type="file" id="saWasherPopupFile" accept="image/*">
+      <img id="saWasherPopupPreview" style="max-width:100%;margin-top:8px;border-radius:10px;display:none">
+    </div>
+
+    <div class="card" style="padding:12px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <b>Trockner</b>
+        <label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="saDryerPopupEnabled"> anzeigen</label>
+      </div>
+      <div class="small" style="opacity:.75;margin-top:6px">Bild (optional)</div>
+      <input type="file" id="saDryerPopupFile" accept="image/*">
+      <img id="saDryerPopupPreview" style="max-width:100%;margin-top:8px;border-radius:10px;display:none">
+    </div>
+  </div>
+
+  <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:10px">
+    <button class="btn secondary" id="btnSaPopupLoad">Laden</button>
+    <button class="btn" id="btnSaPopupSave">Speichern</button>
+    <span class="small" id="saPopupHint" style="opacity:.75"></span>
+  </div>
+</details>
+
 
 
 
@@ -1068,6 +1105,94 @@ async function authMcSave(){
   await jpostAuth("/api/auth/machine/control", { machine, message, locked });
   toast(locked ? "🔒 Maschine gesperrt" : "✅ Maschine freigegeben");
   await authMcLoadList();
+}
+
+function setRoleBadge(text){
+  const el = document.getElementById("roleBadge");
+  if(!el) return;
+  el.textContent = text || "";
+}
+
+async function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>resolve(String(fr.result||""));
+    fr.onerror=()=>reject(fr.error||new Error("read_failed"));
+    fr.readAsDataURL(file);
+  });
+}
+
+async function saPopupLoad(){
+  const hint = document.getElementById("saPopupHint");
+  if(hint) hint.textContent = "lade…";
+  const r = await jpost("/api/popup/config/get", {});
+  const cfg = (r && r.config) || {};
+  const we = document.getElementById("saWasherPopupEnabled");
+  const de = document.getElementById("saDryerPopupEnabled");
+  if(we) we.checked = !!cfg.washerEnabled;
+  if(de) de.checked = !!cfg.dryerEnabled;
+
+  const wp = document.getElementById("saWasherPopupPreview");
+  const dp = document.getElementById("saDryerPopupPreview");
+  if(wp){ wp.src = cfg.washerImage || ""; wp.style.display = cfg.washerImage ? "block":"none"; }
+  if(dp){ dp.src = cfg.dryerImage || ""; dp.style.display = cfg.dryerImage ? "block":"none"; }
+
+  if(hint) hint.textContent = "✅ geladen";
+}
+
+async function saPopupSave(){
+  const hint = document.getElementById("saPopupHint");
+  if(hint) hint.textContent = "speichere…";
+  const we = !!document.getElementById("saWasherPopupEnabled")?.checked;
+  const de = !!document.getElementById("saDryerPopupEnabled")?.checked;
+
+  let washerImage = document.getElementById("saWasherPopupPreview")?.src || "";
+  let dryerImage  = document.getElementById("saDryerPopupPreview")?.src || "";
+
+  const wf = document.getElementById("saWasherPopupFile")?.files?.[0];
+  const df = document.getElementById("saDryerPopupFile")?.files?.[0];
+  if(wf) washerImage = await readFileAsDataURL(wf);
+  if(df) dryerImage = await readFileAsDataURL(df);
+
+  await jpostAdmin("/api/admin/popup/config/set", { config: { washerEnabled: we, washerImage, dryerEnabled: de, dryerImage } });
+  if(hint) hint.textContent = "✅ gespeichert";
+  toast("✅ Pop-Up Einstellungen gespeichert");
+  await saPopupLoad();
+}
+
+async function requireBookingPopup(machineType){
+  try{
+    const r = await jpost("/api/popup/config/get", {});
+    const cfg = (r && r.config) || {};
+    const t = String(machineType||"").toLowerCase();
+    const isDryer = t.includes("dry") || t.includes("trock");
+    const enabled = isDryer ? !!cfg.dryerEnabled : !!cfg.washerEnabled;
+    const img = isDryer ? (cfg.dryerImage||"") : (cfg.washerImage||"");
+    if(!enabled) return { ok:true, answer:null };
+
+    if(img){
+      // alpha: open image preview in new tab
+      try{ window.open(img, "_blank", "noopener,noreferrer"); }catch(e){}
+    }
+    const yes = confirm("Pop-Up vor Buchung\n\nBitte bestätige mit OK (Ja) oder Abbrechen (Nein).");
+    return { ok:true, answer: yes ? "yes" : "no" };
+  }catch(e){
+    return { ok:true, answer:null };
+  }
+}
+
+async function authNotifications(){
+  try{
+    const j = await jpostAuth("/api/auth/notifications/list", getCreds(), {});
+    const n = (j.notifications||[])[0];
+    if(!n) return;
+    if(n.type==="role_candidate"){
+      const email = n.payload?.email || "";
+      const role = n.payload?.role || "";
+      alert("👤 Neue Registrierung ("+role+")\n\n"+email+"\n\nBitte unter Einstellungen/Benutzer/Übergabe entscheiden.");
+    }
+    await jpostAuth("/api/auth/notifications/ack", getCreds(), { id: n.id });
+  }catch(e){}
 }
 
 </script>
@@ -2722,6 +2847,8 @@ $("btnBookWasher").onclick = async ()=>{
   if (!v) return toast("Bitte Slot auswählen");
 
     const slot = JSON.parse(v);
+      const pop = await requireBookingPopup(slot.type || slot.machineType || slot.kind || 'washer');
+
   // Zimmer/Maschine Sperre prüfen (Popup nur beim Buchen)
   if (!(await checkRoomBeforeBooking(c.room))) return;
   if (!(await checkMachineBeforeBooking(slot.machine))) return;
@@ -3690,7 +3817,7 @@ async function authLoadBookings(){
   try{
     const range = $("authBookingsRange")?.value || 7;
     let r;
-    try{ r = await jpostAuth("/api/auth/bookings", { limit: 2000, rangeDays: Number(range) }); }
+    try{ r = await jpostAuth("/api/auth/bookings", { limit: 2000, rangeDays: Number(range) })); }
     catch(_e){ r = await jpostAuth("/api/auth/bookings/list", { limit: 2000, rangeDays: Number(range) }); }
     __ADMIN_BOOKINGS_CACHE = (r.bookings||[]).slice().sort((x,y)=>(y.start||0)-(x.start||0));
     renderAuthBookings();
