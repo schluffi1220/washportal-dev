@@ -1116,6 +1116,36 @@ async function jpost(path, body){
   return data;
 }
 
+async function checkRoomBeforeBooking(room){
+  try{
+    const r = await jpost("/api/room/control/status", { room });
+    if (r && r.locked){
+      const msg = r.message ? String(r.message) : "Dieses Zimmer ist aktuell gesperrt.";
+      alert("⛔ Zimmer gesperrt\n\n" + msg);
+      return false;
+    }
+  }catch(e){
+    // if endpoint not available, don't block booking
+  }
+  return true;
+}
+
+async function checkMachineBeforeBooking(machine){
+  try{
+    const r = await jpost("/api/machine/control/status", { machine });
+    if (r && r.locked){
+      const msg = r.message ? String(r.message) : "Diese Maschine ist aktuell gesperrt.";
+      alert("⛔ Maschine gesperrt\n\n" + msg);
+      return false;
+    }
+  }catch(e){
+    // ignore
+  }
+  return true;
+}
+
+
+
 async function jpostAuth(path, body){
   const a = (typeof getAuth === "function") ? getAuth() : null;
   const token = a && a.token ? a.token : "";
@@ -2667,7 +2697,11 @@ $("btnBookWasher").onclick = async ()=>{
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
   if (!v) return toast("Bitte Slot auswählen");
 
-  const slot = JSON.parse(v);
+    const slot = JSON.parse(v);
+  // Zimmer/Maschine Sperre prüfen (Popup nur beim Buchen)
+  if (!(await checkRoomBeforeBooking(c.room))) return;
+  if (!(await checkMachineBeforeBooking(slot.machine))) return;
+
   try{
     const r = await jpost("/api/washer/book", {
       room: c.room, pin: c.pin, stationPin: c.stationPin,
@@ -2678,6 +2712,16 @@ $("btnBookWasher").onclick = async ()=>{
     alert("✅ Gebucht!");
     await refreshAll();
   }catch(e){
+
+const emsg = e?.data?.message || e?.data?.error || "";
+if (e?.data?.error === "room_locked") {
+  alert("⛔ Zimmer gesperrt\n\n" + (e?.data?.message || "Dieses Zimmer ist aktuell gesperrt."));
+  return;
+}
+if (e?.data?.error === "machine_locked") {
+  alert("⛔ Maschine gesperrt\n\n" + (e?.data?.message || "Diese Maschine ist aktuell gesperrt."));
+  return;
+}
     const msg = e?.data?.message || e?.data?.error || "Fehler";
     alert("⛔ " + msg);
   }
