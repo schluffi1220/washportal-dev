@@ -491,6 +491,32 @@ body[data-authed="1"] .hide-on-auth{display:none}
 
   <div id="saRoomList" style="margin-top:10px"></div>
 </details>
+<details id="machineControlBox" style="display:none">
+  <summary><b>Maschinen sperren (global)</b></summary>
+  <div class="small" style="margin-top:8px; opacity:.85">
+    Globale Sperre pro Maschine (unabhängig vom Zimmer). Wird bei Buchung geprüft.
+  </div>
+
+  <div class="row" style="gap:10px; flex-wrap:wrap; align-items:end; margin-top:10px">
+    <div style="min-width:200px">
+      <div class="small" style="opacity:.8">Maschine</div>
+      <input id="mcMachine" placeholder="z.B. washer-1">
+    </div>
+    <div style="min-width:320px; flex:1">
+      <div class="small" style="opacity:.8">Hinweis</div>
+      <input id="mcMsg" placeholder="Hinweis (optional)">
+    </div>
+    <label class="small" style="display:flex; gap:8px; align-items:center">
+      <input type="checkbox" id="mcLocked">
+      gesperrt
+    </label>
+    <button id="btnMcSave" class="btn">Speichern</button>
+    <button id="btnMcReload" class="btn secondary">Übersicht laden</button>
+  </div>
+
+  <div id="mcList" style="margin-top:10px"></div>
+</details>
+
 
 </div>
     </div>
@@ -1006,6 +1032,31 @@ async function saRoomSave(){
   await jpostAdmin("/api/admin/room/control", {adminPassword: pw, room, message, locked});
   toast(locked ? "🔒 Gesperrt" : "✅ Freigegeben");
   await saRoomReload();
+}
+
+async function authMcLoadList(){
+  const j = await jpostAuth("/api/auth/machine/control/list", {});
+  const box = document.getElementById("mcList");
+  const rows = (j.machines||[]).map(r=>{
+    const ts = r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "";
+    const lock = r.locked ? "🔒" : "🟢";
+    const msg = r.message ? escapeHtml(r.message) : '<span style="opacity:.5">–</span>';
+    return `<div class="row" style="justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.08)">
+      <div><b>${escapeHtml(r.machine)}</b> ${lock}<div class="small" style="opacity:.8">${msg}</div></div>
+      <div class="small" style="opacity:.7; text-align:right">${escapeHtml(r.updatedBy||"")}${ts?("<br>"+escapeHtml(ts)):""}</div>
+    </div>`;
+  }).join("");
+  box.innerHTML = `<div class="card" style="padding:10px">${rows || '<div class="small">Keine Einträge.</div>'}</div>`;
+}
+
+async function authMcSave(){
+  const machine = String(document.getElementById("mcMachine")?.value||"").trim();
+  const message = String(document.getElementById("mcMsg")?.value||"").trim();
+  const locked = !!document.getElementById("mcLocked")?.checked;
+  if(!machine){ toast("⛔ Maschine fehlt"); return; }
+  await jpostAuth("/api/auth/machine/control", { machine, message, locked });
+  toast(locked ? "🔒 Maschine gesperrt" : "✅ Maschine freigegeben");
+  await authMcLoadList();
 }
 
 </script>
