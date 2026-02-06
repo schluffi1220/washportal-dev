@@ -296,7 +296,8 @@ body[data-authed="1"] .hide-on-auth{display:none}
 
   <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px">
     <select id="saRoleSelect" style="min-width:220px">
-      <option value="admin">Admin</option>
+      <option value="sa">SA</option>
+          <option value="admin">Admin</option>
       <option value="ps">PS</option>
       <option value="ps_deputy">VS</option>
       <option value="moderator">Moderator</option>
@@ -933,14 +934,19 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
 
 
 function getAdminPw(){
-  const el = document.getElementById("adminPw");
-  return el ? String(el.value||"").trim() : "";
+  const ids=["adminPw","adminPassword","adminPass","inpAdminPass","saAdminPass"];
+  for (const id of ids){
+    const el=document.getElementById(id);
+    if(el && String(el.value||"").trim()) return String(el.value||"").trim();
+  }
+  try{ const v=localStorage.getItem("adminPw")||localStorage.getItem("adminPassword")||""; if(v) return String(v).trim(); }catch(e){}
+  return "";
 }
 async function jpostAdmin(path, body){
   const r = await fetch(API_BASE + path, {
     method: "POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body||{})
+    body: JSON.stringify(Object.assign({}, body||{}, (function(){ const pw=getAdminPw(); return pw?{adminPassword:pw, adminPw:pw, password:pw}:{ }; })()))
   });
   const j = await r.json().catch(()=>({}));
   if(!r.ok || !j.ok) throw {status:r.status, data:j};
@@ -1114,7 +1120,7 @@ async function jpost(path, body){
   const r = await fetch(API_BASE + path, {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body||{})
+    body: JSON.stringify(Object.assign({}, body||{}, (function(){ const pw=getAdminPw(); return pw?{adminPassword:pw, adminPw:pw, password:pw}:{ }; })()))
   });
   const data = await r.json().catch(()=> ({}));
   if (!r.ok) throw {status:r.status, data};
@@ -1160,7 +1166,7 @@ async function jpostAuth(path, body){
       "Content-Type":"application/json",
       ...(token ? {"Authorization":"Bearer "+token} : {})
     },
-    body: JSON.stringify(body||{})
+    body: JSON.stringify(Object.assign({}, body||{}, (function(){ const pw=getAdminPw(); return pw?{adminPassword:pw, adminPw:pw, password:pw}:{ }; })()))
   });
 
   // read as text first (some workers return non-json on 404)
