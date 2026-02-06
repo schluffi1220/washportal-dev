@@ -282,6 +282,60 @@ body[data-authed="1"] .hide-on-auth{display:none}
           <button class="btn secondary" id="btnAdminReload">Admin aktualisieren</button>
         </div>
 
+<div id="saQuickNav" class="card" style="padding:10px; margin-top:10px">
+  <b>SA Schnellzugriff</b>
+  <div class="small" style="opacity:.8; margin-top:4px">Rollen-Standardsets &amp; Zimmer sperren (nur SA-Admin-Passwort).</div>
+  <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px">
+    <button class="btn secondary" id="btnJumpRole">Zu Rollen</button>
+    <button class="btn secondary" id="btnJumpRoom">Zu Zimmer sperren</button>
+  </div>
+</div>
+
+<details open id="saRoleEditor" style="margin-top:12px">
+  <summary><b>Rollen &amp; Berechtigungen (SA)</b></summary>
+
+  <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px">
+    <select id="saRoleSelect" style="min-width:220px">
+      <option value="admin">Admin</option>
+      <option value="ps">PS</option>
+      <option value="ps_deputy">VS</option>
+      <option value="moderator">Moderator</option>
+      <option value="user">User</option>
+    </select>
+    <button id="btnSaRoleLoad" class="btn secondary">Rolle laden</button>
+    <button id="btnSaRoleSave" class="btn">Rolle speichern</button>
+    <button id="btnSaRoleSeed" class="btn secondary">Standardsets zurücksetzen</button>
+    <span id="saRoleHint" class="small" style="opacity:.75"></span>
+  </div>
+
+  <div id="saRolePermsBox" style="margin-top:10px"></div>
+</details>
+
+<details id="saRoomEditor" style="margin-top:12px">
+  <summary><b>Zimmer sperren (SA)</b></summary>
+
+  <div class="row" style="gap:10px; flex-wrap:wrap; align-items:end; margin-top:10px">
+    <div style="min-width:200px">
+      <div class="small" style="opacity:.8">Zimmer / Maschine</div>
+      <input id="saRoomName" placeholder="z.B. 101 oder M1">
+    </div>
+    <div style="min-width:320px; flex:1">
+      <div class="small" style="opacity:.8">Hinweis</div>
+      <input id="saRoomMsg" placeholder="Hinweis (optional)">
+    </div>
+    <label class="small" style="display:flex; gap:8px; align-items:center">
+      <input type="checkbox" id="saRoomLocked">
+      gesperrt
+    </label>
+    <button id="btnSaRoomSave" class="btn">Speichern</button>
+    <button id="btnSaRoomReload" class="btn secondary">Liste laden</button>
+  </div>
+
+  <div id="saRoomList" style="margin-top:10px"></div>
+</details>
+
+
+
         <details style="margin-top:12px" open>
           <summary>Stations-PIN setzen/ändern</summary>
           <label>Stations-PIN (4-stellig)</label>
@@ -440,57 +494,8 @@ body[data-authed="1"] .hide-on-auth{display:none}
         </label>
       <hr style="margin:14px 0; opacity:.25">
 
-<div id="saQuickNav" class="card" style="padding:10px; margin-top:10px">
-  <b>SA Schnellzugriff</b>
-  <div class="small" style="opacity:.8; margin-top:4px">Rollen-Standardsets &amp; Zimmer sperren (nur SA-Admin-Passwort).</div>
-  <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px">
-    <button class="btn secondary" id="btnJumpRole">Zu Rollen</button>
-    <button class="btn secondary" id="btnJumpRoom">Zu Zimmer sperren</button>
-  </div>
-</div>
 
-<details open id="saRoleEditor" style="margin-top:12px">
-  <summary><b>Rollen &amp; Berechtigungen (SA)</b></summary>
 
-  <div class="row" style="gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px">
-    <select id="saRoleSelect" style="min-width:220px">
-      <option value="admin">Admin</option>
-      <option value="ps">PS</option>
-      <option value="ps_deputy">VS</option>
-      <option value="moderator">Moderator</option>
-      <option value="user">User</option>
-    </select>
-    <button id="btnSaRoleLoad" class="btn secondary">Rolle laden</button>
-    <button id="btnSaRoleSave" class="btn">Rolle speichern</button>
-    <button id="btnSaRoleSeed" class="btn secondary">Standardsets zurücksetzen</button>
-    <span id="saRoleHint" class="small" style="opacity:.75"></span>
-  </div>
-
-  <div id="saRolePermsBox" style="margin-top:10px"></div>
-</details>
-
-<details id="saRoomEditor" style="margin-top:12px">
-  <summary><b>Zimmer sperren (SA)</b></summary>
-
-  <div class="row" style="gap:10px; flex-wrap:wrap; align-items:end; margin-top:10px">
-    <div style="min-width:200px">
-      <div class="small" style="opacity:.8">Zimmer / Maschine</div>
-      <input id="saRoomName" placeholder="z.B. 101 oder M1">
-    </div>
-    <div style="min-width:320px; flex:1">
-      <div class="small" style="opacity:.8">Hinweis</div>
-      <input id="saRoomMsg" placeholder="Hinweis (optional)">
-    </div>
-    <label class="small" style="display:flex; gap:8px; align-items:center">
-      <input type="checkbox" id="saRoomLocked">
-      gesperrt
-    </label>
-    <button id="btnSaRoomSave" class="btn">Speichern</button>
-    <button id="btnSaRoomReload" class="btn secondary">Liste laden</button>
-  </div>
-
-  <div id="saRoomList" style="margin-top:10px"></div>
-</details>
 <details id="machineControlBox" style="display:none">
   <summary><b>Maschinen sperren (global)</b></summary>
   <div class="small" style="margin-top:8px; opacity:.85">
@@ -1730,6 +1735,16 @@ async function adminLogin(){
     $("adminBox").style.display = "block";
     toast("✅ Admin Login OK");
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
   }catch(e){
     toast("⛔ Admin Login forbidden");
   }
@@ -2839,6 +2854,16 @@ $("btnSaveWasherHours").onclick = async ()=>{
     await jpost("/api/admin/config/set", {adminPassword:s.pw, washerHours: hours});
     toast("✅ Waschzeiten gespeichert");
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
     await refreshAll();
   }catch(e){
     toast("⛔ Fehler beim Speichern");
@@ -2853,6 +2878,16 @@ $("btnSaveDryerMinutes").onclick = async ()=>{
     await jpost("/api/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
     toast("✅ Trockner-Dauer gespeichert");
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
     await refreshAll();
   }catch(e){
     toast("⛔ Fehler beim Speichern");
@@ -2871,6 +2906,16 @@ $("btnSaveDaysWindow").onclick = async ()=>{
     });
     toast("✅ Tage-Fenster gespeichert");
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
     await refreshAll();
   }catch(e){
     toast("⛔ Fehler beim Speichern");
@@ -2890,6 +2935,16 @@ $("btnSaveNews").onclick = async ()=>{
     });
     toast("✅ News gespeichert");
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
     await refreshAll();
   }catch(e){
     toast("⛔ Fehler beim Speichern");
@@ -2914,6 +2969,16 @@ $("btnSaveMachines").onclick = async ()=>{
     toast("✅ Maschinen gespeichert");
     await refreshAll();
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
   }catch(e){
     toast("⛔ Fehler beim Speichern");
   }
@@ -2940,6 +3005,16 @@ $("btnSaveDefectRules").onclick = async ()=>{
     });
     toast("✅ Defekt-Regeln gespeichert");
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
     await refreshAll();
   }catch(e){
     toast("⛔ Fehler beim Speichern");
@@ -2982,6 +3057,16 @@ if ($("btnLoadLogs")) {
     $("adminLoginBox").style.display="none";
     $("adminBox").style.display="block";
     await adminReload();
+    try{ document.getElementById("btnJumpRole")?.onclick = ()=>document.getElementById("saRoleEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnJumpRoom")?.onclick = ()=>document.getElementById("saRoomEditor")?.scrollIntoView({behavior:"smooth"}); }catch(e){}
+    try{ document.getElementById("btnSaRoleLoad")?.onclick = ()=>saRoleLoad(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSave")?.onclick = ()=>saRoleSave(); }catch(e){}
+    try{ document.getElementById("btnSaRoleSeed")?.onclick = ()=>saRoleSeed(); }catch(e){}
+    try{ document.getElementById("btnSaRoomReload")?.onclick = ()=>saRoomReload(); }catch(e){}
+    try{ document.getElementById("btnSaRoomSave")?.onclick = ()=>saRoomSave(); }catch(e){}
+    // Auto-load Admin role so Haken appear immediately
+    try{ document.getElementById("saRoleSelect").value = "admin"; await saRoleLoad(); }catch(e){}
+    try{ await saRoomReload(); }catch(e){}
 
     // Realtime Logs: alle 8s neu laden, solange Admin eingeloggt ist
     if (!window.__logPoll){
