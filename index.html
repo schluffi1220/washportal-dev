@@ -1195,6 +1195,174 @@ async function authNotifications(){
   }catch(e){}
 }
 
+let PROTO_STATE = { id:"", date:"", groups:{}, fields:{} };
+
+function protoTodayISO(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const dd=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+
+function protoNormalizeText(t){
+  const s=String(t||"").trim();
+  return s ? s : "Keine Information";
+}
+
+function protoGetGroups(){
+  const g={};
+  for(let i=1;i<=20;i++){
+    if(i===14 || i===16 || i===17){ g[i]=false; continue; }
+    const el=document.getElementById("pg_"+i);
+    g[i]=!!el?.checked;
+  }
+  return g;
+}
+function protoSetGroups(g){
+  for(let i=1;i<=20;i++){
+    const el=document.getElementById("pg_"+i);
+    if(!el) continue;
+    if(i===14 || i===16 || i===17){ el.checked=false; el.disabled=true; continue; }
+    el.disabled=false;
+    el.checked=!!g?.[i];
+  }
+}
+
+function protoCollect(){
+  return {
+    date: document.getElementById("protoDate")?.value || protoTodayISO(),
+    groups: protoGetGroups(),
+    fields:{
+      kitchen_to: protoNormalizeText(document.getElementById("p_k_to")?.value),
+      kitchen_from: protoNormalizeText(document.getElementById("p_k_from")?.value),
+      reception_to: protoNormalizeText(document.getElementById("p_r_to")?.value),
+      reception_from: protoNormalizeText(document.getElementById("p_r_from")?.value),
+      care_to: protoNormalizeText(document.getElementById("p_p_to")?.value),
+      care_from: protoNormalizeText(document.getElementById("p_p_from")?.value),
+      general: protoNormalizeText(document.getElementById("p_all")?.value),
+    }
+  };
+}
+
+function protoFill(st){
+  PROTO_STATE = st || { id:"", date:protoTodayISO(), groups:{}, fields:{} };
+  document.getElementById("protoId").textContent = PROTO_STATE.id ? ("#"+PROTO_STATE.id.slice(0,8)) : "";
+  document.getElementById("protoDate").value = PROTO_STATE.date || protoTodayISO();
+  protoSetGroups(PROTO_STATE.groups||{});
+  const f=PROTO_STATE.fields||{};
+  document.getElementById("p_k_to").value = f.kitchen_to && f.kitchen_to!=="Keine Information" ? f.kitchen_to : "";
+  document.getElementById("p_k_from").value = f.kitchen_from && f.kitchen_from!=="Keine Information" ? f.kitchen_from : "";
+  document.getElementById("p_r_to").value = f.reception_to && f.reception_to!=="Keine Information" ? f.reception_to : "";
+  document.getElementById("p_r_from").value = f.reception_from && f.reception_from!=="Keine Information" ? f.reception_from : "";
+  document.getElementById("p_p_to").value = f.care_to && f.care_to!=="Keine Information" ? f.care_to : "";
+  document.getElementById("p_p_from").value = f.care_from && f.care_from!=="Keine Information" ? f.care_from : "";
+  document.getElementById("p_all").value = f.general && f.general!=="Keine Information" ? f.general : "";
+}
+
+function protoRenderList(entries){
+  const box=document.getElementById("protoList");
+  if(!box) return;
+  box.innerHTML="";
+  (entries||[]).forEach(e=>{
+    let data={}; try{ data = JSON.parse(e.body||"{}"); }catch(_){}
+    const date = data.date || "";
+    const title = date ? ("Protokoll "+date) : (e.title||"Protokoll");
+    const div=document.createElement("div");
+    div.className="card";
+    div.style.padding="10px";
+    div.style.cursor="pointer";
+    div.style.marginBottom="8px";
+    div.innerHTML = `<b>${escapeHtml(title)}</b><div class="small" style="opacity:.75">${escapeHtml(String(e.createdBy||""))}</div>`;
+    div.onclick=()=>{ protoFill({ id:e.id, date: data.date||protoTodayISO(), groups:data.groups||{}, fields:data.fields||{} }); };
+    box.appendChild(div);
+  });
+}
+
+async function protoLoad(){
+  const hint=document.getElementById("protoHint");
+  if(hint) hint.textContent="lade…";
+  const q=document.getElementById("protoSearch")?.value||"";
+  const j=await jpostAuth("/api/auth/protocol/list", getCreds(), { q });
+  protoRenderList(j.entries||[]);
+  if(hint) hint.textContent="✅ geladen";
+}
+
+async function protoSave(){
+  const hint=document.getElementById("protoHint");
+  if(hint) hint.textContent="speichere…";
+  const data=protoCollect();
+  if(!PROTO_STATE.id){
+    const j=await jpostAuth("/api/auth/protocol/create", getCreds(), { title: "Protokoll "+data.date, body: JSON.stringify(data) });
+    PROTO_STATE.id = j.id;
+  }else{
+    await jpostAuth("/api/auth/protocol/update", getCreds(), { id: PROTO_STATE.id, title: "Protokoll "+data.date, body: JSON.stringify(data) });
+  }
+  if(hint) hint.textContent="✅ gespeichert";
+  toast("✅ Protokoll gespeichert");
+  await protoLoad();
+}
+
+async function protoDelete(){
+  if(!PROTO_STATE.id) return toast("⛔ Kein Eintrag gewählt");
+  if(!confirm("Protokoll wirklich löschen?")) return;
+  await jpostAuth("/api/auth/protocol/delete", getCreds(), { id: PROTO_STATE.id });
+  toast("✅ gelöscht");
+  protoFill({ id:"", date: protoTodayISO(), groups:{}, fields:{} });
+  await protoLoad();
+}
+
+function protoPdf(){
+  const data=protoCollect();
+  const date=data.date||protoTodayISO();
+  const groups=Object.keys(data.groups||{}).filter(k=>data.groups[k]).join(", ") || "—";
+  const f=data.fields||{};
+  const html = `
+    <html><head><meta charset="utf-8"><title>Protokoll ${date}</title></head>
+    <body style="font-family:Arial; padding:24px">
+      <h2>Protokoll ${date}</h2>
+      <p><b>Anwesende Gruppen:</b> ${groups}</p>
+      <hr>
+      <h3>Für die Küche</h3><p>${escapeHtml(f.kitchen_to||"Keine Information")}</p>
+      <h3>Von der Küche</h3><p>${escapeHtml(f.kitchen_from||"Keine Information")}</p>
+      <h3>Für die Rezeption</h3><p>${escapeHtml(f.reception_to||"Keine Information")}</p>
+      <h3>Von der Rezeption</h3><p>${escapeHtml(f.reception_from||"Keine Information")}</p>
+      <h3>Für die Pflege</h3><p>${escapeHtml(f.care_to||"Keine Information")}</p>
+      <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
+      <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
+      <script>window.onload=()=>window.print();</script>
+    </body></html>`;
+  const w=window.open("", "_blank");
+  if(w){ w.document.open(); w.document.write(html); w.document.close(); }
+}
+
+function protoInitUI(){
+  const gbox=document.getElementById("protoGroups");
+  if(gbox && !gbox.dataset.ready){
+    gbox.dataset.ready="1";
+    for(let i=1;i<=20;i++){
+      const wrap=document.createElement("label");
+      wrap.className="small";
+      wrap.style.display="flex";
+      wrap.style.gap="8px";
+      wrap.style.alignItems="center";
+      wrap.style.padding="6px 8px";
+      wrap.style.border="1px solid rgba(255,255,255,.08)";
+      wrap.style.borderRadius="10px";
+      const dis = (i===14 || i===16 || i===17);
+      wrap.style.opacity = dis ? ".35" : "1";
+      wrap.innerHTML = `<input type="checkbox" id="pg_${i}" ${dis?"disabled":""}> Gruppe ${i}`;
+      gbox.appendChild(wrap);
+    }
+  }
+  protoFill({ id:"", date: protoTodayISO(), groups:{}, fields:{} });
+  document.getElementById("btnProtoLoad")?.addEventListener("click", ()=>protoLoad());
+  document.getElementById("btnProtoNew")?.addEventListener("click", ()=>protoFill({ id:"", date: protoTodayISO(), groups:{}, fields:{} }));
+  document.getElementById("btnProtoSave")?.addEventListener("click", ()=>protoSave());
+  document.getElementById("btnProtoDelete")?.addEventListener("click", ()=>protoDelete());
+  document.getElementById("btnProtoPdf")?.addEventListener("click", ()=>protoPdf());
+}
+
 </script>
 
   </main>
@@ -2327,6 +2495,7 @@ function wireAuthUI(){
       setAuth(j.token, (j.role || (j.user && j.user.role) || ""), email, (j.expiresAt || j.exp || j.expiresAtMs || 0));
       if (window.renderAuthState) window.renderAuthState();
       scheduleAutoLogout();
+  try{ protoInitUI(); }catch(e){}
       toast("✅ Login erfolgreich");
     
       try{ await renderPsVsAdminDash(); }catch(_e){}
