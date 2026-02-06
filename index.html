@@ -1735,17 +1735,20 @@ async function adminLogin(){
   }
 }
 async function adminReload(){
+  try{
   const s = getAdminSession();
   if (!s){ toast("Admin Session abgelaufen"); return; }
   try{
-    const r = await jpost("/api/auth/admin/config/get", {adminPassword: s.pw});
+    const r = await jpost("/api/admin/config/get", {adminPassword: s.pw});
     renderAdminConfig(r.config, r.newsSeenCount||0);
     await adminLoadMachines();
     await adminLoadFeedbackThreads();
   }catch(e){
     toast("⛔ Admin Daten laden fehlgeschlagen");
   }
+  }catch(e){ console.warn("adminReload failed", e); }
 }
+
 function renderAdminConfig(cfg, newsSeenCount){
   // washer hours
   const box = $("washerHoursBox");
@@ -2833,7 +2836,7 @@ $("btnSaveWasherHours").onclick = async ()=>{
       const cb = document.getElementById(`wh_${h}`);
       if (cb && cb.checked) hours.push(h);
     }
-    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, washerHours: hours});
+    await jpost("/api/admin/config/set", {adminPassword:s.pw, washerHours: hours});
     toast("✅ Waschzeiten gespeichert");
     await adminReload();
     await refreshAll();
@@ -2847,7 +2850,7 @@ $("btnSaveDryerMinutes").onclick = async ()=>{
   try{
     const ok = confirm2("Trockner-Dauer speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
+    await jpost("/api/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
     toast("✅ Trockner-Dauer gespeichert");
     await adminReload();
     await refreshAll();
@@ -2861,7 +2864,7 @@ $("btnSaveDaysWindow").onclick = async ()=>{
   try{
     const ok = confirm2("Tage-Fenster speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/auth/admin/config/set", {
+    await jpost("/api/admin/config/set", {
       adminPassword:s.pw,
       daysPast: Number($("daysPast").value),
       daysFuture: Number($("daysFuture").value),
@@ -2879,7 +2882,7 @@ $("btnSaveNews").onclick = async ()=>{
   try{
     const ok = confirm2("News speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/auth/admin/config/set", {
+    await jpost("/api/admin/config/set", {
       adminPassword:s.pw,
       newsEnabled: $("newsEnabled").checked,
       newsText: $("newsText").value,
@@ -2930,7 +2933,7 @@ $("btnSaveDefectRules").onclick = async ()=>{
       }
     }
 
-    await jpost("/api/auth/admin/config/set", {
+    await jpost("/api/admin/config/set", {
       adminPassword: s.pw,
       userDefectEnabled: $("userDefectEnabled").checked,
       userDefectAllowed: allowed
@@ -3141,7 +3144,7 @@ async function authLoadConfig(){
   const msg = $("authConfigMsg"); if (msg) msg.innerHTML = `<div class="small">Lade Konfiguration…</div>`;
   try{
     await authMeCached();
-    const r = await jpostAuth("/api/auth/admin/config/get", {});
+    const r = await jpostAuth("/api/admin/config/get", {});
     __AUTH_CONFIG_CACHE = r.config || {};
     renderAuthConfigForm(__AUTH_CONFIG_CACHE);
     toast("✅ Konfiguration geladen");
@@ -3157,7 +3160,7 @@ async function authSaveConfig(){
   const msg = $("authConfigMsg");
   try{
     const payload = collectAuthConfigFromForm();
-    await jpostAuth("/api/auth/admin/config/set", payload);
+    await jpostAuth("/api/admin/config/set", payload);
     toast("✅ Konfiguration gespeichert");
     if (msg) msg.innerHTML = `<div class="small">✅ Gespeichert.</div>`;
   }catch(e){
@@ -4142,7 +4145,7 @@ async function rbacLoad(){
   if (box) box.innerHTML = `<div class="small">Lade…</div>`;
   let r;
   try{
-    r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
+    r = await jpostAuth("/__disabled__/auth/admin/rbac/snapshot", {});
   }catch(e){
     // fallback: older workers may not have snapshot
     if (String(e?.status||"") === "404"){
