@@ -856,6 +856,14 @@ function roleLabel(r){
   return r || "";
 }
 
+function normalizeRole(r){
+  r = String(r||'').toLowerCase();
+  if (r==='ps_deputy') return 'vs';
+  if (r==='super_admin') return 'superadmin';
+  return r;
+}
+
+
 function renderAuth(){
   const a=getAuth();
   const st=document.getElementById("psLoginState");
@@ -938,7 +946,7 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
-    if (a.token && (a.role==="ps" || a.role==="vs")){
+    if (a.token && (normalizeRole(a.role)==="ps" || normalizeRole(a.role)==="vs")){
       info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
     } else {
       info.textContent = "—";
@@ -2225,44 +2233,39 @@ async function authMe(){
     return null;
   }
 }
-// Permission helper with alias support (keeps UI compatible with RBAC keys)
-const __PERM_ALIASES = {
-  "rooms.manage": ["admin.roomcontrol.manage","ps.rooms.manage"],
-  "rooms.view": ["admin.roomcontrol.view"],
-  "machines.manage": ["admin.machines.manage"],
-  "machines.view": ["admin.machines.view"],
-  "bookings.view": ["admin.bookings.view"],
-  "bookings.cancel": ["admin.bookings.cancel"],
-  "feedback.view": ["admin.feedback.view"],
-  "feedback.reply": ["admin.feedback.reply","admin.feedback.delete"],
-  "news.edit": ["admin.news.edit"],
-  "admin.logs.view": ["admin.logs.view"],
-  "admin.logs.export": ["admin.logs.export"],
-  "admin.users.manage": ["admin.users.manage"],
-  "admin.users.view": ["admin.users.view"],
-  "admin.users.delete": ["admin.users.delete"],
-  "admin.config.manage": ["admin.config.manage"],
-  "admin.config.view": ["admin.config.view"],
-};
-const __PERM_ALIASES_REV = (() => {
-  const rev = {};
-  for (const [k, arr] of Object.entries(__PERM_ALIASES)){
-    for (const a of (arr||[])) (rev[a] ||= []).push(k);
+function hasPerm(perms, key){
+  if(!perms) return false;
+  const v = perms[key];
+  if (v === true) return true;
+  if (v === 1 || v === "1" || v === "true") return true;
+  // alias: allow checking without prefixes
+  const aliases = [];
+  const k = String(key||"");
+  // admin.* falls back to ps.* and unprefixed
+  if (k.startsWith("admin.")){
+    aliases.push("ps."+k.slice(6));
+    aliases.push(k.slice(6));
   }
-  return rev;
-})();
-function __permTruth(v){ return v===true || v===1 || v==="1" || v==="true"; }
-function permHas(perms, key){
-  try{
-    const m = perms || {};
-    if (__permTruth(m["sa.all"])) return true;
-    if (__permTruth(m[key])) return true;
-    for (const a of (__PERM_ALIASES[key] || [])) if (__permTruth(m[a])) return true;
-    for (const a of (__PERM_ALIASES_REV[key] || [])) if (__permTruth(m[a])) return true;
-    return false;
-  }catch(_e){ return false; }
+  // ps.* falls back to admin.* and unprefixed
+  if (k.startsWith("ps.")){
+    aliases.push("admin."+k.slice(3));
+    aliases.push(k.slice(3));
+  }
+  // roomcontrol/manage naming drift
+  if (k === "admin.roomcontrol.manage"){
+    aliases.push("ps.rooms.manage","rooms.manage","roomcontrol.manage");
+  }
+  if (k === "ps.rooms.manage"){
+    aliases.push("admin.roomcontrol.manage","rooms.manage","roomcontrol.manage");
+  }
+  for (const a of aliases){
+    const av = perms[a];
+    if (av === true || av === 1 || av === "1" || av === "true") return true;
+  }
+  // SA global
+  if (perms["sa.all"] === true || perms["sa.all"] === 1 || perms["sa.all"] === "1" || perms["sa.all"] === "true") return true;
+  return false;
 }
-function hasPerm(perms, key){ return permHas(perms, key); }
 
 async function renderPsVsAdminDash(){
   const a = getAuth();
@@ -2278,7 +2281,9 @@ async function renderPsVsAdminDash(){
 
   const me = await authMe();
   const perms = me?.perms || {};
-  const role = me?.user?.role || a.role || "";
+  const role = normalizeRole(me?.user?.role || a.role || "");
+
+  const canAny = (...ks)=>ks.some(k=>hasPerm(perms,k));
   const email = me?.user?.email || a.email || "";
 
   info.textContent = `Angemeldet als ${roleLabel(role)} (${email})`;
@@ -2286,7 +2291,7 @@ async function renderPsVsAdminDash(){
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
+  if (canAny("admin.users.manage","admin.users.view") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2296,7 +2301,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
+  if (canAny("admin.logs.view","ps.logs.view","logs.view") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2306,7 +2311,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
+  if (canAny("admin.bookings.view","ps.bookings.view","bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2316,7 +2321,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
+  if (canAny("admin.config.manage","ps.config.view","admin.news.edit","news.edit","config.manage") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2326,7 +2331,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (canAny("admin.machines.manage","machines.manage","ps.rooms.manage","rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2336,7 +2341,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (canAny("admin.roomcontrol.manage","ps.rooms.manage","rooms.manage","roomcontrol.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2346,7 +2351,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
+  if (canAny("admin.feedback.view","ps.feedback.view","feedback.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -4255,7 +4260,7 @@ document.addEventListener("DOMContentLoaded", wireV8UI);
    UI v9: Auth sections + Users
    ============================ */
 
-function hasPermMe(p){ try{ return permHas((__AUTH_ME && __AUTH_ME.perms) || {}, p); }catch(_e){ return false; } }
+function hasPerm(p){ try{ return !!(__AUTH_ME?.perms && __AUTH_ME.perms[p]); }catch(_e){ return false; } }
 function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.includes(r); }
 
 function updateAuthSections(){
@@ -4269,20 +4274,20 @@ function updateAuthSections(){
   };
 
   // Config
-  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPermMe("admin.config.manage") || hasPermMe("admin.news.edit"));
+  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
 
   // Logs + bookings
-  show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPermMe("admin.logs.view"));
-  show("authBookingsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPermMe("admin.bookings.view"));
+  show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.logs.view"));
+  show("authBookingsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.bookings.view"));
 
   // Feedback
-  show("authFeedbackDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPermMe("admin.feedback.view") || hasPermMe("admin.feedback.reply"));
+  show("authFeedbackDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.feedback.view") || hasPerm("admin.feedback.reply"));
 
   // Room control
-  show("authRoomControlDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPermMe("admin.roomcontrol.manage") || hasPermMe("ps.rooms.manage"));
+  show("authRoomControlDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.roomcontrol.manage") || hasPerm("ps.rooms.manage"));
 
   // Users
-  show("authUsersDetails", roleIs("admin","superadmin","super_admin") || hasPermMe("admin.users.manage"));
+  show("authUsersDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.users.manage"));
 }
 
 let __AUTH_ME = null;
