@@ -916,6 +916,7 @@ function roleLabel(r){
 function applyRoleVisibility(){
   const a = getAuth();
 
+  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
   const psOnly = document.getElementById("psOnly");
   const adminOnly = document.getElementById("adminOnly");
 
@@ -923,10 +924,7 @@ function applyRoleVisibility(){
   const isAdmin = logged && a.role === "admin";
   const isPS = logged && (a.role === "ps" || a.role === "vs");
 
-  // ✅ PS/VS/Admin Dashboard unten anzeigen, sobald eingeloggt
-  if (psOnly) psOnly.style.display = (logged && (isAdmin || isPS)) ? "" : "none";
-
-  // Admin-only Bereiche
+  if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
@@ -1335,21 +1333,8 @@ function protoPdf(){
       <script>window.onload=()=>window.print();<\/script>
     
 <script>
-/* === PS/VS/Admin Dashboard visibility enforcement (2026-02-07) ===
-   Some legacy code toggles #psOnly back to display:none after login.
-   We override applyRoleVisibility() and also watch for style changes. */
+/* === FORCE #psOnly VISIBLE AFTER LOGIN (2026-02-07) === */
 (function(){
-  function getAuthSafe(){
-    try{
-      if (typeof getAuth === "function") return getAuth();
-    }catch(_e){}
-    // fallback: try globals
-    const token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
-    const role = localStorage.getItem("auth_role") || localStorage.getItem("role") || "";
-    const email = localStorage.getItem("auth_email") || localStorage.getItem("email") || "";
-    return { token, role, email };
-  }
-
   function normalizeRole(r){
     if(!r) return "";
     r = String(r).toLowerCase().trim();
@@ -1358,7 +1343,18 @@ function protoPdf(){
     return r;
   }
 
-  function enforce(){
+  function getAuthSafe(){
+    try{
+      if (typeof getAuth === "function") return getAuth();
+    }catch(e){}
+    // fallback keys (best-effort)
+    const token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+    const role = localStorage.getItem("auth_role") || localStorage.getItem("role") || "";
+    const email = localStorage.getItem("auth_email") || localStorage.getItem("email") || "";
+    return { token, role, email };
+  }
+
+  function enforcePsOnly(){
     const a = getAuthSafe();
     const logged = !!a.token;
     const role = normalizeRole(a.role);
@@ -1366,41 +1362,37 @@ function protoPdf(){
     if(!psOnly) return;
 
     const shouldShow = logged && (role === "admin" || role === "ps" || role === "vs");
-    // Always win: if it should be shown, keep it shown.
     psOnly.style.display = shouldShow ? "" : "none";
-    psOnly.toggleAttribute("data-force-visible", shouldShow);
   }
 
-  // Override legacy function if present
+  // Override applyRoleVisibility so legacy code can't hide psOnly permanently
   try{
-    window.applyRoleVisibility = function(){ enforce(); };
-  }catch(_e){}
+    window.applyRoleVisibility = function(){ enforcePsOnly(); };
+  }catch(e){}
 
-  // Run now and after auth state updates
-  document.addEventListener("DOMContentLoaded", enforce);
-  // Run after microtasks too (in case login flow updates token later)
-  setTimeout(enforce, 50);
-  setTimeout(enforce, 250);
-  setTimeout(enforce, 750);
+  // Run a few times (login flow is async)
+  document.addEventListener("DOMContentLoaded", function(){
+    enforcePsOnly();
+    setTimeout(enforcePsOnly, 50);
+    setTimeout(enforcePsOnly, 250);
+    setTimeout(enforcePsOnly, 750);
 
-  // Watch for someone setting display:none after login
-  const mo = new MutationObserver(function(muts){
-    for (const m of muts){
-      if (m.type === "attributes" && m.attributeName === "style"){
-        enforce();
-        break;
-      }
+    const psOnly = document.getElementById("psOnly");
+    if(psOnly){
+      const mo = new MutationObserver(function(muts){
+        for(const m of muts){
+          if(m.type === "attributes" && m.attributeName === "style"){
+            enforcePsOnly();
+            break;
+          }
+        }
+      });
+      mo.observe(psOnly, {attributes:true, attributeFilter:["style"]});
     }
   });
-  const startWatch = ()=>{
-    const psOnly = document.getElementById("psOnly");
-    if(psOnly) mo.observe(psOnly, { attributes:true, attributeFilter:["style"] });
-  };
-  document.addEventListener("DOMContentLoaded", startWatch);
-  setTimeout(startWatch, 100);
 
-  // Expose for debugging
-  window.__enforcePsOnly = enforce;
+  // For debugging
+  window.__enforcePsOnly = enforcePsOnly;
 })();
 </script>
 
@@ -2354,7 +2346,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || roles.has("admin")){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2364,7 +2356,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || roles.has("admin")){
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2374,7 +2366,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || roles.has("admin")){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2384,7 +2376,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || roles.has("admin")){
+  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -3589,7 +3581,7 @@ function authHas(p){
     const me = window.__AUTH_ME_CACHE || null;
     const perms = me?.perms || {};
     const role = me?.user?.role || (getAuth()?.role||"");
-    return !!(perms[p] || roles.has("admin"));
+    return !!(perms[p] || role==="admin");
   }catch{ return false; }
 }
 
