@@ -2304,6 +2304,7 @@ async function renderPsVsAdminDash(){
   const roles = rolesFrom(me, a);
   const role1 = normalizeRole(me?.user?.role || a.role || "");
   const role2 = normalizeRole(me?.user?.role2 || a.role2 || "");
+  const isAdmin = roles.has("admin") || role1==="admin" || role2==="admin";
   const email = me?.user?.email || a.email || "";
 
   const roleText = [role1, role2].filter(Boolean).map(roleLabel).join(" + ") || "user";
@@ -2342,7 +2343,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || isAdmin){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2352,7 +2353,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || isAdmin){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2362,7 +2363,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || isAdmin){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2372,7 +2373,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
+  if (hasPerm(perms,"admin.feedback.view") || isAdmin){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -3577,7 +3578,7 @@ function authHas(p){
     const me = window.__AUTH_ME_CACHE || null;
     const perms = me?.perms || {};
     const role = me?.user?.role || (getAuth()?.role||"");
-    return !!(perms[p] || role==="admin");
+    return !!(perms[p] || isAdmin);
   }catch{ return false; }
 }
 
@@ -4737,59 +4738,5 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
-
-<script>
-/* ===== Permission Bridge (admin.* prefix + aliases) ===== */
-(function(){
-  const ALIASES = (typeof window.PERM_ALIASES === "object" && window.PERM_ALIASES) ? window.PERM_ALIASES : {};
-
-  function permHasBridge(perms, key){
-    if(!perms || !key) return false;
-
-    // super-admin shortcut
-    if(perms["sa.all"]) return true;
-
-    // direct hit
-    if(perms[key]) return true;
-
-    // admin.* prefix support (both directions)
-    if(perms["admin."+key]) return true;
-    if(String(key).startsWith("admin.") && perms[String(key).slice(6)]) return true;
-
-    // forward alias list
-    const list = ALIASES[key] || [];
-    for (const a of list){
-      if(perms[a]) return true;
-      if(perms["admin."+a]) return true;
-      if(String(a).startsWith("admin.") && perms[String(a).slice(6)]) return true;
-    }
-
-    // reverse alias: if key is an alias, check canonicals
-    for (const [canon, arr] of Object.entries(ALIASES)){
-      if(Array.isArray(arr) && arr.includes(key)){
-        if(perms[canon]) return true;
-        if(perms["admin."+canon]) return true;
-        if(String(canon).startsWith("admin.") && perms[String(canon).slice(6)]) return true;
-      }
-    }
-
-    return false;
-  }
-
-  // Override global permHas/hasPerm safely (some sections redefine them)
-  window.permHas = permHasBridge;
-
-  window.hasPerm = function(perms, key){
-    // support hasPerm("perm.key") style
-    if(arguments.length === 1){
-      key = perms;
-      const me = window.__AUTH_ME || window.__ME || null;
-      perms = (me && (me.perms || (me.user && me.user.perms))) || {};
-    }
-    return permHasBridge(perms, key);
-  };
-})();
-</script>
-
 </body>
 </html>
