@@ -4919,10 +4919,18 @@ async function runSystemCheck(){
 }
 
 (function wireUiCleanV2(){
+  function toggleSystemCheck(){
+    const sec=document.getElementById("systemCheckSection");
+    if(!sec) return;
+    const hidden = sec.style.display==="none" || sec.style.display==="";
+    sec.style.display = hidden ? "" : "none";
+    if(hidden) runSystemCheck();
+  }
   const btn = document.getElementById("btnSystemCheck");
-  if(btn) btn.onclick = ()=>runSystemCheck();
-})();
-
-</script>
+  if(btn) btn.onclick = toggleSystemCheck;
+  const btn2 = document.getElementById("btnSystemCheckFloat");
+  if(btn2) btn2.onclick = toggleSystemCheck;
+})();</script>
+  <button id="btnSystemCheckFloat" class="btn" style="position:fixed;right:18px;bottom:18px;z-index:9999;opacity:.9">Systemcheck</button>
 </body>
 </html>
