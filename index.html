@@ -1331,72 +1331,7 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    
-<script>
-/* === FORCE #psOnly VISIBLE AFTER LOGIN (2026-02-07) === */
-(function(){
-  function normalizeRole(r){
-    if(!r) return "";
-    r = String(r).toLowerCase().trim();
-    if (r === "ps-deputy" || r === "ps_deputy") return "ps";
-    if (r === "vs-deputy" || r === "vs_deputy") return "vs";
-    return r;
-  }
-
-  function getAuthSafe(){
-    try{
-      if (typeof getAuth === "function") return getAuth();
-    }catch(e){}
-    // fallback keys (best-effort)
-    const token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
-    const role = localStorage.getItem("auth_role") || localStorage.getItem("role") || "";
-    const email = localStorage.getItem("auth_email") || localStorage.getItem("email") || "";
-    return { token, role, email };
-  }
-
-  function enforcePsOnly(){
-    const a = getAuthSafe();
-    const logged = !!a.token;
-    const role = normalizeRole(a.role);
-    const psOnly = document.getElementById("psOnly");
-    if(!psOnly) return;
-
-    const shouldShow = logged && (role === "admin" || role === "ps" || role === "vs");
-    psOnly.style.display = shouldShow ? "" : "none";
-  }
-
-  // Override applyRoleVisibility so legacy code can't hide psOnly permanently
-  try{
-    window.applyRoleVisibility = function(){ enforcePsOnly(); };
-  }catch(e){}
-
-  // Run a few times (login flow is async)
-  document.addEventListener("DOMContentLoaded", function(){
-    enforcePsOnly();
-    setTimeout(enforcePsOnly, 50);
-    setTimeout(enforcePsOnly, 250);
-    setTimeout(enforcePsOnly, 750);
-
-    const psOnly = document.getElementById("psOnly");
-    if(psOnly){
-      const mo = new MutationObserver(function(muts){
-        for(const m of muts){
-          if(m.type === "attributes" && m.attributeName === "style"){
-            enforcePsOnly();
-            break;
-          }
-        }
-      });
-      mo.observe(psOnly, {attributes:true, attributeFilter:["style"]});
-    }
-  });
-
-  // For debugging
-  window.__enforcePsOnly = enforcePsOnly;
-})();
-</script>
-
-</body></html>`;
+    </body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
@@ -4741,5 +4676,62 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
+
+<script>
+/* === FORCE #psOnly VISIBLE AFTER LOGIN (2026-02-07) === */
+(function(){
+  function normalizeRole(r){
+    if(!r) return "";
+    r = String(r).toLowerCase().trim();
+    if (r === "ps-deputy" || r === "ps_deputy") return "ps";
+    if (r === "vs-deputy" || r === "vs_deputy") return "vs";
+    return r;
+  }
+
+  function getAuthSafe(){
+    try{ if (typeof getAuth === "function") return getAuth(); }catch(e){}
+    const token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+    const role = localStorage.getItem("auth_role") || localStorage.getItem("role") || "";
+    const email = localStorage.getItem("auth_email") || localStorage.getItem("email") || "";
+    return { token, role, email };
+  }
+
+  function enforcePsOnly(){
+    const a = getAuthSafe();
+    const logged = !!a.token;
+    const role = normalizeRole(a.role);
+    const psOnly = document.getElementById("psOnly");
+    if(!psOnly) return;
+
+    const shouldShow = logged && (role === "admin" || role === "ps" || role === "vs");
+    psOnly.style.display = shouldShow ? "" : "none";
+  }
+
+  try{ window.applyRoleVisibility = function(){ enforcePsOnly(); }; }catch(e){}
+
+  document.addEventListener("DOMContentLoaded", function(){
+    enforcePsOnly();
+    setTimeout(enforcePsOnly, 50);
+    setTimeout(enforcePsOnly, 250);
+    setTimeout(enforcePsOnly, 750);
+
+    const psOnly = document.getElementById("psOnly");
+    if(psOnly){
+      const mo = new MutationObserver(function(muts){
+        for(const m of muts){
+          if(m.type === "attributes" && m.attributeName === "style"){
+            enforcePsOnly();
+            break;
+          }
+        }
+      });
+      mo.observe(psOnly, {attributes:true, attributeFilter:["style"]});
+    }
+  });
+
+  window.__enforcePsOnly = enforcePsOnly;
+})();
+</script>
+
 </body>
 </html>
