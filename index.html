@@ -4676,5 +4676,56 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
+
+<script>
+/* === Move "Benutzer & Berechtigungen" + "Logs" into dynamic (psOnly) and gate by perms === */
+(function(){
+  function permHas(perms, key){
+    if(!perms) return false;
+    if(perms["sa.all"]) return true;
+    if(perms[key]) return true;
+    if(perms["admin."+key]) return true;
+    if(key && key.startsWith("admin.") && perms[key.slice(6)]) return true;
+    return false;
+  }
+  function getMePerms(){
+    const me = (window.__AUTH_ME || window.__ME || null);
+    return (me && (me.perms || me.user?.perms)) || {};
+  }
+  function moveCardByInnerId(innerId, permAny){
+    const inner = document.getElementById(innerId);
+    if(!inner) return;
+    const card = inner.closest(".card") || inner.closest("section") || inner.parentElement;
+    const host = document.getElementById("psOnly") || document.body;
+    if(card && host && card.parentElement !== host){
+      host.appendChild(card);
+    }
+    const perms = getMePerms();
+    const allow = permAny.some(p => permHas(perms, p));
+    if(card) card.style.display = allow ? "" : "none";
+  }
+  function apply(){
+    // Users: allow if can view/manage users
+    moveCardByInnerId("authUsersDetails", ["admin.users.view","admin.users.manage"]);
+    // Logs: allow if can view logs
+    moveCardByInnerId("authLogsDetails", ["admin.logs.view","admin.logs.export"]);
+  }
+  document.addEventListener("DOMContentLoaded", function(){
+    apply();
+    // re-apply after login / refresh
+    const old = window.renderAuthState;
+    if(typeof old === "function"){
+      window.renderAuthState = async function(){
+        const r = await old.apply(this, arguments);
+        try{ apply(); }catch(_e){}
+        return r;
+      };
+    }
+    setTimeout(apply, 250);
+    setTimeout(apply, 1000);
+  });
+})();
+</script>
+
 </body>
 </html>
