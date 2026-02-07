@@ -701,7 +701,47 @@ body[data-authed="1"] .hide-on-auth{display:none}
       </div>
     </div>
   </div>
+
 </details>
+
+<details id="authNewsDetails" class="auth-only" style="display:none; margin-top:12px">
+  <summary><b>News</b></summary>
+  <div class="small" style="margin-top:8px; opacity:.85">
+    News können je nach Rolle an <b>User</b> oder <b>PS/VS</b> gehen. Admin sieht immer alles.
+  </div>
+  <div class="row" style="margin-top:10px; flex-wrap:wrap; gap:10px">
+    <button id="btnAuthNewsLoad" class="btn secondary">News laden</button>
+    <select id="authNewsAudience" style="min-width:220px">
+      <option value="public">News an User</option>
+      <option value="psvs">News an PS/VS</option>
+    </select>
+    <button id="btnAuthNewsSave" class="btn">Speichern</button>
+  </div>
+  <div id="authNewsBox" class="small" style="margin-top:10px">Noch kein UI angebunden – wir schalten das im nächsten Schritt auf die News-Endpoints.</div>
+</details>
+
+<details id="authChatDetails" class="auth-only" style="display:none; margin-top:12px">
+  <summary><b>Chat</b></summary>
+  <div class="small" style="margin-top:8px; opacity:.85">Interner Chat (PS/VS/Admin/Moderator). UI ist vorbereitet.</div>
+  <div id="authChatBox" class="small" style="margin-top:10px">Noch kein UI angebunden – Endpoints werden als nächstes verdrahtet.</div>
+</details>
+
+<details id="authProtocolDetails" class="auth-only" style="display:none; margin-top:12px">
+  <summary><b>Protokoll</b></summary>
+  <div class="small" style="margin-top:8px; opacity:.85">
+    Formular mit Datum + Gruppen-Haken (1–20, 14 & 16–17 ausgegraut) + Felder Küche/Rezeption/Pflege/Allgemein.
+  </div>
+  <div id="authProtocolBox" class="small" style="margin-top:10px">UI folgt als nächstes – Datenbanktabelle <code>protocol_entries</code> ist bereits vorhanden.</div>
+</details>
+
+<details id="authPopupDetails" class="auth-only" style="display:none; margin-top:12px">
+  <summary><b>Pop-Ups (Wascher/Trockner)</b></summary>
+  <div class="small" style="margin-top:8px; opacity:.85">
+    Bild + Aktiv-Haken. Wird nur beim <b>Buchen</b> angezeigt und muss bestätigt werden.
+  </div>
+  <div id="authPopupBox" class="small" style="margin-top:10px">UI vorbereitet – Upload/Storage wird als nächstes verbunden.</div>
+</details>
+
 </div>
 <!-- Auth-Dashboard Panels -->
   <details id="authUsersDetails" class="auth-only" style="display:none; margin-top:12px">
@@ -886,6 +926,7 @@ async function renderAuthState(){
   renderAuth();
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
+  try{ applyPermissionVisibility(); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
 
@@ -956,6 +997,7 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
       renderAuth();
       applyRoleVisibility();
       updatePsDashUI();
+      applyPermissionVisibility();
     };
   }
   if (reloadBtn && !reloadBtn._wired){
@@ -964,6 +1006,7 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
       // for now just refresh role visibility + info
       applyRoleVisibility();
       updatePsDashUI();
+      applyPermissionVisibility();
       toast("✅ Aktualisiert");
     };
   }
@@ -2199,7 +2242,7 @@ let __ADMIN_BOOKINGS_CACHE = [];
 function canRoomControl(me){
   const role = String(me?.user?.role || me?.role || "");
   const perms = me?.perms || {};
-  return !!(perms["admin.roomcontrol.manage"] || perms["ps.rooms.manage"] || ["admin","ps","vs","superadmin","super_admin","super_admin"].includes(role));
+  return !!(perms["rooms.manage"] || perms["rooms.manage"] || ["admin","ps","vs","superadmin","super_admin","super_admin"].includes(role));
 }
 
 async function authMe(){
@@ -2228,6 +2271,34 @@ async function authMe(){
 function hasPerm(perms, key){
   return !!(perms && perms[key]);
 }
+
+
+function canSee(key){
+  const me = window.__ME || null;
+  const perms = me?.perms || {};
+  const role = me?.user?.role || (getAuth()?.role||"");
+  if (role === "admin" || role === "sa") return true;
+  return hasPerm(perms, key);
+}
+function setVis(id, ok){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = ok ? "" : "none";
+}
+function applyPermissionVisibility(){
+  // sections (PS/Admin dashboard)
+  setVis("authConfigDetails", canSee("admin.config.view") || canSee("admin.config.manage"));
+  setVis("authLogsDetails", canSee("admin.logs.view"));
+  setVis("authBookingsDetails", canSee("bookings.view") || canSee("bookings.cancel"));
+  setVis("authMachinesDetails", canSee("machines.manage") || canSee("machines.view"));
+  setVis("authRoomControlDetails", canSee("rooms.manage") || canSee("rooms.view"));
+  setVis("authFeedbackDetails", canSee("feedback.view") || canSee("feedback.psvs.view"));
+  setVis("authNewsDetails", canSee("news.view") || canSee("news.psvs.view") || canSee("news.edit") || canSee("news.psvs.edit"));
+  setVis("authChatDetails", canSee("chat.view"));
+  setVis("authProtocolDetails", canSee("protocol.view"));
+  setVis("authPopupDetails", canSee("dryer.popup.manage") || canSee("washer.popup.manage"));
+}
+
 
 async function renderPsVsAdminDash(){
   const a = getAuth();
@@ -2271,7 +2342,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
+  if (hasPerm(perms,"bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2281,7 +2352,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"news.edit") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2291,7 +2362,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"machines.manage") || hasPerm(perms,"rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2301,7 +2372,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2310,8 +2381,48 @@ async function renderPsVsAdminDash(){
     `);
   }
 
+  // News
+  if (hasPerm(perms,"news.view") || hasPerm(perms,"news.psvs.view") || hasPerm(perms,"news.edit") || hasPerm(perms,"news.psvs.edit") || role==="admin"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="news">
+        📰<br><b>News</b><br>
+        <span class="small">Beiträge</span>
+      </div>
+    `);
+  }
+
+  // Chat
+  if (hasPerm(perms,"chat.view") || role==="admin"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="chat">
+        💬<br><b>Chat</b><br>
+        <span class="small">intern</span>
+      </div>
+    `);
+  }
+
+  // Protokoll
+  if (hasPerm(perms,"protocol.view") || role==="admin"){
+    items.push(`
+      <div class="tile free" role="button" tabindex="0" data-act="protocol">
+        🗒️<br><b>Protokoll</b><br>
+        <span class="small">Dokumentation</span>
+      </div>
+    `);
+  }
+
+  // Popups (Wascher/Trockner)
+  if (hasPerm(perms,"dryer.popup.manage") || hasPerm(perms,"washer.popup.manage") || role==="admin"){
+    items.push(`
+      <div class="tile bad" role="button" tabindex="0" data-act="popups">
+        🖼️<br><b>Pop-Ups</b><br>
+        <span class="small">Bilder</span>
+      </div>
+    `);
+  }
+
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
+  if (hasPerm(perms,"feedback.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -2335,6 +2446,10 @@ tiles.innerHTML = items.join("") || `<div class="small">Keine Funktionen freiges
   wire('[data-act="machines"]', ()=>{ const d=$('authMachinesDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
   wire('[data-act="roomctrl"]', ()=>{ const d=$('authRoomControlDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
   wire('[data-act="feedback"]', ()=>{ const d=$('authFeedbackDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+  wire('[data-act="news"]', ()=>{ const d=$('authNewsDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+  wire('[data-act="chat"]', ()=>{ const d=$('authChatDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+  wire('[data-act="protocol"]', ()=>{ const d=$('authProtocolDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
+  wire('[data-act="popups"]', ()=>{ const d=$('authPopupDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
 }
 
 
@@ -3531,7 +3646,7 @@ async function authLoadConfig(){
   const msg = $("authConfigMsg"); if (msg) msg.innerHTML = `<div class="small">Lade Konfiguration…</div>`;
   try{
     await authMeCached();
-    const r = await jpostAuth("/api/admin/config/get", {});
+    const r = await jpostAuth("/api/auth/admin/config/get", {});
     __AUTH_CONFIG_CACHE = r.config || {};
     renderAuthConfigForm(__AUTH_CONFIG_CACHE);
     toast("✅ Konfiguration geladen");
@@ -3547,7 +3662,7 @@ async function authSaveConfig(){
   const msg = $("authConfigMsg");
   try{
     const payload = collectAuthConfigFromForm();
-    await jpostAuth("/api/admin/config/set", payload);
+    await jpostAuth("/api/auth/admin/config/set", payload);
     toast("✅ Konfiguration gespeichert");
     if (msg) msg.innerHTML = `<div class="small">✅ Gespeichert.</div>`;
   }catch(e){
@@ -4234,17 +4349,17 @@ function updateAuthSections(){
   };
 
   // Config
-  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
+  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("news.edit"));
 
   // Logs + bookings
   show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.logs.view"));
-  show("authBookingsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.bookings.view"));
+  show("authBookingsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("bookings.view"));
 
   // Feedback
-  show("authFeedbackDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.feedback.view") || hasPerm("admin.feedback.reply"));
+  show("authFeedbackDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("feedback.view") || hasPerm("admin.feedback.reply"));
 
   // Room control
-  show("authRoomControlDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.roomcontrol.manage") || hasPerm("ps.rooms.manage"));
+  show("authRoomControlDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("rooms.manage") || hasPerm("rooms.manage"));
 
   // Users
   show("authUsersDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.users.manage"));
@@ -4275,17 +4390,17 @@ try{
 const PERM_GROUPS = [
   {title:"Allgemein", keys:[
     ["admin.logs.view","Logs ansehen"],
-    ["admin.bookings.view","Buchungen ansehen"],
+    ["bookings.view","Buchungen ansehen"],
     ["admin.bookings.cancel","Buchungen stornieren"],
   ]},
   {title:"Konfiguration / News", keys:[
     ["admin.config.manage","Konfiguration ändern"],
-    ["admin.news.edit","News ändern"],
+    ["news.edit","News ändern"],
   ]},
   {title:"Feedback / Zimmer", keys:[
-    ["admin.feedback.view","Feedback sehen"],
+    ["feedback.view","Feedback sehen"],
     ["admin.feedback.reply","Feedback antworten"],
-    ["admin.roomcontrol.manage","Zimmer sperren/anschreiben"],
+    ["rooms.manage","Zimmer sperren/anschreiben"],
   ]},
   {title:"Benutzer", keys:[
     ["admin.users.manage","Benutzerverwaltung"],
