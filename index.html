@@ -1331,59 +1331,7 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    
-<script>
-// ===== FINAL PERMISSION BRIDGE (auto-generated fix) =====
-(function(){
-  // Ensure PERM_ALIASES exists
-  const ALIASES = (typeof PERM_ALIASES === "object" && PERM_ALIASES) ? PERM_ALIASES : {};
-
-  function permHasFixed(perms, key){
-    if (!perms) return false;
-    if (perms["sa.all"]) return true;
-    if (perms[key]) return true;
-
-    // admin.* prefix bridging (both directions)
-    if (!key.startsWith("admin.") && perms["admin."+key]) return true;
-    if (key.startsWith("admin.") && perms[key.slice(6)]) return true;
-
-    const aliases = ALIASES[key] || [];
-    for (const a of aliases){
-      if (perms[a]) return true;
-      if (!a.startsWith("admin.") && perms["admin."+a]) return true;
-      if (a.startsWith("admin.") && perms[a.slice(6)]) return true;
-    }
-    // reverse lookup: if key itself is an alias, check canonical
-    for (const [canon, list] of Object.entries(ALIASES)){
-      if (list && list.includes && list.includes(key) && perms[canon]) return true;
-      if (list && list.includes && list.includes(key) && !canon.startsWith("admin.") && perms["admin."+canon]) return true;
-      if (list && list.includes && list.includes(key) && canon.startsWith("admin.") && perms[canon.slice(6)]) return true;
-    }
-    return false;
-  }
-
-  // Replace globals so ALL code paths (old + new) behave consistently.
-  window.permHas = permHasFixed;
-
-  // hasPerm supports BOTH call styles:
-  // 1) hasPerm(permsObj, "perm.key")
-  // 2) hasPerm("perm.key")   -> uses window.__AUTH_ME or window.__ME
-  window.hasPerm = function(a, b){
-    let perms, key;
-    if (typeof a === "string"){
-      key = a;
-      const me = window.__AUTH_ME || window.__ME || window.__AUTH_ME_CACHE || null;
-      perms = me?.perms || me?.user?.perms || {};
-    } else {
-      perms = a;
-      key = b;
-    }
-    return permHasFixed(perms, key);
-  };
-})();
-</script>
-
-</body></html>`;
+    </body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
@@ -4791,52 +4739,54 @@ document.addEventListener("DOMContentLoaded", ()=>{
 </script>
 
 <script>
-// ===== FINAL PERMISSION BRIDGE (auto-generated fix) =====
+/* ===== Permission Bridge (admin.* prefix + aliases) ===== */
 (function(){
-  // Ensure PERM_ALIASES exists
-  const ALIASES = (typeof PERM_ALIASES === "object" && PERM_ALIASES) ? PERM_ALIASES : {};
+  const ALIASES = (typeof window.PERM_ALIASES === "object" && window.PERM_ALIASES) ? window.PERM_ALIASES : {};
 
-  function permHasFixed(perms, key){
-    if (!perms) return false;
-    if (perms["sa.all"]) return true;
-    if (perms[key]) return true;
+  function permHasBridge(perms, key){
+    if(!perms || !key) return false;
 
-    // admin.* prefix bridging (both directions)
-    if (!key.startsWith("admin.") && perms["admin."+key]) return true;
-    if (key.startsWith("admin.") && perms[key.slice(6)]) return true;
+    // super-admin shortcut
+    if(perms["sa.all"]) return true;
 
-    const aliases = ALIASES[key] || [];
-    for (const a of aliases){
-      if (perms[a]) return true;
-      if (!a.startsWith("admin.") && perms["admin."+a]) return true;
-      if (a.startsWith("admin.") && perms[a.slice(6)]) return true;
+    // direct hit
+    if(perms[key]) return true;
+
+    // admin.* prefix support (both directions)
+    if(perms["admin."+key]) return true;
+    if(String(key).startsWith("admin.") && perms[String(key).slice(6)]) return true;
+
+    // forward alias list
+    const list = ALIASES[key] || [];
+    for (const a of list){
+      if(perms[a]) return true;
+      if(perms["admin."+a]) return true;
+      if(String(a).startsWith("admin.") && perms[String(a).slice(6)]) return true;
     }
-    // reverse lookup: if key itself is an alias, check canonical
-    for (const [canon, list] of Object.entries(ALIASES)){
-      if (list && list.includes && list.includes(key) && perms[canon]) return true;
-      if (list && list.includes && list.includes(key) && !canon.startsWith("admin.") && perms["admin."+canon]) return true;
-      if (list && list.includes && list.includes(key) && canon.startsWith("admin.") && perms[canon.slice(6)]) return true;
+
+    // reverse alias: if key is an alias, check canonicals
+    for (const [canon, arr] of Object.entries(ALIASES)){
+      if(Array.isArray(arr) && arr.includes(key)){
+        if(perms[canon]) return true;
+        if(perms["admin."+canon]) return true;
+        if(String(canon).startsWith("admin.") && perms[String(canon).slice(6)]) return true;
+      }
     }
+
     return false;
   }
 
-  // Replace globals so ALL code paths (old + new) behave consistently.
-  window.permHas = permHasFixed;
+  // Override global permHas/hasPerm safely (some sections redefine them)
+  window.permHas = permHasBridge;
 
-  // hasPerm supports BOTH call styles:
-  // 1) hasPerm(permsObj, "perm.key")
-  // 2) hasPerm("perm.key")   -> uses window.__AUTH_ME or window.__ME
-  window.hasPerm = function(a, b){
-    let perms, key;
-    if (typeof a === "string"){
-      key = a;
-      const me = window.__AUTH_ME || window.__ME || window.__AUTH_ME_CACHE || null;
-      perms = me?.perms || me?.user?.perms || {};
-    } else {
-      perms = a;
-      key = b;
+  window.hasPerm = function(perms, key){
+    // support hasPerm("perm.key") style
+    if(arguments.length === 1){
+      key = perms;
+      const me = window.__AUTH_ME || window.__ME || null;
+      perms = (me && (me.perms || (me.user && me.user.perms))) || {};
     }
-    return permHasFixed(perms, key);
+    return permHasBridge(perms, key);
   };
 })();
 </script>
