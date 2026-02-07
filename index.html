@@ -887,7 +887,7 @@ async function renderAuthState(){
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
 }
-if(!window.renderAuthState) window.renderAuthState = renderAuthState;
+window.renderAuthState = renderAuthState;
 
 
 let __logoutTimer = null;
@@ -2226,10 +2226,7 @@ async function authMe(){
   }
 }
 function hasPerm(perms, key){
-  if(!perms) return false;
-  if (perms["sa.all"] || perms["*"] || perms["all"]) return true;
-  const v = perms[key];
-  return v === true || v === 1 || v === "1" || v === "true" || v === "yes";
+  return !!(perms && perms[key]);
 }
 
 async function renderPsVsAdminDash(){
@@ -4354,8 +4351,10 @@ function renderUsers(list){
       });
 
       try{
-        await jpostAuth("/api/auth/admin/users/update", { userId:id, role, status, perms });
-        toast("✅ Benutzer gespeichert");
+        await (getAuth() && getAuth().token
+          ? jpostAuth("/api/auth/admin/users/update", { userId:id, role, status, perms })
+          : jpost("/api/admin/auth/users/update", Object.assign({ adminPassword: getAdminPw() }, { userId:id, role, status, perms }))
+        );toast("✅ Benutzer gespeichert");
         await authUsersLoad();
       }catch(e){
         const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -4517,8 +4516,10 @@ function renderRbacSelected(){
       const permKey = cb.getAttribute("data-perm");
       const allowed = cb.checked;
       try{
-        await jpostAuth("/api/auth/admin/users/set-perm", { userId: __RBAC_SELECTED.id, permKey, allowed });
-        // update cache
+        await (getAuth() && getAuth().token
+          ? jpostAuth("/api/auth/admin/users/set-perm", { userId: __RBAC_SELECTED.id, permKey, allowed })
+          : jpost("/api/admin/auth/users/set-perm", Object.assign({ adminPassword: getAdminPw() }, { userId: __RBAC_SELECTED.id, permKey, allowed }))
+        );// update cache
         const ex = (__RBAC.userPerms||[]).find(x=>String(x.userId)===String(__RBAC_SELECTED.id) && x.permKey===permKey);
         if (ex) ex.allowed = allowed ? 1 : 0;
         else __RBAC.userPerms.push({ userId: __RBAC_SELECTED.id, permKey, allowed: allowed?1:0 });
@@ -4533,27 +4534,35 @@ function renderRbacSelected(){
 async function rbacLoad(){
   const box = $("rbacUserList");
   if (box) box.innerHTML = `<div class="small">Lade…</div>`;
-  let r;
-  try{
-    r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
-  }catch(e){
-    // fallback: older workers may not have snapshot
-    if (String(e?.status||"") === "404"){
-      toast("⛔ RBAC Snapshot fehlt im Worker. Bitte Worker V5 deployen und /api/_routes prüfen.");
-      const u = await jpostAuth("/api/auth/admin/users/list", {});
-      r = { users: u.users||[], permsCatalog: [], rolePerms: [], userPerms: [] };
-    } else { throw e; }
-  }
-  // normalize catalog shape for UI (label/category)
-const catalog = (r.permsCatalog || r.perms || []).map(p=>({
-  permKey: p.permKey,
-  label: p.title ?? p.label ?? "",
-  category: p.permGroup ?? p.category ?? "Allgemein",
-  sort: Number(p.sort ?? 0)
-})).filter(p=>p.permKey);
 
-__RBAC = { users: r.users||[], perms: catalog, rolePerms: r.rolePerms||[], userPerms: r.userPerms||[] };
-  __RBAC_SELECTED = __RBAC_SELECTED ? (__RBAC.users||[]).find(u=>String(u.id)===String(__RBAC_SELECTED.id)) : null;
+  const a = getAuth();
+  const pw = getAdminPw();
+  let r;
+
+  try{
+    if (a && a.token){
+      r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
+    } else if (pw){
+      r = await jpost("/api/admin/auth/rbac/snapshot", { adminPassword: pw });
+    } else {
+      throw Object.assign(new Error("not_logged_in"), { status: 403 });
+    }
+  }catch(e){
+    if (String(e?.status||"") === "404"){
+      toast("⛔ RBAC Snapshot fehlt im Worker. Bitte Worker deployen und /api/_routes prüfen.");
+      const u = (a && a.token)
+        ? await jpostAuth("/api/auth/admin/users/list", {})
+        : await jpost("/api/admin/auth/users/list", { adminPassword: pw });
+      r = { users: u.users || [], permsCatalog: [], rolePerms: [], userPerms: [] };
+    }else{
+      console.warn("rbacLoad failed", e);
+      toast("⛔ RBAC laden fehlgeschlagen ("+(e?.status||"")+")");
+      r = { users: [], permsCatalog: [], rolePerms: [], userPerms: [] };
+    }
+  }
+
+  __RBAC = r || { users: [], permsCatalog: [], rolePerms: [], userPerms: [] };
+
   renderRbacUserList();
   renderRbacSelected();
 }
@@ -4561,21 +4570,31 @@ __RBAC = { users: r.users||[], perms: catalog, rolePerms: r.rolePerms||[], userP
 async function rbacSetRole(role){
   if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
   if (!confirm(`Rolle wirklich setzen: ${role}?`)) return;
-  await jpostAuth("/api/auth/admin/users/set-role", { userId: __RBAC_SELECTED.id, role });
-  toast("✅ Rolle gesetzt");
+  await (getAuth() && getAuth().token
+          ? jpostAuth("/api/auth/admin/users/set-role", { userId: __RBAC_SELECTED.id, role })
+          : jpost("/api/admin/auth/users/set-role", Object.assign({ adminPassword: getAdminPw() }, { userId: __RBAC_SELECTED.id, role }))
+        );toast("✅ Rolle gesetzt");
   await rbacLoad();
 }
 
 async function rbacSaveUser(){
   if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
-  await jpostAuth("/api/auth/admin/users/update", {
+  await (getAuth() && getAuth().token
+          ? jpostAuth("/api/auth/admin/users/update", {
     userId: __RBAC_SELECTED.id,
     firstName: $("rbacFirstName").value,
     lastName: $("rbacLastName").value,
     status: $("rbacStatus").value,
     role2: $("rbacIsAdmin2").checked ? "admin" : ""
-  });
-  toast("✅ Gespeichert");
+  })
+          : jpost("/api/admin/auth/users/update", Object.assign({ adminPassword: getAdminPw() }, {
+    userId: __RBAC_SELECTED.id,
+    firstName: $("rbacFirstName").value,
+    lastName: $("rbacLastName").value,
+    status: $("rbacStatus").value,
+    role2: $("rbacIsAdmin2").checked ? "admin" : ""
+  }))
+        );toast("✅ Gespeichert");
   await rbacLoad();
 }
 
@@ -4583,8 +4602,10 @@ async function rbacAll(on){
   if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
   const perms = (__RBAC.perms||[]).map(p=>p.permKey);
   for (const permKey of perms){
-    await jpostAuth("/api/auth/admin/users/set-perm", { userId: __RBAC_SELECTED.id, permKey, allowed: !!on });
-    const ex = (__RBAC.userPerms||[]).find(x=>String(x.userId)===String(__RBAC_SELECTED.id) && x.permKey===permKey);
+    await (getAuth() && getAuth().token
+          ? jpostAuth("/api/auth/admin/users/set-perm", { userId: __RBAC_SELECTED.id, permKey, allowed: !!on })
+          : jpost("/api/admin/auth/users/set-perm", Object.assign({ adminPassword: getAdminPw() }, { userId: __RBAC_SELECTED.id, permKey, allowed: !!on }))
+        );const ex = (__RBAC.userPerms||[]).find(x=>String(x.userId)===String(__RBAC_SELECTED.id) && x.permKey===permKey);
     if (ex) ex.allowed = on?1:0;
     else __RBAC.userPerms.push({ userId: __RBAC_SELECTED.id, permKey, allowed: on?1:0 });
   }
