@@ -916,7 +916,7 @@ function roleLabel(r){
 function applyRoleVisibility(){
   const a = getAuth();
 
-  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
+  // Bereiche für PS/VS/Admin Dashboard
   const psOnly = document.getElementById("psOnly");
   const adminOnly = document.getElementById("adminOnly");
 
@@ -924,7 +924,11 @@ function applyRoleVisibility(){
   const isAdmin = logged && a.role === "admin";
   const isPS = logged && (a.role === "ps" || a.role === "vs");
 
-  if (psOnly) psOnly.style.display = (logged && (isAdmin || isPS)) ? "" : "none"; // sichtbar für Admin/PS/VS nach Login
+  // ✅ Dashboard-Bereich unten NICHT dauerhaft verstecken:
+  // anzeigen, sobald eingeloggt (Admin/PS/VS)
+  if (psOnly) psOnly.style.display = (logged && (isAdmin || isPS)) ? "" : "none";
+
+  // Admin-only Bereich
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
@@ -938,7 +942,7 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
-    if (a.token && (a.role==="ps" || a.role==="vs" || a.role==="admin")){
+    if (a.token && (a.role==="ps" || a.role==="vs")){
       info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
     } else {
       info.textContent = "—";
@@ -961,11 +965,9 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
   if (reloadBtn && !reloadBtn._wired){
     reloadBtn._wired = true;
     reloadBtn.onclick = ()=>{
-      // refresh visibility + info + tiles
-      try{ applyRoleVisibility(); }catch(e){}
-      try{ updatePsDashUI(); }catch(e){}
-      try{ renderPsVsAdminDash(); }catch(e){}
-      try{ if (window.updateAuthSections) window.updateAuthSections(window.__ME || window.__AUTH_ME_CACHE || null); }catch(e){}
+      // for now just refresh role visibility + info
+      applyRoleVisibility();
+      updatePsDashUI();
       toast("✅ Aktualisiert");
     };
   }
