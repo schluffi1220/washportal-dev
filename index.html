@@ -886,7 +886,6 @@ async function renderAuthState(){
   renderAuth();
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
-  try{ await renderPsVsAdminDash(); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
 
@@ -914,32 +913,28 @@ function roleLabel(r){
   return r || "";
 }
 
-function applyRoleVisibility(me){
+function applyRoleVisibility(){
   const a = getAuth();
 
-  // Bereiche im unteren PS/VS/Admin Login
-  const psOnly = document.getElementById("psOnly");     // Dashboard-Kacheln + Schnellzugriffe
-  const adminOnly = document.getElementById("adminOnly"); // reine Admin-Extras (falls vorhanden)
+  // Bereiche im unteren (PS/VS/Admin) Dashboard
+  const psOnly = document.getElementById("psOnly");
+  const adminOnly = document.getElementById("adminOnly");
 
   const logged = !!(a && a.token);
 
-  // Rollen können aus /api/auth/me kommen (role + role2). Fallback: localStorage role.
-  const r1 = normalizeRole(me?.user?.role || a?.role || "");
-  const r2 = normalizeRole(me?.user?.role2 || a?.role2 || "");
-  const roles = new Set([r1, r2].filter(Boolean));
+  // Rolle(n) aus localStorage (Login unten) – hier reicht role
+  const r = normalizeRole(a?.role || "");
+  const isAdmin = logged && r === "admin";
+  const isPS = logged && (r === "ps" || r === "vs");
 
-  const isAdmin = logged && roles.has("admin");
-  const isPS    = logged && (roles.has("ps") || roles.has("vs"));
-  const isSA    = logged && roles.has("sa"); // falls SA im Auth-System existiert
+  // WICHTIG: Dashboard muss für eingeloggte Nutzer sichtbar sein
+  if (psOnly) psOnly.style.display = logged ? "" : "none";
 
-  // Wichtig: psOnly darf NICHT dauerhaft ausgeblendet sein – sonst siehst du nie die Kacheln.
-  if (psOnly) psOnly.style.display = (logged && (isAdmin || isPS || isSA || roles.size===0)) ? "" : "none";
-
-  // adminOnly nur, wenn Admin beteiligt ist (role oder role2)
+  // Admin-only Bereiche weiterhin schützen
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
-function updatePsDashUI(me){
+function updatePsDashUI(){
   const a = getAuth();
   const info = document.getElementById("psDashInfo");
   const logout2 = document.getElementById("btnPsLogout2");
@@ -949,11 +944,8 @@ function updatePsDashUI(me){
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
-    if (a && a.token){
-      const r1 = normalizeRole(me?.user?.role || a.role || "");
-      const r2 = normalizeRole(me?.user?.role2 || a.role2 || "");
-      const roleText = [r1,r2].filter(Boolean).join(" + ") || (a.role||"");
-      info.textContent = "Angemeldet als " + roleText + " (" + (me?.user?.email || a.email || "") + ")";
+    if (a.token){
+      info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
     } else {
       info.textContent = "Nicht angemeldet";
     }
@@ -965,20 +957,21 @@ function updatePsDashUI(me){
     logout2.onclick = ()=>{
       const btn = document.getElementById("btnPsLogout");
       if (btn && typeof btn.onclick === "function") return btn.onclick();
+      // fallback
       clearAuth();
-      if (window.renderAuthState) window.renderAuthState();
+      renderAuth();
+      applyRoleVisibility();
+      updatePsDashUI();
     };
   }
   if (reloadBtn && !reloadBtn._wired){
     reloadBtn._wired = true;
-    reloadBtn.onclick = async ()=>{
-      try{
-        await renderAuthState();
-        await renderPsVsAdminDash();
-        toast("✅ Aktualisiert");
-      }catch(e){
-        toast("⛔ Aktualisieren fehlgeschlagen");
-      }
+    reloadBtn.onclick = ()=>{
+      // refresh role visibility + info + tiles
+      applyRoleVisibility();
+      updatePsDashUI();
+      try{ renderPsVsAdminDash(); }catch(_e){}
+      toast("✅ Aktualisiert");
     };
   }
 }
