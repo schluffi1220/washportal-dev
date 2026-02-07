@@ -4692,5 +4692,52 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
+
+<script>
+/* === Gate "Benutzer & Berechtigungen" + "Logs" by perms (no DOM moving) === */
+(function(){
+  function permHas(perms, key){
+    if(!perms) return false;
+    if(perms["sa.all"]) return true;
+    if(perms[key]) return true;
+    if(perms["admin."+key]) return true;
+    if(key && key.startsWith("admin.") && perms[key.slice(6)]) return true;
+    return false;
+  }
+  function getPerms(){
+    const me = (window.__AUTH_ME || window.__ME || null);
+    return (me && (me.perms || me.user?.perms)) || {};
+  }
+  function gateByInnerId(innerId, allowPerms){
+    const inner = document.getElementById(innerId);
+    if(!inner) return;
+    const card = inner.closest(".card") || inner.closest("section") || inner.parentElement;
+    if(!card) return;
+    const perms = getPerms();
+    const allow = allowPerms.some(p => permHas(perms, p));
+    card.style.display = allow ? "" : "none";
+  }
+  function apply(){
+    // Users: allow if can view/manage users
+    gateByInnerId("authUsersDetails", ["admin.users.view","admin.users.manage"]);
+    // Logs: allow if can view/export logs
+    gateByInnerId("authLogsDetails", ["admin.logs.view","admin.logs.export"]);
+  }
+  document.addEventListener("DOMContentLoaded", function(){
+    apply();
+    const old = window.renderAuthState;
+    if(typeof old === "function"){
+      window.renderAuthState = async function(){
+        const r = await old.apply(this, arguments);
+        try{ apply(); }catch(_e){}
+        return r;
+      };
+    }
+    setTimeout(apply, 250);
+    setTimeout(apply, 1000);
+  });
+})();
+</script>
+
 </body>
 </html>
