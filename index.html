@@ -814,35 +814,6 @@ body[data-authed="1"] .hide-on-auth{display:none}
 <script>
 // API base (global)
 var API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-// Permission aliases (must match worker PERM_ALIASES)
-window.__PERM_ALIASES = {
-  "rooms.manage": ["admin.roomcontrol.manage","ps.rooms.manage"],
-  "rooms.view": ["admin.roomcontrol.view"],
-  "machines.manage": ["admin.machines.manage"],
-  "machines.view": ["admin.machines.view"],
-  "bookings.view": ["admin.bookings.view"],
-  "bookings.cancel": ["admin.bookings.cancel"],
-  "admin.logs.view": ["admin.logs.view"],
-  "admin.logs.export": ["admin.logs.export"],
-  "feedback.view": ["admin.feedback.view"],
-  "feedback.reply": ["admin.feedback.reply","admin.feedback.delete"],
-  "news.edit": ["admin.news.edit"],
-  "admin.users.manage": ["admin.users.manage"],
-  "admin.users.view": ["admin.users.view"],
-  "admin.users.delete": ["admin.users.delete"],
-  "feedback.psvs.view": ["ps.feedback.view"],
-  "news.psvs.view": ["ps.news.view"],
-  "admin.config.view": ["admin.config.view"],
-  "admin.config.manage": ["admin.config.manage"]
-};
-window.__PERM_ALIASES_REV = (()=>{
-  const rev = {};
-  for (const [k, arr] of Object.entries(window.__PERM_ALIASES)) {
-    for (const a of (arr||[])) (rev[a] ||= []).push(k);
-  }
-  return rev;
-})();
-
 
 // Auth storage keys (guarded against accidental double-includes)
 var AUTH_KEY   = window.AUTH_KEY   || "wp_token";
@@ -2254,32 +2225,43 @@ async function authMe(){
     return null;
   }
 }
+function _truthy(v){ return v===true || v===1 || v==="1" || v==="true" || v==="TRUE" || v==="yes" || v==="on"; }
+function _permAliases(key){
+  // normalize: allow old keys without "admin." prefix and a few historical renames
+  const k = String(key||"");
+  const out = new Set([k]);
+  if(k.startsWith("admin.")) out.add(k.slice(6));
+  // common module aliases
+  const map = {
+    "admin.bookings.view":"bookings.view",
+    "admin.bookings.manage":"bookings.manage",
+    "admin.config.manage":"config.manage",
+    "admin.news.edit":"news.edit",
+    "admin.machines.manage":"machines.manage",
+    "admin.roomcontrol.manage":"rooms.manage",
+    "admin.feedback.view":"feedback.view",
+    "admin.logs.view":"logs.view",
+    "admin.users.manage":"users.manage",
+    "admin.users.view":"users.view",
+    // PS historical prefixes
+    "ps.rooms.manage":"rooms.manage",
+    "vs.rooms.manage":"rooms.manage"
+  };
+  if(map[k]) out.add(map[k]);
+  // also accept "ps." prefixed variants for non-admin keys
+  if(k.startsWith("ps.")) out.add(k.slice(3));
+  if(k.startsWith("vs.")) out.add(k.slice(3));
+  return Array.from(out);
+}
 function hasPerm(perms, key){
-  // Alias-aware permission check (supports old/new keys and PS/VS variants)
   try{
-    if (!perms) return false;
-    if (perms[key]) return true;
-
-    // normalize boolean-like strings
-    const v = perms[key];
-    if (v === "true" || v === "1") return true;
-
-    // if sa.all is set, treat as all permissions in UI
-    if (perms["sa.all"] || perms["superadmin"] || perms["super_admin"]) return true;
-
-    const ALIASES = window.__PERM_ALIASES || {};
-    const REV = window.__PERM_ALIASES_REV || {};
-
-    const arr = ALIASES[key] || [];
-    for (const a of arr){ if (perms[a]) return true; if (perms[a]==="true"||perms[a]==="1") return true; }
-
-    const rev = REV[key] || [];
-    for (const k of rev){ if (perms[k]) return true; if (perms[k]==="true"||perms[k]==="1") return true; }
-
-    // heuristic: allow checking both with/without 'admin.' prefix
-    if (!key.startsWith("admin.") && perms["admin."+key]) return true;
-    if (key.startsWith("admin.") && perms[key.slice(6)]) return true;
-
+    if(!perms) return false;
+    // superadmin blanket
+    if(_truthy(perms["sa.all"]) || _truthy(perms["sa"])) return true;
+    const keys = _permAliases(key);
+    for(const k of keys){
+      if(_truthy(perms[k])) return true;
+    }
     return false;
   }catch(_e){ return false; }
 }
@@ -2298,8 +2280,15 @@ async function renderPsVsAdminDash(){
 
   const me = await authMe();
   const perms = me?.perms || {};
-  const role = me?.user?.role || a.role || "";
-  const email = me?.user?.email || a.email || "";
+  const roleRaw = me?.user?.role || a.role || "";
+  const role = (function(r){
+    r = String(r||"").toLowerCase();
+    if(r==="ps_deputy" || r==="ps-deputy" || r==="psDeputy") return "ps";
+    if(r==="vs_deputy" || r==="vs-deputy" || r==="vsDeputy") return "vs";
+    if(r==="sa_admin" || r==="sa" || r==="superadmin") return "sa";
+    return r;
+  })(roleRaw);
+const email = me?.user?.email || a.email || "";
 
   info.textContent = `Angemeldet als ${roleLabel(role)} (${email})`;
 
@@ -2383,7 +2372,12 @@ tiles.innerHTML = items.join("") || `<div class="small">Keine Funktionen freiges
     el.onkeydown = (e)=>{ if(e.key==="Enter" || e.key===" ") fn(); };
   };
 
-  wire('[data-act="users"]', ()=>{ location.href = "./admin-users/"; });
+  wire('[data-act="users"]', async ()=>{
+    // stay on page: open RBAC section if present
+    const d = document.getElementById("authUsersDetails");
+    if(d){ d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'}); }
+    try{ await rbacLoad(); }catch(_e){}
+  });
   wire('[data-act="logs"]', ()=>{ authLoadLogs(); });
   wire('[data-act="bookings"]', ()=>{ authLoadBookings(); });
   wire('[data-act="config"]', ()=>{ const d=$('authConfigDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
@@ -4589,13 +4583,6 @@ async function rbacLoad(){
   try{
     r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
   }catch(e){
-    if (String(e?.status||"") === "403"){
-      toast("⛔ RBAC Snapshot ist SA-only. Du bist nicht berechtigt.");
-      __RBAC = { users: [], perms: [], rolePerms: [], userPerms: [] };
-      renderRbacUserList();
-      renderRbacSelected();
-      return;
-    }
     // fallback: older workers may not have snapshot
     if (String(e?.status||"") === "404"){
       toast("⛔ RBAC Snapshot fehlt im Worker. Bitte Worker V5 deployen und /api/_routes prüfen.");
