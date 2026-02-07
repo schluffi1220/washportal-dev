@@ -877,7 +877,6 @@ async function renderAuthState(){
   const me = await authMe();
   if(me){
     window.__ME = me;
-    try{ window.__AUTH_ME = me; }catch(e){}
     document.body.setAttribute("data-authed","1");
   }else{
     clearAuth();
@@ -885,11 +884,9 @@ async function renderAuthState(){
     document.body.setAttribute("data-authed","0");
   }
   renderAuth();
-  try{ if(typeof updateAuthSections==="function") updateAuthSections(); }catch(e){}
-  try{ if(typeof renderPsVsAdminDash==="function") renderPsVsAdminDash(); }catch(e){}
-
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
+  try{ await renderPsVsAdminDash(); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
 
@@ -917,35 +914,48 @@ function roleLabel(r){
   return r || "";
 }
 
-function applyRoleVisibility(){
+function applyRoleVisibility(me){
   const a = getAuth();
 
-  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
-  const psOnly = document.getElementById("psOnly");
-  const adminOnly = document.getElementById("adminOnly");
+  // Bereiche im unteren PS/VS/Admin Login
+  const psOnly = document.getElementById("psOnly");     // Dashboard-Kacheln + Schnellzugriffe
+  const adminOnly = document.getElementById("adminOnly"); // reine Admin-Extras (falls vorhanden)
 
-  const logged = !!a.token;
-  const isAdmin = logged && a.role === "admin";
-  const isPS = logged && (a.role === "ps" || a.role === "vs");
+  const logged = !!(a && a.token);
 
-  if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
+  // Rollen können aus /api/auth/me kommen (role + role2). Fallback: localStorage role.
+  const r1 = normalizeRole(me?.user?.role || a?.role || "");
+  const r2 = normalizeRole(me?.user?.role2 || a?.role2 || "");
+  const roles = new Set([r1, r2].filter(Boolean));
+
+  const isAdmin = logged && roles.has("admin");
+  const isPS    = logged && (roles.has("ps") || roles.has("vs"));
+  const isSA    = logged && roles.has("sa"); // falls SA im Auth-System existiert
+
+  // Wichtig: psOnly darf NICHT dauerhaft ausgeblendet sein – sonst siehst du nie die Kacheln.
+  if (psOnly) psOnly.style.display = (logged && (isAdmin || isPS || isSA || roles.size===0)) ? "" : "none";
+
+  // adminOnly nur, wenn Admin beteiligt ist (role oder role2)
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
-function updatePsDashUI(){
+function updatePsDashUI(me){
   const a = getAuth();
   const info = document.getElementById("psDashInfo");
   const logout2 = document.getElementById("btnPsLogout2");
   const fl = $("btnForceLogout");
-if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); location.reload(); };
+  if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); location.reload(); };
 
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
-    if (a.token && (a.role==="ps" || a.role==="vs")){
-      info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
+    if (a && a.token){
+      const r1 = normalizeRole(me?.user?.role || a.role || "");
+      const r2 = normalizeRole(me?.user?.role2 || a.role2 || "");
+      const roleText = [r1,r2].filter(Boolean).join(" + ") || (a.role||"");
+      info.textContent = "Angemeldet als " + roleText + " (" + (me?.user?.email || a.email || "") + ")";
     } else {
-      info.textContent = "—";
+      info.textContent = "Nicht angemeldet";
     }
   }
 
@@ -955,20 +965,20 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
     logout2.onclick = ()=>{
       const btn = document.getElementById("btnPsLogout");
       if (btn && typeof btn.onclick === "function") return btn.onclick();
-      // fallback
       clearAuth();
-      renderAuth();
-      applyRoleVisibility();
-      updatePsDashUI();
+      if (window.renderAuthState) window.renderAuthState();
     };
   }
   if (reloadBtn && !reloadBtn._wired){
     reloadBtn._wired = true;
-    reloadBtn.onclick = ()=>{
-      // for now just refresh role visibility + info
-      applyRoleVisibility();
-      updatePsDashUI();
-      toast("✅ Aktualisiert");
+    reloadBtn.onclick = async ()=>{
+      try{
+        await renderAuthState();
+        await renderPsVsAdminDash();
+        toast("✅ Aktualisiert");
+      }catch(e){
+        toast("⛔ Aktualisieren fehlgeschlagen");
+      }
     };
   }
 }
@@ -2229,15 +2239,10 @@ async function authMe(){
     return null;
   }
 }
-function hasPerm2(perms, key){
-  if(!perms) return false;
-  if(perms["sa.all"]) return true;
-  if(perms[key]) return true;
-  // admin.* prefix bridge (both directions)
-  if(!String(key||"").startsWith("admin.") && perms["admin."+key]) return true;
-  if(String(key||"").startsWith("admin.") && perms[String(key).slice(6)]) return true;
-  return false;
+function hasPerm(perms, key){
+  return !!(perms && perms[key]);
 }
+
 async function renderPsVsAdminDash(){
   const a = getAuth();
   const tiles = document.getElementById("psDashTiles");
@@ -2260,7 +2265,7 @@ async function renderPsVsAdminDash(){
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm2(perms,"admin.users.manage") || role === "admin"){
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2270,7 +2275,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm2(perms,"admin.logs.view") || role === "admin"){
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2280,7 +2285,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm2(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2290,7 +2295,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm2(perms,"admin.config.manage") || hasPerm2(perms,"admin.news.edit") || role==="admin"){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2300,7 +2305,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm2(perms,"admin.machines.manage") || hasPerm2(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2310,7 +2315,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm2(perms,"admin.roomcontrol.manage") || hasPerm2(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2320,7 +2325,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm2(perms,"admin.feedback.view") || role==="admin"){
+  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -4234,7 +4239,7 @@ function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.inc
 
 function updateAuthSections(){
   const loggedIn = !!(getAuth()?.token);
-  const me = __AUTH_ME || window.__ME || null;
+  const me = __AUTH_ME || null;
 
   const show = (id, ok)=>{
     const el = $(id);
