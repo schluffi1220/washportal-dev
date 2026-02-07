@@ -887,7 +887,7 @@ async function renderAuthState(){
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
 }
-window.renderAuthState = renderAuthState;
+if(!window.renderAuthState) window.renderAuthState = renderAuthState;
 
 
 let __logoutTimer = null;
@@ -2225,44 +2225,11 @@ async function authMe(){
     return null;
   }
 }
-const PERM_ALIASES = {
-  "rooms.manage": ["admin.roomcontrol.manage","ps.rooms.manage"],
-  "rooms.view": ["admin.roomcontrol.view"],
-  "machines.manage": ["admin.machines.manage"],
-  "machines.view": ["admin.machines.view"],
-  "bookings.view": ["admin.bookings.view"],
-  "bookings.cancel": ["admin.bookings.cancel"],
-  "admin.logs.view": ["admin.logs.view"],
-  "admin.logs.export": ["admin.logs.export"],
-  "feedback.view": ["admin.feedback.view"],
-  "feedback.reply": ["admin.feedback.reply","admin.feedback.delete"],
-  "news.edit": ["admin.news.edit"],
-  "admin.users.manage": ["admin.users.manage"],
-  "admin.users.view": ["admin.users.view"],
-  "admin.users.delete": ["admin.users.delete"],
-  "feedback.psvs.view": ["ps.feedback.view"],
-  "news.psvs.view": ["ps.news.view"],
-  "admin.config.view": ["admin.config.view"],
-  "admin.config.manage": ["admin.config.manage"]
-};
-
-const PERM_ALIASES_REV = (() => {
-  const rev = {};
-  for (const [k, arr] of Object.entries(PERM_ALIASES)) {
-    for (const a of (arr||[])) {
-      (rev[a] ||= []).push(k);
-    }
-  }
-  return rev;
-})();
-
 function hasPerm(perms, key){
-  const m = perms || {};
-  if (m["sa.all"]) return true;
-  if (m[key]) return true;
-  for (const a of (PERM_ALIASES[key] || [])) if (m[a]) return true;
-  for (const a of (PERM_ALIASES_REV[key] || [])) if (m[a]) return true;
-  return false;
+  if(!perms) return false;
+  if (perms["sa.all"] || perms["*"] || perms["all"]) return true;
+  const v = perms[key];
+  return v === true || v === 1 || v === "1" || v === "true" || v === "yes";
 }
 
 async function renderPsVsAdminDash(){
