@@ -4694,7 +4694,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
 </script>
 
 <script>
-/* === Gate "Benutzer & Berechtigungen" + "Logs" by perms (no DOM moving) === */
+/* ===== SAFE PERMISSION GATING (NO MOVING, NO PARENTS) =====
+   Hides only the specific blocks, never the full page.
+   - Logs visible only with admin.logs.view or admin.logs.export
+   - Users visible only with admin.users.view or admin.users.manage
+*/
 (function(){
   function permHas(perms, key){
     if(!perms) return false;
@@ -4704,38 +4708,44 @@ document.addEventListener("DOMContentLoaded", ()=>{
     if(key && key.startsWith("admin.") && perms[key.slice(6)]) return true;
     return false;
   }
+
   function getPerms(){
-    const me = (window.__AUTH_ME || window.__ME || null);
+    const me = window.__AUTH_ME || window.__ME || null;
     return (me && (me.perms || me.user?.perms)) || {};
   }
-  function gateByInnerId(innerId, allowPerms){
-    const inner = document.getElementById(innerId);
-    if(!inner) return;
-    const card = inner.closest(".card") || inner.closest("section") || inner.parentElement;
-    if(!card) return;
-    const perms = getPerms();
-    const allow = allowPerms.some(p => permHas(perms, p));
-    card.style.display = allow ? "" : "none";
-  }
+
   function apply(){
-    // Users: allow if can view/manage users
-    gateByInnerId("authUsersDetails", ["admin.users.view","admin.users.manage"]);
-    // Logs: allow if can view/export logs
-    gateByInnerId("authLogsDetails", ["admin.logs.view","admin.logs.export"]);
-  }
-  document.addEventListener("DOMContentLoaded", function(){
-    apply();
-    const old = window.renderAuthState;
-    if(typeof old === "function"){
-      window.renderAuthState = async function(){
-        const r = await old.apply(this, arguments);
-        try{ apply(); }catch(_e){}
-        return r;
-      };
+    const perms = getPerms();
+
+    const logs = document.getElementById("authLogsDetails");
+    if(logs){
+      const allowLogs = permHas(perms,"admin.logs.view") || permHas(perms,"admin.logs.export");
+      logs.style.display = allowLogs ? "" : "none";
     }
-    setTimeout(apply, 250);
-    setTimeout(apply, 1000);
+
+    const users = document.getElementById("authUsersDetails");
+    if(users){
+      const allowUsers = permHas(perms,"admin.users.view") || permHas(perms,"admin.users.manage");
+      users.style.display = allowUsers ? "" : "none";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    setTimeout(apply, 150);
+    setTimeout(apply, 600);
   });
+
+  // Re-apply after login/refresh if the app calls renderAuthState()
+  if(typeof window.renderAuthState === "function"){
+    const old = window.renderAuthState;
+    window.renderAuthState = async function(){
+      const r = await old.apply(this, arguments);
+      try{ apply(); }catch(_e){}
+      return r;
+    };
+  }
+
+  window.__gateUsersLogs = apply;
 })();
 </script>
 
