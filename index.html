@@ -2328,7 +2328,11 @@ tiles.innerHTML = items.join("") || `<div class="small">Keine Funktionen freiges
     el.onkeydown = (e)=>{ if(e.key==="Enter" || e.key===" ") fn(); };
   };
 
-  wire('[data-act="users"]', ()=>{ location.href = "./admin-users/"; });
+  wire('[data-act="users"]', async ()=>{ 
+    const d = $('authUsersDetails');
+    if(d){ d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'}); }
+    try{ await rbacLoad(); }catch(_e){}
+  });
   wire('[data-act="logs"]', ()=>{ authLoadLogs(); });
   wire('[data-act="bookings"]', ()=>{ authLoadBookings(); });
   wire('[data-act="config"]', ()=>{ const d=$('authConfigDetails'); if(d){d.style.display=''; d.open=true; d.scrollIntoView({behavior:'smooth',block:'start'});} });
