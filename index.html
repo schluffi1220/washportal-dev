@@ -4543,7 +4543,7 @@ async function rbacLoad(){
     if (a && a.token){
       r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
     } else if (pw){
-      r = await jpost("/api/admin/auth/rbac/snapshot", { adminPassword: pw });
+      r = await jpost("/api/admin/rbac/snapshot", { adminPassword: pw });
     } else {
       throw Object.assign(new Error("not_logged_in"), { status: 403 });
     }
