@@ -1333,7 +1333,78 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    </body></html>`;
+    
+<script>
+/* === PS/VS/Admin Dashboard visibility enforcement (2026-02-07) ===
+   Some legacy code toggles #psOnly back to display:none after login.
+   We override applyRoleVisibility() and also watch for style changes. */
+(function(){
+  function getAuthSafe(){
+    try{
+      if (typeof getAuth === "function") return getAuth();
+    }catch(_e){}
+    // fallback: try globals
+    const token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+    const role = localStorage.getItem("auth_role") || localStorage.getItem("role") || "";
+    const email = localStorage.getItem("auth_email") || localStorage.getItem("email") || "";
+    return { token, role, email };
+  }
+
+  function normalizeRole(r){
+    if(!r) return "";
+    r = String(r).toLowerCase().trim();
+    if (r === "ps-deputy" || r === "ps_deputy") return "ps";
+    if (r === "vs-deputy" || r === "vs_deputy") return "vs";
+    return r;
+  }
+
+  function enforce(){
+    const a = getAuthSafe();
+    const logged = !!a.token;
+    const role = normalizeRole(a.role);
+    const psOnly = document.getElementById("psOnly");
+    if(!psOnly) return;
+
+    const shouldShow = logged && (role === "admin" || role === "ps" || role === "vs");
+    // Always win: if it should be shown, keep it shown.
+    psOnly.style.display = shouldShow ? "" : "none";
+    psOnly.toggleAttribute("data-force-visible", shouldShow);
+  }
+
+  // Override legacy function if present
+  try{
+    window.applyRoleVisibility = function(){ enforce(); };
+  }catch(_e){}
+
+  // Run now and after auth state updates
+  document.addEventListener("DOMContentLoaded", enforce);
+  // Run after microtasks too (in case login flow updates token later)
+  setTimeout(enforce, 50);
+  setTimeout(enforce, 250);
+  setTimeout(enforce, 750);
+
+  // Watch for someone setting display:none after login
+  const mo = new MutationObserver(function(muts){
+    for (const m of muts){
+      if (m.type === "attributes" && m.attributeName === "style"){
+        enforce();
+        break;
+      }
+    }
+  });
+  const startWatch = ()=>{
+    const psOnly = document.getElementById("psOnly");
+    if(psOnly) mo.observe(psOnly, { attributes:true, attributeFilter:["style"] });
+  };
+  document.addEventListener("DOMContentLoaded", startWatch);
+  setTimeout(startWatch, 100);
+
+  // Expose for debugging
+  window.__enforcePsOnly = enforce;
+})();
+</script>
+
+</body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
