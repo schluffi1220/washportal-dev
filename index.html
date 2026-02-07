@@ -2265,8 +2265,19 @@ function permHas(perms, key){
 }
 
 function hasPerm(perms, key){
-  return permHas(perms, key);
+  if(!perms) return false;
+
+  if(perms[key]) return true;
+
+  // 🔥 wichtig: admin.* Alias
+  if(perms["admin."+key]) return true;
+
+  // fallback remove admin prefix
+  if(key.startsWith("admin.") && perms[key.slice(6)]) return true;
+
+  return false;
 }
+
 
 function rolesFrom(me, a){
   const r1 = normalizeRole(me?.user?.role || a?.role || "");
