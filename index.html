@@ -814,6 +814,35 @@ body[data-authed="1"] .hide-on-auth{display:none}
 <script>
 // API base (global)
 var API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+// Permission aliases (must match worker PERM_ALIASES)
+window.__PERM_ALIASES = {
+  "rooms.manage": ["admin.roomcontrol.manage","ps.rooms.manage"],
+  "rooms.view": ["admin.roomcontrol.view"],
+  "machines.manage": ["admin.machines.manage"],
+  "machines.view": ["admin.machines.view"],
+  "bookings.view": ["admin.bookings.view"],
+  "bookings.cancel": ["admin.bookings.cancel"],
+  "admin.logs.view": ["admin.logs.view"],
+  "admin.logs.export": ["admin.logs.export"],
+  "feedback.view": ["admin.feedback.view"],
+  "feedback.reply": ["admin.feedback.reply","admin.feedback.delete"],
+  "news.edit": ["admin.news.edit"],
+  "admin.users.manage": ["admin.users.manage"],
+  "admin.users.view": ["admin.users.view"],
+  "admin.users.delete": ["admin.users.delete"],
+  "feedback.psvs.view": ["ps.feedback.view"],
+  "news.psvs.view": ["ps.news.view"],
+  "admin.config.view": ["admin.config.view"],
+  "admin.config.manage": ["admin.config.manage"]
+};
+window.__PERM_ALIASES_REV = (()=>{
+  const rev = {};
+  for (const [k, arr] of Object.entries(window.__PERM_ALIASES)) {
+    for (const a of (arr||[])) (rev[a] ||= []).push(k);
+  }
+  return rev;
+})();
+
 
 // Auth storage keys (guarded against accidental double-includes)
 var AUTH_KEY   = window.AUTH_KEY   || "wp_token";
@@ -855,14 +884,6 @@ function roleLabel(r){
   if (r === "vs") return "Stellvertretender Patientensprecher";
   return r || "";
 }
-
-function normalizeRole(r){
-  r = String(r||'').toLowerCase();
-  if (r==='ps_deputy') return 'vs';
-  if (r==='super_admin') return 'superadmin';
-  return r;
-}
-
 
 function renderAuth(){
   const a=getAuth();
@@ -946,7 +967,7 @@ if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); loc
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
-    if (a.token && (normalizeRole(a.role)==="ps" || normalizeRole(a.role)==="vs")){
+    if (a.token && (a.role==="ps" || a.role==="vs")){
       info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
     } else {
       info.textContent = "—";
@@ -2234,37 +2255,33 @@ async function authMe(){
   }
 }
 function hasPerm(perms, key){
-  if(!perms) return false;
-  const v = perms[key];
-  if (v === true) return true;
-  if (v === 1 || v === "1" || v === "true") return true;
-  // alias: allow checking without prefixes
-  const aliases = [];
-  const k = String(key||"");
-  // admin.* falls back to ps.* and unprefixed
-  if (k.startsWith("admin.")){
-    aliases.push("ps."+k.slice(6));
-    aliases.push(k.slice(6));
-  }
-  // ps.* falls back to admin.* and unprefixed
-  if (k.startsWith("ps.")){
-    aliases.push("admin."+k.slice(3));
-    aliases.push(k.slice(3));
-  }
-  // roomcontrol/manage naming drift
-  if (k === "admin.roomcontrol.manage"){
-    aliases.push("ps.rooms.manage","rooms.manage","roomcontrol.manage");
-  }
-  if (k === "ps.rooms.manage"){
-    aliases.push("admin.roomcontrol.manage","rooms.manage","roomcontrol.manage");
-  }
-  for (const a of aliases){
-    const av = perms[a];
-    if (av === true || av === 1 || av === "1" || av === "true") return true;
-  }
-  // SA global
-  if (perms["sa.all"] === true || perms["sa.all"] === 1 || perms["sa.all"] === "1" || perms["sa.all"] === "true") return true;
-  return false;
+  // Alias-aware permission check (supports old/new keys and PS/VS variants)
+  try{
+    if (!perms) return false;
+    if (perms[key]) return true;
+
+    // normalize boolean-like strings
+    const v = perms[key];
+    if (v === "true" || v === "1") return true;
+
+    // if sa.all is set, treat as all permissions in UI
+    if (perms["sa.all"] || perms["superadmin"] || perms["super_admin"]) return true;
+
+    const ALIASES = window.__PERM_ALIASES || {};
+    const REV = window.__PERM_ALIASES_REV || {};
+
+    const arr = ALIASES[key] || [];
+    for (const a of arr){ if (perms[a]) return true; if (perms[a]==="true"||perms[a]==="1") return true; }
+
+    const rev = REV[key] || [];
+    for (const k of rev){ if (perms[k]) return true; if (perms[k]==="true"||perms[k]==="1") return true; }
+
+    // heuristic: allow checking both with/without 'admin.' prefix
+    if (!key.startsWith("admin.") && perms["admin."+key]) return true;
+    if (key.startsWith("admin.") && perms[key.slice(6)]) return true;
+
+    return false;
+  }catch(_e){ return false; }
 }
 
 async function renderPsVsAdminDash(){
@@ -2281,9 +2298,7 @@ async function renderPsVsAdminDash(){
 
   const me = await authMe();
   const perms = me?.perms || {};
-  const role = normalizeRole(me?.user?.role || a.role || "");
-
-  const canAny = (...ks)=>ks.some(k=>hasPerm(perms,k));
+  const role = me?.user?.role || a.role || "";
   const email = me?.user?.email || a.email || "";
 
   info.textContent = `Angemeldet als ${roleLabel(role)} (${email})`;
@@ -2291,7 +2306,7 @@ async function renderPsVsAdminDash(){
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (canAny("admin.users.manage","admin.users.view") || role === "admin"){
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2301,7 +2316,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (canAny("admin.logs.view","ps.logs.view","logs.view") || role === "admin"){
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2311,7 +2326,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (canAny("admin.bookings.view","ps.bookings.view","bookings.view") || role === "admin" || role === "ps" || role === "vs"){
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2321,7 +2336,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (canAny("admin.config.manage","ps.config.view","admin.news.edit","news.edit","config.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2331,7 +2346,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (canAny("admin.machines.manage","machines.manage","ps.rooms.manage","rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2341,7 +2356,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (canAny("admin.roomcontrol.manage","ps.rooms.manage","rooms.manage","roomcontrol.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2351,7 +2366,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (canAny("admin.feedback.view","ps.feedback.view","feedback.view") || role==="admin"){
+  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -4572,8 +4587,15 @@ async function rbacLoad(){
   if (box) box.innerHTML = `<div class="small">Lade…</div>`;
   let r;
   try{
-    r = await jpostAuth("/__disabled__/auth/admin/rbac/snapshot", {});
+    r = await jpostAuth("/api/auth/admin/rbac/snapshot", {});
   }catch(e){
+    if (String(e?.status||"") === "403"){
+      toast("⛔ RBAC Snapshot ist SA-only. Du bist nicht berechtigt.");
+      __RBAC = { users: [], perms: [], rolePerms: [], userPerms: [] };
+      renderRbacUserList();
+      renderRbacSelected();
+      return;
+    }
     // fallback: older workers may not have snapshot
     if (String(e?.status||"") === "404"){
       toast("⛔ RBAC Snapshot fehlt im Worker. Bitte Worker V5 deployen und /api/_routes prüfen.");
