@@ -4255,7 +4255,7 @@ document.addEventListener("DOMContentLoaded", wireV8UI);
    UI v9: Auth sections + Users
    ============================ */
 
-function hasPermMe(p){ return permHas((__AUTH_ME && __AUTH_ME.perms) || {}, p); }catch(_e){ return false; } }
+function hasPermMe(p){ try{ return permHas((__AUTH_ME && __AUTH_ME.perms) || {}, p); }catch(_e){ return false; } }
 function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.includes(r); }
 
 function updateAuthSections(){
