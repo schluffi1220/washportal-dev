@@ -489,7 +489,7 @@ body[data-authed="1"] .hide-on-auth{display:none}
         </details>
       </div>
     </div>
-<div class="card" id="psLoginCard" style="margin-top:20px">
+<div class="card hide-on-auth" id="psLoginCard" style="margin-top:20px">
   <h3>PS / VS / Admin Login (E-Mail + Passwort)</h3>
 
   <div class="row">
@@ -2053,7 +2053,7 @@ async function adminReload(){
   const s = getAdminSession();
   if (!s){ toast("Admin Session abgelaufen"); return; }
   try{
-    const r = await jpost("/api/auth/admin/config/get", {adminPassword: s.pw});
+    const r = await jpost("/api/admin/config/get", {adminPassword: s.pw});
     renderAdminConfig(r.config, r.newsSeenCount||0);
     await adminLoadMachines();
     await adminLoadFeedbackThreads();
@@ -3153,7 +3153,7 @@ $("btnSaveWasherHours").onclick = async ()=>{
       const cb = document.getElementById(`wh_${h}`);
       if (cb && cb.checked) hours.push(h);
     }
-    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, washerHours: hours});
+    await jpost("/api/admin/config/set", {adminPassword:s.pw, washerHours: hours});
     toast("✅ Waschzeiten gespeichert");
     await adminReload();
     try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
@@ -3177,7 +3177,7 @@ $("btnSaveDryerMinutes").onclick = async ()=>{
   try{
     const ok = confirm2("Trockner-Dauer speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
+    await jpost("/api/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
     toast("✅ Trockner-Dauer gespeichert");
     await adminReload();
     try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
@@ -3201,7 +3201,7 @@ $("btnSaveDaysWindow").onclick = async ()=>{
   try{
     const ok = confirm2("Tage-Fenster speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/auth/admin/config/set", {
+    await jpost("/api/admin/config/set", {
       adminPassword:s.pw,
       daysPast: Number($("daysPast").value),
       daysFuture: Number($("daysFuture").value),
@@ -3229,7 +3229,7 @@ $("btnSaveNews").onclick = async ()=>{
   try{
     const ok = confirm2("News speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/auth/admin/config/set", {
+    await jpost("/api/admin/config/set", {
       adminPassword:s.pw,
       newsEnabled: $("newsEnabled").checked,
       newsText: $("newsText").value,
@@ -3300,7 +3300,7 @@ $("btnSaveDefectRules").onclick = async ()=>{
       }
     }
 
-    await jpost("/api/auth/admin/config/set", {
+    await jpost("/api/admin/config/set", {
       adminPassword: s.pw,
       userDefectEnabled: $("userDefectEnabled").checked,
       userDefectAllowed: allowed
@@ -4556,6 +4556,12 @@ __RBAC = { users: r.users||[], perms: catalog, rolePerms: r.rolePerms||[], userP
 }
 
 async function rbacSetRole(role){
+  // UI-SAFETY: nur PS/VS Transfer erlauben (keine Zusatzrechte / Rollen-Experiment) 
+  if (!["ps","vs"].includes(String(role||""))){
+    toast("⛔ Hier ist nur PS/VS Übertrag erlaubt.");
+    return;
+  }
+
   if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
   if (!confirm(`Rolle wirklich setzen: ${role}?`)) return;
   await jpostAuth("/api/auth/admin/users/set-role", { userId: __RBAC_SELECTED.id, role });
@@ -4564,6 +4570,9 @@ async function rbacSetRole(role){
 }
 
 async function rbacSaveUser(){
+  toast("⛔ Deaktiviert: Zusatzrechte/Benutzer-Edit ist vorerst abgeschaltet.");
+  return;
+
   if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
   await jpostAuth("/api/auth/admin/users/update", {
     userId: __RBAC_SELECTED.id,
@@ -4577,6 +4586,9 @@ async function rbacSaveUser(){
 }
 
 async function rbacAll(on){
+  toast("⛔ Deaktiviert: Zusatzrechte/Perm-Massenänderung ist vorerst abgeschaltet.");
+  return;
+
   if (!__RBAC_SELECTED) return toast("⛔ Kein Benutzer ausgewählt");
   const perms = (__RBAC.perms||[]).map(p=>p.permKey);
   for (const permKey of perms){
@@ -4598,6 +4610,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if ($("btnSaveUser")) $("btnSaveUser").onclick = rbacSaveUser;
   if ($("btnPermAllOn")) $("btnPermAllOn").onclick = ()=>rbacAll(true);
   if ($("btnPermAllOff")) $("btnPermAllOff").onclick = ()=>rbacAll(false);
+
+  // UI-SAFETY: Zusatzrechte-Controls ausblenden
+  ["btnSaveUser","btnPermAllOn","btnPermAllOff"].forEach(id=>{ const el=$(id); if(el) el.style.display="none"; });
+  ["rbacFirstName","rbacLastName","rbacStatus","rbacIsAdmin2"].forEach(id=>{ const el=$(id); if(el){ const p = el.closest(".row")||el.parentElement; if(p) p.style.display="none"; else el.style.display="none"; } });
 });
 
 
@@ -4676,56 +4692,5 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
-
-<script>
-/* === Move "Benutzer & Berechtigungen" + "Logs" into dynamic (psOnly) and gate by perms === */
-(function(){
-  function permHas(perms, key){
-    if(!perms) return false;
-    if(perms["sa.all"]) return true;
-    if(perms[key]) return true;
-    if(perms["admin."+key]) return true;
-    if(key && key.startsWith("admin.") && perms[key.slice(6)]) return true;
-    return false;
-  }
-  function getMePerms(){
-    const me = (window.__AUTH_ME || window.__ME || null);
-    return (me && (me.perms || me.user?.perms)) || {};
-  }
-  function moveCardByInnerId(innerId, permAny){
-    const inner = document.getElementById(innerId);
-    if(!inner) return;
-    const card = inner.closest(".card") || inner.closest("section") || inner.parentElement;
-    const host = document.getElementById("psOnly") || document.body;
-    if(card && host && card.parentElement !== host){
-      host.appendChild(card);
-    }
-    const perms = getMePerms();
-    const allow = permAny.some(p => permHas(perms, p));
-    if(card) card.style.display = allow ? "" : "none";
-  }
-  function apply(){
-    // Users: allow if can view/manage users
-    moveCardByInnerId("authUsersDetails", ["admin.users.view","admin.users.manage"]);
-    // Logs: allow if can view logs
-    moveCardByInnerId("authLogsDetails", ["admin.logs.view","admin.logs.export"]);
-  }
-  document.addEventListener("DOMContentLoaded", function(){
-    apply();
-    // re-apply after login / refresh
-    const old = window.renderAuthState;
-    if(typeof old === "function"){
-      window.renderAuthState = async function(){
-        const r = await old.apply(this, arguments);
-        try{ apply(); }catch(_e){}
-        return r;
-      };
-    }
-    setTimeout(apply, 250);
-    setTimeout(apply, 1000);
-  });
-})();
-</script>
-
 </body>
 </html>
