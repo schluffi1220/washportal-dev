@@ -916,21 +916,15 @@ function roleLabel(r){
 function applyRoleVisibility(){
   const a = getAuth();
 
-  // Bereiche im unteren (PS/VS/Admin) Dashboard
+  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
   const psOnly = document.getElementById("psOnly");
   const adminOnly = document.getElementById("adminOnly");
 
-  const logged = !!(a && a.token);
+  const logged = !!a.token;
+  const isAdmin = logged && a.role === "admin";
+  const isPS = logged && (a.role === "ps" || a.role === "vs");
 
-  // Rolle(n) aus localStorage (Login unten) – hier reicht role
-  const r = normalizeRole(a?.role || "");
-  const isAdmin = logged && r === "admin";
-  const isPS = logged && (r === "ps" || r === "vs");
-
-  // WICHTIG: Dashboard muss für eingeloggte Nutzer sichtbar sein
-  if (psOnly) psOnly.style.display = logged ? "" : "none";
-
-  // Admin-only Bereiche weiterhin schützen
+  if (psOnly) psOnly.style.display = (logged && (isAdmin || isPS)) ? "" : "none"; // sichtbar für Admin/PS/VS nach Login
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
@@ -939,15 +933,15 @@ function updatePsDashUI(){
   const info = document.getElementById("psDashInfo");
   const logout2 = document.getElementById("btnPsLogout2");
   const fl = $("btnForceLogout");
-  if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); location.reload(); };
+if (fl) fl.onclick = ()=>{ clearAuth(); toast("✅ Session zurückgesetzt"); location.reload(); };
 
   const reloadBtn = document.getElementById("btnPsDashReload");
 
   if (info){
-    if (a.token){
+    if (a.token && (a.role==="ps" || a.role==="vs" || a.role==="admin")){
       info.textContent = "Angemeldet als " + roleLabel(a.role) + " (" + a.email + ")";
     } else {
-      info.textContent = "Nicht angemeldet";
+      info.textContent = "—";
     }
   }
 
@@ -967,10 +961,11 @@ function updatePsDashUI(){
   if (reloadBtn && !reloadBtn._wired){
     reloadBtn._wired = true;
     reloadBtn.onclick = ()=>{
-      // refresh role visibility + info + tiles
-      applyRoleVisibility();
-      updatePsDashUI();
-      try{ renderPsVsAdminDash(); }catch(_e){}
+      // refresh visibility + info + tiles
+      try{ applyRoleVisibility(); }catch(e){}
+      try{ updatePsDashUI(); }catch(e){}
+      try{ renderPsVsAdminDash(); }catch(e){}
+      try{ if (window.updateAuthSections) window.updateAuthSections(window.__ME || window.__AUTH_ME_CACHE || null); }catch(e){}
       toast("✅ Aktualisiert");
     };
   }
