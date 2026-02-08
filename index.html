@@ -4678,9 +4678,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 </script>
 
 <script>
-/* ===== SAFE PERMISSION GATING (NO MOVING, NO PARENTS) =====
-   Hides only the specific blocks, never the full page.
-*/
+/* ===== Roles-only UI gating (safe) ===== */
 (function(){
   function permHas(perms, key){
     if(!perms) return false;
@@ -4690,36 +4688,54 @@ document.addEventListener("DOMContentLoaded", ()=>{
     if(key && key.startsWith("admin.") && perms[key.slice(6)]) return true;
     return false;
   }
+
   function getPerms(){
     const me = window.__AUTH_ME || window.__ME || null;
     return (me && (me.perms || me.user?.perms)) || {};
   }
-  function apply(){
+
+  function gate(){
     const perms = getPerms();
-    const logs = document.getElementById("authLogsDetails");
-    if(logs){
-      const allowLogs = permHas(perms,"admin.logs.view") || permHas(perms,"admin.logs.export");
-      logs.style.display = allowLogs ? "" : "none";
-    }
+
+    // Hide/show the DETAILS blocks only (never parents)
     const users = document.getElementById("authUsersDetails");
     if(users){
-      const allowUsers = permHas(perms,"admin.users.view") || permHas(perms,"admin.users.manage");
-      users.style.display = allowUsers ? "" : "none";
+      const allow = permHas(perms,"admin.users.view") || permHas(perms,"admin.users.manage");
+      users.style.display = allow ? "" : "none";
+    }
+
+    const logs = document.getElementById("authLogsDetails");
+    if(logs){
+      const allow = permHas(perms,"admin.logs.view") || permHas(perms,"admin.logs.export");
+      logs.style.display = allow ? "" : "none";
+    }
+
+    const cfg = document.getElementById("authConfigDetails");
+    if(cfg){
+      const allow =
+        permHas(perms,"admin.config.view") || permHas(perms,"admin.config.manage") ||
+        permHas(perms,"ps.config.view") || permHas(perms,"vs.config.view") ||
+        permHas(perms,"ps.config.manage") || permHas(perms,"vs.config.manage") ||
+        permHas(perms,"config.view") || permHas(perms,"config.manage");
+      cfg.style.display = allow ? "" : "none";
     }
   }
+
   document.addEventListener("DOMContentLoaded", function(){
-    setTimeout(apply, 200);
-    setTimeout(apply, 800);
+    setTimeout(gate, 200);
+    setTimeout(gate, 800);
   });
+
   if(typeof window.renderAuthState === "function"){
     const old = window.renderAuthState;
     window.renderAuthState = async function(){
       const r = await old.apply(this, arguments);
-      try{ apply(); }catch(_e){}
+      try{ gate(); }catch(_e){}
       return r;
     };
   }
-  window.__gateUsersLogs = apply;
+
+  window.__gateRolesOnly = gate;
 })();
 </script>
 
