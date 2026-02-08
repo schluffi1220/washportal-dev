@@ -2225,9 +2225,60 @@ async function authMe(){
     return null;
   }
 }
+const PERM_ALIASES = {
+  // Config
+  "admin.config.view": ["config.view"],
+  "admin.config.manage": ["config.manage"],
+
+  // Bookings
+  "admin.bookings.view": ["bookings.view","ps.bookings.view","vs.bookings.view","sv.bookings.view","mod.bookings.view"],
+  "admin.bookings.cancel": ["bookings.cancel","ps.bookings.cancel","vs.bookings.cancel","sv.bookings.cancel","mod.bookings.cancel"],
+
+  // Logs
+  "admin.logs.view": ["logs.view"],
+  "admin.logs.export": ["logs.export"],
+
+  // News
+  "admin.news.edit": ["news.edit","news.psvs.edit"],
+  "news.psvs.view": ["news.view"],
+
+  // Feedback
+  "admin.feedback.view": ["feedback.view","feedback.psvs.view"],
+  "admin.feedback.reply": ["feedback.reply","feedback.psvs.reply"],
+  "admin.feedback.delete": ["feedback.delete"],
+
+  // Machines / Popups
+  "machines.view": ["admin.machines.view"],
+  "machines.manage": ["admin.machines.manage","washer.popup.manage","dryer.popup.manage"],
+
+  // Rooms / Roomcontrol
+  "admin.roomcontrol.manage": ["rooms.manage","ps.rooms.manage","vs.rooms.manage","sv.rooms.manage","mod.rooms.manage"],
+};
+
 function hasPerm(perms, key){
-  return !!(perms && perms[key]);
+  if(!perms) return false;
+  // superadmin override (some builds include this)
+  if(perms["sa.all"] || perms["sa"] || perms["super_admin"]) return true;
+
+  // direct
+  if(!!perms[key]) return true;
+
+  // common prefix fallback: allow checking "x.y" against "admin.x.y" and vice versa
+  if(!key.startsWith("admin.") && perms["admin."+key]) return true;
+  if(key.startsWith("admin.") && perms[key.slice(6)]) return true;
+
+  // aliases
+  const aliases = PERM_ALIASES[key] || [];
+  for(const a of aliases) if(!!perms[a]) return true;
+
+  // reverse alias (if key itself is an alias)
+  for(const [canon, list] of Object.entries(PERM_ALIASES)){
+    if(list.includes(key) && !!perms[canon]) return true;
+  }
+
+  return false;
 }
+
 
 async function renderPsVsAdminDash(){
   const a = getAuth();
@@ -2251,7 +2302,7 @@ async function renderPsVsAdminDash(){
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
+  if (hasPerm(perms,"admin.users.manage") || hasPerm(perms,"admin.users.view") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2261,7 +2312,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
+  if (hasPerm(perms,"admin.logs.view") || hasPerm(perms,"admin.logs.export") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2271,7 +2322,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
+  if (hasPerm(perms,"admin.bookings.view") || hasPerm(perms,"bookings.view") || hasPerm(perms,"bookings.create") || hasPerm(perms,"bookings.cancel") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2281,7 +2332,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
+  if (hasPerm(perms,"admin.config.view") || hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || hasPerm(perms,"news.psvs.view") || hasPerm(perms,"news.psvs.edit") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2291,7 +2342,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"machines.view") || hasPerm(perms,"machines.manage") || hasPerm(perms,"washer.popup.manage") || hasPerm(perms,"dryer.popup.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2301,7 +2352,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2311,7 +2362,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
+  if (hasPerm(perms,"admin.feedback.view") || hasPerm(perms,"feedback.view") || hasPerm(perms,"feedback.psvs.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -3521,10 +3572,10 @@ function authHas(p){
 }
 
 async function authMeCached(){
-  // Always fetch fresh, because role perms can change in Admin-User.
-  return await authMe();
+  const me = await authMe();
+  if (me) window.__AUTH_ME_CACHE = me;
+  return me;
 }
-
 
 async function authLoadConfig(){
   const det = $("authConfigDetails"); if(det){det.style.display=""; det.open=true;}
@@ -4221,12 +4272,7 @@ document.addEventListener("DOMContentLoaded", wireV8UI);
    ============================ */
 
 function hasPerm(p){ try{ return !!(__AUTH_ME?.perms && __AUTH_ME.perms[p]); }catch(_e){ return false; } }
-function roleIs(...rs){
-  const r1 = String(__AUTH_ME?.user?.role||"");
-  const r2 = String(__AUTH_ME?.user?.role2||"");
-  return rs.includes(r1) || (r2 && rs.includes(r2));
-}
-
+function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.includes(r); }
 
 function updateAuthSections(){
   const loggedIn = !!(getAuth()?.token);
@@ -4239,7 +4285,7 @@ function updateAuthSections(){
   };
 
   // Config
-  show("authConfigDetails", hasPerm("admin.config.view") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
+  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
 
   // Logs + bookings
   show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.logs.view"));
