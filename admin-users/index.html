@@ -21,7 +21,16 @@
     .b-disabled{background:rgba(255,0,0,.14)}
     .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
     .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
-  </style>
+  
+/* Roles-only RBAC editor */
+#rolePermsCard details.group { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px; margin: 10px 0; }
+#rolePermsCard summary { cursor: pointer; font-weight: 600; }
+#rolePermsCard .permList { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+#rolePermsCard .permRow { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background: rgba(0,0,0,0.18); }
+#rolePermsCard .permTitle { flex:1; }
+#rolePermsCard .permKey { opacity:0.6; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+
+</style>
 </head>
 <body>
 
@@ -289,7 +298,8 @@ ${e.data.message}` : "";
         const approveDisabled = u.status === "active";
         const codeDisabled = u.status !== "active";
 
-        const permHtml = `<div class="muted">User-Zusatzrechte deaktiviert (Roles-only)</div>`;
+        const up = __userPermsMap[u.id] || {};
+        const permHtml = (__perms||[]).map(p=>permBox(u.id, p.permKey, p.label, up[p.permKey] !== 0)).join("") || `<div class="muted">Keine Permissions</div>`;
 
         // role2 not provided by backend yet -> default empty
         const role2Val = u.role2 || "";
@@ -359,179 +369,193 @@ async function authDeleteUser(userId){
   }
 }
 
-</script>
 
 
-  <div class="card" id="rolePermsCard" style="display:none">
-    <h2>Rollen & Berechtigungen (SA)</h2>
-    <div class="row">
-      <label>Rolle wählen</label>
-      <select id="rolePick"></select>
-      <button class="btn" id="btnReloadRolePerms">Neu laden</button>
-      <button class="btn primary" id="btnSaveRolePerms">Speichern</button>
-    </div>
-    <div class="muted" style="margin:6px 0">Hier werden <b>Rollenrechte</b> (auth_role_perms) gesetzt. User-Zusatzrechte sind deaktiviert.</div>
-    <div id="rolePermsGroups"></div>
-  </div>
+// =============================
+// Roles-only RBAC: Role Perm Editor (SA)
+// =============================
+let __rbacSnapshot = null;
 
-
-
-<script>
-/* ===== Roles-only RBAC editor (Admin-User Index) ===== */
-let __snapshot = null;
-let __rolePermMap = {}; // role -> {permKey:boolean}
-let __catalog = [];     // [{permKey,title,permGroup,sort}]
-let __adminPwCache = "";
-
-function groupBy(arr, keyFn){
-  const m = new Map();
-  for(const it of arr){
-    const k = keyFn(it) || "";
-    if(!m.has(k)) m.set(k, []);
-    m.get(k).push(it);
-  }
-  return m;
+function __getAdminPassword(){
+  const el = document.querySelector("#adminPass, #saPass, input[type='password']");
+  // prefer explicit id if present
+  const specific = document.getElementById("adminPass") || document.getElementById("saPass") || document.getElementById("password");
+  return (specific ? specific.value : (el ? el.value : "")).trim();
 }
 
-function normalizeRoleClient(role){
-  const r = String(role||"").trim().toLowerCase();
-  const map = { "superadmin":"super_admin", "sa":"super_admin", "patientensprecher":"ps", "stellvertreter":"vs" };
-  return map[r] || r;
-}
-
-async function postJson(path, body){
-  const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body||{})});
-  const t = await r.text();
-  let j = null; try{ j = JSON.parse(t); }catch(e){ j = { ok:false, error:"bad_json", raw:t }; }
-  if(!r.ok) throw { status:r.status, data:j };
-  return j;
-}
-
-async function loadSnapshot(){
-  const pw = (__adminPwCache || (document.getElementById("adminPw")?.value||"").trim());
-  __adminPwCache = pw;
-  const snap = await postJson("/api/admin/auth/rbac/snapshot", { adminPassword: pw });
-  __snapshot = snap;
-  __catalog = (snap.permsCatalog || []).slice().sort((a,b)=>{
-    const ga = String(a.permGroup||""); const gb = String(b.permGroup||"");
-    if(ga!==gb) return ga.localeCompare(gb);
-    return (Number(a.sort||0)-Number(b.sort||0)) || String(a.permKey||"").localeCompare(String(b.permKey||""));
+async function __apiPost(path, body){
+  const res = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body||{})
   });
-
-  __rolePermMap = {};
-  for(const rp of (snap.rolePerms||[])){
-    const role = normalizeRoleClient(rp.role);
-    if(!__rolePermMap[role]) __rolePermMap[role] = {};
-    __rolePermMap[role][rp.permKey] = !!rp.allowed;
+  const txt = await res.text();
+  let data = null;
+  try { data = JSON.parse(txt); } catch(e){ data = { ok:false, error:"bad_json", raw: txt }; }
+  if(!res.ok || data?.ok===false){
+    const err = { status: res.status, data };
+    throw err;
   }
+  return data;
 }
 
-function renderRolePicker(){
-  const sel = document.getElementById("rolePick");
-  if(!sel) return;
-  const roles = ["super_admin","admin","ps","vs","user"];
-  sel.innerHTML = roles.map(r=>`<option value="${r}">${r}</option>`).join("");
+async function __loadRbacSnapshot(){
+  const adminPassword = __getAdminPassword();
+  if(!adminPassword){
+    toast("Bitte SA Passwort eingeben.", "err");
+    return null;
+  }
+  const snap = await __apiPost("/api/admin/auth/rbac/snapshot", { adminPassword });
+  // normalize fields
+  const permsCatalog = snap.permsCatalog || snap.perms || [];
+  const rolePerms = snap.rolePerms || [];
+  __rbacSnapshot = { ...snap, permsCatalog, rolePerms };
+  return __rbacSnapshot;
 }
 
-function renderRolePerms(){
-  const roleSel = document.getElementById("rolePick");
-  const container = document.getElementById("rolePermsGroups");
-  if(!roleSel || !container) return;
+function __permTitle(p){
+  return p.title || p.label || p.permKey;
+}
+function __permGroup(p){
+  return p.permGroup || p.category || "Sonstiges";
+}
 
-  const role = roleSel.value;
-  const permsForRole = __rolePermMap[role] || {};
-  const grouped = groupBy(__catalog, p=>p.permGroup || "Sonstiges");
-
-  let html = "";
-  for(const [grp, items] of grouped.entries()){
-    html += `<div class="card" style="margin-top:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <h3 style="margin:0">${grp}</h3>
-        <div>
-          <button class="btn" data-grp="${grp}" data-act="all" type="button">Alle</button>
-          <button class="btn" data-grp="${grp}" data-act="none" type="button">Keine</button>
-        </div>
-      </div>
-      <div class="grid">`;
-    for(const p of items){
-      const key = p.permKey;
-      const label = p.title || key;
-      const checked = permsForRole[key] ? "checked" : "";
-      html += `<label class="perm">
-        <input type="checkbox" class="permChk" data-role="${role}" data-key="${key}" ${checked}/>
-        <span class="mono">${key}</span>
-        <span class="muted">${label}</span>
-      </label>`;
+function __buildRolePermMap(rolePerms, role){
+  const map = {};
+  for(const rp of (rolePerms||[])){
+    if(String(rp.role||"").toLowerCase() === String(role||"").toLowerCase()){
+      map[rp.permKey] = !!rp.allowed;
     }
-    html += `</div></div>`;
   }
-  container.innerHTML = html;
+  return map;
+}
 
-  container.querySelectorAll("button[data-act]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const grp = btn.getAttribute("data-grp");
-      const act = btn.getAttribute("data-act");
-      const card = Array.from(container.querySelectorAll(".card")).find(c=>c.querySelector("h3")?.textContent===grp);
-      if(!card) return;
-      card.querySelectorAll("input.permChk").forEach(chk=>{ chk.checked = (act==="all"); });
+function __renderRoleEditor(){
+  const card = document.getElementById("rolePermsCard");
+  if(!card) return;
+  if(!__rbacSnapshot){ card.style.display="none"; return; }
+  card.style.display="block";
+
+  const role = document.getElementById("roleSelect").value;
+  const perms = (__rbacSnapshot.permsCatalog||[]).slice();
+
+  // group perms
+  const groups = {};
+  for(const p of perms){
+    const g = __permGroup(p);
+    (groups[g] ||= []).push(p);
+  }
+  // sort groups by name; perms by sort/title
+  const groupNames = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+  for(const g of groupNames){
+    groups[g].sort((a,b)=>{
+      const sa = Number(a.sort||0), sb = Number(b.sort||0);
+      if(sa!==sb) return sa-sb;
+      return String(__permTitle(a)).localeCompare(String(__permTitle(b)));
     });
-  });
+  }
+
+  const current = __buildRolePermMap(__rbacSnapshot.rolePerms, role);
+
+  const wrap = document.getElementById("roleGroups");
+  wrap.innerHTML = "";
+
+  for(const g of groupNames){
+    const sec = document.createElement("details");
+    sec.open = true;
+    sec.className = "group";
+    sec.innerHTML = `<summary>${g}</summary>`;
+    const list = document.createElement("div");
+    list.className = "permList";
+    for(const p of groups[g]){
+      const row = document.createElement("label");
+      row.className = "permRow";
+      const key = p.permKey;
+      const checked = !!current[key];
+      row.innerHTML = `
+        <input type="checkbox" data-permkey="${key}" ${checked ? "checked":""}/>
+        <span class="permTitle">${__permTitle(p)}</span>
+        <span class="permKey">${key}</span>
+      `;
+      list.appendChild(row);
+    }
+    sec.appendChild(list);
+    wrap.appendChild(sec);
+  }
 }
 
-async function saveRolePerms(){
-  const role = document.getElementById("rolePick").value;
-  const perms = {};
-  document.querySelectorAll("#rolePermsGroups input.permChk").forEach(chk=>{
-    if(chk.getAttribute("data-role") !== role) return;
-    perms[chk.getAttribute("data-key")] = chk.checked;
+async function __saveRolePerms(){
+  if(!__rbacSnapshot){
+    toast("Bitte zuerst Liste laden.", "err");
+    return;
+  }
+  const adminPassword = __getAdminPassword();
+  const role = document.getElementById("roleSelect").value;
+
+  const changes = {};
+  document.querySelectorAll("#roleGroups input[type='checkbox'][data-permkey]").forEach(cb=>{
+    changes[cb.getAttribute("data-permkey")] = cb.checked ? 1 : 0;
   });
-  const res = await postJson("/api/admin/auth/rbac/role/bulk", { adminPassword: __adminPwCache, role, perms });
-  __rolePermMap[role] = {};
-  for(const [k,v] of Object.entries(perms)) __rolePermMap[role][k] = !!v;
-  alert("Gespeichert: " + (res.updated||0));
+
+  await __apiPost("/api/admin/auth/rbac/role/bulk", { adminPassword, role, changes });
+  toast("Rolle gespeichert.", "ok");
+  // reload snapshot so UI stays consistent
+  await __loadRbacSnapshot();
+  __renderRoleEditor();
 }
 
-document.addEventListener("DOMContentLoaded", ()=>{
-  renderRolePicker();
-
-  document.getElementById("btnReloadRolePerms")?.addEventListener("click", async ()=>{
+// Wire buttons if present
+document.addEventListener("click", async (e)=>{
+  if(e.target && e.target.id === "btnRoleReload"){
+    e.preventDefault();
     try{
-      await loadSnapshot();
-      renderRolePerms();
-    }catch(e){
-      console.error(e);
-      alert("Neu laden fehlgeschlagen: " + (e?.data?.error || e?.status || e));
+      await __loadRbacSnapshot();
+      __renderRoleEditor();
+    } catch(err){
+      console.error(err);
+      toast("RBAC Snapshot laden fehlgeschlagen.", "err");
     }
-  });
-
-  document.getElementById("btnSaveRolePerms")?.addEventListener("click", async ()=>{
-    try{ await saveRolePerms(); }catch(e){
-      console.error(e);
-      alert("Speichern fehlgeschlagen: " + (e?.data?.error || e?.status || e));
+  }
+  if(e.target && e.target.id === "btnRoleSave"){
+    e.preventDefault();
+    try{
+      await __saveRolePerms();
+    } catch(err){
+      console.error(err);
+      toast("Speichern fehlgeschlagen.", "err");
     }
-  });
-
-  document.getElementById("rolePick")?.addEventListener("change", ()=>{
-    if(__snapshot) renderRolePerms();
-  });
-
-  // Wrap existing loadUsers(): after successful load, also load & show role-perms editor
-  if (typeof window.loadUsers === "function") {
-    const oldLoadUsers = window.loadUsers;
-    window.loadUsers = async function(){
-      const r = await oldLoadUsers.apply(this, arguments);
-      try{
-        __adminPwCache = (document.getElementById("adminPw")?.value||"").trim();
-        const card = document.getElementById("rolePermsCard");
-        if(card) card.style.display = "";
-        await loadSnapshot();
-        renderRolePerms();
-      }catch(e){ console.error(e); }
-      return r;
-    };
   }
 });
+
+// After main list load succeeds (existing flow), also load RBAC snapshot if SA is logged in
+const __origListLoaded = window.renderUsers || null;
+
 </script>
+
+
+<section class="card" id="rolePermsCard" style="margin-top:16px; display:none;">
+  <h2 style="margin:0 0 8px 0;">Rollen & Rechte (SA)</h2>
+  <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap;">
+    <div style="min-width:220px;">
+      <label class="muted">Rolle</label>
+      <select id="roleSelect" class="inp">
+        <option value="admin">Admin</option>
+        <option value="ps">Patientensprecher (PS)</option>
+        <option value="ps_deputy">Stellvertreter (PS Deputy)</option>
+        <option value="vs">Vertrauenssprecher (VS)</option>
+        <option value="super_admin">SuperAdmin (SA)</option>
+        <option value="user">User</option>
+      </select>
+    </div>
+    <button class="btn" id="btnRoleReload">Rolle laden</button>
+    <button class="btn primary" id="btnRoleSave">Rolle speichern</button>
+    <div class="muted" id="roleHint" style="flex:1; min-width:260px;">
+      Setzt Rechte pro Rolle (Roles-only). User-Zusatzrechte sind deaktiviert.
+    </div>
+  </div>
+
+  <div id="roleGroups" style="margin-top:12px;"></div>
+</section>
 
 </body>
 </html>
