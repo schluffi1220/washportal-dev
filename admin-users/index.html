@@ -63,9 +63,13 @@ td.rights, .rights, .userPerms, .permBox, .permItem { display:none !important; }
       <h3 style="margin:0">Registrierungen</h3>
       <select id="filterRole">
         <option value="">Alle Rollen</option>
-        <option value="ps">Patientensprecher</option>
-        <option value="ps_deputy">Stellvertreter</option>
+        <option value="user">User</option>
+        <option value="ps">Patientensprecher (PS)</option>
+        <option value="sv">Stellvertreter (SV)</option>
+        <option value="vs">Vertrauenssprecher (VS)</option>
+        <option value="mod">Moderator (Mod)</option>
         <option value="admin">Admin</option>
+        <option value="sa">Super-Admin (SA)</option>
       </select>
     </div>
     <div id="tbl" style="margin-top:8px"></div>
@@ -86,7 +90,7 @@ td.rights, .rights, .userPerms, .permBox, .permItem { display:none !important; }
 
     function roleLabel(r){
       if (r==="ps") return "Patientensprecher";
-      if (r==="ps_deputy") return "Stellvertreter";
+      if (r==="sv") return "Stellvertreter";
       if (r==="admin") return "Admin";
       if (r==="") return "—";
       return r || "";
@@ -202,7 +206,7 @@ ${e.data.message}` : "";
       const roleOpts = [
         ["admin","Admin"],
         ["ps","Patientensprecher"],
-        ["ps_deputy","Stellvertreter"],
+        ["sv","Stellvertreter"],
       ];
 
       const roleSelect = (id, val, allowEmpty=false) => {
@@ -419,7 +423,7 @@ if(__btnLoad){
       <select id="roleSelect">
         <option value="admin">Admin</option>
         <option value="ps">Patientensprecher (PS)</option>
-        <option value="ps_deputy">Stellvertreter (PS Deputy)</option>
+        <option value="sv">Stellvertreter (PS Deputy)</option>
         <option value="vs">Vertrauenssprecher (VS)</option>
         <option value="user">User</option>
         <option value="super_admin">SuperAdmin (SA)</option>
