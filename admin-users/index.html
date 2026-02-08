@@ -1,3657 +1,587 @@
-
-// =====================================================
-// DEFAULT ROLE MATRIX (Seed für "Standardsets zurücksetzen")
-// =====================================================
-function getDefaultRoleMatrix() {
-  return {
-    sa: { "sa.all": 1 },
-
-    admin: {
-      "admin.config.view": 1,
-      "admin.config.manage": 1,
-      "admin.logs.view": 1,
-      "admin.logs.export": 1,
-      "admin.users.view": 1,
-      "admin.users.manage": 1,
-      "admin.users.delete": 1,
-      "role.ps.transfer": 1,
-      "role.vs.transfer": 1,
-      "role.cross.transfer": 1,
-      "rooms.view": 1,
-      "rooms.manage": 1,
-      "machines.view": 1,
-      "machines.manage": 1,
-      "bookings.view": 1,
-      "bookings.create": 1,
-      "bookings.cancel": 1,
-      "feedback.view": 1,
-      "feedback.reply": 1,
-      "news.view": 1,
-      "news.edit": 1,
-      "chat.view": 1,
-      "chat.write": 1,
-      "chat.delete": 1,
-      "protocol.view": 1,
-      "protocol.create": 1,
-      "dryer.popup.manage": 1
-    },
-
-    ps: {
-      "rooms.view": 1,
-      "rooms.manage": 1,
-      "machines.view": 1,
-      "machines.manage": 1,
-      "bookings.view": 1,
-      "bookings.create": 1,
-      "bookings.cancel": 1,
-      "chat.view": 1,
-      "chat.write": 1,
-      "protocol.view": 1,
-      "protocol.create": 1
-    },
-
-    vs: {
-      "rooms.view": 1,
-      "rooms.manage": 1,
-      "machines.view": 1,
-      "machines.manage": 1,
-      "bookings.view": 1,
-      "bookings.create": 1,
-      "bookings.cancel": 1,
-      "chat.view": 1,
-      "chat.write": 1,
-      "protocol.view": 1,
-      "protocol.create": 1
-    },
-
-    moderator: {
-      "news.view": 1,
-      "news.edit": 1,
-      "chat.view": 1,
-      "chat.write": 1,
-      "chat.delete": 1,
-      "protocol.view": 1,
-      "protocol.edit": 1,
-      "protocol.delete": 1
-    },
-
-    user: {
-      "bookings.create": 1,
-      "machines.view": 1,
-      "rooms.view": 1
-    }
-  };
-}
-
-
-
-
-export default {
-  async fetch(request, env) {
-    const BUILD_ID = "WASHPORTAL-RBAC-FIX-2026-02-06";
-
-async function safeJson(request){ try{ return await request.json(); }catch(e){ return {}; } }
-
-    const url = new URL(request.url);
-
-    // -----------------------------
-    // CORS + preflight
-    // -----------------------------
-    if (request.method === "OPTIONS") {
-      return new Response("", { status: 204, headers: corsHeaders() });
-    }
-
-    // -----------------------------
-    // -----------------------------
-// Public Zimmer-Status (Popup)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/room/control/status") {
-  try {
-    const body = await request.json().catch(() => ({}));
-    const room = String(body.room || "").trim();
-    if (!room) return corsJson({ ok:false, error:"bad_request", message:"room_missing", build: BUILD_ID }, 400);
-
-    // If the room is locked, block booking with a message
-    const rlock = await checkRoomLocked(env, room);
-    if (rlock.locked) {
-      return corsJson({ ok:false, error:"room_locked", message: rlock.message || "Zimmer gesperrt", build: BUILD_ID }, 403);
-    }
-
-    // Read status from room_controls (SA/Admin panel)
-    const row = await env.DB.prepare(
-      `SELECT room, blocked, message, updatedAt, updatedByRole, updatedByEmail
-       FROM room_controls WHERE room=?`
-    ).bind(room).first();
-
-    return corsJson({
-      ok: true,
-      room,
-      locked: row ? !!row.blocked : false,
-      message: row ? (row.message || "") : "",
-      updatedAt: row ? (row.updatedAt || 0) : 0,
-      build: BUILD_ID
-    }, 200);
-  } catch (e) {
-    return corsJson({ ok:false, error:"internal_error", message: String(e?.message || e), build: BUILD_ID }, 500);
-  }
-}
-// -----------------------------
-// Public Maschinen-Status (optional Popup)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/machine/control/status") {
-  const body = await request.json().catch(() => ({}));
-  const machine = String(body.machine || "").trim();
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Benutzerverwaltung</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial; margin:18px; color:#eaeaea; background:#111316;}
+    a{color:inherit}
+    input,select,button{padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#eaeaea}
+    button{cursor:pointer}
+    button:disabled{opacity:.5; cursor:not-allowed}
+    .muted{opacity:.8}
+    .top{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;margin:12px 0}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}
+    .badge{padding:2px 8px;border-radius:999px;font-size:12px}
+    .b-active{background:rgba(0,255,0,.14)}
+    .b-pending{background:rgba(255,200,0,.16)}
+    .b-disabled{background:rgba(255,0,0,.14)}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
   
-        const mlock = await checkMachineLocked(env, machine);
-        if (mlock.locked) return corsJson({ ok:false, error:"machine_locked", message: mlock.message || "Maschine gesperrt", build: BUILD_ID }, 403);
-if (!machine) return corsJson({ ok:false, error:"bad_request", message:"machine_missing", build: BUILD_ID }, 400);
-  const row = await env.DB.prepare(`SELECT machine,locked,message,updatedAt,updatedBy FROM machine_control WHERE machine=?`).bind(machine).first();
-  return corsJson({ ok:true, machine, locked: row ? !!row.locked : false, message: row ? (row.message||"") : "", updatedAt: row ? row.updatedAt : 0, build: BUILD_ID }, 200);
-}
+/* RBAC editor */
+#rbacCard details{ background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px; margin:10px 0; }
+#rbacCard summary{ cursor:pointer; font-weight:600; }
+#rbacCard .permList{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+#rbacCard .permRow{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background: rgba(0,0,0,0.18); }
+#rbacCard .permTitle{ flex:1; }
+#rbacCard .permKey{ opacity:.6; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; }
 
-// -----------------------------
-// Public popup config (images + enabled flags)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/popup/config/get") {
-  const cfg = await getPopupConfig(env);
-  return corsJson({ ok:true, config: cfg, build: BUILD_ID }, 200);
-}
+</style>
+</head>
+<body>
 
-// HARD: status (no DB needed)
-    // -----------------------------
-// -----------------------------
-// HARD: DB check (proves D1 binding works)
-// -----------------------------
-// -----------------------------
-    // Schema (D1)
-    // -----------------------------
-    try {
-      await ensureSchema(env);
-      await ensureRbacCatalog(env);
-    } catch (e) {
-      return corsJson({ ok: false, error: "internal_error", message: String(e?.message || e), build: BUILD_ID }, 500);
+  <div 
+<div class="card" id="saToolsCard" style="margin-top:14px;">
+  <h3 style="margin:0 0 10px 0;">SA Tools</h3>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+    <button id="btnApiTest">API Test (/api/_status)</button>
+    <button id="btnRbacLoad" class="primary">Rollenrechte laden</button>
+    <span class="muted">Falls hier Fehler stehen: unten im Log.</span>
+  </div>
+</div>
+
+<div class="card" id="rbacCard" style="margin-top:14px; display:none;">
+  <h3 style="margin:0 0 10px 0;">Rollen & Rechte (SA)</h3>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+    <div style="display:flex; flex-direction:column; gap:6px; min-width:220px;">
+      <span class="muted">Rolle</span>
+      <select id="roleSelect">
+        <option value="admin">Admin</option>
+        <option value="ps">PS</option>
+        <option value="sv">SV</option>
+        <option value="vs">VS</option>
+        <option value="mod">Mod</option>
+        <option value="user">User</option>
+        <option value="sa">SA</option>
+      </select>
+    </div>
+    <button id="btnRoleReload">Rolle laden</button>
+    <button id="btnRoleSave" class="primary">Rolle speichern</button>
+  </div>
+  <div id="roleGroups" style="margin-top:12px;"></div>
+</div>
+
+<div class="card" id="saLogCard" style="margin-top:14px;">
+  <h3 style="margin:0 0 10px 0;">Log</h3>
+  <pre id="saLog" style="white-space:pre-wrap; margin:0; font-size:12px; opacity:.9;"></pre>
+</div>
+class="muted">
+    Washportal ·
+    <a href="https://schluffi1220.github.io/washportal-dev/">← Portal</a>
+    ·
+    <a href="https://schluffi1220.github.io/washportal-dev/privacy/">Datenschutz</a>
+  </div>
+
+  <h2>Benutzerverwaltung</h2>
+
+  <div class="card">
+    <div class="top">
+      <input id="adminPw" type="password" placeholder="Super-Admin Passwort" />
+      <button id="btnLoad">Liste laden</button>
+      <span id="msg" class="muted"></span>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      Freischalten deaktiviert automatisch den bisherigen aktiven Patientensprecher / Stellvertreter derselben Rolle.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="top" style="justify-content:space-between">
+      <h3 style="margin:0">Registrierungen</h3>
+      <select id="filterRole">
+        <option value="">Alle Rollen</option>
+        <option value="ps">Patientensprecher</option>
+        <option value="ps_deputy">Stellvertreter</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div id="tbl" style="margin-top:8px"></div>
+  </div>
+
+  <script>
+
+    const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+
+    const $ = (id)=>document.getElementById(id);
+    const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+
+    function badge(status){
+      if (status==="active") return `<span class="badge b-active">active</span>`;
+      if (status==="disabled") return `<span class="badge b-disabled">disabled</span>`;
+      return `<span class="badge b-pending">pending</span>`;
     }
 
-    // add column for optional privacy transition (safe on existing DB)
-try {
-  await env.DB.prepare(`ALTER TABLE auth_users ADD COLUMN privacyVisibleUntil INTEGER NOT NULL DEFAULT 0`).run();
-} catch(e) {
-  // ignore "duplicate column" errors
-}
-
-// add column for auth password hash (safe on existing DB)
-try {
-  await env.DB.prepare(`ALTER TABLE auth_users ADD COLUMN passwordHash TEXT NOT NULL DEFAULT ''`).run();
-} catch(e) {
-  // ignore "duplicate column" errors
-}
-
-
-    // -----------------------------
-    // ROUTER
-    // -----------------------------
-    try {
-
-// ---- HEALTH: status ----
-// GET /api/_status
-if (request.method === "GET" && url.pathname === "/api/_status") {
-  return corsJson({ ok: true, build: BUILD_ID, now: Date.now() }, 200);
-}
-
-// -----------------------------
-// HARD: routes debug
-// -----------------------------
-if (request.method === "GET" && url.pathname === "/api/_routes") {
-  return corsJson({ ok:true, build: BUILD_ID, routes: [
-    "/api/_status",
-    "/api/_routes",
-    "/api/auth/me",
-    "/api/auth/admin/rbac/snapshot",
-    "/api/auth/admin/rbac/role/get",
-    "/api/auth/admin/rbac/role/set",
-    "/api/auth/admin/users/list",
-    "/api/auth/admin/users/set-perm",
-    "/api/auth/admin/users/update",
-    "/api/auth/admin/users/set-role",
-    "/api/auth/admin/config/get",
-    "/api/auth/admin/config/set",
-    "/api/auth/room/control",
-    "/api/auth/room/control/list",
-    "/api/room/control/check"
-  ] }, 200);
-}
-
-// -----------------------------
-// AUTH ADMIN: RBAC Snapshot (alias, early) – returns catalog + rolePerms + userPerms
-// -----------------------------
-
-// =============================
-// SA Admin-User (Password) RBAC endpoints
-// =============================
-if (request.method === "POST" && url.pathname === "/api/admin/auth/rbac/snapshot") {
-  const body = await safeJson(request);
-  const pw = String(body?.adminPassword || "");
-  if (!pw) return corsJson({ ok:false, error:"forbidden", message:"adminPassword_required", build: BUILD_ID }, 403);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", message:"bad_password", build: BUILD_ID }, 403);
-
-  const users = await env.DB.prepare(
-    `SELECT id,role,role2,firstName,lastName,email,status,createdAt,approvedAt,approvedBy,deleteMarkedAt,deleteAfter
-     FROM auth_users
-     ORDER BY createdAt DESC`
-  ).all();
-
-  // catalog (support old table names too)
-  let catalog = { results: [] };
-  try {
-    catalog = await env.DB.prepare(`SELECT permKey,title AS title,permGroup AS permGroup,sort AS sort FROM auth_permissions ORDER BY permGroup, sort, permKey`).all();
-  } catch(e) {
-    try {
-      catalog = await env.DB.prepare(`SELECT permKey,label AS title,category AS permGroup,0 AS sort FROM auth_perms ORDER BY category, permKey`).all();
-    } catch(e2) {
-      catalog = { results: [] };
+    function roleLabel(r){
+      if (r==="ps") return "Patientensprecher";
+      if (r==="ps_deputy") return "Stellvertreter";
+      if (r==="admin") return "Admin";
+      if (r==="") return "—";
+      return r || "";
     }
-  }
 
-  let rolePerms = { results: [] };
-  try {
-    rolePerms = await env.DB.prepare(`SELECT role,permKey,allowed FROM auth_role_perms`).all();
-  } catch(e) {
-    rolePerms = { results: [] };
-  }
-
-  let userPerms = { results: [] };
-  try {
-    userPerms = await env.DB.prepare(`SELECT userId,permKey,allowed FROM auth_user_perms`).all();
-  } catch(e) {
-    userPerms = { results: [] };
-  }
-
-  return corsJson({
-    ok:true,
-    users: users.results||[],
-    permsCatalog: catalog.results||[],
-    rolePerms: rolePerms.results||[],
-    userPerms: userPerms.results||[],
-    build: BUILD_ID
-  }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/admin/auth/rbac/role/bulk") {
-  const body = await safeJson(request);
-  const pw = String(body?.adminPassword || "");
-  if (!pw) return corsJson({ ok:false, error:"forbidden", message:"adminPassword_required", build: BUILD_ID }, 403);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", message:"bad_password", build: BUILD_ID }, 403);
-
-  const role = String(body?.role || "").trim().toLowerCase();
-  const changes = body?.changes || {};
-  if (!role) return corsJson({ ok:false, error:"bad_request", message:"role_required", build: BUILD_ID }, 400);
-
-  // Upsert each permKey
-  const keys = Object.keys(changes);
-  for (const permKey of keys) {
-    const allowed = changes[permKey] ? 1 : 0;
-    await env.DB.prepare(
-      `INSERT INTO auth_role_perms (role, permKey, allowed)
-       VALUES (?,?,?)
-       ON CONFLICT(role, permKey) DO UPDATE SET allowed=excluded.allowed`
-    ).bind(role, permKey, allowed).run();
-  }
-
-  return corsJson({ ok:true, role, updated: keys.length, build: BUILD_ID }, 200);
-}
-
-
-if ((request.method === "POST" || request.method === "GET") && url.pathname === "/api/auth/admin/rbac/snapshot") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-        if (!isSA) return corsJson({ ok:false, error:"forbidden", message:"sa_only", build: BUILD_ID }, 403);
-
-  // users
-  const users = await env.DB.prepare(
-    `SELECT id,role,role2,firstName,lastName,email,status,createdAt,approvedAt,approvedBy
-     FROM auth_users
-     ORDER BY createdAt DESC`
-  ).all();
-
-  // catalog (support old table names too)
-  let catalog = { results: [] };
-  try {
-    catalog = await env.DB.prepare(`SELECT permKey,title AS title,permGroup AS permGroup,sort AS sort FROM auth_permissions ORDER BY permGroup, sort, permKey`).all();
-  } catch(e) {
-    try {
-      catalog = await env.DB.prepare(`SELECT permKey,label AS title,category AS permGroup,0 AS sort FROM auth_perms ORDER BY category, permKey`).all();
-    } catch(e2) {
-      catalog = { results: [] };
+    async function jpost(path, body){
+      const r = await fetch(API_BASE + path, {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify(body||{})
+      });
+      const t = await r.text();
+      let data={}; try{ data=t?JSON.parse(t):{} }catch(_){ data={raw:t} }
+      if (!r.ok) throw {status:r.status,data};
+      return data;
     }
-  }
 
-  // role perms
-  let rolePerms = { results: [] };
-  try {
-    rolePerms = await env.DB.prepare(`SELECT role,permKey,allowed FROM auth_role_perms`).all();
-  } catch(e) {
-    rolePerms = { results: [] };
-  }
+    let __users = [];
+    let __perms = [];
+    let __userPermsMap = {}; // userId -> permKey -> 0/1
 
-  // user overrides
-  const userPerms = await env.DB.prepare(`SELECT userId,permKey,allowed FROM auth_user_perms`).all();
+    function ensureDefaultPerms(){
+      // If worker didn't return per-user perms, default everyone to all allowed
+      if (__perms.length === 0 || __users.length === 0) return;
+      if (__userPermsMap && Object.keys(__userPermsMap).length > 0) return;
 
-  return corsJson({
-    ok:true,
-    users: users.results||[],
-    permsCatalog: catalog.results||[],
-    rolePerms: rolePerms.results||[],
-    userPerms: userPerms.results||[],
-    build: BUILD_ID
-  }, 200);
-}
-
-
-
-
-      // ---- PUBLIC: Registrierung (ps / stellv. ps / admin) ----
-      // POST /api/ps/register {firstName,lastName,email,role,password}
-      if (request.method === "POST" && url.pathname === "/api/ps/register") {
-        const body = await request.json().catch(() => ({}));
-        const firstName = String(body.firstName || "").trim();
-        const lastName  = String(body.lastName  || "").trim();
-        const email     = String(body.email     || "").trim().toLowerCase();
-        const role      = String(body.role || "ps").trim(); // ps | ps_deputy | admin
-        const password  = String(body.password  || "").trim();
-
-        const allowedRoles = new Set(["ps", "ps_deputy", "admin"]);
-        if (!allowedRoles.has(role)) {
-          return corsJson({ ok: false, error: "bad_request", message: "Rolle ungültig", build: BUILD_ID }, 400);
-        }
-        if (!firstName || !lastName || !email || !email.includes("@")) {
-          return corsJson({ ok: false, error: "bad_request", message: "Vorname, Nachname und Email erforderlich", build: BUILD_ID }, 400);
-        }
-        if (!password || password.length < 8) {
-          return corsJson({ ok: false, error: "bad_request", message: "Passwort erforderlich (mind. 8 Zeichen)", build: BUILD_ID }, 400);
-        }
-
-        const existing = await env.DB.prepare(
-          `SELECT id,status,role,passwordHash FROM auth_users WHERE email=? LIMIT 1`
-        ).bind(email).first();
-
-        if (existing) {
-          // allow "set password" if the user exists but has no password yet
-          const ph = String(existing.passwordHash || "");
-          if (!ph) {
-            const passwordHash = await hashPassword(password, 50000);
-            await env.DB.prepare(`UPDATE auth_users SET passwordHash=? WHERE id=?`).bind(passwordHash, existing.id).run();
-            await logEvent(env, "system", "auth_password_set_on_register", "system", { email, role: existing.role });
-            return corsJson({ ok: true, note: "password_set", status: existing.status, role: existing.role, build: BUILD_ID }, 200);
-          }
-          return corsJson({ ok: true, note: "already_exists", status: existing.status, role: existing.role, build: BUILD_ID }, 200);
-        }
-
-
-        const now = Date.now();
-        const id = crypto.randomUUID();
-
-        const passwordHash = await hashPassword(password, 50000);
-
-        await env.DB.prepare(`
-          INSERT INTO auth_users(
-            id, role, firstName, lastName, email, passwordHash, status, createdAt, approvedAt, approvedBy, privacyVisibleUntil
-          )
-          VALUES(
-            ?, ?, ?, ?, ?, ?, 'pending', ?, 0, '', 0
-          )
-        `).bind(id, role, firstName, lastName, email, passwordHash, now).run();
-
-        await logEvent(env, "system", "auth_register", "system", { email, role });
-
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
+      __userPermsMap = {};
+      for (const u of __users){
+        __userPermsMap[u.id] = {};
+        for (const p of __perms) __userPermsMap[u.id][p.permKey] = 1;
       }
-// ---- PUBLIC: Privacy Meta ----
-      // GET /api/privacy/meta
-      if (request.method === "GET" && url.pathname === "/api/privacy/meta") {
-        const cfg = await getConfig(env);
-        const now = Date.now();
+    }
 
-        const daysPast = Number(cfg?.daysPast || 0);
-        const daysFuture = Number(cfg?.daysFuture || 0);
-        const deleteAt = now + daysFuture * 24 * 60 * 60 * 1000;
+    async function loadUsers(){
+      const pw = ($("adminPw").value||"").trim();
+      $("msg").textContent = "lade…";
+      try{
+        const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
 
-          // Datenschutz: NUR aktiver Patientensprecher (Stellvertreter NICHT anzeigen)
-  const psRows = await env.DB.prepare(`
-  SELECT firstName,lastName,email,status,createdAt
-  FROM auth_users
-  WHERE role='ps' AND status='active'
-  ORDER BY approvedAt DESC, createdAt DESC
-  LIMIT 5
-`).all();
+        __users = res.users || [];
+        __perms = res.perms || [];
 
-// optional auth: PS/VS/Admin may see full patient speaker emails
-let _authForPs = null;
-try { _authForPs = await authFromRequest(request, env); } catch(e) { _authForPs = null; }
-const _canSeePsEmail = !!(_authForPs && (
-  ["ps","ps_deputy","admin","superadmin","super_admin"].includes(String(_authForPs.user?.role||"")) ||
-  _authForPs.perms?.["ps.email.view"] ||
-  _authForPs.perms?.["admin.users.manage"]
-));
-
-const patientSpeakers = (psRows.results || []).map(x => ({
-  name: `${x.firstName || ""} ${x.lastName || ""}`.trim(),
-  email: String(x.email||""), // public for privacy agreement
-  // email: _canSeePsEmail ? String(x.email||"") : maskEmail(x.email),
-  emailMasked: maskEmail(x.email),
-  status: x.status,
-  createdAt: x.createdAt
-}));
-
-
-        return corsJson({
-          ok: true,
-          daysPast,
-          daysFuture,
-          deleteAt,
-          patientSpeakers,
-          build: BUILD_ID
-        }, 200);
-      }
-
-      // ---- PUBLIC: Patientensprecher Login via Code (Magic Code) ----
-      // POST /api/ps/login {email, password}  (oder Fallback: {email, code})
-      if (request.method === "POST" && url.pathname === "/api/ps/login") {
-        const body = await request.json().catch(() => ({}));
-        const email = String(body.email || "").trim().toLowerCase();
-        const password = String(body.password || "").trim();
-        const code  = String(body.code  || "").trim();
-
-        if (!email || (!password && !code)) {
-          return corsJson({ ok: false, error: "bad_request", message: "Email + Passwort (oder Code) erforderlich", build: BUILD_ID }, 400);
-        }
-
-        const u = await env.DB.prepare(`
-          SELECT id,email,role,status,passwordHash
-          FROM auth_users
-          WHERE email=? AND role IN ('ps','ps_deputy','admin')
-          LIMIT 1
-        `).bind(email).first();
-
-        if (!u || u.status !== "active") {
-          return corsJson({ ok: false, error: "forbidden", message: "Nicht freigeschaltet", build: BUILD_ID }, 403);
-        }
-
-        const now = Date.now();
-
-        // ---- primary: password login ----
-        if (password) {
-          const ph = String(u.passwordHash || "");
-          if (!ph) {
-            return corsJson({ ok: false, error: "forbidden", message: "Passwort nicht gesetzt (Admin: Login-Code nutzen und Passwort setzen)", build: BUILD_ID }, 403);
-          }
-          const ok = await verifyPassword(password, ph);
-          if (!ok) {
-            return corsJson({ ok: false, error: "forbidden", message: "Passwort falsch", build: BUILD_ID }, 403);
-          }
+        // accept either userPermsMap or raw rows
+        if (res.userPermsMap && typeof res.userPermsMap === "object") {
+          __userPermsMap = res.userPermsMap || {};
         } else {
-          // ---- fallback: code login ----
-          let rows;
-        try{
-          rows = await env.DB.prepare(`SELECT room, locked, message, updatedAt, updatedBy FROM room_control ORDER BY room ASC`).all();
-        }catch(e){ rows = { results: [] }; }
-
-          let match = null;
-          for (const r of (rows.results || [])) {
-            const h = await sha256Hex(`${u.email}|${code}|${r.expiresAt}`);
-            if (h === r.codeHash) { match = r; break; }
+          __userPermsMap = {};
+          const rows = Array.isArray(res.userPerms) ? res.userPerms : [];
+          for (const r of rows){
+            if (!r || !r.userId || !r.permKey) continue;
+            if (!__userPermsMap[r.userId]) __userPermsMap[r.userId] = {};
+            __userPermsMap[r.userId][r.permKey] = Number(r.allowed) ? 1 : 0;
           }
-          if (!match) {
-            return corsJson({ ok: false, error: "forbidden", message: "Code ungültig oder abgelaufen", build: BUILD_ID }, 403);
-          }
-
-          // one-time: code löschen
-          await env.DB.prepare(`DELETE FROM auth_login_codes WHERE id=?`).bind(match.id).run();
         }
 
-        const token = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
-        const tokenHash = await sha256Hex(token);
-        const expiresAt = now + 7 * 24 * 60 * 60 * 1000; // 7 Tage
+        ensureDefaultPerms();
 
-        const role = String(u.role || "ps");
-
-        // store session (role column may not exist on older DBs)
-        try {
-          await env.DB.prepare(`
-            INSERT OR REPLACE INTO auth_sessions(tokenHash,userId,role,expiresAt,createdAt)
-            VALUES(?,?,?,?,?)
-          `).bind(tokenHash, u.id, role, expiresAt, now).run();
-        } catch (e) {
-          // fallback for very old schema without role column
-          await env.DB.prepare(`
-            INSERT OR REPLACE INTO auth_sessions(tokenHash,userId,expiresAt,createdAt)
-            VALUES(?,?,?,?)
-          `).bind(tokenHash, u.id, expiresAt, now).run();
-        }
-
-        return corsJson({ ok: true, token, role, expiresAt, build: BUILD_ID }, 200);
+        $("msg").textContent = `ok (${__users.length})`;
+        render();
+      }catch(e){
+        console.error(e);
+        $("msg").textContent = `Fehler (HTTP ${e?.status||"?"})`;
+        $("tbl").innerHTML = "";
       }
-
-      // POST /api/auth/password/change  (PS/SV/Admin logged in)
-      // header: Authorization: Bearer <token>
-      // body: {newPassword}
-      if (request.method === "POST" && url.pathname === "/api/auth/password/change") {
-        const auth = await authFromRequest(request, env);
-        if (!auth) return corsJson({ ok:false, error:"forbidden", message:"Nicht angemeldet", build: BUILD_ID }, 403);
-
-        const body = await request.json().catch(() => ({}));
-        const newPassword = String(body.newPassword || "").trim();
-
-        if (!newPassword || newPassword.length < 8) {
-          return corsJson({ ok:false, error:"bad_request", message:"Neues Passwort (mind. 8 Zeichen) erforderlich", build: BUILD_ID }, 400);
-        }
-
-        // only for auth roles
-        const r = String(auth.user?.role || "");
-        if (!["ps","ps_deputy","admin","super_admin"].includes(r)) {
-          return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        }
-
-        const h = await hashPassword(newPassword, 50000);
-        await env.DB.prepare(`UPDATE auth_users SET passwordHash=? WHERE id=?`).bind(h, auth.user.id).run();
-        await logEvent(env, "auth", "password_changed", auth.user.email || "user", { userId: auth.user.id, role: r });
-
-        return corsJson({ ok:true, build: BUILD_ID }, 200);
-      }
-// ---- USER: refresh ----
-      // POST /api/user/refresh {room,pin,stationPin}
-      if (request.method === "POST" && url.pathname === "/api/user/refresh") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const stationPin = normPin(body.stationPin);
-
-        if (!room || !pin || !stationPin) {
-          return corsJson({ ok: false, error: "bad_request", message: "Zimmer, PIN, Stations-PIN erforderlich", build: BUILD_ID }, 400);
-        }
-
-        if (!(await checkStationPin(env, stationPin))) {
-          return corsJson({ ok: false, error: "forbidden", message: "Stations-PIN falsch", build: BUILD_ID }, 403);
-        }
-        if (!(await ensureRoomAuth(env, room, pin))) {return corsJson({ ok: false, error: "forbidden", message: "PIN falsch", build: BUILD_ID }, 403);}
-
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-const rcRow = await env.DB.prepare(
-  `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-
-        const cfg = await getConfig(env);
-
-        // time window in ms
-        const now = Date.now();
-        const win = computeTimeWindow(now, cfg.daysPast, cfg.daysFuture);
-
-        const machines = await listMachines(env);
-
-        // bookings in window
-        const bookings = await env.DB.prepare(
-          `SELECT id,type,machine,start,end,room,status,createdAt,cancelledAt,releasedAt
-           FROM bookings
-           WHERE end >= ? AND start <= ?
-           ORDER BY start ASC`
-        ).bind(win.from, win.to).all();
-
-        // 👇 NUR MEINE BUCHUNGEN (room + pinHash)
-const my = await env.DB.prepare(
-  `SELECT id,type,machine,start,end,room,status,createdAt,cancelledAt,releasedAt
-   FROM bookings
-   WHERE room=? AND pinHash=? AND end >= ? AND start <= ?
-   ORDER BY start ASC`
-).bind(room, pinHash, win.from, win.to).all();
-
-const myBookings = my.results || [];
-
-
-        // feedback thread summary for this room
-        const thread = await env.DB.prepare(
-          `SELECT id,allowUserView,userUnread,adminUnread,updatedAt
-           FROM feedback_threads
-           WHERE room=? AND pinHash=? LIMIT 1`
-        ).bind(room, pinHash).first();
-
-        // news seen?
-        let newsSeen = true;
-        if (cfg.newsEnabled && cfg.newsVersion > 0) {
-          const seen = await env.DB.prepare(
-            `SELECT 1 AS one FROM news_seen WHERE room=? AND pinHash=? AND newsVersion=? LIMIT 1`
-          ).bind(room, pinHash, cfg.newsVersion).first();
-          newsSeen = !!seen;
-        }
-
-        const resp = {
-          ok: true,
-          build: BUILD_ID,
-          now,
-          config: cfg,
-          window: win,
-          machines,
-          bookings: bookings.results || [],
-          myBookings,
-          feedback: thread ? {
-            hasThread: true,
-            allowUserView: !!thread.allowUserView,
-            userUnread: !!thread.userUnread,
-            adminUnread: !!thread.adminUnread,
-            updatedAt: Number(thread.updatedAt || 0),
-          } : { hasThread: false, allowUserView: true, userUnread: false, adminUnread: false, updatedAt: 0 },
-          news: {
-            enabled: !!cfg.newsEnabled,
-            text: cfg.newsText || "",
-            version: Number(cfg.newsVersion || 0),
-            seen: newsSeen,
-          },
-          roomControl
-        };
-
-        return corsJson(resp, 200);
-      }
-
-      // ---- USER: washer book ----
-      // POST /api/washer/book {room,pin,stationPin,machine,start,end}
-      if (request.method === "POST" && url.pathname === "/api/washer/book") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const stationPin = normPin(body.stationPin);
-        const machine = normMachine(body.machine, 4);
-        const start = Number(body.start);
-        const end = Number(body.end);
-
-        if (!room || !pin || !stationPin || !machine || !Number.isFinite(start) || !Number.isFinite(end)) {
-          return corsJson({ ok: false, error: "bad_request", message: "Parameter fehlen", build: BUILD_ID }, 400);
-        }
-        if (!(await checkStationPin(env, stationPin))) return corsJson({ ok: false, error: "forbidden", message: "Stations-PIN falsch", build: BUILD_ID }, 403);
-        if (!(await ensureRoomAuth(env, room, pin))) return corsJson({ ok: false, error: "forbidden", message: "PIN falsch", build: BUILD_ID }, 403);
-
-        // room may be blocked (independent of PIN)
-        const rc = await env.DB.prepare(`SELECT blocked FROM room_controls WHERE room=? LIMIT 1`).bind(room).first();
-        if (rc && Number(rc.blocked||0) === 1) {
-          return corsJson({ ok: false, error: "blocked", message: "Zimmer ist gesperrt", build: BUILD_ID }, 403);
-        }
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-        const rcRow = await env.DB.prepare(
-          `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-        ).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-
-        const cfg = await getConfig(env);
-        const now = Date.now();
-
-        // washers: allow booking if end>now (slot not fully past)
-        if (!(end > now)) {
-          return corsJson({ ok: false, error: "slot_past", message: "Vergangene Slots können nicht gebucht werden", build: BUILD_ID }, 409);
-        }
-
-        // machine enabled & not defect
-        const m = await getMachine(env, "washer", machine);
-        if (!m || !m.enabled) return corsJson({ ok: false, error: "machine_disabled", message: "Maschine gesperrt", build: BUILD_ID }, 409);
-        if (m.defect) return corsJson({ ok: false, error: "machine_defect", message: "Maschine ist defekt", build: BUILD_ID }, 409);
-
-        // Overbooking protection: conflict with active booked overlap
-        const conf = await env.DB.prepare(
-          `SELECT id,room,start,end
-           FROM bookings
-           WHERE type='washer' AND machine=? AND status='booked'
-             AND NOT (end <= ? OR start >= ?)
-           LIMIT 1`
-        ).bind(machine, start, end).first();
-
-        if (conf) {
-          return corsJson({ ok: false, error: "overbook", message: "Slot ist belegt", conflict: conf, build: BUILD_ID }, 409);
-        }
-
-        const id = crypto.randomUUID();
-        const createdAt = now;
-
-        await env.DB.prepare(
-          `INSERT INTO bookings(id,type,machine,start,end,room,pinHash,status,createdAt,cancelledAt,releasedAt)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?)`
-        ).bind(id, "washer", machine, start, end, room, pinHash, "booked", createdAt, 0, 0).run();
-
-        // update machine lastRoom
-        await setLastRoom(env, "washer", machine, room);
-
-        await logEvent(env, "user", "washer_book", room, { machine, start, end, id });
-
-        return corsJson({ ok: true, id, build: BUILD_ID }, 200);
-      }
-
-      // ---- USER: dryer book ----
-      // POST /api/dryer/book {room,pin,stationPin,machine,force:boolean,confirmed:boolean}
-      // dryer booking starts NOW, duration from config (60/90/120)
-      if (request.method === "POST" && url.pathname === "/api/dryer/book") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const stationPin = normPin(body.stationPin);
-        const machine = normMachine(body.machine, 4);
-        const force = !!body.force;
-        const confirmed = !!body.confirmed;
-
-        if (!room || !pin || !stationPin || !machine) {
-          return corsJson({ ok: false, error: "bad_request", message: "Parameter fehlen", build: BUILD_ID }, 400);
-        }
-        if (!(await checkStationPin(env, stationPin))) return corsJson({ ok: false, error: "forbidden", message: "Stations-PIN falsch", build: BUILD_ID }, 403);
-        if (!(await ensureRoomAuth(env, room, pin))) return corsJson({ ok: false, error: "forbidden", message: "PIN falsch", build: BUILD_ID }, 403);
-
-        // room may be blocked (independent of PIN)
-        const rc = await env.DB.prepare(`SELECT blocked FROM room_controls WHERE room=? LIMIT 1`).bind(room).first();
-        if (rc && Number(rc.blocked||0) === 1) {
-          return corsJson({ ok: false, error: "blocked", message: "Zimmer ist gesperrt", build: BUILD_ID }, 403);
-        }
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-        const rcRow = await env.DB.prepare(
-          `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-        ).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-
-        const cfg = await getConfig(env);
-        const now = Date.now();
-
-        const m = await getMachine(env, "dryer", machine);
-        if (!m || !m.enabled) return corsJson({ ok: false, error: "machine_disabled", message: "Trockner gesperrt", build: BUILD_ID }, 409);
-        if (m.defect) return corsJson({ ok: false, error: "machine_defect", message: "Trockner ist defekt", build: BUILD_ID }, 409);
-
-        const start = now;
-        const end = now + (Number(cfg.dryerMinutes) || 120) * 60 * 1000;
-
-        // conflict with running booking
-        const running = await env.DB.prepare(
-          `SELECT id,room,start,end,status
-           FROM bookings
-           WHERE type='dryer' AND machine=? AND status='booked'
-             AND start <= ? AND end > ?
-           LIMIT 1`
-        ).bind(machine, now, now).first();
-
-        if (running && !force) {
-          return corsJson({
-            ok: false,
-            error: "dryer_busy",
-            message: "Trockner läuft noch. Überbuchen nur nach Bestätigung möglich.",
-            requiresConfirm: true,
-            build: BUILD_ID,
-          }, 409);
-        }
-
-        if (running && force) {
-          if (!confirmed) {
-            return corsJson({
-              ok: false,
-              error: "confirm_required",
-              message: "Bitte bestätige: Wäsche vom Vorgänger ist sauber und im Korb abgelegt.",
-              requiresConfirm: true,
-              build: BUILD_ID,
-            }, 409);
-          }
-
-          // release previous booking (not cancel)
-          const relNow = now;
-          await env.DB.prepare(
-            `UPDATE bookings SET end=?, status='released', releasedAt=? WHERE id=?`
-          ).bind(relNow, relNow, running.id).run();
-
-          await logEvent(env, "user", "dryer_overbook_release_prev", room, { machine, prevId: running.id });
-        }
-
-        // create booking
-        const id = crypto.randomUUID();
-        await env.DB.prepare(
-          `INSERT INTO bookings(id,type,machine,start,end,room,pinHash,status,createdAt,cancelledAt,releasedAt)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?)`
-        ).bind(id, "dryer", machine, start, end, room, pinHash, "booked", now, 0, 0).run();
-
-        await setLastRoom(env, "dryer", machine, room);
-        await logEvent(env, "user", "dryer_book", room, { machine, start, end, id });
-
-        return corsJson({ ok: true, id, start, end, build: BUILD_ID }, 200);
-      }
-
-      // ---- USER: cancel (only if slot NOT started) ----
-      // POST /api/booking/cancel {room,pin,id}
-      if (request.method === "POST" && url.pathname === "/api/booking/cancel") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const id = String(body.id || "");
-
-        if (!room || !pin || !id) return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-        if (!(await ensureRoomAuth(env, room, pin))) {
-          return corsJson({ ok: false, error: "forbidden", message: "PIN falsch", build: BUILD_ID }, 403);
-        }
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-        const rcRow = await env.DB.prepare(
-          `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-        ).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-        const b = await env.DB.prepare(
-          `SELECT id,type,machine,start,end,room,status
-           FROM bookings
-           WHERE id=? AND room=? AND pinHash=? LIMIT 1`
-        ).bind(id, room, pinHash).first();
-
-        if (!b) // -----------------------------
-// AUTH ADMIN: Config (Bearer) – avoids adminPassword in portal UI
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/auth/admin/config/get") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  if (!(auth.perms["admin.config.manage"] || auth.perms["admin.news.edit"] || auth.user?.role === "super_admin")) {
-    return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-  }
-  const cfg = await getConfig(env);
-  // newsSeenCount is optional here; keep parity with /api/admin/config/get
-  let seenCount = 0;
-  try{
-    if (cfg.newsVersion){
-      const row = await env.DB.prepare(`SELECT COUNT(1) AS c FROM news_seen WHERE version=?`).bind(cfg.newsVersion).first();
-      seenCount = Number(row?.c || 0);
     }
-  }catch(_e){}
-  return corsJson({ ok:true, config: cfg, newsSeenCount: seenCount, build: BUILD_ID }, 200);
-}
 
-if (request.method === "POST" && url.pathname === "/api/auth/admin/config/set") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  if (!(auth.perms["admin.config.manage"] || auth.perms["admin.news.edit"] || auth.user?.role === "super_admin")) {
-    return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-  }
-  const body = await request.json().catch(() => ({}));
-  const prev = await getConfig(env);
-  const next = mergeConfig(prev, body);
-  await kvSet(env, "config", JSON.stringify(next));
-  await logEvent(env, "admin", "config_set", auth.user?.email || "admin", { changed: Object.keys(body||{}) });
-  return corsJson({ ok:true, config: next, build: BUILD_ID }, 200);
-}
-
-// -----------------------------
-// AUTH ADMIN: RBAC Snapshot + Set Perm (Bearer)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/auth/admin/rbac/snapshot") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-        if (!isSA) return corsJson({ ok:false, error:"forbidden", message:"sa_only", build: BUILD_ID }, 403);
-
-  const users = await env.DB.prepare(
-    `SELECT id,role,role2,firstName,lastName,email,status,createdAt,approvedAt,approvedBy,deleteMarkedAt,deleteAfter
-     FROM auth_users
-     ORDER BY createdAt DESC`
-  ).all();
-
-  const perms = await env.DB.prepare(`SELECT permKey,label,category FROM auth_perms ORDER BY permKey`).all();
-  const up = await env.DB.prepare(`SELECT userId,permKey,allowed FROM auth_user_perms`).all();
-
-  return corsJson({ ok:true, users: users.results||[], perms: perms.results||[], userPerms: up.results||[], build: BUILD_ID }, 200);
-}
-
-// -----------------------------
-// RBAC: role perms (Bearer, admin.users.manage)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/auth/admin/rbac/role/get") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-        if (!isSA) return corsJson({ ok:false, error:"forbidden", message:"sa_only", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(() => ({}));
-  const role = String(body.role || "").trim();
-  if (!role) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  const rows = await env.DB.prepare(
-    `SELECT permKey,allowed FROM auth_role_perms WHERE role=?`
-  ).bind(role).all();
-
-  return corsJson({ ok:true, role, perms: rows.results || [], build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/auth/admin/rbac/role/set") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-        if (!isSA) return corsJson({ ok:false, error:"forbidden", message:"sa_only", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(() => ({}));
-  const role = String(body.role || "").trim();
-  const permKeys = Array.isArray(body.permKeys) ? body.permKeys.map(x=>String(x||"").trim()).filter(Boolean) : [];
-  if (!role) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  // replace role perms atomically-ish: delete then insert
-  await env.DB.prepare(`DELETE FROM auth_role_perms WHERE role=?`).bind(role).run();
-  for (const k of permKeys){
-    await env.DB.prepare(`INSERT OR REPLACE INTO auth_role_perms(role,permKey,allowed) VALUES(?,?,1)`).bind(role,k).run();
-  }
-
-  await logEvent(env, "auth", "role_perms_set", auth.user?.email || "auth", { role, count: permKeys.length });
-
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-// -----------------------------
-// RBAC: reset role defaults (SA only)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/auth/admin/rbac/seed-defaults") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-  if (!isSA) return corsJson({ ok:false, error:"forbidden", message:"sa_only", build: BUILD_ID }, 403);
-
-  // wipe + reseed
-  await env.DB.prepare(`DELETE FROM auth_role_perms`).run();
-  await ensureRbacCatalog(env);
-
-  await logEvent(env, "auth", "rbac_seed_defaults", auth.user?.email || "auth", {});
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-
-
-
-// Toggle/set a permission for a user (only admins)
-if (request.method === "POST" && url.pathname === "/api/auth/admin/users/set-perm") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-        if (!isSA) return corsJson({ ok:false, error:"forbidden", message:"sa_only", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(() => ({}));
-  const userId = String(body.userId || "").trim();
-  const permKey = String(body.permKey || "").trim();
-  const allowed = body.allowed ? 1 : 0;
-  if (!userId || !permKey) return corsJson({ ok:false, error:"bad_request", message:"missing", build: BUILD_ID }, 400);
-
-  const known = await env.DB.prepare(`SELECT permKey FROM auth_perms WHERE permKey=? LIMIT 1`).bind(permKey).first();
-  if (!known) return corsJson({ ok:false, error:"bad_request", message:"unknown_perm", build: BUILD_ID }, 400);
-
-  await env.DB.prepare(
-    `INSERT INTO auth_user_perms(userId,permKey,allowed)
-     VALUES(?,?,?)
-     ON CONFLICT(userId,permKey) DO UPDATE SET allowed=excluded.allowed`
-  ).bind(userId, permKey, allowed).run();
-
-  await logEvent(env, "auth", "user_set_perm", auth.user?.email || "auth", { userId, permKey, allowed });
-
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-// Update basic user fields (name/status/role2)
-if (request.method === "POST" && url.pathname === "/api/auth/admin/users/update") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-        if (!isSA) return corsJson({ ok:false, error:"forbidden", message:"sa_only", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(() => ({}));
-  const userId = String(body.userId || "").trim();
-  if (!userId) return corsJson({ ok:false, error:"bad_request", message:"missing", build: BUILD_ID }, 400);
-
-  const firstName = String(body.firstName ?? "").trim();
-  const lastName  = String(body.lastName ?? "").trim();
-  const status    = String(body.status ?? "").trim();
-  const role2     = String(body.role2 ?? "").trim(); // '' or 'admin'
-
-  await env.DB.prepare(
-    `UPDATE auth_users SET firstName=?, lastName=?, status=COALESCE(NULLIF(?,''), status), role2=?
-     WHERE id=?`
-  ).bind(firstName, lastName, status, role2, userId).run();
-
-  await logEvent(env, "auth", "user_update", auth.user?.email || "auth", { userId });
-
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-// -----------------------------
-// AUTH Maschinen sperren (RBAC über user perms)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/auth/machine/control/list") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-
-  const okPerm = auth.perms["admin.machines.manage"] || auth.perms["ps.machines.manage"] || ["admin","ps","ps_deputy","superadmin"].includes(String(auth.user?.role||""));
-  if (!okPerm) return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-
-  const rows = await env.DB.prepare(`SELECT machine,locked,message,updatedAt,updatedBy FROM machine_control ORDER BY machine ASC`).all();
-  return corsJson({ ok:true, machines: rows.results||[], build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/auth/machine/control") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-
-  const okPerm = auth.perms["admin.machines.manage"] || auth.perms["ps.machines.manage"] || ["admin","ps","ps_deputy","superadmin"].includes(String(auth.user?.role||""));
-  if (!okPerm) return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(() => ({}));
-  const machine = String(body.machine || "").trim();
-  const locked = body.locked ? 1 : 0;
-  const message = String(body.message || "").trim();
-  if (!machine) return corsJson({ ok:false, error:"bad_request", message:"machine_missing", build: BUILD_ID }, 400);
-
-  await env.DB.prepare(
-    `INSERT INTO machine_control(machine,locked,message,updatedAt,updatedBy) VALUES(?,?,?,?,?)
-     ON CONFLICT(machine) DO UPDATE SET locked=excluded.locked, message=excluded.message, updatedAt=excluded.updatedAt, updatedBy=excluded.updatedBy`
-  ).bind(machine, locked, message, Date.now(), auth.user.email || auth.user.id).run();
-
-  await logEvent(env, "auth", "machine_control_set", auth.user.email||"user", { machine, locked, message });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-      return corsJson({ ok: false, error: "not_found", build: BUILD_ID }, 404);
-        if (b.status !== "booked") return corsJson({ ok: false, error: "not_booked", build: BUILD_ID }, 409);
-
-        const now = Date.now();
-        if (!(now < Number(b.start))) {
-          return corsJson({ ok: false, error: "already_started", message: "Storno nur vor Start möglich", build: BUILD_ID }, 409);
-        }
-
-        // dryers: not cancellable (per requirements)
-        if (b.type === "dryer") {
-          return corsJson({ ok: false, error: "not_allowed", message: "Trockner können nicht storniert werden. Bitte 'Freigeben' nutzen.", build: BUILD_ID }, 409);
-        }
-
-        await env.DB.prepare(
-          `UPDATE bookings SET status='cancelled', cancelledAt=? WHERE id=?`
-        ).bind(now, id).run();
-
-        await logEvent(env, "user", "booking_cancel", room, { type: b.type, machine: b.machine, id });
-
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
+    async function approve(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      if (!confirm("Freischalten? (Alter aktiver derselben Rolle wird deaktiviert)")) return;
+      try{
+        await jpost("/api/admin/auth/users/approve", { adminPassword: pw, userId });
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Freischalten fehlgeschlagen (HTTP ${e?.status||"?"})`);
       }
+    }
 
-      // ---- USER: release (only if slot running) ----
-      // POST /api/booking/release {room,pin,id}
-      if (request.method === "POST" && url.pathname === "/api/booking/release") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const id = String(body.id || "");
-
-        if (!room || !pin || !id) return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-        if (!(await ensureRoomAuth(env, room, pin))) {return corsJson({ ok: false, error: "forbidden", message: "PIN falsch", build: BUILD_ID }, 403);
+    async function genCode(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+      try{
+        const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
+        const until = new Date(r.expiresAt).toLocaleString();
+        // show mail status if present
+        const mailInfo = (typeof r.mailSent === "boolean")
+          ? (`
+Mail: ${r.mailSent ? "gesendet" : ("FEHLER - " + (r.mailError||""))}`)
+          : "";
+        alert(`Login-Code (${roleLabel(r.role)}): ${r.code}
+Gültig bis: ${until}${mailInfo}`);
+      }catch(e){
+        console.error(e);
+        alert(`Fehler: Code erzeugen fehlgeschlagen (HTTP ${e?.status||"?"})`);
       }
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-        const rcRow = await env.DB.prepare(
-          `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-        ).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-        const b = await env.DB.prepare(
-          `SELECT id,type,machine,start,end,room,status
-           FROM bookings
-           WHERE id=? AND room=? AND pinHash=? LIMIT 1`
-        ).bind(id, room, pinHash).first();
-
-        if (!b) return corsJson({ ok: false, error: "not_found", build: BUILD_ID }, 404);
-        if (b.status !== "booked") return corsJson({ ok: false, error: "not_booked", build: BUILD_ID }, 409);
-
-        const now = Date.now();
-        if (!(Number(b.start) <= now && Number(b.end) > now)) {
-          return corsJson({ ok: false, error: "not_running", message: "Freigeben nur wenn Slot läuft", build: BUILD_ID }, 409);
-        }
-
-        await env.DB.prepare(
-          `UPDATE bookings SET end=?, status='released', releasedAt=? WHERE id=?`
-        ).bind(now, now, id).run();
-
-        await setLastRoom(env, b.type, b.machine, room);
-        await logEvent(env, "user", "booking_release", room, { type: b.type, machine: b.machine, id });
-
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
-      }
-
-      // ---- USER: defect report (allowed by config and per-machine) ----
-      // POST /api/defect/report {room,pin,stationPin,type, मशीन, defect:boolean}
-      if (request.method === "POST" && url.pathname === "/api/defect/report") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const stationPin = normPin(body.stationPin);
-        const type = normType(body.type);
-        const machine = normMachine(body.machine, 4);
-        const defect = !!body.defect;
-
-        if (!room || !pin || !stationPin || !type || !machine) {
-          return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-        }
-        if (!(await checkStationPin(env, stationPin))) return corsJson({ ok: false, error: "forbidden", message: "Stations-PIN falsch", build: BUILD_ID }, 403);
-        //if (!(await ensureRoomAuth(env, room, pin))) return corsJson({ ok: false, error: "forbidden", message: "PIN falsch", build: BUILD_ID }, 403);
-
-        const cfg = await getConfig(env);
-        if (!cfg.userDefectEnabled) {
-          return corsJson({ ok: false, error: "not_allowed", message: "Defektmeldung ist deaktiviert", build: BUILD_ID }, 409);
-        }
-        const allowed = !!(cfg.userDefectAllowed?.[type]?.[String(machine)]);
-        if (!allowed) {
-          return corsJson({ ok: false, error: "not_allowed", message: "Defektmeldung für diese Maschine ist deaktiviert", build: BUILD_ID }, 409);
-        }
-
-        const now = Date.now();
-        await setDefect(env, type, machine, defect ? 1 : 0, defect ? `Zimmer ${room}` : "", defect ? now : 0);
-        await logEvent(env, "user", defect ? "defect_set" : "defect_clear", room, { type, machine });
-
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
-      }
-
-      // ---- USER: news seen ----
-      // POST /api/news/seen {room,pin,stationPin}
-      if (request.method === "POST" && url.pathname === "/api/news/seen") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const stationPin = normPin(body.stationPin);
-        if (!room || !pin || !stationPin) return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-        if (!(await checkStationPin(env, stationPin))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        if (!(await ensureRoomAuth(env, room, pin))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        const cfg = await getConfig(env);
-        if (!cfg.newsEnabled || !cfg.newsVersion) {
-          return corsJson({ ok: true, build: BUILD_ID, note: "news disabled" }, 200);
-        }
-
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-        const rcRow = await env.DB.prepare(
-          `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-        ).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-        await env.DB.prepare(
-          `INSERT OR IGNORE INTO news_seen(room,pinHash,newsVersion,ts) VALUES(?,?,?,?)`
-        ).bind(room, pinHash, Number(cfg.newsVersion), Date.now()).run();
-
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
-      }
-
-      // ---- USER: feedback send ----
-      // POST /api/feedback/send {room,pin,stationPin,message}
-      if (request.method === "POST" && url.pathname === "/api/feedback/send") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const stationPin = normPin(body.stationPin);
-        const message = String(body.message || "").trim();
-
-        if (!room || !pin || !stationPin || !message) {
-          return corsJson({ ok: false, error: "bad_request", message: "Daten fehlen", build: BUILD_ID }, 400);
-        }
-        if (!(await checkStationPin(env, stationPin))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        if (!(await ensureRoomAuth(env, room, pin))) {return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-      }
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-        const rcRow = await env.DB.prepare(
-          `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-        ).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-        const now = Date.now();
-
-        let thread = await env.DB.prepare(
-          `SELECT id,allowUserView FROM feedback_threads WHERE room=? AND pinHash=? LIMIT 1`
-        ).bind(room, pinHash).first();
-
-        let threadId = thread?.id;
-        if (!threadId) {
-          threadId = crypto.randomUUID();
-          await env.DB.prepare(
-            `INSERT INTO feedback_threads(id,room,pinHash,createdAt,updatedAt,lastUserAt,lastAdminAt,userUnread,adminUnread,allowUserView)
-             VALUES(?,?,?,?,?,?,?,?,?,?)`
-          ).bind(threadId, room, pinHash, now, now, now, 0, 0, 1, 1).run();
-        } else {
-          await env.DB.prepare(
-            `UPDATE feedback_threads SET updatedAt=?, lastUserAt=?, adminUnread=1 WHERE id=?`
-          ).bind(now, now, threadId).run();
-        }
-
-        const msgId = crypto.randomUUID();
-        await env.DB.prepare(
-          `INSERT INTO feedback_msgs(id,threadId,sender,message,ts,visibleToUser,readByUser,readByAdmin)
-           VALUES(?,?,?,?,?,?,?,?)`
-        ).bind(msgId, threadId, "user", message, now, 1, 1, 0).run(); // user wrote -> readByUser true, admin unread
-
-        await logEvent(env, "user", "feedback_send", room, { threadId, msgId });
-
-        return corsJson({ ok: true, threadId, msgId, build: BUILD_ID }, 200);
-      }
-
-      // ---- USER: feedback load ----
-      // POST /api/feedback/load {room,pin,stationPin}
-      if (request.method === "POST" && url.pathname === "/api/feedback/load") {
-        const body = await request.json().catch(() => ({}));
-        const room = normRoom(body.room);
-        const pin = normPin(body.pin);
-        const stationPin = normPin(body.stationPin);
-
-        if (!room || !pin || !stationPin) return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-        if (!(await checkStationPin(env, stationPin))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        if (!(await ensureRoomAuth(env, room, pin))) {return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-      }
-        const pinHash = await getRoomPinHash(env, room, pin);
-
-        // room control (blocked/message) is independent of PIN
-        const rcRow = await env.DB.prepare(
-          `SELECT blocked,message FROM room_controls WHERE room=? LIMIT 1`
-        ).bind(room).first();
-        const roomControl = rcRow ? { blocked: !!rcRow.blocked, message: rcRow.message || "" } : { blocked: false, message: "" };
-
-        const thread = await env.DB.prepare(
-          `SELECT id,allowUserView,userUnread,adminUnread,updatedAt FROM feedback_threads WHERE room=? AND pinHash=? LIMIT 1`
-        ).bind(room, pinHash).first();
-
-        if (!thread) {
-          return corsJson({ ok: true, hasThread: false, messages: [], build: BUILD_ID }, 200);
-        }
-
-        const msgs = await env.DB.prepare(
-          `SELECT id,threadId,sender,message,ts,visibleToUser,readByUser,readByAdmin
-           FROM feedback_msgs
-           WHERE threadId=?
-           ORDER BY ts ASC`
-        ).bind(thread.id).all();
-
-        // mark as read by user (only those visible)
-        await env.DB.prepare(
-          `UPDATE feedback_msgs SET readByUser=1 WHERE threadId=? AND visibleToUser=1`
-        ).bind(thread.id).run();
-        await env.DB.prepare(
-          `UPDATE feedback_threads SET userUnread=0 WHERE id=?`
-        ).bind(thread.id).run();
-
-        const filtered = (msgs.results || []).filter(m => m.visibleToUser === 1);
-
-        return corsJson({
-          ok: true,
-          hasThread: true,
-          allowUserView: !!thread.allowUserView,
-          messages: filtered,
-          build: BUILD_ID,
-        }, 200);
-      }
-
-            // -----------------------------
-      // PRIVACY META (for /privacy page)
-      // -----------------------------
-// -----------------------------
-      // PATIENT SPEAKER REGISTRATION + LOGIN
-      // -----------------------------
-
-      // POST /api/auth/login {email, code}
-      if (request.method === "POST" && url.pathname === "/api/auth/login") {
-  const body = await request.json().catch(() => ({}));
-  const email = String(body.email || "").trim().toLowerCase();
-  const code  = String(body.code  || "").trim();
-  const password = String(body.password || "").trim();
-
-  if (!email || (!password && !code)) {
-    return corsJson({ ok:false, error:"bad_request", message:"E-Mail und Passwort erforderlich.", build: BUILD_ID }, 400);
-  }
-
-  const user = await env.DB.prepare(
-    `SELECT id,role,role2,status,firstName,lastName,email,passwordHash FROM auth_users WHERE email=? LIMIT 1`
-  ).bind(email).first();
-
-  if (!user) return corsJson({ ok:false, error:"forbidden", message:"Login fehlgeschlagen.", build: BUILD_ID }, 403);
-  if (user.status !== "active") return corsJson({ ok:false, error:"forbidden", message:"Account noch nicht freigeschaltet.", build: BUILD_ID }, 403);
-
-  const now = Date.now();
-
-  // --- Password login (preferred) ---
-  if (password) {
-    const ok = await verifyPassword(password, user.passwordHash);
-    if (!ok) return corsJson({ ok:false, error:"forbidden", message:"Login fehlgeschlagen.", build: BUILD_ID }, 403);
-
-    const token = await makeSessionToken();
-    const tokenHash = await sha256Hex(token);
-    const expiresAt = now + 7 * 24 * 60 * 60 * 1000;
-
-    await env.DB.prepare(
-      `INSERT INTO auth_sessions(tokenHash,userId,createdAt,expiresAt) VALUES(?,?,?,?)`
-    ).bind(tokenHash, user.id, now, expiresAt).run();
-
-    return corsJson({ ok:true, token, user:{ id:user.id, role:user.role, role2:user.role2, firstName:user.firstName, lastName:user.lastName, email:user.email }, build: BUILD_ID }, 200);
-  }
-
-  // --- Legacy code login (fallback) ---
-  const row = await env.DB.prepare(
-    `SELECT id,codeHash,expiresAt,usedAt FROM auth_login_codes
-     WHERE userId=? ORDER BY createdAt DESC LIMIT 1`
-  ).bind(user.id).first();
-
-  if (!row || row.usedAt) return corsJson({ ok:false, error:"forbidden", message:"Code ungültig oder abgelaufen.", build: BUILD_ID }, 403);
-  if (now > Number(row.expiresAt || 0)) return corsJson({ ok:false, error:"forbidden", message:"Code abgelaufen.", build: BUILD_ID }, 403);
-
-  const ok = await verifyPassword(code, row.codeHash);
-  if (!ok) return corsJson({ ok:false, error:"forbidden", message:"Code ungültig.", build: BUILD_ID }, 403);
-
-  await env.DB.prepare(`UPDATE auth_login_codes SET usedAt=? WHERE id=?`).bind(now, row.id).run();
-
-  const token = await makeSessionToken();
-  const tokenHash = await sha256Hex(token);
-  const expiresAt = now + 7 * 24 * 60 * 60 * 1000;
-
-  await env.DB.prepare(
-    `INSERT INTO auth_sessions(tokenHash,userId,createdAt,expiresAt) VALUES(?,?,?,?)`
-  ).bind(tokenHash, user.id, now, expiresAt).run();
-
-  return corsJson({ ok:true, token, user:{ id:user.id, role:user.role, role2:user.role2, firstName:user.firstName, lastName:user.lastName, email:user.email }, build: BUILD_ID }, 200);
-}
-
-
-      // GET /api/auth/me  (Authorization: Bearer <token>)
-      if (request.method === "GET" && url.pathname === "/api/auth/me") {
-        const au = await authFromRequest(request, env);
-        if (!au) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        return corsJson({ ok:true, user: au.user, perms: au.perms, build: BUILD_ID }, 200);
-      }
-
-// -----------------------------
-// Auth: notifications (for PS/VS/Admin takeover prompts)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/auth/notifications/list") {
-  const me = await authMe(request, env);
-  if (!me.ok) return corsJson({ ok:false, error:"unauthorized", build: BUILD_ID }, 401);
-  const role = String(me.user.role||"user");
-  const rows = await env.DB.prepare(`SELECT id,createdAt,type,targetRoles,payload FROM notifications WHERE consumedBy='' ORDER BY createdAt DESC LIMIT 50`).all();
-  const out = [];
-  for (const r of (rows.results||[])){
-    let roles=[]; let payload={};
-    try{ roles = JSON.parse(r.targetRoles||"[]") }catch(e){}
-    try{ payload = JSON.parse(r.payload||"{}") }catch(e){}
-    if (roles.includes(role) || (role==="sa")) out.push({ id:r.id, createdAt:r.createdAt, type:r.type, payload });
-  }
-  return corsJson({ ok:true, notifications: out, build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/auth/notifications/ack") {
-  const me = await authMe(request, env);
-  if (!me.ok) return corsJson({ ok:false, error:"unauthorized", build: BUILD_ID }, 401);
-  const body = await request.json().catch(()=>({}));
-  const id = String(body.id||"").trim();
-  if(!id) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-  await env.DB.prepare(`UPDATE notifications SET consumedBy=? WHERE id=?`).bind(String(me.user.email||me.user.id||"user"), id).run();
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-// -----------------------------
-// Auth: Protokoll CRUD
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/auth/protocol/list") {
-  const me = await authMe(request, env);
-  if (!me.ok) return corsJson({ ok:false, error:"unauthorized", build: BUILD_ID }, 401);
-  const can = await authHasAnyPerm(env, me.user, ["protocol.view","sa.all"]);
-  if (!can) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  const body = await request.json().catch(()=>({}));
-  const q = String(body.q||"").trim().toLowerCase();
-  const rows = await env.DB.prepare(`SELECT id,createdAt,updatedAt,createdBy,title,body FROM protocol_entries ORDER BY createdAt DESC LIMIT 200`).all();
-  let out = rows.results||[];
-  if (q){
-    out = out.filter(r => ((String(r.title||"")+" "+String(r.body||"")).toLowerCase().includes(q)));
-  }
-  return corsJson({ ok:true, entries: out, build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/auth/protocol/create") {
-  const me = await authMe(request, env);
-  if (!me.ok) return corsJson({ ok:false, error:"unauthorized", build: BUILD_ID }, 401);
-  const can = await authHasAnyPerm(env, me.user, ["protocol.create","sa.all"]);
-  if (!can) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  const body = await request.json().catch(()=>({}));
-  const title = String(body.title||"").trim();
-  const text = String(body.body||"").trim();
-  if(!title && !text) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-  const id = crypto.randomUUID();
-  const now = Date.now();
-  await env.DB.prepare(`INSERT INTO protocol_entries(id,createdAt,updatedAt,createdBy,title,body) VALUES(?,?,?,?,?,?)`)
-    .bind(id, now, now, String(me.user.email||""), title, text).run();
-  await logEvent(env, "auth", "protocol_create", me.user.id, { id });
-  return corsJson({ ok:true, id, build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/auth/protocol/update") {
-  const me = await authMe(request, env);
-  if (!me.ok) return corsJson({ ok:false, error:"unauthorized", build: BUILD_ID }, 401);
-  const can = await authHasAnyPerm(env, me.user, ["protocol.edit","sa.all"]);
-  if (!can) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  const body = await request.json().catch(()=>({}));
-  const id = String(body.id||"").trim();
-  const title = String(body.title||"").trim();
-  const text = String(body.body||"").trim();
-  if(!id) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-  const now = Date.now();
-  await env.DB.prepare(`UPDATE protocol_entries SET title=?, body=?, updatedAt=? WHERE id=?`).bind(title, text, now, id).run();
-  await logEvent(env, "auth", "protocol_update", me.user.id, { id });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/auth/protocol/delete") {
-  const me = await authMe(request, env);
-  if (!me.ok) return corsJson({ ok:false, error:"unauthorized", build: BUILD_ID }, 401);
-  const can = await authHasAnyPerm(env, me.user, ["protocol.delete","sa.all"]);
-  if (!can) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  const body = await request.json().catch(()=>({}));
-  const id = String(body.id||"").trim();
-  if(!id) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-  await env.DB.prepare(`DELETE FROM protocol_entries WHERE id=?`).bind(id).run();
-  await logEvent(env, "auth", "protocol_delete", me.user.id, { id });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-
-
-
-      if (request.method === "POST" && url.pathname === "/api/auth/me") {
-        const au = await authFromRequest(request, env);
-        if (!au) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        return corsJson({ ok:true, user: au.user, perms: au.perms, build: BUILD_ID }, 200);
-      }
-
-// -----------------------------
-// ADMIN: Users (Bearer) + PS/VS transfer
-// -----------------------------
-
-function canManageUsers(auth){
-  const role = String(auth?.user?.role || "");
-  const p = auth?.perms || {};
-  return !!(p["admin.users.manage"] || ["admin","superadmin","super_admin"].includes(role));
-}
-
-// POST /api/auth/admin/users/list
-if (request.method === "POST" && url.pathname === "/api/auth/admin/users/list") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  if (!canManageUsers(auth)) return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-
-  const rows = await env.DB.prepare(
-    `SELECT id,email,firstName,lastName,role,role2,status,createdAt
-     FROM auth_users
-     ORDER BY email ASC`
-  ).all();
-
-  return corsJson({ ok:true, users: rows.results || [], build: BUILD_ID }, 200);
-}
-
-// POST /api/auth/admin/users/set-role  { userId, role: "ps"|"ps_deputy"|"admin"|"user" }
-// Guarantees: at most one PS and one VS. On PS transfer: old PS -> VS, old VS -> user. On VS transfer: old VS -> user.
-// If a user is currently admin, switching PS/VS doesn't remove admin; (admin is treated as separate perm-set by checkboxes)
-if (request.method === "POST" && url.pathname === "/api/auth/admin/users/set-role") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  if (!canManageUsers(auth)) return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(() => ({}));
-  const userId = String(body.userId || "").trim();
-  const role = String(body.role || "").trim();
-  if (!userId || !role) return corsJson({ ok:false, error:"bad_request", message:"missing", build: BUILD_ID }, 400);
-
-  const target = await env.DB.prepare(`SELECT id,email,role,status FROM auth_users WHERE id=? LIMIT 1`).bind(userId).first();
-  if (!target) return corsJson({ ok:false, error:"not_found", build: BUILD_ID }, 404);
-
-  // Helper to set role for a given user id
-  const setRole = async (id, newRole) => {
-    await env.DB.prepare(`UPDATE auth_users SET role=? WHERE id=?`).bind(newRole, id).run();
-  };
-
-  if (role === "ps") {
-    const curPS = await env.DB.prepare(`SELECT id FROM auth_users WHERE role='ps' LIMIT 1`).first();
-    const curVS = await env.DB.prepare(`SELECT id FROM auth_users WHERE role='ps_deputy' LIMIT 1`).first();
-    if (curVS && curVS.id && String(curVS.id) !== userId) await setRole(curVS.id, "user");
-    if (curPS && curPS.id && String(curPS.id) !== userId) await setRole(curPS.id, "ps_deputy");
-    await setRole(userId, "ps");
-  } else if (role === "ps_deputy") {
-    const curVS = await env.DB.prepare(`SELECT id FROM auth_users WHERE role='ps_deputy' LIMIT 1`).first();
-    if (curVS && curVS.id && String(curVS.id) !== userId) await setRole(curVS.id, "user");
-    await setRole(userId, "ps_deputy");
-  } else {
-    // direct set for admin/user/etc.
-    await setRole(userId, role);
-  }
-
-  await logEvent(env, "auth", "user_set_role", auth.user?.email || "auth", { userId, role });
-
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-// POST /api/auth/admin/users/delete { userId }
-// Soft delete: status='deleted', role='user', role2=''
-if (request.method === "POST" && url.pathname === "/api/auth/admin/users/delete") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  // Only SA (or explicit perm) may delete users
-  const isSA = ["superadmin","super_admin"].includes(String(auth.user?.role||""));
-  if (!(isSA || auth.perms?.["admin.users.manage"])) {
-    return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-  }
-
-  const body = await request.json().catch(() => ({}));
-  const userId = String(body.userId || "").trim();
-  if (!userId) return corsJson({ ok:false, error:"bad_request", message:"missing", build: BUILD_ID }, 400);
-
-  await env.DB.prepare(
-    `UPDATE auth_users SET status='deleted', role='user', role2='' WHERE id=?`
-  ).bind(userId).run();
-
-  await logEvent(env, "auth", "user_deleted", auth.user?.email || "auth", { userId });
-
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-
-
-
-// -----------------------------
-// ROOM CONTROL (block/message per room) – independent of PIN
-// -----------------------------
-
-function canRoomControl(auth){
-  const role = String(auth?.user?.role || "");
-  const p = auth?.perms || {};
-  return !!(p["admin.roomcontrol.manage"] || p["ps.rooms.manage"] || ["admin","ps","ps_deputy","superadmin","super_admin"].includes(role));
-}
-
-// POST /api/auth/room/control/list  (Authorization: Bearer <token>)
-if (request.method === "POST" && url.pathname === "/api/auth/room/control/list") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  if (!canRoomControl(auth)) return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-
-  const rows = await env.DB.prepare(
-    `SELECT room,blocked,message,updatedAt,updatedByEmail,updatedByRole
-     FROM room_controls
-     ORDER BY room ASC`
-  ).all();
-
-  return corsJson({ ok:true, rooms: rows.results || [], build: BUILD_ID }, 200);
-}
-
-// POST /api/auth/room/control  (Authorization: Bearer <token>) {room, blocked, message}
-if (request.method === "POST" && url.pathname === "/api/auth/room/control") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok:false, error:"forbidden", message:"login_required", build: BUILD_ID }, 403);
-  if (!canRoomControl(auth)) return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(() => ({}));
-  const room = String(body.room || "").trim();
-  if (!room) return corsJson({ ok:false, error:"bad_request", message:"room fehlt", build: BUILD_ID }, 400);
-
-  const blocked = body.blocked ? 1 : 0;
-  const message = String(body.message || "");
-  const now = Date.now();
-
-  await env.DB.prepare(
-    `INSERT INTO room_controls(room,blocked,message,updatedAt,updatedByEmail,updatedByRole)
-     VALUES(?,?,?,?,?,?)
-     ON CONFLICT(room) DO UPDATE SET
-       blocked=excluded.blocked,
-       message=excluded.message,
-       updatedAt=excluded.updatedAt,
-       updatedByEmail=excluded.updatedByEmail,
-       updatedByRole=excluded.updatedByRole`
-  ).bind(room, blocked, message, now, String(auth.user?.email||""), String(auth.user?.role||"")).run();
-
-  await logEvent(env, "auth", "room_control_set", auth.user?.email || "auth", { room, blocked, hasMessage: !!message });
-
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-// POST /api/room/control/check  (public) {room} -> {blocked,message}
-if (request.method === "POST" && url.pathname === "/api/room/control/check") {
-  const body = await request.json().catch(() => ({}));
-  const room = String(body.room || "").trim();
-  if (!room) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  const row = await env.DB.prepare(
-    `SELECT blocked,message,updatedAt,updatedByEmail,updatedByRole
-     FROM room_controls WHERE room=? LIMIT 1`
-  ).bind(room).first();
-
-  if (!row) return corsJson({ ok:true, blocked:0, message:"", build: BUILD_ID }, 200);
-  return corsJson({ ok:true, blocked: Number(row.blocked||0), message: String(row.message||""), build: BUILD_ID }, 200);
-}
-
-
-
-
-
-      // POST /api/auth/password/change  (Authorization: Bearer <token>) {oldPassword?, newPassword}
-      if (request.method === "POST" && url.pathname === "/api/auth/password/change") {
-        const au = await authFromRequest(request, env);
-        if (!au) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-
-        const body = await request.json().catch(() => ({}));
-        const oldPassword = String(body.oldPassword || "").trim();
-        const newPassword = String(body.newPassword || "").trim();
-
-        if (!newPassword || newPassword.length < 6) {
-          return corsJson({ ok:false, error:"bad_request", message:"Passwort zu kurz (min. 6)", build: BUILD_ID }, 400);
-        }
-
-        const row = await env.DB.prepare(`SELECT passwordHash FROM auth_users WHERE id=? LIMIT 1`).bind(au.user.id).first();
-        const currentHash = String(row?.passwordHash || "");
-        if (currentHash) {
-          const ok = await verifyPassword(oldPassword, currentHash);
-          if (!ok) return corsJson({ ok:false, error:"forbidden", message:"Altes Passwort falsch", build: BUILD_ID }, 403);
-        }
-
-        const newHash = await hashPassword(newPassword);
-        const now = Date.now();
-        await env.DB.prepare(`UPDATE auth_users SET passwordHash=?, pwUpdatedAt=? WHERE id=?`).bind(newHash, now, au.user.id).run();
-
-        await logEvent(env, "auth", "password_changed", au.user.email || "", { userId: au.user.id });
-
-        return corsJson({ ok:true, build: BUILD_ID }, 200);
-      }
-
-      // -----------------------------
-      // ADMIN
-      // -----------------------------
-
-      // POST /api/admin/login {adminPassword}
-if (request.method === "POST" && url.pathname === "/api/admin/login") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!pw) return corsJson({ ok:false, error:"bad_request", message:"admin_pw_missing", build: BUILD_ID }, 400);
-
-  let ok = false;
+    }
+
+    
+function fmtDT(ms){
+  if (!ms) return "";
   try{
-    ok = await checkAdminPassword(env, pw);
+    return new Date(Number(ms)).toLocaleString("de-DE");
+  }catch(_){ return String(ms); }
+}
+
+async function disableUser(userId, disabled){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  const msg = disabled ? "User deaktivieren? (alle Rechte werden entfernt)" : "User reaktivieren? (Status -> pending)";
+  if (!confirm(msg)) return;
+  try{
+    if (disabled){
+      await jpost("/api/admin/auth/users/disable", { adminPassword: pw, userId, disabled:true });
+    }else{
+      await jpost("/api/admin/auth/users/reactivate", { adminPassword: pw, userId });
+    }
+    await loadUsers();
   }catch(e){
-    return corsJson({ ok:false, error:"internal_error", message:String(e?.message||e), build: BUILD_ID }, 500);
+    console.error(e);
+    alert(`Fehler: Aktion fehlgeschlagen (HTTP ${e?.status||"?"})`);
   }
-  if (!ok) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
 }
 
-
-      // POST /api/admin/change-password {adminPassword,newPassword}
-      if (request.method === "POST" && url.pathname === "/api/admin/change-password") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const npw = String(body.newPassword || "").trim();
-        if (!pw || !npw) return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        const h = await hashPassword(npw, 50000);
-        await kvSet(env, "adminPwHash", h);
-        await logEvent(env, "admin", "admin_password_changed", "admin", {});
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/set-station-pin {adminPassword,stationPin}
-      if (request.method === "POST" && url.pathname === "/api/admin/set-station-pin") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const sp = normPin(body.stationPin);
-        if (!pw || !sp) return corsJson({ ok: false, error: "bad_request", message: "PIN muss genau 4-stellig sein", build: BUILD_ID }, 400);
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        const h = await hashPassword(sp, 50000);
-        await kvSet(env, "stationPinHash", h);
-        await logEvent(env, "admin", "station_pin_changed", "admin", {});
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
-      }
-
-      // -----------------------------
-      // ADMIN USER MANAGEMENT (admins + patient speakers)
-      // -----------------------------
-
-      // POST /api/admin/auth/users/list {adminPassword}
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/list") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-
-        const users = await env.DB.prepare(
-          `SELECT id,role,role2,firstName,lastName,email,status,createdAt,approvedAt,approvedBy,deleteMarkedAt,deleteAfter
-           FROM auth_users
-           ORDER BY createdAt DESC`
-        ).all();
-
-        const perms = await env.DB.prepare(`SELECT permKey,label FROM auth_perms ORDER BY permKey`).all();
-        const up = await env.DB.prepare(`SELECT userId,permKey,allowed FROM auth_user_perms`).all();
-
-        return corsJson({ ok:true, users: users.results||[], perms: perms.results||[], userPerms: up.results||[], build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/auth/users/approve {adminPassword, userId}
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/approve") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const userId = String(body.userId || "").trim();
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        if (!userId) return corsJson({ ok:false, error:"bad_request", message:"userId fehlt", build: BUILD_ID }, 400);
-
-        const now = Date.now();
-        await env.DB.prepare(
-          `UPDATE auth_users SET status='active', approvedAt=?, approvedBy='super_admin' WHERE id=?`
-        ).bind(now, userId).run();
-
-        await logEvent(env, "admin", "auth_user_approve", "", { userId });
-
-        return corsJson({ ok:true, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/auth/users/disable {adminPassword, userId, disabled}
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/disable") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const userId = String(body.userId || "").trim();
-        const disabled = !!body.disabled;
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        if (!userId) return corsJson({ ok:false, error:"bad_request", message:"userId fehlt", build: BUILD_ID }, 400);
-
-        await env.DB.prepare(
-          `UPDATE auth_users SET status=? WHERE id=?`
-        ).bind(disabled ? "disabled" : "active", userId).run();
-
-        await logEvent(env, "admin", "auth_user_disable", "", { userId, disabled });
-
-        return corsJson({ ok:true, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/auth/users/issue-code {adminPassword, userId}
-      // Generates a one-time login code (valid 30 minutes). Share it securely with the user.
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/issue-code") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const userId = String(body.userId || "").trim();
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        if (!userId) return corsJson({ ok:false, error:"bad_request", message:"userId fehlt", build: BUILD_ID }, 400);
-
-        const u = await env.DB.prepare(`SELECT id,status,email FROM auth_users WHERE id=? LIMIT 1`).bind(userId).first();
-        if (!u) return corsJson({ ok:false, error:"not_found", build: BUILD_ID }, 404);
-        if (u.status !== "active") return corsJson({ ok:false, error:"bad_request", message:"User ist nicht aktiv", build: BUILD_ID }, 400);
-
-        const code = makeShortCode();
-        const codeHash = await hashPassword(code, 20000);
-        const now = Date.now();
-        const expiresAt = now + 30 * 60 * 1000;
-
-        const id = crypto.randomUUID();
-        await env.DB.prepare(
-          `INSERT INTO auth_login_codes(id,userId,codeHash,createdAt,expiresAt) VALUES(?,?,?,?,?)`
-        ).bind(id, userId, codeHash, now, expiresAt).run();
-
-        await logEvent(env, "admin", "auth_issue_code", "", { userId, email: u.email });
-
-        return corsJson({ ok:true, code, expiresAt, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/auth/users/set-perm {admin
-      // ---- ADMIN: update user roles + perms ----
-      // POST /api/admin/auth/users/update {adminPassword,userId,role1,role2,perms:{permKey:boolean}}
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/update") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        if (!(await checkAdminPassword(env, pw))) {
-          return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        }
-
-        const userId = String(body.userId || "").trim();
-        if (!userId) {
-          return corsJson({ ok: false, error: "bad_request", message: "userId fehlt", build: BUILD_ID }, 400);
-        }
-
-        const role1 = String(body.role1 || body.role || "").trim();
-        const role2 = String(body.role2 || "").trim();
-        const allowedRoles = new Set(["admin", "ps", "ps_deputy", ""]);
-        if (!allowedRoles.has(role1) || !allowedRoles.has(role2)) {
-          return corsJson({ ok: false, error: "bad_request", message: "Ungültige Rolle", build: BUILD_ID }, 400);
-        }
-
-        // update roles
-        await env.DB.prepare(`UPDATE auth_users SET role=?, role2=? WHERE id=?`)
-          .bind(role1, role2, userId).run();
-
-        // update perms
-        const permsObj = (body.perms && typeof body.perms === "object") ? body.perms : {};
-        await env.DB.prepare(`DELETE FROM auth_user_perms WHERE userId=?`).bind(userId).run();
-
-        // only store known perms (prevents junk keys)
-        const known = await env.DB.prepare(`SELECT permKey FROM auth_perms`).all();
-        const knownSet = new Set((known.results || []).map(r => r.permKey));
-
-        for (const [k, v] of Object.entries(permsObj)) {
-          if (!knownSet.has(k)) continue;
-          const allowed = v ? 1 : 0;
-          await env.DB.prepare(`INSERT INTO auth_user_perms(userId,permKey,allowed) VALUES(?,?,?)`)
-            .bind(userId, k, allowed).run();
-        }
-
-        await logEvent(env, "admin", "auth_user_updated", "admin", { userId, role1, role2 });
-
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/auth/users/deactivate {adminPassword,userId}
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/deactivate") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const userId = String(body.userId || "").trim();
-
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        if (!userId) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-        const now = Date.now();
-
-        await env.DB.prepare(`UPDATE auth_users SET status='disabled', deleteMarkedAt=0, deleteAfter=0 WHERE id=?`).bind(userId).run();
-        await env.DB.prepare(`DELETE FROM auth_sessions WHERE userId=?`).bind(userId).run();
-        await env.DB.prepare(`DELETE FROM auth_login_codes WHERE userId=?`).bind(userId).run();
-        await env.DB.prepare(`DELETE FROM auth_user_perms WHERE userId=?`).bind(userId).run();
-
-        await logEvent(env, "admin", "auth_user_deactivated", "admin", { userId });
-
-        return corsJson({ ok:true, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/auth/users/mark-delete {adminPassword,userId}
-      // marks user for deletion in 14 days; user is disabled immediately (no perms, no sessions)
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/mark-delete") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const userId = String(body.userId || "").trim();
-
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        if (!userId) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-        const now = Date.now();
-        const deleteAfter = now + 14 * 24 * 60 * 60 * 1000;
-
-        await env.DB.prepare(`UPDATE auth_users SET status='pending_delete', deleteMarkedAt=?, deleteAfter=? WHERE id=?`)
-          .bind(now, deleteAfter, userId).run();
-
-        await env.DB.prepare(`DELETE FROM auth_sessions WHERE userId=?`).bind(userId).run();
-        await env.DB.prepare(`DELETE FROM auth_login_codes WHERE userId=?`).bind(userId).run();
-        await env.DB.prepare(`DELETE FROM auth_user_perms WHERE userId=?`).bind(userId).run();
-
-        await logEvent(env, "admin", "auth_user_mark_delete", "admin", { userId, deleteAfter });
-
-        return corsJson({ ok:true, deleteAfter, build: BUILD_ID }, 200);
-      }
-
-// -----------------------------
-// SA (adminPassword) aliases for legacy SA index
-// -----------------------------
-
-// POST /api/admin/logs {adminPassword,limit,actor,action,room,since,until}
-if (request.method === "POST" && url.pathname === "/api/admin/logs") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-
-  const limit = clampInt(body.limit, 200, 1, 2000);
-  const actor = String(body.actor || "").trim();
-  const action = String(body.action || "").trim();
-  const room = String(body.room || "").trim();
-  const since = clampInt(body.since, 0, 0, 9999999999999);
-  const until = clampInt(body.until, 0, 0, 9999999999999);
-
-  let where = [];
-  let binds = [];
-  if (since) { where.push("ts >= ?"); binds.push(since); }
-  if (until) { where.push("ts <= ?"); binds.push(until); }
-  if (actor) { where.push("actor = ?"); binds.push(actor); }
-  if (action) { where.push("action = ?"); binds.push(action); }
-  if (room) { where.push("room = ?"); binds.push(room); }
-
-  const sql = `SELECT ts,actor,action,room,meta FROM logs ${where.length ? "WHERE "+where.join(" AND ") : ""} ORDER BY ts DESC LIMIT ?`;
-  binds.push(limit);
-
-  const rows = await env.DB.prepare(sql).bind(...binds).all();
-  return corsJson({ ok:true, rows: rows.results || [], build: BUILD_ID }, 200);
-}
-
-// -----------------------------
-// SA RBAC Role Perms (adminPassword)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/admin/rbac/role/get") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  const role = String(body.role || "").trim();
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  if (!role) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  await ensureRbacCatalog(env);
-
-  const rows = await env.DB.prepare(`SELECT permKey,allowed FROM auth_role_perms WHERE role=?`).bind(role).all();
-  const catalog = await env.DB.prepare(`SELECT permKey,title,permGroup,sort FROM auth_permissions ORDER BY permGroup, sort, permKey`).all();
-  return corsJson({ ok:true, role, perms: rows.results||[], catalog: catalog.results||[], build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/admin/rbac/role/set") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  const role = String(body.role || "").trim();
-  const permKeys = Array.isArray(body.permKeys) ? body.permKeys.map(x=>String(x||"").trim()).filter(Boolean) : [];
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  if (!role) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  await ensureRbacCatalog(env);
-
-  await env.DB.prepare(`DELETE FROM auth_role_perms WHERE role=?`).bind(role).run();
-  for (const k of permKeys){
-    await env.DB.prepare(`INSERT OR REPLACE INTO auth_role_perms(role,permKey,allowed) VALUES(?,?,1)`).bind(role,k).run();
+async function markDelete(userId){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  if (!confirm("Zum Löschen freigeben? (deaktiviert sofort, endgültiges Löschen nach 14 Tagen)")) return;
+  try{
+    const r = await jpost("/api/admin/auth/users/mark-delete", { adminPassword: pw, userId, days:14 });
+    alert("✅ Markiert. Wird gelöscht ab: " + fmtDT(r.deleteAfter));
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Markieren fehlgeschlagen (HTTP ${e?.status||"?"})`);
   }
-  await logEvent(env, "admin", "rbac_role_set", "admin", { role, count: permKeys.length });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
 }
 
-if (request.method === "POST" && url.pathname === "/api/admin/rbac/seed-defaults") {
-  try {
-    const body = await request.json().catch(()=>({}));
-    const pw = getAdminPasswordFromBody(body);
+async function deleteNow(userId){
+  const pw = ($("adminPw").value||"").trim();
+  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+  if (!confirm("Wirklich SOFORT endgültig löschen? (nicht rückgängig)")) return;
+  try{
+    await jpost("/api/admin/auth/users/delete-now", { adminPassword: pw, userId });
+    await loadUsers();
+  }catch(e){
+    console.error(e);
+    alert(`Fehler: Löschen fehlgeschlagen (HTTP ${e?.status||"?"})`);
+  }
+}
 
-    if (!(await checkAdminPassword(env, pw))) {
-      return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
+    function readPermsFromUI(userId){
+      const m = {};
+      for (const p of __perms){
+        const id = `perm__${userId}__${p.permKey}`;
+        const el = document.getElementById(id);
+        m[p.permKey] = !!(el && el.checked);
+      }
+      return m;
     }
 
-    const defaults = getDefaultRoleMatrix(); // { role: { permKey: 1, ... } }
-
-    let inserted = 0;
-    for (const role of Object.keys(defaults || {})) {
-      // wipe only this role (safe)
-      await env.DB.prepare(`DELETE FROM auth_role_perms WHERE role = ?`).bind(String(role).toLowerCase()).run();
-
-      const permsObj = defaults[role] || {};
-      const permKeys = Object.keys(permsObj);
-      for (const permKey of permKeys) {
-        await env.DB.prepare(
-          `INSERT OR REPLACE INTO auth_role_perms(role, permKey, allowed) VALUES(?,?,1)`
-        ).bind(String(role).toLowerCase(), String(permKey)).run();
-        inserted++;
-      }
-    }
-
-    return corsJson({ ok:true, inserted, build: BUILD_ID }, 200);
-  } catch (e) {
-    return corsJson({ ok:false, error:"seed_failed", message:String(e && (e.stack || e.message || e)), build: BUILD_ID }, 500);
-  }
-}
-
-
-// -----------------------------
-// SA Zimmer Control (adminPassword)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/admin/room/control/list") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  const rows = await env.DB.prepare(`SELECT room, blocked as locked, message, updatedAt, updatedByRole, updatedByEmail FROM room_controls ORDER BY room ASC`).all();
-  return corsJson({ ok:true, rooms: (rows && rows.results)||[], build: BUILD_ID }, 200);
-}
-if (request.method === "POST" && url.pathname === "/api/admin/room/control") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  const room = String(body.room || "").trim();
-  const blocked = (body.blocked ?? body.locked) ? 1 : 0;
-  const message = String(body.message || "").trim();
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  if (!room) return corsJson({ ok:false, error:"bad_request", message:"room_missing", build: BUILD_ID }, 400);
-  await env.DB.prepare(
-    `INSERT INTO room_controls(room,blocked,message,updatedAt,updatedByRole,updatedByEmail) VALUES(?,?,?,?,?,?)
-     ON CONFLICT(room) DO UPDATE SET blocked=excluded.blocked, message=excluded.message, updatedAt=excluded.updatedAt, updatedByRole=excluded.updatedByRole, updatedByEmail=excluded.updatedByEmail`
-  ).bind(room, blocked, message, Date.now(), "sa", "").run();
-  await logEvent(env, "admin", "room_control_set", "sa", { room, blocked, message });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-// -----------------------------
-// SA Maschinen Control (adminPassword)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/admin/machine/control/list") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  const rows = await env.DB.prepare(`SELECT machine,locked,message,updatedAt,updatedBy FROM machine_control ORDER BY machine ASC`).all();
-  return corsJson({ ok:true, machines: rows.results||[], build: BUILD_ID }, 200);
-}
-if (request.method === "POST" && url.pathname === "/api/admin/machine/control") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  const machine = String(body.machine || "").trim();
-  const locked = body.locked ? 1 : 0;
-  const message = String(body.message || "").trim();
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  if (!machine) return corsJson({ ok:false, error:"bad_request", message:"machine_missing", build: BUILD_ID }, 400);
-  await env.DB.prepare(
-    `INSERT INTO machine_control(machine,locked,message,updatedAt,updatedBy) VALUES(?,?,?,?,?)
-     ON CONFLICT(machine) DO UPDATE SET locked=excluded.locked, message=excluded.message, updatedAt=excluded.updatedAt, updatedBy=excluded.updatedBy`
-  ).bind(machine, locked, message, Date.now(), "SA").run();
-  await logEvent(env, "admin", "machine_control_set", "admin", { machine, locked, message });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-
-// Legacy SA index expects /api/auth/admin/config/* but uses adminPassword (no Bearer)
-if (request.method === "POST" && url.pathname === "/api/auth/admin/config/get") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  let r;
-        try{ r = await env.DB.prepare(`SELECT key,value FROM kv`).all(); }catch(e){ r = { results: [] }; }
-  const obj = {};
-  for (const row of (r.results||[])) obj[row.key] = safeJsonParse(row.value);
-  return corsJson({ ok:true, config: obj, build: BUILD_ID }, 200);
-}
-
-if (request.method === "POST" && url.pathname === "/api/auth/admin/config/set") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  const config = body.config && typeof body.config === "object" ? body.config : {};
-  for (const [k,v] of Object.entries(config)){
-    await kvSet(env, String(k), JSON.stringify(v));
-  }
-  await logEvent(env, "admin", "config_set", "admin", { keys: Object.keys(config) });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-// POST /api/admin/auth/users/delete-now {adminPassword,userId}
-if (request.method === "POST" && url.pathname === "/api/admin/auth/users/delete-now") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  const userId = String(body.userId || "").trim();
-
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  if (!userId) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  await env.DB.prepare(`DELETE FROM auth_sessions WHERE userId=?`).bind(userId).run();
-  await env.DB.prepare(`DELETE FROM auth_login_codes WHERE userId=?`).bind(userId).run();
-  await env.DB.prepare(`DELETE FROM auth_user_perms WHERE userId=?`).bind(userId).run();
-  await env.DB.prepare(`DELETE FROM auth_users WHERE id=?`).bind(userId).run();
-
-  await logEvent(env, "admin", "auth_user_delete_now", "admin", { userId });
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-
-      // POST /api/admin/auth/users/set-perm {adminPassword, userId, permKey, allowed}
-      if (request.method === "POST" && url.pathname === "/api/admin/auth/users/set-perm") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const userId = String(body.userId || "").trim();
-        const permKey = String(body.permKey || "").trim();
-        const allowed = body.allowed ? 1 : 0;
-
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-        if (!userId || !permKey) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-        await env.DB.prepare(
-          `INSERT INTO auth_user_perms(userId,permKey,allowed) VALUES(?,?,?)
-           ON CONFLICT(userId,permKey) DO UPDATE SET allowed=excluded.allowed`
-        ).bind(userId, permKey, allowed).run();
-
-        return corsJson({ ok:true, build: BUILD_ID }, 200);
-      }
-
-            // POST /api/admin/config/get {adminPassword}
-      if (request.method === "POST" && url.pathname === "/api/admin/config/get") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        const cfg = await getConfig(env);
-
-        // news seen count (current version)
-        let seenCount = 0;
-        if (cfg.newsEnabled && cfg.newsVersion > 0) {
-          const row = await env.DB.prepare(`SELECT COUNT(*) AS c FROM news_seen WHERE newsVersion=?`).bind(cfg.newsVersion).first();
-          seenCount = Number(row?.c || 0);
-        }
-
-        return corsJson({ ok: true, config: cfg, newsSeenCount: seenCount, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/config/set {adminPassword, ...}
-      if (request.method === "POST" && url.pathname === "/api/admin/config/set") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        const cfg = await getConfig(env);
-
-        // days window
-        const daysPast = clampInt(body.daysPast, 0, 30, cfg.daysPast);
-        const daysFuture = clampInt(body.daysFuture, 0, 30, cfg.daysFuture);
-
-        // washer hours checkbox list 0..23
-        const washerHours = Array.isArray(body.washerHours) ? body.washerHours.map(Number).filter(n => Number.isFinite(n) && n >= 0 && n <= 23) : cfg.washerHours;
-        washerHours.sort((a,b)=>a-b);
-
-        // dryer duration minutes 60/90/120
-        const dryerMinutes = [60, 90, 120].includes(Number(body.dryerMinutes)) ? Number(body.dryerMinutes) : cfg.dryerMinutes;
-
-        // defect toggles
-        const userDefectEnabled = typeof body.userDefectEnabled === "boolean" ? body.userDefectEnabled : cfg.userDefectEnabled;
-        const userDefectAllowed = typeof body.userDefectAllowed === "object" && body.userDefectAllowed ? body.userDefectAllowed : cfg.userDefectAllowed;
-
-        // news
-        const newsEnabled = typeof body.newsEnabled === "boolean" ? body.newsEnabled : cfg.newsEnabled;
-        const newsText = typeof body.newsText === "string" ? body.newsText : cfg.newsText;
-        let newsVersion = cfg.newsVersion;
-        if (body.bumpNewsVersion) newsVersion = Number(cfg.newsVersion || 0) + 1;
-
-        const next = {
-          ...cfg,
-          daysPast,
-          daysFuture,
-          washerHours,
-          dryerMinutes,
-          userDefectEnabled,
-          userDefectAllowed,
-          newsEnabled,
-          newsText,
-          newsVersion,
-        };
-
-        await kvSet(env, "config", JSON.stringify(next));
-        await logEvent(env, "admin", "config_set", "admin", { changed: Object.keys(body || {}) });
-
-        return corsJson({ ok: true, config: next, build: BUILD_ID }, 200);
-      }
-
-// -----------------------------
-// SA popup config set (adminPassword)
-// -----------------------------
-if (request.method === "POST" && url.pathname === "/api/admin/popup/config/get") {
-  const body = await request.json().catch(()=>({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-
-  const row = await env.DB.prepare(`SELECT key,value FROM kv WHERE key LIKE 'popup:%'`).all();
-  const kv = {};
-  for (const r of (row.results||[])) kv[r.key] = r.value;
-
-  return corsJson({ ok:true, popup: {
-    washerEnabled: kv["popup:washer:enabled"]==="1",
-    washerImage: kv["popup:washer:image"]||"",
-    dryerEnabled: kv["popup:dryer:enabled"]==="1",
-    dryerImage: kv["popup:dryer:image"]||"",
-  }, build: BUILD_ID }, 200);
-}
-
-if (url.pathname === "/api/admin/popup/config/set") {
-  const body = await request.json().catch(()=>({}));
-  const pw = getAdminPasswordFromBody(body);
-  if (!(await checkAdminPassword(env, pw))) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-
-  const cfg = body.config && typeof body.config === "object" ? body.config : {};
-  if ("washerEnabled" in cfg) await kvSet(env, "popup:washer:enabled", JSON.stringify(!!cfg.washerEnabled));
-  if ("washerImage" in cfg) await kvSet(env, "popup:washer:image", JSON.stringify(String(cfg.washerImage||"")));
-  if ("dryerEnabled" in cfg) await kvSet(env, "popup:dryer:enabled", JSON.stringify(!!cfg.dryerEnabled));
-  if ("dryerImage" in cfg) await kvSet(env, "popup:dryer:image", JSON.stringify(String(cfg.dryerImage||"")));
-  await logEvent(env, "admin", "popup_config_set", "admin", {});
-  return corsJson({ ok:true, build: BUILD_ID }, 200);
-}
-
-
-
-      // POST /api/admin/machines/set {adminPassword, updates:[{type,machine,enabled,defect}]}
-      if (request.method === "POST" && url.pathname === "/api/admin/machines/set") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        const updates = Array.isArray(body.updates) ? body.updates : [];
-        for (const u of updates) {
-          const type = normType(u.type);
-          const machine = normMachine(u.machine, 4);
-          if (!type || !machine) continue;
-
-          if (typeof u.enabled === "number") {
-            await env.DB.prepare(`UPDATE machines SET enabled=? WHERE type=? AND machine=?`).bind(u.enabled ? 1 : 0, type, machine).run();
-          }
-          if (typeof u.defect === "number") {
-            if (u.defect) {
-              await setDefect(env, type, machine, 1, "admin", Date.now());
-            } else {
-              await setDefect(env, type, machine, 0, "", 0);
-            }
-          }
-        }
-
-        await logEvent(env, "admin", "machines_set", "admin", { count: updates.length });
-        return corsJson({ ok: true, build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/feedback/list {adminPassword}
-      if (request.method === "POST" && url.pathname === "/api/admin/feedback/list") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        const rows = await env.DB.prepare(
-          `SELECT id,room,createdAt,updatedAt,allowUserView,userUnread,adminUnread,lastUserAt,lastAdminAt
-           FROM feedback_threads
-           ORDER BY updatedAt DESC
-           LIMIT 200`
-        ).all();
-
-        return corsJson({ ok: true, threads: rows.results || [], build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/feedback/thread {adminPassword,threadId}
-      if (request.method === "POST" && url.pathname === "/api/admin/feedback/thread") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const threadId = String(body.threadId || "");
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        if (!threadId) return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-
-        const thread = await env.DB.prepare(
-          `SELECT id,room,allowUserView,userUnread,adminUnread,createdAt,updatedAt FROM feedback_threads WHERE id=? LIMIT 1`
-        ).bind(threadId).first();
-        if (!thread) return corsJson({ ok: false, error: "not_found", build: BUILD_ID }, 404);
-
-        const msgs = await env.DB.prepare(
-          `SELECT id,threadId,sender,message,ts,visibleToUser,readByUser,readByAdmin
-           FROM feedback_msgs WHERE threadId=? ORDER BY ts ASC`
-        ).bind(threadId).all();
-
-        // mark read by admin
-        await env.DB.prepare(`UPDATE feedback_msgs SET readByAdmin=1 WHERE threadId=?`).bind(threadId).run();
-        await env.DB.prepare(`UPDATE feedback_threads SET adminUnread=0 WHERE id=?`).bind(threadId).run();
-
-        return corsJson({ ok: true, thread, messages: msgs.results || [], build: BUILD_ID }, 200);
-      }
-
-      // POST /api/admin/feedback/send {adminPassword,threadId,message,visibleToUser:boolean,allowUserView?:boolean}
-      if (request.method === "POST" && url.pathname === "/api/admin/feedback/send") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const threadId = String(body.threadId || "");
-        const message = String(body.message || "").trim();
-        const visibleToUser = body.visibleToUser === false ? 0 : 1;
-        const allowUserView = typeof body.allowUserView === "boolean" ? (body.allowUserView ? 1 : 0) : null;
-
-        if (!(await checkAdminPassword(env, pw))) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        if (!threadId || !message) return corsJson({ ok: false, error: "bad_request", build: BUILD_ID }, 400);
-
-        const now = Date.now();
-
-if (allowUserView !== null) {
-  await env.DB.prepare(`UPDATE feedback_threads SET allowUserView=?, updatedAt=?, lastAdminAt=?, userUnread=1 WHERE id=?`)
-    .bind(allowUserView, now, now, threadId).run();
-} else {
-  await env.DB.prepare(`UPDATE feedback_threads SET updatedAt=?, lastAdminAt=?, userUnread=1 WHERE id=?`)
-    .bind(now, now, threadId).run();
-}
-
-        const msgId = crypto.randomUUID();
-        await env.DB.prepare(
-          `INSERT INTO feedback_msgs(id,threadId,sender,message,ts,visibleToUser,readByUser,readByAdmin)
-           VALUES(?,?,?,?,?,?,?,?)`
-        ).bind(msgId, threadId, "admin", message, now, visibleToUser, 0, 1).run();
-
-        await logEvent(env, "admin", "feedback_reply", "admin", { threadId, msgId, visibleToUser });
-
-        return corsJson({ ok: true, msgId, build: BUILD_ID }, 200);
-      }
-
-      
-      // ---- AUTH: feedback (Bearer) ----
-// POST /api/auth/feedback/list {limit}
-if (request.method === "POST" && url.pathname === "/api/auth/feedback/list") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok: false, error: "forbidden", message: "login_required", build: BUILD_ID }, 403);
-  // allow for admins OR PS/VS with perms
-  const canView = !!auth.perms["admin.feedback.view"] || !!auth.perms["ps.feedback.view"] || !!auth.perms["vs.feedback.view"] || !!auth.perms["moderator.feedback.view"] || !!auth.perms["sa.all"];
-  if (!canView) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(()=>({}));
-  const limit = Math.max(1, Math.min(500, Number(body.limit||200)));
-
-  // role-based filter by thread target
-  const role = String(auth.user.role||"user");
-  let where = "";
-  if (role === "admin" || role === "sa") {
-    where = ""; // see all
-  } else if (role === "moderator") {
-    where = "WHERE target='psvs'"; // moderator only PS/VS-targeted by default
-  } else {
-    where = "WHERE target='psvs'";
-  }
-
-  const rows = await env.DB.prepare(
-    `SELECT id,room,createdAt,updatedAt,allowUserView,userUnread,adminUnread,lastUserAt,lastAdminAt,target
-     FROM feedback_threads
-     ${where}
-     ORDER BY updatedAt DESC
-     LIMIT ?`
-  ).bind(limit).all();
-
-  return corsJson({ ok: true, threads: rows.results || [], build: BUILD_ID }, 200);
-}
-
-// POST /api/auth/feedback/thread {threadId}
-if (request.method === "POST" && url.pathname === "/api/auth/feedback/thread") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok: false, error: "forbidden", message: "login_required", build: BUILD_ID }, 403);
-  const canView = !!auth.perms["admin.feedback.view"] || !!auth.perms["ps.feedback.view"] || !!auth.perms["vs.feedback.view"] || !!auth.perms["moderator.feedback.view"] || !!auth.perms["sa.all"];
-  if (!canView) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(()=>({}));
-  const threadId = String(body.threadId||"");
-  if (!threadId) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  const thread = await env.DB.prepare(
-    `SELECT id,room,allowUserView,userUnread,adminUnread,createdAt,updatedAt,target FROM feedback_threads WHERE id=? LIMIT 1`
-  ).bind(threadId).first();
-  if (!thread) return corsJson({ ok:false, error:"not_found", build: BUILD_ID }, 404);
-
-  // enforce target for non-admin
-  const role = String(auth.user.role||"user");
-  if (!(role==="admin" || role==="sa") && String(thread.target||"psvs") !== "psvs") {
-    return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  }
-
-  const msgs = await env.DB.prepare(
-    `SELECT id,threadId,sender,message,ts,visibleToUser,readByUser,readByAdmin
-     FROM feedback_msgs WHERE threadId=? ORDER BY ts ASC`
-  ).bind(threadId).all();
-
-  // mark read by admin/staff
-  await env.DB.prepare(`UPDATE feedback_msgs SET readByAdmin=1 WHERE threadId=?`).bind(threadId).run();
-  await env.DB.prepare(`UPDATE feedback_threads SET adminUnread=0 WHERE id=?`).bind(threadId).run();
-
-  return corsJson({ ok:true, thread, messages: msgs.results||[], build: BUILD_ID }, 200);
-}
-
-// POST /api/auth/feedback/send {threadId,message,visibleToUser:boolean,allowUserView?:boolean}
-if (request.method === "POST" && url.pathname === "/api/auth/feedback/send") {
-  const auth = await authFromRequest(request, env);
-  if (!auth) return corsJson({ ok: false, error: "forbidden", message: "login_required", build: BUILD_ID }, 403);
-
-  const canReply = !!auth.perms["admin.feedback.reply"] || !!auth.perms["ps.feedback.reply"] || !!auth.perms["vs.feedback.reply"] || !!auth.perms["moderator.feedback.reply"] || !!auth.perms["sa.all"];
-  if (!canReply) return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-
-  const body = await request.json().catch(()=>({}));
-  const threadId = String(body.threadId||"");
-  const message = String(body.message||"").trim();
-  const visibleToUser = body.visibleToUser === false ? 0 : 1;
-  const allowUserView = typeof body.allowUserView === "boolean" ? (body.allowUserView ? 1 : 0) : null;
-  if (!threadId || !message) return corsJson({ ok:false, error:"bad_request", build: BUILD_ID }, 400);
-
-  const thread = await env.DB.prepare(`SELECT id,target FROM feedback_threads WHERE id=? LIMIT 1`).bind(threadId).first();
-  if (!thread) return corsJson({ ok:false, error:"not_found", build: BUILD_ID }, 404);
-
-  const role = String(auth.user.role||"user");
-  if (!(role==="admin" || role==="sa") && String(thread.target||"psvs") !== "psvs") {
-    return corsJson({ ok:false, error:"forbidden", build: BUILD_ID }, 403);
-  }
-
-  const now = Date.now();
-
-  if (allowUserView !== null) {
-    await env.DB.prepare(`UPDATE feedback_threads SET allowUserView=?, updatedAt=?, lastAdminAt=?, userUnread=1 WHERE id=?`)
-      .bind(allowUserView, now, now, threadId).run();
-  } else {
-    await env.DB.prepare(`UPDATE feedback_threads SET updatedAt=?, lastAdminAt=?, userUnread=1 WHERE id=?`)
-      .bind(now, now, threadId).run();
-  }
-
-  const msgId = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO feedback_msgs(id,threadId,sender,message,ts,visibleToUser,readByUser,readByAdmin)
-     VALUES(?,?,?,?,?,?,?,?)`
-  ).bind(msgId, threadId, role, message, now, visibleToUser, 0, 1).run();
-
-  await logEvent(env, "auth", "feedback_reply", auth.user.id, { threadId, msgId, role, visibleToUser });
-
-  return corsJson({ ok:true, msgId, build: BUILD_ID }, 200);
-}
-
-// ---- AUTH: logs (Bearer) ----
-      // POST /api/auth/logs {limit}
-      if (request.method === "POST" && url.pathname === "/api/auth/logs") {
-        const auth = await authFromRequest(request, env);
-        if (!auth) return corsJson({ ok: false, error: "forbidden", message: "login_required", build: BUILD_ID }, 403);
-        if (!auth.perms["admin.logs.view"]) return corsJson({ ok: false, error: "forbidden", message: "no_permission", build: BUILD_ID }, 403);
-
-        const body = await request.json().catch(() => ({}));
-        const limit = clampInt(body.limit, 1, 500, 200);
-        const rows = await env.DB.prepare(
-          `SELECT id,ts,actor,action,room,meta, NULL AS type, NULL AS machine FROM logs ORDER BY ts DESC LIMIT ?`
-        ).bind(limit).all();
-
-        return corsJson({ ok: true, logs: rows.results || [], build: BUILD_ID }, 200);
-      }
-
-      // ---- AUTH: bookings list (Bearer) ----
-      // POST /api/auth/bookings/list {limit}
-      if (request.method === "POST" && url.pathname === "/api/auth/bookings/list") {
-        const auth = await authFromRequest(request, env);
-        if (!auth) return corsJson({ ok: false, error: "forbidden", message: "login_required", build: BUILD_ID }, 403);
-        if (!auth.perms["admin.bookings.view"]) return corsJson({ ok: false, error: "forbidden", message: "no_permission", build: BUILD_ID }, 403);
-
-        const body = await request.json().catch(() => ({}));
-        const limit = clampInt(body.limit, 1, 2000, 500);
-        const rows = await env.DB.prepare(
-          `SELECT id,type,machine,start,end,room,status,createdAt,cancelledAt,releasedAt FROM bookings ORDER BY start DESC LIMIT ?`
-        ).bind(limit).all();
-
-        return corsJson({ ok: true, bookings: rows.results || [], build: BUILD_ID }, 200);
-      }
-
-      // compat: old path
-      if (request.method === "POST" && url.pathname === "/api/auth/bookings") {
-              const auth = await authFromRequest(request, env);
-              if (!auth) return corsJson({ ok: false, error: "forbidden", message: "login_required", build: BUILD_ID }, 403);
-              if (!auth.perms["admin.bookings.view"]) return corsJson({ ok: false, error: "forbidden", message: "no_permission", build: BUILD_ID }, 403);
-      
-              const body = await request.json().catch(() => ({}));
-              const limit = clampInt(body.limit, 1, 2000, 500);
-              const rows = await env.DB.prepare(
-                `SELECT id,type,machine,start,end,room,status,createdAt,cancelledAt,releasedAt FROM bookings ORDER BY start DESC LIMIT ?`
-              ).bind(limit).all();
-      
-              return corsJson({ ok: true, bookings: rows.results || [], build: BUILD_ID }, 200);
-            }
-
-      // ---- AUTH: cancel booking (ps/ps_deputy/admin) ----
-      // POST /api/auth/bookings/cancel {id}
-      if (request.method === "POST" && url.pathname === "/api/auth/bookings/cancel") {
-        const auth = await requireAuth(env, request);
-        if (!auth.ok) return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-
-        // aktuell: PS/VS/Admin dürfen stornieren (wie Admin-Storno). Rechte-Feinschliff später.
-        if (!(["ps","ps_deputy","admin","superadmin"].includes(String(auth.user?.role||"")) || auth.perms["admin.bookings.cancel"])) {
-          return corsJson({ ok:false, error:"forbidden", message:"no_permission", build: BUILD_ID }, 403);
-        }
-
-        const body = await request.json().catch(() => ({}));
-        const id = String(body.id || "").trim();
-        if (!id) return corsJson({ ok:false, error:"bad_request", message:"id fehlt", build: BUILD_ID }, 400);
-
-        const b = await env.DB.prepare(`SELECT id,room,type,machine,status,start,end FROM bookings WHERE id=?`).bind(id).first();
-        if (!b) return corsJson({ ok:false, error:"not_found", build: BUILD_ID }, 404);
-
-        await env.DB.prepare(`UPDATE bookings SET status='admin_cancelled', cancelledAt=? WHERE id=? AND status='booked'`)
-          .bind(Date.now(), id).run();
-
-        await logEvent(env, "auth", "auth_booking_cancel", String(b.room||""), {
-          bookingId: id,
-          type: b.type,
-          machine: b.machine,
-          start: b.start,
-          end: b.end,
-          byUserId: auth.user?.id,
-          byRole: auth.user?.role,
-          byEmail: auth.user?.email
+    async function saveUser(userId){
+      const pw = ($("adminPw").value||"").trim();
+      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
+
+      const role1 = (document.getElementById(`role1__${userId}`)?.value || "").trim();
+      const role2 = (document.getElementById(`role2__${userId}`)?.value || "").trim();
+      const perms = readPermsFromUI(userId);
+
+      try{
+        await jpost("/api/admin/auth/users/update", {
+          adminPassword: pw,
+          userId,
+          role1,
+          role2,
+          perms
         });
-
-        return corsJson({ ok:true, build: BUILD_ID }, 200);
+        alert("Gespeichert.");
+        await loadUsers();
+      }catch(e){
+        console.error(e);
+        const msg = e?.data?.message ? `
+${e.data.message}` : "";
+        alert(`Fehler: Speichern fehlgeschlagen (HTTP ${e?.status||"?"})${msg}`);
       }
-
-
-      // ---- AUTH: room control (Bearer) ----
-      // POST /api/auth/room/control {room?, allRooms?:boolean, blocked?:boolean, message?:string}
-      if (request.method === "POST" && url.pathname === "/api/auth/room/control") {
-        const auth = await authFromRequest(request, env);
-        if (!auth) return corsJson({ ok: false, error: "forbidden", message: "login_required", build: BUILD_ID }, 403);
-        if (!(
-          ["ps","ps_deputy","admin","superadmin"].includes(String(auth.user?.role||"")) ||
-          auth.perms["ps.rooms.manage"] ||
-          auth.perms["admin.users.manage"]
-        )) return corsJson({ ok: false, error: "forbidden", message: "no_permission", build: BUILD_ID }, 403);
-
-        const body = await request.json().catch(() => ({}));
-        const allRooms = !!body.allRooms;
-        const room = normRoom(body.room);
-
-        const setBlocked = (typeof body.blocked === "boolean") ? (body.blocked ? 1 : 0) : null;
-        const setMessage = (typeof body.message === "string") ? String(body.message).slice(0, 2000) : null;
-
-        if (!allRooms && !room) return corsJson({ ok: false, error: "bad_request", message: "room fehlt", build: BUILD_ID }, 400);
-        if (setBlocked === null && setMessage === null) return corsJson({ ok: false, error: "bad_request", message: "nichts zu setzen", build: BUILD_ID }, 400);
-
-        const now = Date.now();
-        const byRole = auth.user.role;
-        const byEmail = auth.user.email || "";
-
-        let rooms = [];
-        if (allRooms) {
-          const r = await env.DB.prepare(`SELECT room FROM room_pins`).all();
-          rooms = (r.results || []).map(x => String(x.room)).filter(Boolean);
-        } else {
-          rooms = [room];
-        }
-
-        let count = 0;
-        for (const rr of rooms) {
-          const cur = await env.DB.prepare(`SELECT room FROM room_controls WHERE room=? LIMIT 1`).bind(rr).first();
-          if (cur) {
-            const parts = [];
-            if (setBlocked !== null) parts.push("blocked=?");
-            if (setMessage !== null) parts.push("message=?");
-            const sql = `UPDATE room_controls SET ${parts.join(",")}, updatedAt=?, updatedByRole=?, updatedByEmail=? WHERE room=?`;
-            const bind = [];
-            if (setBlocked !== null) bind.push(setBlocked);
-            if (setMessage !== null) bind.push(setMessage);
-            bind.push(now, byRole, byEmail, rr);
-            await env.DB.prepare(sql).bind(...bind).run();
-          } else {
-            await env.DB.prepare(
-              `INSERT INTO room_controls(room,blocked,message,updatedAt,updatedByRole,updatedByEmail) VALUES(?,?,?,?,?,?)`
-            ).bind(rr, setBlocked !== null ? setBlocked : 0, setMessage !== null ? setMessage : "", now, byRole, byEmail).run();
-          }
-          count++;
-        }
-
-        if (allRooms) return corsJson({ ok: true, count, build: BUILD_ID }, 200);
-
-        const out = await env.DB.prepare(`SELECT blocked,message,updatedAt,updatedByRole,updatedByEmail FROM room_controls WHERE room=?`).bind(room).first();
-        return corsJson({ ok: true, roomControl: { blocked: !!out?.blocked, message: out?.message || "" }, build: BUILD_ID }, 200);
-      }
-
-// POST /api/admin/logs {adminPassword, limit}
-
-      // ---- ADMIN: Patientensprecher/Deputy/Admin list ----
-      // POST /api/admin/ps/list {adminPassword}
-      if (request.method === "POST" && url.pathname === "/api/admin/ps/list") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        if (!(await checkAdminPassword(env, pw))) {
-          return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        }
-
-        const rows = await env.DB.prepare(`
-          SELECT id,role,role2,firstName,lastName,email,status,createdAt,approvedAt,approvedBy,deleteMarkedAt,deleteAfter
-          FROM auth_users
-          WHERE role IN ('ps','ps_deputy','admin')
-          ORDER BY createdAt DESC
-          LIMIT 500
-        `).all();
-
-        return corsJson({ ok: true, users: rows.results || [], build: BUILD_ID }, 200);
-      }
-
-      // ---- ADMIN: approve user (auto-revoke previous ps/ps_deputy) ----
-      // POST /api/admin/ps/approve {adminPassword,userId}
-if (request.method === "POST" && url.pathname === "/api/admin/ps/approve") {
-  const body = await request.json().catch(() => ({}));
-  const pw = getAdminPasswordFromBody(body);
-  const userId = String(body.userId || "").trim();
-
-  if (!(await checkAdminPassword(env, pw))) {
-    return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-  }
-  if (!userId) {
-    return corsJson({ ok: false, error: "bad_request", message: "userId fehlt", build: BUILD_ID }, 400);
-  }
-
-  const u = await env.DB.prepare(`
-    SELECT id, role, status
-    FROM auth_users
-    WHERE id=?
-    LIMIT 1
-  `).bind(userId).first();
-
-  if (!u) return corsJson({ ok: false, error: "not_found", build: BUILD_ID }, 404);
-
-  const now = Date.now();
-
-  // Wenn PS oder Stellvertreter: alten aktiven derselben Rolle deaktivieren
-  if (u.role === "ps" || u.role === "ps_deputy") {
-    const old = await env.DB.prepare(`
-      SELECT id
-      FROM auth_users
-      WHERE role=? AND status='active' AND id<>?
-      ORDER BY approvedAt DESC, createdAt DESC
-      LIMIT 1
-    `).bind(u.role, u.id).first();
-
-    if (old?.id) {
-      await env.DB.prepare(`
-        UPDATE auth_users SET status='disabled', privacyVisibleUntil=0
-        WHERE id=?
-      `).bind(old.id).run();
-
-      // Sessions / Codes / Rechte weg
-      await env.DB.prepare(`DELETE FROM auth_sessions WHERE userId=?`).bind(old.id).run();
-      await env.DB.prepare(`DELETE FROM auth_login_codes WHERE userId=?`).bind(old.id).run();
-      await env.DB.prepare(`DELETE FROM auth_user_perms WHERE userId=?`).bind(old.id).run();
-
-      await logEvent(env, "admin", "auth_prev_revoked", "admin", { oldUserId: old.id, role: u.role });
     }
-  }
 
-  // neuen freischalten
-  await env.DB.prepare(`
-    UPDATE auth_users
-    SET status='active', approvedAt=?, approvedBy='superadmin', privacyVisibleUntil=0
-    WHERE id=?
-  `).bind(now, u.id).run();
+    function render(){
+      const f = $("filterRole").value;
+      const users = f ? __users.filter(u=>u.role===f) : __users;
 
-  await logEvent(env, "admin", "auth_user_approved", "admin", { userId: u.id, role: u.role });
+      const roleOpts = [
+        ["admin","Admin"],
+        ["ps","Patientensprecher"],
+        ["ps_deputy","Stellvertreter"],
+      ];
 
-  return corsJson({ ok: true, build: BUILD_ID }, 200);
-}
+      const roleSelect = (id, val, allowEmpty=false) => {
+        const opts = (allowEmpty ? [["","—"]] : []).concat(roleOpts).map(([k,lab])=>{
+          const sel = (String(val||"")===k) ? "selected" : "";
+          return `<option value="${esc(k)}" ${sel}>${esc(lab)}</option>`;
+        }).join("");
+        return `<select id="${esc(id)}">${opts}</select>`;
+      };
 
-      if (request.method === "POST" && url.pathname === "/api/admin/ps/code") {
-        const body = await request.json().catch(() => ({}));
-        const pw = getAdminPasswordFromBody(body);
-        const userId = String(body.userId || "").trim();
+      const permBox = (userId, permKey, label, checked) => {
+        const id = `perm__${userId}__${permKey}`;
+        const ch = checked ? "checked" : "";
+        return `<label class="perm"><input type="checkbox" id="${esc(id)}" ${ch}/> <span>${esc(label)}</span></label>`;
+      };
 
-        if (!(await checkAdminPassword(env, pw))) {
-          return corsJson({ ok: false, error: "forbidden", build: BUILD_ID }, 403);
-        }
-        if (!userId) {
-          return corsJson({ ok: false, error: "bad_request", message: "userId fehlt", build: BUILD_ID }, 400);
-        }
+      const rows = users.map(u=>{
+        const approveDisabled = u.status === "active";
+        const codeDisabled = u.status !== "active";
 
-        const u = await env.DB.prepare(`
-          SELECT id,email,role,status
-          FROM auth_users
-          WHERE id=? AND role IN ('ps','ps_deputy','admin')
-          LIMIT 1
-        `).bind(userId).first();
+        const up = __userPermsMap[u.id] || {};
+        const permHtml = (__perms||[]).map(p=>permBox(u.id, p.permKey, p.label, up[p.permKey] !== 0)).join("") || `<div class="muted">Keine Permissions</div>`;
 
-        if (!u) return corsJson({ ok: false, error: "not_found", build: BUILD_ID }, 404);
-        if (u.status !== "active") {
-          return corsJson({ ok: false, error: "not_active", message: "Bitte erst freischalten", build: BUILD_ID }, 409);
-        }
+        // role2 not provided by backend yet -> default empty
+        const role2Val = u.role2 || "";
 
-        const code = gen6Code();
-        const now = Date.now();
-        const expiresAt = now + 30 * 60 * 1000;
+        return `<tr>
+          <td class="mono">${esc(u.id)}</td>
+          <td>${esc(u.firstName||"")} ${esc(u.lastName||"")}</td>
+          <td>${esc(u.email||"")}</td>
+          <td>${roleSelect(`role1__${u.id}`, u.role)}</td>
+          <td>${roleSelect(`role2__${u.id}`, role2Val, true)}</td>
+          <td>${badge(u.status)}</td>
+          <td class="mono">${u.deleteAfter ? esc(fmtDT(u.deleteAfter)) : ""}</td>
+          <td>
+            <div class="permwrap">${permHtml}</div>
+          </td>
+          <td>
+            <div class="rowbtns">
+              <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
+              <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
+              <button onclick="saveUser('${esc(u.id)}')">Speichern</button>
+              <button onclick="disableUser('${esc(u.id)}', true)">Deaktivieren</button>
+              <button onclick="disableUser('${esc(u.id)}', false)">Reaktivieren</button>
+              <button onclick="markDelete('${esc(u.id)}')">Zum Löschen freigeben</button>
+              <button onclick="deleteNow('${esc(u.id)}')">Sofort löschen</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
 
-        const codeHash = await sha256Hex(`${u.email}|${code}|${expiresAt}`);
-        const id = crypto.randomUUID();
-
-        await env.DB.prepare(`
-          INSERT INTO auth_login_codes(id,userId,codeHash,expiresAt,createdAt,createdBy)
-          VALUES(?,?,?,?,?,?)
-        `).bind(id, u.id, codeHash, expiresAt, now, "superadmin").run();
-        // ---- Mail: Login-Code senden (Resend) ----
-try {
-  await sendResendEmail(env, {
-    to: u.email,
-    subject: "Dein Washportal Login-Code",
-    text:
-`Hallo,
-
-dein Login-Code: ${code}
-Gültig bis: ${new Date(expiresAt).toLocaleString("de-DE")}
-
-Viele Grüße
-Washportal`
-  });
-
-  await logEvent(env, "admin", "auth_code_email_sent", "admin", { userId: u.id, role: u.role });
-} catch (e) {
-  // Mail ist optional: Code wird weiterhin im Admin angezeigt
-  await logEvent(env, "admin", "auth_code_email_failed", "admin", {
-    userId: u.id,
-    role: u.role,
-    err: String(e?.message || e)
-  });
-}
-
-
-        await logEvent(env, "admin", "auth_code_created", "admin", { userId: u.id, role: u.role });
-
-        return corsJson({ ok: true, code, expiresAt, role: u.role, build: BUILD_ID }, 200);
-      }
-
-      // -----------------------------
-      // Fallback
-      // -----------------------------
-      return corsJson({
-        ok: false,
-        error: "not_found",
-        build: BUILD_ID,
-        debug: { method: request.method, pathname: url.pathname, fullUrl: url.toString() }
-      }, 404);
-
-    } catch (e) {
-      return corsJson({
-        ok: false,
-        error: "internal_error",
-        message: String(e?.message || e),
-        stack: String(e?.stack || ""),
-        build: BUILD_ID
-      }, 500);
+      $("tbl").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>2. Rolle</th><th>Status</th><th>Rechte</th><th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="8" class="muted">Keine Einträge</td></tr>`}
+          </tbody>
+        </table>
+      `;
     }
-  }
-};
 
+    $("btnLoad").onclick = loadUsers;
+    $("filterRole").onchange = render;
 
-// =====================
-// Helpers
-// =====================
-function corsHeaders(extra = {}) {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    ...extra,
-  };
-}
-function corsJson(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: corsHeaders({ "Content-Type": "application/json; charset=utf-8" }),
-  });
-}
-
-function clampInt(v, min, max, fallback) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.min(max, Math.max(min, Math.trunc(n)));
-}
-
-const RBAC_PERM_CATALOG = [
-{"permKey": "sa.all", "title": "Alles (Notfall / Vollzugriff)", "permGroup": "System", "sort": 1},
-{"permKey": "admin.config.view", "title": "Konfiguration ansehen", "permGroup": "Admin", "sort": 10},
-{"permKey": "admin.config.manage", "title": "Konfiguration speichern/ändern", "permGroup": "Admin", "sort": 20},
-{"permKey": "admin.logs.view", "title": "Logs ansehen", "permGroup": "Admin", "sort": 30},
-{"permKey": "admin.logs.export", "title": "Logs exportieren", "permGroup": "Admin", "sort": 40},
-{"permKey": "admin.users.view", "title": "Benutzer sehen", "permGroup": "Admin", "sort": 50},
-{"permKey": "admin.users.manage", "title": "Benutzer/Rollen verwalten", "permGroup": "Admin", "sort": 60},
-{"permKey": "admin.users.delete", "title": "Benutzer löschen", "permGroup": "Admin", "sort": 70},
-{"permKey": "role.ps.transfer", "title": "PS → PS Übergabe", "permGroup": "Rollen", "sort": 10},
-{"permKey": "role.vs.transfer", "title": "VS → VS Übergabe", "permGroup": "Rollen", "sort": 20},
-{"permKey": "role.cross.transfer", "title": "PS ↔ VS Übergabe", "permGroup": "Rollen", "sort": 30},
-{"permKey": "rooms.view", "title": "Zimmerstatus sehen", "permGroup": "Zimmer", "sort": 10},
-{"permKey": "rooms.manage", "title": "Zimmer sperren/freigeben", "permGroup": "Zimmer", "sort": 20},
-{"permKey": "machines.view", "title": "Maschinenstatus sehen", "permGroup": "Maschinen", "sort": 10},
-{"permKey": "machines.manage", "title": "Maschinen global sperren", "permGroup": "Maschinen", "sort": 20},
-{"permKey": "bookings.view", "title": "Buchungen ansehen", "permGroup": "Buchungen", "sort": 10},
-{"permKey": "bookings.create", "title": "Buchung erstellen", "permGroup": "Buchungen", "sort": 20},
-{"permKey": "bookings.cancel", "title": "Buchung stornieren", "permGroup": "Buchungen", "sort": 30},
-{"permKey": "feedback.view", "title": "Feedback lesen (Admin)", "permGroup": "Feedback", "sort": 10},
-{"permKey": "feedback.reply", "title": "Feedback beantworten (Admin)", "permGroup": "Feedback", "sort": 20},
-{"permKey": "feedback.psvs.view", "title": "Feedback PS/VS lesen", "permGroup": "Feedback", "sort": 30},
-{"permKey": "feedback.psvs.reply", "title": "Feedback PS/VS beantworten", "permGroup": "Feedback", "sort": 40},
-{"permKey": "news.view", "title": "News lesen", "permGroup": "News", "sort": 10},
-{"permKey": "news.edit", "title": "News erstellen/ändern/löschen (Admin)", "permGroup": "News", "sort": 20},
-{"permKey": "news.psvs.view", "title": "News PS/VS lesen", "permGroup": "News", "sort": 30},
-{"permKey": "news.psvs.edit", "title": "News PS/VS erstellen/ändern/löschen", "permGroup": "News", "sort": 40},
-{"permKey": "chat.view", "title": "Chat sehen", "permGroup": "Chat", "sort": 10},
-{"permKey": "chat.write", "title": "Chat schreiben", "permGroup": "Chat", "sort": 20},
-{"permKey": "chat.delete", "title": "Chat moderieren/löschen", "permGroup": "Chat", "sort": 30},
-{"permKey": "protocol.view", "title": "Protokoll sehen", "permGroup": "Protokoll", "sort": 10},
-{"permKey": "protocol.create", "title": "Protokoll erstellen", "permGroup": "Protokoll", "sort": 20},
-{"permKey": "protocol.edit", "title": "Protokoll ändern", "permGroup": "Protokoll", "sort": 30},
-{"permKey": "protocol.delete", "title": "Protokoll löschen", "permGroup": "Protokoll", "sort": 40},
-{"permKey": "dryer.popup.manage", "title": "Trockner Pop-Up Bild verwalten", "permGroup": "Pop-Up", "sort": 10},
-{"permKey": "washer.popup.manage", "title": "Waschmaschinen Pop-Up Bild verwalten", "permGroup": "Pop-Up", "sort": 20},
-{"permKey": "bookings.popup.answer", "title": "Pop-Up beantworten (Buchung)", "permGroup": "Pop-Up", "sort": 30}
-];
-
-async function ensureRbacCatalog(env){
-  // upsert catalog
-  for (const p of RBAC_PERM_CATALOG){
-    await env.DB.prepare(
-      `INSERT INTO auth_permissions(permKey,title,permGroup,sort)
-       VALUES(?,?,?,?)
-       ON CONFLICT(permKey) DO UPDATE SET title=excluded.title, permGroup=excluded.permGroup, sort=excluded.sort`
-    ).bind(p.permKey, p.title, p.permGroup, Number(p.sort||0)).run();
-  }
-
-  // seed default role perms once (if empty)
-  const cnt = await env.DB.prepare(`SELECT COUNT(1) AS c FROM auth_role_perms`).first();
-  if (Number(cnt?.c||0) > 0) return;
-
-  const add = async (role, keys)=> {
-    for (const k of keys){
-      await env.DB.prepare(
-        `INSERT OR IGNORE INTO auth_role_perms(role,permKey,allowed) VALUES(?,?,1)`
-      ).bind(role,k).run();
-    }
-  };
-
-  // Admin: everything admin + PS rights
-  await add("admin", RBAC_PERM_CATALOG.map(p=>p.permKey));
-
-  // PS + VS default: most operational rights, no users.manage, no config.manage by default
-  await add("ps", [
-    "admin.logs.view","admin.bookings.view","admin.bookings.cancel","admin.feedback.view","admin.feedback.reply","admin.roomcontrol.manage",
-    "ps.logs.view","ps.bookings.view","ps.bookings.cancel","ps.feedback.view","ps.feedback.reply","ps.rooms.manage","ps.config.view"
-  ]);
-
-  await add("ps_deputy", [
-    "admin.logs.view","admin.bookings.view","admin.bookings.cancel","admin.feedback.view","admin.feedback.reply","admin.roomcontrol.manage",
-    "ps.logs.view","ps.bookings.view","ps.bookings.cancel","ps.feedback.view","ps.feedback.reply","ps.rooms.manage","ps.config.view"
-  ]);
-
-  await add("moderator", [
-    "admin.feedback.view","admin.feedback.reply",
-    "admin.news.edit"
-  ]);
-
-  await add("user", []);
-}
-
-
-
-function normRoom(v) {
-  const s = String(v || "").trim();
-  if (!/^\d{1,3}$/.test(s)) return "";
-  const n = Number(s);
-  if (!Number.isFinite(n) || n < 0 || n > 400) return "";
-  return String(n);
-}
-function normPin(v) {
-  const s = String(v || "").trim();
-  if (!/^\d{4}$/.test(s)) return "";
-  return s;
-}
-function normType(v) {
-  const s = String(v || "").trim();
-  if (s !== "washer" && s !== "dryer") return "";
-  return s;
-}
-function normMachine(v, max) {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n < 1 || n > max) return 0;
-  return Math.trunc(n);
-}
-
-// =====================
-// Password hashing (PBKDF2)
-// Format: pbkdf2$iters$saltB64$hashB64
-// =====================
-async function hashPassword(pw, iterations = 50000) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(pw),
-    { name: "PBKDF2" },
-    false,
-    ["deriveBits"]
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
-    key,
-    256
-  );
-  const hash = new Uint8Array(bits);
-  return `pbkdf2$${iterations}$${b64(salt)}$${b64(hash)}`;
-}
-
-// ===== RESEND MAIL HELPER (NEU) =====
-async function sendResendEmail(env, { to, subject, text }) {
-  if (!env.RESEND_API_KEY) throw new Error("RESEND_API_KEY missing");
-
-  const from = env.RESEND_FROM || "onboarding@resend.dev";
-
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + env.RESEND_API_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: Array.isArray(to) ? to : [to],
-      subject,
-      text,
-    }),
-  });
-
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data?.message || `Resend error ${r.status}`);
-
-  return data;
-}
-
-async function verifyPassword(pw, stored) {
-  try {
-    const parts = String(stored || "").split("$");
-    if (parts.length !== 4) return false;
-
-    const iters = Number(parts[1]);
-    const salt = ub64(parts[2]);
-    const hashB64 = parts[3];
-
-    if (!Number.isFinite(iters) || iters < 1000) return false;
-
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(String(pw)),
-      { name: "PBKDF2" },
-      false,
-      ["deriveBits"]
-    );
-
-    const bits = await crypto.subtle.deriveBits(
-      { name: "PBKDF2", hash: "SHA-256", salt, iterations: iters },
-      key,
-      256
-    );
-
-    const gotB64 = b64(new Uint8Array(bits));
-    return gotB64 === hashB64;
-  } catch (e) {
-    // wichtig: NIE crashen lassen, einfach false
-    return false;
-  }
-}
-
-
-function b64(u8) {
-  let s = "";
-  for (const c of u8) s += String.fromCharCode(c);
-  return btoa(s);
-}
-function ub64(s) {
-  const bin = atob(s);
-  const u8 = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-  return u8;
-}
-
-// =====================
-// Schema + KV
-// =====================
-async function checkRoomLocked(env, room){
-  try{
-    const r = await env.DB.prepare(`SELECT locked,message FROM room_control WHERE room=?`).bind(room).first();
-    if(r && Number(r.locked)===1){
-      return { locked:true, message:String(r.message||"") };
-    }
-  }catch(e){}
-  return { locked:false, message:"" };
-}
-async function checkMachineLocked(env, machine){
-  try{
-    const r = await env.DB.prepare(`SELECT locked,message FROM machine_control WHERE machine=?`).bind(machine).first();
-    if(r && Number(r.locked)===1){
-      return { locked:true, message:String(r.message||"") };
-    }
-  }catch(e){}
-  return { locked:false, message:"" };
-}
-
-async function createNotification(env, type, targetRolesArr, payloadObj){
-  const id = crypto.randomUUID();
-  const createdAt = Date.now();
-  const targetRoles = JSON.stringify(targetRolesArr||[]);
-  const payload = JSON.stringify(payloadObj||{});
-  await env.DB.prepare(
-    `INSERT INTO notifications(id,createdAt,type,targetRoles,payload,consumedBy) VALUES(?,?,?,?,?,?)`
-  ).bind(id, createdAt, String(type||""), targetRoles, payload, "").run();
-}
-
-async function getPopupConfig(env){
-  const washerEnabled = !!(await kvGet(env, "popup:washer:enabled", false));
-  const washerImage = String(await kvGet(env, "popup:washer:image", "") || "");
-  const dryerEnabled = !!(await kvGet(env, "popup:dryer:enabled", false));
-  const dryerImage = String(await kvGet(env, "popup:dryer:image", "") || "");
-  return { washerEnabled, washerImage, dryerEnabled, dryerImage };
-}
-
-async function ensureSchema(env) {
-  // kv store
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS kv_store(
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    )`
-  ).run();
-
-  // room pins
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS room_pins(
-      room TEXT PRIMARY KEY,
-      pinHash TEXT NOT NULL,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL
-    )`
-  ).run()
-
-  // room controls (message + blocked flag) - independent of PIN
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS room_controls(
-      room TEXT PRIMARY KEY,
-      blocked INTEGER NOT NULL DEFAULT 0,
-      message TEXT NOT NULL DEFAULT '',
-      updatedAt INTEGER NOT NULL DEFAULT 0,
-      updatedByRole TEXT NOT NULL DEFAULT '',
-      updatedByEmail TEXT NOT NULL DEFAULT ''
-    )`
-  ).run();
-;
-
-  // machines
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS machines(
-      type TEXT NOT NULL,
-      machine INTEGER NOT NULL,
-      enabled INTEGER NOT NULL DEFAULT 1,
-      defect INTEGER NOT NULL DEFAULT 0,
-      defectBy TEXT NOT NULL DEFAULT '',
-      defectAt INTEGER NOT NULL DEFAULT 0,
-      lastRoom TEXT NOT NULL DEFAULT '',
-      lastAt INTEGER NOT NULL DEFAULT 0,
-      PRIMARY KEY(type,machine)
-    )`
-  ).run();
-
-  // bookings
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS bookings(
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      machine INTEGER NOT NULL,
-      start INTEGER NOT NULL,
-      end INTEGER NOT NULL,
-      room TEXT NOT NULL,
-      pinHash TEXT NOT NULL,
-      status TEXT NOT NULL,
-      createdAt INTEGER NOT NULL,
-      cancelledAt INTEGER NOT NULL DEFAULT 0,
-      releasedAt INTEGER NOT NULL DEFAULT 0
-    )`
-  ).run();
-
-  await env.DB.prepare(
-    `CREATE INDEX IF NOT EXISTS idx_bookings_type_machine_time
-     ON bookings(type, machine, start, end, status)`
-  ).run();
-
-  // logs
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS logs(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ts INTEGER NOT NULL,
-      actor TEXT NOT NULL,
-      action TEXT NOT NULL,
-      room TEXT NOT NULL,
-      meta TEXT NOT NULL
-    )`
-  ).run();
-
-  // feedback threads/messages
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS feedback_threads(
-      id TEXT PRIMARY KEY,
-      room TEXT NOT NULL,
-      pinHash TEXT NOT NULL,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL,
-      lastUserAt INTEGER NOT NULL DEFAULT 0,
-      lastAdminAt INTEGER NOT NULL DEFAULT 0,
-      userUnread INTEGER NOT NULL DEFAULT 0,
-      adminUnread INTEGER NOT NULL DEFAULT 0,
-      allowUserView INTEGER NOT NULL DEFAULT 1
-    )`
-  ).run();
-
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS feedback_msgs(
-      id TEXT PRIMARY KEY,
-      threadId TEXT NOT NULL,
-      sender TEXT NOT NULL,
-      message TEXT NOT NULL,
-      ts INTEGER NOT NULL,
-      visibleToUser INTEGER NOT NULL DEFAULT 1,
-      readByUser INTEGER NOT NULL DEFAULT 0,
-      readByAdmin INTEGER NOT NULL DEFAULT 0
-    )`
-  ).run();
-
-  await env.DB.prepare(
-    `CREATE INDEX IF NOT EXISTS idx_feedback_thread_ts
-     ON feedback_msgs(threadId, ts)`
-  ).run();
-
-  // news seen
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS news_seen(
-      room TEXT NOT NULL,
-      pinHash TEXT NOT NULL,
-      newsVersion INTEGER NOT NULL,
-      ts INTEGER NOT NULL,
-      PRIMARY KEY(room,pinHash,newsVersion)
-    )`
-  ).run();
-
-  // auth users (admins + patient speakers)
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS auth_users(
-      id TEXT PRIMARY KEY,
-      role TEXT NOT NULL, -- 'super_admin' | 'admin' | 'ps' | 'ps_deputy'
-      firstName TEXT NOT NULL DEFAULT '',
-      lastName TEXT NOT NULL DEFAULT '',
-      email TEXT NOT NULL UNIQUE,
-      passwordHash TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'active' | 'disabled' | 'pending_delete'
-      createdAt INTEGER NOT NULL,
-      approvedAt INTEGER NOT NULL DEFAULT 0,
-      approvedBy TEXT NOT NULL DEFAULT '',
-      privacyVisibleUntil INTEGER NOT NULL DEFAULT 0
-    )`
-  ).run();
+    window.approve = approve;
+    window.genCode = genCode;
+    window.saveUser = saveUser;
+    window.disableUser = disableUser;
+    window.markDelete = markDelete;
+    window.deleteNow = deleteNow;
+    window.saveUser = saveUser;
 
   
-  // migrate auth_users: add optional columns if missing
-  try { await env.DB.prepare(`ALTER TABLE auth_users ADD COLUMN role2 TEXT NOT NULL DEFAULT ''`).run(); } catch(e) {}
-  try { await env.DB.prepare(`ALTER TABLE auth_users ADD COLUMN passwordHash TEXT NOT NULL DEFAULT ''`).run(); } catch(e) {}
-  try { await env.DB.prepare(`ALTER TABLE auth_users ADD COLUMN pwUpdatedAt INTEGER NOT NULL DEFAULT 0`).run(); } catch(e) {}
-  try { await env.DB.prepare(`ALTER TABLE auth_users ADD COLUMN deleteMarkedAt INTEGER NOT NULL DEFAULT 0`).run(); } catch(e) {}
-  try { await env.DB.prepare(`ALTER TABLE auth_users ADD COLUMN deleteAfter INTEGER NOT NULL DEFAULT 0`).run(); } catch(e) {}
 
-await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS auth_login_codes(
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      codeHash TEXT NOT NULL,
-      createdAt INTEGER NOT NULL,
-      expiresAt INTEGER NOT NULL,
-      usedAt INTEGER NOT NULL DEFAULT 0
-    )`
-  ).run();
+// Delete user (soft delete)
+async function authDeleteUser(userId){
+  if(!confirm("User wirklich löschen? (soft delete)")) return;
+  try{
+    await jpostAuth("/api/auth/admin/users/delete",{userId});
+    toast("✅ User gelöscht");
+    if (typeof authLoadUsers === "function") await authLoadUsers();
+  }catch(e){
+    toast("⛔ Löschen fehlgeschlagen");
+    console.warn(e);
+  }
+}
 
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS auth_sessions(
-      tokenHash TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT '',
-      createdAt INTEGER NOT NULL,
-      expiresAt INTEGER NOT NULL
-    )`
-  ).run();
+</script>
 
-  // migrate auth_sessions: add role column if missing (older schema)
-  try {
-    const cols = await env.DB.prepare(`PRAGMA table_info(auth_sessions)`).all();
-    const hasRole = (cols.results || []).some(r => r.name === "role");
-    if (!hasRole) {
-      await env.DB.prepare(`ALTER TABLE auth_sessions ADD COLUMN role TEXT NOT NULL DEFAULT ''`).run();
-    }
-  } catch (_) {}
 
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS auth_perms(
-      permKey TEXT PRIMARY KEY,
-      label TEXT NOT NULL
-    )`
-  ).run();
+<script>
+(function(){
+  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // same origin
 
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS auth_user_perms(
-      userId TEXT NOT NULL,
-      permKey TEXT NOT NULL,
-      allowed INTEGER NOT NULL DEFAULT 1,
-      PRIMARY KEY(userId, permKey)
-    )`
-  ).run();
-
-  // seed known perms
-  const permCountRow = await env.DB.prepare(`SELECT COUNT(*) AS c FROM auth_perms`).first();
-  const permCount = Number(permCountRow?.c || 0);
-  if (permCount === 0) {
-    const perms = [
-    ["sa.all","Alles (Notfall / Vollzugriff)","System",1],
-    ["admin.config.view","Konfiguration ansehen","Admin",10],
-    ["admin.config.manage","Konfiguration speichern/ändern","Admin",20],
-    ["admin.logs.view","Logs ansehen","Admin",30],
-    ["admin.logs.export","Logs exportieren","Admin",40],
-    ["admin.users.view","Benutzer sehen","Admin",50],
-    ["admin.users.manage","Benutzer/Rollen verwalten","Admin",60],
-    ["admin.users.delete","Benutzer löschen","Admin",70],
-    ["role.ps.transfer","PS → PS Übergabe","Rollen",10],
-    ["role.vs.transfer","VS → VS Übergabe","Rollen",20],
-    ["role.cross.transfer","PS ↔ VS Übergabe","Rollen",30],
-    ["rooms.view","Zimmerstatus sehen","Zimmer",10],
-    ["rooms.manage","Zimmer sperren/freigeben","Zimmer",20],
-    ["machines.view","Maschinenstatus sehen","Maschinen",10],
-    ["machines.manage","Maschinen global sperren","Maschinen",20],
-    ["bookings.view","Buchungen ansehen","Buchungen",10],
-    ["bookings.create","Buchung erstellen","Buchungen",20],
-    ["bookings.cancel","Buchung stornieren","Buchungen",30],
-    ["feedback.view","Feedback lesen (Admin)","Feedback",10],
-    ["feedback.reply","Feedback beantworten (Admin)","Feedback",20],
-    ["feedback.psvs.view","Feedback PS/VS lesen","Feedback",30],
-    ["feedback.psvs.reply","Feedback PS/VS beantworten","Feedback",40],
-    ["news.view","News lesen","News",10],
-    ["news.edit","News erstellen/ändern/löschen (Admin)","News",20],
-    ["news.psvs.view","News PS/VS lesen","News",30],
-    ["news.psvs.edit","News PS/VS erstellen/ändern/löschen","News",40],
-    ["chat.view","Chat sehen","Chat",10],
-    ["chat.write","Chat schreiben","Chat",20],
-    ["chat.delete","Chat moderieren/löschen","Chat",30],
-    ["protocol.view","Protokoll sehen","Protokoll",10],
-    ["protocol.create","Protokoll erstellen","Protokoll",20],
-    ["protocol.edit","Protokoll ändern","Protokoll",30],
-    ["protocol.delete","Protokoll löschen","Protokoll",40],
-    ["dryer.popup.manage","Trockner Pop-Up Bild verwalten","Pop-Up",10],
-    ["washer.popup.manage","Waschmaschinen Pop-Up Bild verwalten","Pop-Up",20],
-    ["bookings.popup.answer","Pop-Up beantworten (Buchung)","Pop-Up",30]
-  ];
-    for (const [k,label] of perms) {
-      await env.DB.prepare(`INSERT INTO auth_perms(permKey,label) VALUES(?,?)`).bind(k,label).run();
-    }
+  function logLine(...args){
+    const el = document.getElementById("saLog");
+    const msg = args.map(a=>{
+      if (typeof a === "string") return a;
+      try { return JSON.stringify(a, null, 2); } catch(e){ return String(a); }
+    }).join(" ");
+    if(el) el.textContent += (el.textContent ? "\n" : "") + msg;
+    console.log("[SA]", ...args);
   }
 
-  // seed machines if missing
-  const row = await env.DB.prepare(`SELECT COUNT(*) AS c FROM machines`).first();
-  const c = Number(row?.c || 0);
-  if (c === 0) {
-    // 4 washers + 4 dryers
-    for (let i = 1; i <= 4; i++) {
-      await env.DB.prepare(`INSERT INTO machines(type,machine,enabled,defect) VALUES('washer',?,1,0)`).bind(i).run();
-    }
-    for (let i = 1; i <= 4; i++) {
-      await env.DB.prepare(`INSERT INTO machines(type,machine,enabled,defect) VALUES('dryer',?,1,0)`).bind(i).run();
-    }
+  function getPw(){
+    const pwEl = document.getElementById("adminPw");
+    return (pwEl ? pwEl.value : "").trim();
   }
-// seed config default if missing
-  const cfg = await kvGet(env, "config");
-  if (!cfg) {
-    const def = {
-      daysPast: 1,
-      daysFuture: 6,
-      // washerHours = checkbox selection (default: 6,8,...,22)
-      washerHours: [6, 8, 10, 12, 14, 16, 18, 20, 22],
-      dryerMinutes: 120, // 60/90/120 selectable in admin
-      userDefectEnabled: true,
-      userDefectAllowed: {
-        washer: { "1": true, "2": true, "3": true, "4": true },
-        dryer: { "1": true, "2": true, "3": true, "4": true },
-      },
-      newsEnabled: false,
-      newsText: "",
-      newsVersion: 0,
+
+  async function postJson(path, body){
+    const res = await fetch(API_BASE + path, {
+      method:"POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body||{})
+    });
+    const text = await res.text();
+    let data = null;
+    try{ data = JSON.parse(text); }catch(e){ data = { ok:false, error:"bad_json", raw:text }; }
+    if(!res.ok || data.ok === false){
+      throw { status: res.status, data };
+    }
+    return data;
+  }
+
+  async function getJson(path){
+    const res = await fetch(API_BASE + path, { method:"GET" });
+    const text = await res.text();
+    let data = null;
+    try{ data = JSON.parse(text); }catch(e){ data = { ok:false, error:"bad_json", raw:text }; }
+    if(!res.ok || data.ok === false){
+      throw { status: res.status, data };
+    }
+    return data;
+  }
+
+  let SNAP = null;
+
+  function permTitle(p){ return p.title || p.label || p.permKey; }
+  function permGroup(p){ return p.permGroup || p.category || "Sonstiges"; }
+
+  function buildRoleMap(role){
+    const map = {};
+    const rp = (SNAP && (SNAP.rolePerms || SNAP.rolePerms || [])) || [];
+    for(const r of rp){
+      if(String(r.role||"").toLowerCase() === String(role||"").toLowerCase()){
+        map[r.permKey] = !!r.allowed;
+      }
+    }
+    return map;
+  }
+
+  function renderRole(){
+    const card = document.getElementById("rbacCard");
+    if(!card) return;
+    if(!SNAP){ card.style.display="none"; return; }
+    card.style.display="block";
+
+    const role = document.getElementById("roleSelect").value;
+    const current = buildRoleMap(role);
+
+    const permsCatalog = SNAP.permsCatalog || SNAP.perms || SNAP.catalog || [];
+    const groups = {};
+    for(const p of permsCatalog){
+      const g = permGroup(p);
+      (groups[g] ||= []).push(p);
+    }
+    const groupNames = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+    for(const g of groupNames){
+      groups[g].sort((a,b)=>{
+        const sa = Number(a.sort||0), sb = Number(b.sort||0);
+        if(sa!==sb) return sa-sb;
+        return String(permTitle(a)).localeCompare(String(permTitle(b)));
+      });
+    }
+
+    const wrap = document.getElementById("roleGroups");
+    wrap.innerHTML = "";
+    for(const g of groupNames){
+      const det = document.createElement("details");
+      det.open = true;
+      det.innerHTML = `<summary>${g}</summary>`;
+      const list = document.createElement("div");
+      list.className = "permList";
+      for(const p of groups[g]){
+        const key = p.permKey;
+        const row = document.createElement("label");
+        row.className = "permRow";
+        row.innerHTML = `
+          <input type="checkbox" data-permkey="${key}" ${current[key] ? "checked":""}/>
+          <span class="permTitle">${permTitle(p)}</span>
+          <span class="permKey">${key}</span>
+        `;
+        list.appendChild(row);
+      }
+      det.appendChild(list);
+      wrap.appendChild(det);
+    }
+    logLine("Rolle geladen:", role, "Perms im Katalog:", permsCatalog.length);
+  }
+
+  async function loadSnapshot(){
+    const pw = getPw();
+    if(!pw){
+      alert("Bitte SA Passwort eingeben");
+      return;
+    }
+    logLine("Lade RBAC Snapshot...");
+    const snap = await postJson("/api/admin/auth/rbac/snapshot", { adminPassword: pw });
+    // normalize
+    SNAP = {
+      ...snap,
+      permsCatalog: snap.permsCatalog || snap.perms || [],
+      rolePerms: snap.rolePerms || snap.rolePerms || []
     };
-    await kvSet(env, "config", JSON.stringify(def));
+    renderRole();
   }
 
-// RBAC catalog + role permissions
-await env.DB.prepare(`
-  CREATE TABLE IF NOT EXISTS auth_permissions(
-    permKey TEXT PRIMARY KEY,
-    title TEXT NOT NULL DEFAULT '',
-    permGroup TEXT NOT NULL DEFAULT '',
-    sort INTEGER NOT NULL DEFAULT 0
-  )
-`).run();
+  async function saveRole(){
+    const pw = getPw();
+    if(!pw){ alert("Bitte SA Passwort eingeben"); return; }
+    if(!SNAP){ await loadSnapshot(); }
+    const role = document.getElementById("roleSelect").value;
+    const changes = {};
+    document.querySelectorAll("#roleGroups input[type='checkbox'][data-permkey]").forEach(cb=>{
+      changes[cb.getAttribute("data-permkey")] = cb.checked ? 1 : 0;
+    });
+    logLine("Speichere Rolle:", role, "Änderungen:", Object.keys(changes).length);
+    const res = await postJson("/api/admin/auth/rbac/role/bulk", { adminPassword: pw, role, changes });
+    logLine("OK gespeichert.", res);
+    await loadSnapshot();
+  }
 
-await env.DB.prepare(`
-  CREATE TABLE IF NOT EXISTS auth_role_perms(
-    role TEXT NOT NULL,
-    permKey TEXT NOT NULL,
-    allowed INTEGER NOT NULL DEFAULT 1,
-    PRIMARY KEY(role, permKey)
-  )
-`).run();
-
-await env.DB.prepare(`
-  CREATE TABLE IF NOT EXISTS machine_control(
-    machine TEXT PRIMARY KEY,
-    locked INTEGER NOT NULL DEFAULT 0,
-    message TEXT NOT NULL DEFAULT '',
-    updatedAt INTEGER NOT NULL DEFAULT 0,
-    updatedBy TEXT NOT NULL DEFAULT ''
-  )
-`).run();
-
-await env.DB.prepare(`
-  CREATE TABLE IF NOT EXISTS protocol_entries(
-    id TEXT PRIMARY KEY,
-    createdAt INTEGER NOT NULL DEFAULT 0,
-    updatedAt INTEGER NOT NULL DEFAULT 0,
-    createdBy TEXT NOT NULL DEFAULT '',
-    title TEXT NOT NULL DEFAULT '',
-    body TEXT NOT NULL DEFAULT ''
-  )
-`).run();
-
-await env.DB.prepare(`
-  CREATE TABLE IF NOT EXISTS notifications(
-    id TEXT PRIMARY KEY,
-    createdAt INTEGER NOT NULL DEFAULT 0,
-    type TEXT NOT NULL DEFAULT '',
-    targetRoles TEXT NOT NULL DEFAULT '',
-    payload TEXT NOT NULL DEFAULT '',
-    consumedBy TEXT NOT NULL DEFAULT ''
-  )
-`).run();
-
-// add target for feedback routing (safe on existing DB)
-try { await env.DB.prepare(`ALTER TABLE feedback_threads ADD COLUMN target TEXT NOT NULL DEFAULT 'psvs'`).run(); } catch(e){}
-}
-
-async function kvGet(env, key) {
-  const row = await env.DB.prepare(`SELECT value FROM kv_store WHERE key=? LIMIT 1`).bind(key).first();
-  return row?.value || "";
-}
-async function kvSet(env, key, value) {
-  await env.DB.prepare(`INSERT INTO kv_store(key,value) VALUES(?,?)
-                        ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
-    .bind(key, String(value)).run();
-}
-
-// =====================
-// Config
-// =====================
-async function getConfig(env) {
-  const raw = await kvGet(env, "config");
-  let cfg = {};
-  try { cfg = JSON.parse(raw || "{}"); } catch { cfg = {}; }
-
-  // ensure shape
-  cfg.daysPast = clampInt(cfg.daysPast, 0, 30, 1);
-  cfg.daysFuture = clampInt(cfg.daysFuture, 0, 30, 6);
-  cfg.washerHours = Array.isArray(cfg.washerHours) ? cfg.washerHours.map(Number).filter(n => n>=0 && n<=23) : [6,8,10,12,14,16,18,20,22];
-  cfg.washerHours.sort((a,b)=>a-b);
-  cfg.dryerMinutes = [60,90,120].includes(Number(cfg.dryerMinutes)) ? Number(cfg.dryerMinutes) : 120;
-  cfg.userDefectEnabled = !!cfg.userDefectEnabled;
-  cfg.userDefectAllowed = cfg.userDefectAllowed || { washer:{}, dryer:{} };
-  cfg.newsEnabled = !!cfg.newsEnabled;
-  cfg.newsText = String(cfg.newsText || "");
-  cfg.newsVersion = Number(cfg.newsVersion || 0);
-
-  // expose: fixed washer slot duration 2h
-  cfg.washerSlotMinutes = 120;
-
-  // admin present?
-  cfg.hasAdmin = !!(await kvGet(env, "adminPwHash"));
-
-  return cfg;
-}
-
-// =====================
-// Machines
-// =====================
-async function listMachines(env) {
-  const rows = await env.DB.prepare(
-    `SELECT type,machine,enabled,defect,defectBy,defectAt,lastRoom,lastAt
-     FROM machines ORDER BY type ASC, machine ASC`
-  ).all();
-  return rows.results || [];
-}
-async function getMachine(env, type, machine) {
-  return await env.DB.prepare(
-    `SELECT type,machine,enabled,defect,defectBy,defectAt,lastRoom,lastAt
-     FROM machines WHERE type=? AND machine=? LIMIT 1`
-  ).bind(type, machine).first();
-}
-async function setLastRoom(env, type, machine, room) {
-  const now = Date.now();
-  await env.DB.prepare(`UPDATE machines SET lastRoom=?, lastAt=? WHERE type=? AND machine=?`)
-    .bind(String(room), now, type, machine).run();
-}
-async function setDefect(env, type, machine, defect, defectBy, defectAt) {
-  await env.DB.prepare(`UPDATE machines SET defect=?, defectBy=?, defectAt=? WHERE type=? AND machine=?`)
-    .bind(defect ? 1 : 0, String(defectBy || ""), Number(defectAt || 0), type, machine).run();
-}
-
-// =====================
-// Auth
-// =====================
-async function sha256Hex(s) {
-  const enc = new TextEncoder().encode(String(s));
-  const hash = await crypto.subtle.digest("SHA-256", enc);
-  return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function makeSessionToken() {
-  // 32 bytes random -> base64url
-  const a = new Uint8Array(32);
-  crypto.getRandomValues(a);
-  let b64 = btoa(String.fromCharCode(...a));
-  // base64url
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function makeShortCode() {
-  // 8 chars, easy to read
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const a = new Uint8Array(8);
-  crypto.getRandomValues(a);
-  return [...a].map(x => alphabet[x % alphabet.length]).join("");
-}
-
-async function authFromRequest(request, env) {
-  const h = request.headers.get("authorization") || request.headers.get("Authorization") || "";
-  const m = /^Bearer\s+(.+)$/i.exec(h);
-  if (!m) return null;
-  const token = m[1].trim();
-  if (!token) return null;
-
-  const tokenHash = await sha256Hex(token);
-  const now = Date.now();
-
-  const sess = await env.DB.prepare(
-    `SELECT userId,expiresAt FROM auth_sessions WHERE tokenHash=? LIMIT 1`
-  ).bind(tokenHash).first();
-
-  if (!sess) return null;
-  if (now > Number(sess.expiresAt || 0)) return null;
-
-  const user = await env.DB.prepare(
-    `SELECT id,role,status,firstName,lastName,email FROM auth_users WHERE id=? LIMIT 1`
-  ).bind(sess.userId).first();
-
-  if (!user || user.status !== "active") return null;
-
-  const perms = await env.DB.prepare(
-    `SELECT permKey,allowed FROM auth_user_perms WHERE userId=?`
-  ).bind(user.id).all();
-
-  const permMap = {};
-  for (const r of (perms.results || [])) permMap[r.permKey] = !!r.allowed;
-
-  
-  // merge role perms + user extra perms
-  await ensureRbacCatalog(env);
-
-  const role = String(user.role || "user");
-  const roleRows = await env.DB.prepare(
-    `SELECT permKey,allowed FROM auth_role_perms WHERE role=?`
-  ).bind(role).all();
-
-  const roleMap = {};
-  for (const r of (roleRows.results || [])) roleMap[r.permKey] = !!r.allowed;
-
-  const effective = { ...roleMap, ...permMap };
-
-  // convenience: if SA was assigned as a normal role, treat sa.all as "everything"
-  // enforcement happens in authHasAnyPerm via explicit checks.
-  user.perms = effective;
-
-
-  return { user, perms: user.perms || permMap };
-
-// -----------------------------
-// Auth helpers used by many endpoints
-// -----------------------------
-function normalizeRole(r){
-  r = String(r||"user").toLowerCase();
-  if (r === "superadmin" || r === "super_admin") return "sa";
-  if (r === "ps_deputy") return "vs";
-  return r;
-}
-
-// Backward-compatible perm aliases (old keys -> new keys and vice versa)
-const PERM_ALIASES = {
-  "rooms.manage": ["admin.roomcontrol.manage","ps.rooms.manage"],
-  "rooms.view": ["admin.roomcontrol.view"],
-  "machines.manage": ["admin.machines.manage"],
-  "machines.view": ["admin.machines.view"],
-  "bookings.view": ["admin.bookings.view"],
-  "bookings.cancel": ["admin.bookings.cancel"],
-  "admin.logs.view": ["admin.logs.view"],
-  "admin.logs.export": ["admin.logs.export"],
-  "feedback.view": ["admin.feedback.view"],
-  "feedback.reply": ["admin.feedback.reply","admin.feedback.delete"],
-  "news.edit": ["admin.news.edit"],
-  "admin.users.manage": ["admin.users.manage"],
-  "admin.users.view": ["admin.users.view"],
-  "admin.users.delete": ["admin.users.delete"],
-  "feedback.psvs.view": ["ps.feedback.view"],
-  "news.psvs.view": ["ps.news.view"],
-  "admin.config.view": ["admin.config.view"],
-  "admin.config.manage": ["admin.config.manage"]
-};
-
-const PERM_ALIASES_REV = (() => {
-  const rev = {};
-  for (const [k, arr] of Object.entries(PERM_ALIASES)) {
-    for (const a of (arr||[])) {
-      (rev[a] ||= []).push(k);
+  // Wire
+  document.getElementById("btnApiTest")?.addEventListener("click", async ()=>{
+    try{
+      const s = await getJson("/api/_status");
+      logLine("API OK:", s);
+    }catch(e){
+      logLine("API Test FEHLER:", e);
+      alert("API Test fehlgeschlagen – siehe Log");
     }
-  }
-  return rev;
+  });
+
+  document.getElementById("btnRbacLoad")?.addEventListener("click", async ()=>{
+    try{ await loadSnapshot(); }
+    catch(e){ logLine("Snapshot FEHLER:", e); alert("Snapshot fehlgeschlagen – siehe Log"); }
+  });
+
+  document.getElementById("btnRoleReload")?.addEventListener("click", async ()=>{
+    try{ await loadSnapshot(); }
+    catch(e){ logLine("Rolle laden FEHLER:", e); alert("Rolle laden fehlgeschlagen – siehe Log"); }
+  });
+
+  document.getElementById("btnRoleSave")?.addEventListener("click", async ()=>{
+    try{ await saveRole(); }
+    catch(e){ logLine("Speichern FEHLER:", e); alert("Speichern fehlgeschlagen – siehe Log"); }
+  });
+
+  document.getElementById("roleSelect")?.addEventListener("change", ()=>{
+    try{ renderRole(); }catch(e){ logLine("Render error:", e); }
+  });
+
+  logLine("Admin-User RBAC Editor bereit. Pfad:", location.pathname);
 })();
+</script>
 
-async function authMe(request, env){
-  const au = await authFromRequest(request, env);
-  if (!au) return { ok:false, error:"unauthorized" };
-  // attach effective perms onto the user object for convenience
-  au.user.role = normalizeRole(au.user.role);
-  au.user.perms = au.perms || au.user.perms || {};
-  return { ok:true, user: au.user, perms: au.user.perms };
-}
-
-function hasPerm(user, key){
-  const m = user?.perms || {};
-  if (m["sa.all"]) return true;
-  if (m[key]) return true;
-  for (const a of (PERM_ALIASES[key] || [])) if (m[a]) return true;
-  for (const a of (PERM_ALIASES_REV[key] || [])) if (m[a]) return true;
-  return false;
-}
-
-async function authHasAnyPerm(env, user, keys){
-  for (const k of (keys||[])) if (hasPerm(user, k)) return true;
-  return false;
-}
-
-}
-
-function getAdminPasswordFromBody(body){
-  // accept multiple key names to be robust against old/new UIs
-  return String(body?.adminPassword || body?.adminPw || body?.password || body?.pw || "").trim();
-}
-
-async function checkAdminPassword(env, pw) {
-  // if no adminPwHash -> allow initial once and set
-  const stored = await kvGet(env, "adminPwHash");
-  if (!stored) {
-    if (pw === "initial") {
-      const h = await hashPassword("initial", 50000);
-      await kvSet(env, "adminPwHash", h);
-      return true;
-    }
-    return false;
-  }
-  return await verifyPassword(pw, stored);
-}
-
-async function checkStationPin(env, stationPin) {
-  const stored = await kvGet(env, "stationPinHash");
-  if (!stored) return false; // must be set by admin
-  return await verifyPassword(stationPin, stored);
-}
-
-function maskEmail(email) {
-  const e = String(email || "").trim();
-  const parts = e.split("@");
-  if (parts.length !== 2) return e;
-  const [u, d] = parts;
-  if (!u) return e;
-  return `${u.slice(0, 1)}***@${d}`;
-}
-
-function gen6Code() {
-  return String(Math.floor(100000 + Math.random() * 900000)); // 6-stellig
-}
-
-async function ensureRoomAuth(env, room, pin) {
-  // Basic attempt limiter (3 per 10 minutes)
-  const now = Date.now();
-  const since = now - 10 * 60 * 1000;
-  const attempts = await env.DB.prepare(
-    `SELECT COUNT(*) AS c FROM logs
-     WHERE action='pin_failed' AND room=? AND ts>=?`
-  ).bind(room, since).first();
-  if (Number(attempts?.c || 0) >= 3) return false;
-
-  // In v2 kann ein Zimmer mehrere PINs haben.
-  // Wir suchen: existiert irgendein Hash für dieses Zimmer, der zu pin passt?
-  const rows = await env.DB.prepare(
-    `SELECT pinHash FROM room_pins_v2 WHERE room=?`
-  ).bind(room).all();
-
-  const list = rows?.results || [];
-
-  for (const r of list) {
-    if (await verifyPassword(pin, r.pinHash)) {
-      // Treffer: updatedAt pflegen
-      await env.DB.prepare(
-        `UPDATE room_pins_v2 SET updatedAt=? WHERE room=? AND pinHash=?`
-      ).bind(now, room, r.pinHash).run();
-      return true;
-    }
-  }
-
-  // Kein Treffer -> neuer PIN für dieses Zimmer registrieren
-  const h = await hashPassword(pin, 50000);
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO room_pins_v2(room,pinHash,createdAt,updatedAt) VALUES(?,?,?,?)`
-  ).bind(room, h, now, now).run();
-
-  return true;
-}
-
-
-async function getRoomPinHash(env, room, pin) {
-  const rows = await env.DB.prepare(
-    `SELECT pinHash FROM room_pins_v2 WHERE room=?`
-  ).bind(room).all();
-
-  for (const r of (rows?.results || [])) {
-    if (await verifyPassword(pin, r.pinHash)) return r.pinHash;
-  }
-  return "";
-}
-
-
-// =====================
-// Window (ms)
-/// daysPast includes today-1 etc.
-// =====================
-function computeTimeWindow(nowMs, daysPast, daysFuture) {
-  const dayMs = 24 * 60 * 60 * 1000;
-  const from = nowMs - daysPast * dayMs;
-  const to = nowMs + daysFuture * dayMs;
-  return { from, to };
-}
-
-// =====================
-// Logs
-// =====================
-async function logEvent(env, actor, action, room, meta) {
-  const ts = Date.now();
-  await env.DB.prepare(
-    `INSERT INTO logs(ts,actor,action,room,meta) VALUES(?,?,?,?,?)`
-  ).bind(ts, String(actor), String(action), String(room), JSON.stringify(meta || {})).run();
-}
+</body>
+</html>
