@@ -22,7 +22,13 @@
     .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
     .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
   
-/* Role Perm Editor */
+/* Roles-only: hide per-user rights column */
+th.colPerms, td.colPerms, .colPerms, .permsCol, .permCol { display:none !important; }
+td.rights, th.rights, td.perms, th.perms, .rights, .perms { display:none !important; }
+label.perm, .permToggle, input[data-perm], input.permCb { display:none !important; }
+
+
+/* Role editor */
 #rolePermsCard details{ background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px; margin:10px 0; }
 #rolePermsCard summary{ cursor:pointer; font-weight:600; }
 #rolePermsCard .permList{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
@@ -370,58 +376,41 @@ async function authDeleteUser(userId){
 }
 
 
-
-// ===== Role Permissions Editor (SA) =====
+// ===== Roles-only RBAC Role Editor (SA) =====
 let __rbacSnap = null;
 
-async function __rbacPost(path, body){
-  const res = await fetch(API_BASE + path, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body||{})
-  });
-  const t = await res.text();
-  let d = null;
-  try{ d = JSON.parse(t); } catch(e){ d = { ok:false, error:"bad_json", raw:t }; }
-  if(!res.ok || d?.ok===false) throw { status: res.status, data: d };
-  return d;
-}
+function __permTitle(p){ return p.title || p.label || p.permKey; }
+function __permGroup(p){ return p.permGroup || p.category || "Sonstiges"; }
 
-function __adminPw(){
-  // original page has an input for SA password; try common ids first:
-  const el = document.getElementById("adminPw") || document.getElementById("adminPass") || document.querySelector("input[type='password']");
-  return (el?.value||"").trim();
-}
-
-async function __loadRbac(){
-  const pw = __adminPw();
-  if(!pw){ toast?.("Bitte SA Passwort eingeben.","err"); return null; }
-  const snap = await __rbacPost("/api/admin/auth/rbac/snapshot", { adminPassword: pw });
+async function __loadRbacSnapshot(){
+  const pwEl = document.getElementById("adminPw") || document.querySelector("input[type='password']");
+  const adminPassword = (pwEl?.value || "").trim();
+  if(!adminPassword){ alert("Bitte Super-Admin Passwort eingeben"); return null; }
+  const snap = await jpost("/api/admin/auth/rbac/snapshot", { adminPassword });
   __rbacSnap = {
     ...snap,
     permsCatalog: snap.permsCatalog || snap.perms || [],
     rolePerms: snap.rolePerms || []
   };
-  document.getElementById("rolePermsCard").style.display = "block";
-  __renderRolePerms();
   return __rbacSnap;
 }
 
-function __permTitle(p){ return p.title || p.label || p.permKey; }
-function __permGroup(p){ return p.permGroup || p.category || "Sonstiges"; }
-
 function __rolePermMap(role){
-  const map = {};
+  const m = {};
   for(const rp of (__rbacSnap?.rolePerms||[])){
-    if(String(rp.role||"").toLowerCase() === String(role||"").toLowerCase()){
-      map[rp.permKey] = !!rp.allowed;
+    if(String(rp.role||"").toLowerCase() === String(role).toLowerCase()){
+      m[rp.permKey] = !!rp.allowed;
     }
   }
-  return map;
+  return m;
 }
 
-function __renderRolePerms(){
-  if(!__rbacSnap) return;
+function __renderRoleEditor(){
+  const card = document.getElementById("rolePermsCard");
+  if(!card) return;
+  if(!__rbacSnap){ card.style.display="none"; return; }
+  card.style.display="block";
+
   const role = document.getElementById("roleSelect").value;
   const current = __rolePermMap(role);
 
@@ -464,9 +453,9 @@ function __renderRolePerms(){
 }
 
 async function __saveRolePerms(){
-  const pw = __adminPw();
-  if(!pw){ toast?.("Bitte SA Passwort eingeben.","err"); return; }
-  if(!__rbacSnap){ await __loadRbac(); }
+  const pwEl = document.getElementById("adminPw") || document.querySelector("input[type='password']");
+  const adminPassword = (pwEl?.value || "").trim();
+  if(!adminPassword){ alert("Bitte Super-Admin Passwort eingeben"); return; }
   const role = document.getElementById("roleSelect").value;
 
   const changes = {};
@@ -474,31 +463,49 @@ async function __saveRolePerms(){
     changes[cb.getAttribute("data-permkey")] = cb.checked ? 1 : 0;
   });
 
-  await __rbacPost("/api/admin/auth/rbac/role/bulk", { adminPassword: pw, role, changes });
-  toast?.("Rolle gespeichert.","ok");
-  await __loadRbac();
+  await jpost("/api/admin/auth/rbac/role/bulk", { adminPassword, role, changes });
+  const msg = document.getElementById("msg");
+  if(msg) msg.textContent = "Rolle gespeichert.";
+  await __loadRbacSnapshot();
+  __renderRoleEditor();
 }
 
-// Wire buttons safely after DOM ready
-document.addEventListener("DOMContentLoaded", ()=>{
-  const r = document.getElementById("btnRoleReload");
-  const s = document.getElementById("btnRoleSave");
-  const sel = document.getElementById("roleSelect");
-  r && (r.onclick = (e)=>{ e.preventDefault(); __loadRbac().catch(err=>{ console.error(err); toast?.("RBAC Snapshot laden fehlgeschlagen","err"); }); });
-  s && (s.onclick = (e)=>{ e.preventDefault(); __saveRolePerms().catch(err=>{ console.error(err); toast?.("Speichern fehlgeschlagen","err"); }); });
-  sel && (sel.onchange = ()=>{ __renderRolePerms(); });
+document.addEventListener("click", async (e)=>{
+  if(e.target?.id === "btnRoleReload"){
+    e.preventDefault();
+    try{ await __loadRbacSnapshot(); __renderRoleEditor(); }catch(err){ console.error(err); alert("RBAC Snapshot laden fehlgeschlagen"); }
+  }
+  if(e.target?.id === "btnRoleSave"){
+    e.preventDefault();
+    try{ await __saveRolePerms(); }catch(err){ console.error(err); alert("Speichern fehlgeschlagen"); }
+  }
+});
+document.addEventListener("change", (e)=>{
+  if(e.target?.id === "roleSelect" && __rbacSnap){ __renderRoleEditor(); }
+});
+
+// Hook into existing "Liste laden" button to also load RBAC snapshot (does not break current UI)
+window.addEventListener("load", ()=>{
+  const btn = document.getElementById("btnLoad");
+  if(btn && !btn.__rbacHooked){
+    btn.__rbacHooked = true;
+    const orig = btn.onclick;
+    btn.onclick = async (ev)=>{
+      if(typeof orig === "function") await orig(ev);
+      try{ await __loadRbacSnapshot(); __renderRoleEditor(); }catch(e){ console.warn("RBAC snapshot failed", e); }
+    };
+  }
 });
 
 </script>
 
 
-<!-- ===== Roles-only Role Permissions Editor (SA) ===== -->
 <div class="card" id="rolePermsCard" style="margin-top:16px; display:none;">
-  <h2 style="margin:0 0 10px 0;">Rollen & Rechte (SA)</h2>
-  <div class="row" style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-    <div style="min-width:240px;">
-      <div class="muted" style="margin-bottom:6px;">Rolle</div>
-      <select id="roleSelect" style="width:100%;">
+  <h3 style="margin:0 0 10px 0;">Rollen & Rechte (SA)</h3>
+  <div class="top" style="gap:10px; flex-wrap:wrap;">
+    <div style="display:flex; flex-direction:column; gap:6px; min-width:240px;">
+      <span class="muted">Rolle</span>
+      <select id="roleSelect">
         <option value="admin">Admin</option>
         <option value="ps">Patientensprecher (PS)</option>
         <option value="ps_deputy">Stellvertreter (PS Deputy)</option>
@@ -509,11 +516,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
     </div>
     <button id="btnRoleReload">Rolle laden</button>
     <button id="btnRoleSave" class="primary">Rolle speichern</button>
-    <div class="muted" style="flex:1; min-width:260px;">
-      Setzt Rechte pro Rolle (auth_role_perms). Wir lassen userPerms unangetastet – die UI kann später entfernt werden.
-    </div>
+    <span class="muted" style="flex:1; min-width:260px;">
+      Roles-only: User-Zusatzrechte sind deaktiviert. Rechte werden ausschließlich pro Rolle gesetzt.
+    </span>
   </div>
-
   <div id="roleGroups" style="margin-top:12px;"></div>
 </div>
 
