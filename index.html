@@ -4698,18 +4698,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const perms = getPerms();
 
     // Hide/show the DETAILS blocks only (never parents)
+    // Portal-Minimal: RBAC & Logs werden ausschließlich über Admin-User verwaltet
     const users = document.getElementById("authUsersDetails");
-    if(users){
-      const allow = permHas(perms,"admin.users.view") || permHas(perms,"admin.users.manage");
-      users.style.display = allow ? "" : "none";
-    }
+    if(users){ users.style.display = "none"; users.open = false; }
 
     const logs = document.getElementById("authLogsDetails");
-    if(logs){
-      const allow = permHas(perms,"admin.logs.view") || permHas(perms,"admin.logs.export");
-      logs.style.display = allow ? "" : "none";
-    }
-
+    if(logs){ logs.style.display = "none"; logs.open = false; }
     const cfg = document.getElementById("authConfigDetails");
     if(cfg){
       const allow =
