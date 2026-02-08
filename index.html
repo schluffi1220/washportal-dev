@@ -886,7 +886,6 @@ async function renderAuthState(){
   renderAuth();
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
-  try{ __forceShowDashboard(); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
 
@@ -1332,7 +1331,68 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    </body></html>`;
+    
+<script>
+/* ---- HOTFIX: ensure Config buttons always fire a network request ---- */
+(function(){
+  function qs(id){ return document.getElementById(id); }
+  async function postAuth(url, body){
+    const a = (window.getAuth && window.getAuth()) || {};
+    const headers = {"Content-Type":"application/json"};
+    if (a.token) headers["Authorization"] = "Bearer "+a.token;
+    const r = await fetch((window.API_BASE||"")+url, {method:"POST", credentials:"include", headers, body: JSON.stringify(body||{})});
+    const t = await r.text();
+    let data; try{ data = JSON.parse(t);}catch(e){ data = {ok:false, error:"bad_json", raw:t}; }
+    if(!r.ok) throw {status:r.status, data};
+    return data;
+  }
+
+  async function forceSave(){
+    try{
+      // try existing first
+      if (typeof window.authSaveConfig === "function") return await window.authSaveConfig();
+    }catch(e){}
+    try{
+      // fall back: collect minimal config fields if helpers exist
+      let cfg = {};
+      if (typeof window.collectAuthConfigFromForm === "function") cfg = window.collectAuthConfigFromForm();
+      const res = await postAuth("/api/admin/config/save", {config: cfg});
+      if (window.toast) window.toast(res.ok ? "✅ Speichern: OK" : "⛔ Speichern: Fehler");
+      return res;
+    }catch(e){
+      if (window.toast) window.toast("⛔ Speichern: Fehler");
+      console.error("Config save failed:", e);
+    }
+  }
+
+  async function forceLoad(){
+    try{
+      if (typeof window.authLoadConfig === "function") return await window.authLoadConfig();
+    }catch(e){}
+    try{
+      const res = await postAuth("/api/admin/config/get", {});
+      if (window.applyAuthConfigToForm) window.applyAuthConfigToForm(res.config||{});
+      if (window.toast) window.toast(res.ok ? "✅ Laden: OK" : "⛔ Laden: Fehler");
+      return res;
+    }catch(e){
+      if (window.toast) window.toast("⛔ Laden: Fehler");
+      console.error("Config load failed:", e);
+    }
+  }
+
+  // Rebind on DOM ready (or immediately if already ready)
+  function bind(){
+    const bSave = qs("btnAuthConfigSave");
+    const bLoad = qs("btnAuthConfigLoad");
+    if (bSave){ bSave.onclick = (ev)=>{ ev.preventDefault(); ev.stopPropagation(); forceSave(); }; }
+    if (bLoad){ bLoad.onclick = (ev)=>{ ev.preventDefault(); ev.stopPropagation(); forceLoad(); }; }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+})();
+</script>
+
+</body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
@@ -2226,60 +2286,9 @@ async function authMe(){
     return null;
   }
 }
-const PERM_ALIASES = {
-  // Config
-  "admin.config.view": ["config.view"],
-  "admin.config.manage": ["config.manage"],
-
-  // Bookings
-  "admin.bookings.view": ["bookings.view","ps.bookings.view","vs.bookings.view","sv.bookings.view","mod.bookings.view"],
-  "admin.bookings.cancel": ["bookings.cancel","ps.bookings.cancel","vs.bookings.cancel","sv.bookings.cancel","mod.bookings.cancel"],
-
-  // Logs
-  "admin.logs.view": ["logs.view"],
-  "admin.logs.export": ["logs.export"],
-
-  // News
-  "admin.news.edit": ["news.edit","news.psvs.edit"],
-  "news.psvs.view": ["news.view"],
-
-  // Feedback
-  "admin.feedback.view": ["feedback.view","feedback.psvs.view"],
-  "admin.feedback.reply": ["feedback.reply","feedback.psvs.reply"],
-  "admin.feedback.delete": ["feedback.delete"],
-
-  // Machines / Popups
-  "machines.view": ["admin.machines.view"],
-  "machines.manage": ["admin.machines.manage","washer.popup.manage","dryer.popup.manage"],
-
-  // Rooms / Roomcontrol
-  "admin.roomcontrol.manage": ["rooms.manage","ps.rooms.manage","vs.rooms.manage","sv.rooms.manage","mod.rooms.manage"],
-};
-
 function hasPerm(perms, key){
-  if(!perms) return false;
-  // superadmin override (some builds include this)
-  if(perms["sa.all"] || perms["sa"] || perms["super_admin"]) return true;
-
-  // direct
-  if(!!perms[key]) return true;
-
-  // common prefix fallback: allow checking "x.y" against "admin.x.y" and vice versa
-  if(!key.startsWith("admin.") && perms["admin."+key]) return true;
-  if(key.startsWith("admin.") && perms[key.slice(6)]) return true;
-
-  // aliases
-  const aliases = PERM_ALIASES[key] || [];
-  for(const a of aliases) if(!!perms[a]) return true;
-
-  // reverse alias (if key itself is an alias)
-  for(const [canon, list] of Object.entries(PERM_ALIASES)){
-    if(list.includes(key) && !!perms[canon]) return true;
-  }
-
-  return false;
+  return !!(perms && perms[key]);
 }
-
 
 async function renderPsVsAdminDash(){
   const a = getAuth();
@@ -2303,7 +2312,7 @@ async function renderPsVsAdminDash(){
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm(perms,"admin.users.manage") || hasPerm(perms,"admin.users.view") || role === "admin"){
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2313,7 +2322,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm(perms,"admin.logs.view") || hasPerm(perms,"admin.logs.export") || role === "admin"){
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2323,7 +2332,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"admin.bookings.view") || hasPerm(perms,"bookings.view") || hasPerm(perms,"bookings.create") || hasPerm(perms,"bookings.cancel") || role === "admin"){
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2333,7 +2342,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.view") || hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || hasPerm(perms,"news.psvs.view") || hasPerm(perms,"news.psvs.edit") || role==="admin"){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2343,7 +2352,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"machines.view") || hasPerm(perms,"machines.manage") || hasPerm(perms,"washer.popup.manage") || hasPerm(perms,"dryer.popup.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2353,7 +2362,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2363,7 +2372,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || hasPerm(perms,"feedback.view") || hasPerm(perms,"feedback.psvs.view") || role==="admin"){
+  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -4726,46 +4735,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if ($("btnRbacSaveRole")) $("btnRbacSaveRole").onclick = rbacSaveRole;
   if ($("rbacRoleSelect")) $("rbacRoleSelect").onchange = ()=>{ renderRolePerms(); };
 });
-
-
-
-/* === FORCE VISIBILITY PATCH (RBAC) === */
-function __forceShowEl(el){
-  if(!el) return;
-  try{
-    el.style.display = "block";
-    el.style.visibility = "visible";
-    el.style.opacity = "1";
-    el.hidden = false;
-    el.removeAttribute("hidden");
-    el.classList && el.classList.remove("hidden");
-    // ensure parent chain visible
-    let p = el.parentElement;
-    let i = 0;
-    while(p && i<6){
-      if(getComputedStyle(p).display === "none"){ p.style.display="block"; }
-      if(getComputedStyle(p).visibility === "hidden"){ p.style.visibility="visible"; }
-      if(getComputedStyle(p).opacity === "0"){ p.style.opacity="1"; }
-      p.hidden = false;
-      p.removeAttribute && p.removeAttribute("hidden");
-      p = p.parentElement;
-      i++;
-    }
-  }catch(e){}
-}
-function __forceShowByIds(ids){
-  for(const id of ids){
-    __forceShowEl(document.getElementById(id));
-  }
-}
-// Call this after every auth render
-function __forceShowDashboard(){
-  __forceShowByIds([
-    "app","main","content","dashboard","dash","psOnly","adminOnly",
-    "psDash","adminDash","psDashTiles","adminDashTiles",
-    "tabs","tabbar","nav","sidebar"
-  ]);
-}
 
 </script>
 </body>
