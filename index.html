@@ -886,6 +886,7 @@ async function renderAuthState(){
   renderAuth();
   try{ applyRoleVisibility(me); }catch(e){}
   try{ updatePsDashUI(me); }catch(e){}
+  try{ __forceShowDashboard(); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
 
@@ -4725,6 +4726,46 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if ($("btnRbacSaveRole")) $("btnRbacSaveRole").onclick = rbacSaveRole;
   if ($("rbacRoleSelect")) $("rbacRoleSelect").onchange = ()=>{ renderRolePerms(); };
 });
+
+
+
+/* === FORCE VISIBILITY PATCH (RBAC) === */
+function __forceShowEl(el){
+  if(!el) return;
+  try{
+    el.style.display = "block";
+    el.style.visibility = "visible";
+    el.style.opacity = "1";
+    el.hidden = false;
+    el.removeAttribute("hidden");
+    el.classList && el.classList.remove("hidden");
+    // ensure parent chain visible
+    let p = el.parentElement;
+    let i = 0;
+    while(p && i<6){
+      if(getComputedStyle(p).display === "none"){ p.style.display="block"; }
+      if(getComputedStyle(p).visibility === "hidden"){ p.style.visibility="visible"; }
+      if(getComputedStyle(p).opacity === "0"){ p.style.opacity="1"; }
+      p.hidden = false;
+      p.removeAttribute && p.removeAttribute("hidden");
+      p = p.parentElement;
+      i++;
+    }
+  }catch(e){}
+}
+function __forceShowByIds(ids){
+  for(const id of ids){
+    __forceShowEl(document.getElementById(id));
+  }
+}
+// Call this after every auth render
+function __forceShowDashboard(){
+  __forceShowByIds([
+    "app","main","content","dashboard","dash","psOnly","adminOnly",
+    "psDash","adminDash","psDashTiles","adminDashTiles",
+    "tabs","tabbar","nav","sidebar"
+  ]);
+}
 
 </script>
 </body>
