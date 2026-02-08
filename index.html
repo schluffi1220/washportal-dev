@@ -805,10 +805,6 @@ body[data-authed="1"] .hide-on-auth{display:none}
   <div class="muted">
     ✅ Login erkannt – dieser Bereich erscheint nur für Patientensprecher / Stellvertreter.
   </div>
-
-  <button class="btn" onclick="alert('PS Funktion aktiv')">
-    Test-Button
-  </button>
 </div>
 </div>
 <script>
@@ -1331,68 +1327,7 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    
-<script>
-/* ---- HOTFIX: ensure Config buttons always fire a network request ---- */
-(function(){
-  function qs(id){ return document.getElementById(id); }
-  async function postAuth(url, body){
-    const a = (window.getAuth && window.getAuth()) || {};
-    const headers = {"Content-Type":"application/json"};
-    if (a.token) headers["Authorization"] = "Bearer "+a.token;
-    const r = await fetch((window.API_BASE||"")+url, {method:"POST", credentials:"include", headers, body: JSON.stringify(body||{})});
-    const t = await r.text();
-    let data; try{ data = JSON.parse(t);}catch(e){ data = {ok:false, error:"bad_json", raw:t}; }
-    if(!r.ok) throw {status:r.status, data};
-    return data;
-  }
-
-  async function forceSave(){
-    try{
-      // try existing first
-      if (typeof window.authSaveConfig === "function") return await window.authSaveConfig();
-    }catch(e){}
-    try{
-      // fall back: collect minimal config fields if helpers exist
-      let cfg = {};
-      if (typeof window.collectAuthConfigFromForm === "function") cfg = window.collectAuthConfigFromForm();
-      const res = await postAuth("/api/admin/config/save", {config: cfg});
-      if (window.toast) window.toast(res.ok ? "✅ Speichern: OK" : "⛔ Speichern: Fehler");
-      return res;
-    }catch(e){
-      if (window.toast) window.toast("⛔ Speichern: Fehler");
-      console.error("Config save failed:", e);
-    }
-  }
-
-  async function forceLoad(){
-    try{
-      if (typeof window.authLoadConfig === "function") return await window.authLoadConfig();
-    }catch(e){}
-    try{
-      const res = await postAuth("/api/admin/config/get", {});
-      if (window.applyAuthConfigToForm) window.applyAuthConfigToForm(res.config||{});
-      if (window.toast) window.toast(res.ok ? "✅ Laden: OK" : "⛔ Laden: Fehler");
-      return res;
-    }catch(e){
-      if (window.toast) window.toast("⛔ Laden: Fehler");
-      console.error("Config load failed:", e);
-    }
-  }
-
-  // Rebind on DOM ready (or immediately if already ready)
-  function bind(){
-    const bSave = qs("btnAuthConfigSave");
-    const bLoad = qs("btnAuthConfigLoad");
-    if (bSave){ bSave.onclick = (ev)=>{ ev.preventDefault(); ev.stopPropagation(); forceSave(); }; }
-    if (bLoad){ bLoad.onclick = (ev)=>{ ev.preventDefault(); ev.stopPropagation(); forceLoad(); }; }
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
-  else bind();
-})();
-</script>
-
-</body></html>`;
+    </body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
@@ -3582,10 +3517,10 @@ function authHas(p){
 }
 
 async function authMeCached(){
-  const me = await authMe();
-  if (me) window.__AUTH_ME_CACHE = me;
-  return me;
+  // Always fetch fresh, because role perms can change in Admin-User.
+  return await authMe();
 }
+
 
 async function authLoadConfig(){
   const det = $("authConfigDetails"); if(det){det.style.display=""; det.open=true;}
@@ -4282,7 +4217,12 @@ document.addEventListener("DOMContentLoaded", wireV8UI);
    ============================ */
 
 function hasPerm(p){ try{ return !!(__AUTH_ME?.perms && __AUTH_ME.perms[p]); }catch(_e){ return false; } }
-function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.includes(r); }
+function roleIs(...rs){
+  const r1 = String(__AUTH_ME?.user?.role||"");
+  const r2 = String(__AUTH_ME?.user?.role2||"");
+  return rs.includes(r1) || (r2 && rs.includes(r2));
+}
+
 
 function updateAuthSections(){
   const loggedIn = !!(getAuth()?.token);
@@ -4295,7 +4235,7 @@ function updateAuthSections(){
   };
 
   // Config
-  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
+  show("authConfigDetails", hasPerm("admin.config.view") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
 
   // Logs + bookings
   show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.logs.view"));
