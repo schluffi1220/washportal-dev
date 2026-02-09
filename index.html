@@ -844,15 +844,28 @@ function clearAuth(){
 function getAuth(){
   return {
     token: sessionStorage.getItem(AUTH_KEY) || "",
-    role:  localStorage.getItem(AUTH_ROLE) || "",
+    role:   normalizeRole(localStorage.getItem(AUTH_ROLE) || ""),
     email: localStorage.getItem(AUTH_EMAIL) || "",
     exp:   Number(localStorage.getItem(AUTH_EXP) || 0)
   };
 }
+function normalizeRole(r){
+  r = String(r||"").toLowerCase();
+  if(!r) return "";
+  if(r==="superadmin"||r==="super_admin"||r==="sa") return "sa";
+  if(r==="ps_deputy"||r==="ps-deputy"||r==="sv"||r==="stellvertreter") return "vs";
+  if(r==="moderator"||r==="mod") return "mod";
+  return r;
+}
+
 function roleLabel(r){
+
   if (r === "admin") return "Admin";
   if (r === "ps") return "Patientensprecher";
-  if (r === "vs") return "Stellvertretender Patientensprecher";
+  if (r === "vs") return "Stellvertreter";
+  if (r === "mod") return "Moderator";
+  if (r === "user") return "User";
+  if (r === "sa") return "Super-Admin";
   return r || "";
 }
 
@@ -907,25 +920,34 @@ function scheduleAutoLogout(){
   }, msLeft);
 }
 function roleLabel(r){
+
   if (r === "admin") return "Admin";
   if (r === "ps") return "Patientensprecher";
-  if (r === "vs") return "Stellvertretender Patientensprecher";
+  if (r === "vs") return "Stellvertreter";
+  if (r === "mod") return "Moderator";
+  if (r === "user") return "User";
+  if (r === "sa") return "Super-Admin";
   return r || "";
 }
 
 function applyRoleVisibility(){
   const a = getAuth();
-
-  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
-  const psOnly = document.getElementById("psOnly");
-  const adminOnly = document.getElementById("adminOnly");
-
+  const perms = (()=>{ try { return JSON.parse(localStorage.getItem("wp.perms")||"{}")||{}; } catch(e){ return {}; } })();
   const logged = !!a.token;
-  const isAdmin = logged && a.role === "admin";
-  const isPS = logged && (a.role === "ps" || a.role === "vs");
 
-  if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
-  if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
+  // Main PS/VS area: show when logged in (actual feature cards inside are still permission-gated elsewhere)
+  const psOnly = document.getElementById("psOnly");
+  if(psOnly) psOnly.style.display = logged ? "" : "none";
+
+  // Admin-only tiles wrapper: show if user has any admin.* perms (or sa.all)
+  const isAdminish = !!perms["sa.all"] || Object.keys(perms||{}).some(k=>k.startsWith("admin."));
+  const adminOnly = document.getElementById("adminOnly");
+  if(adminOnly) adminOnly.style.display = (logged && isAdminish) ? "" : "none";
+
+  // PS dashboard tiles container: show if logged and has any ps.* / role.* perms (or sa.all)
+  const psDash = document.getElementById("psDash");
+  const hasPSStuff = !!perms["sa.all"] || Object.keys(perms||{}).some(k=>k.startsWith("ps.")||k.startsWith("role.")||k.startsWith("rooms.")||k.startsWith("bookings.")||k.startsWith("machines.")||k.startsWith("feedback.")||k.startsWith("news.")||k.startsWith("protocol."));
+  if(psDash) psDash.style.display = (logged && hasPSStuff) ? "" : "none";
 }
 
 function updatePsDashUI(){
