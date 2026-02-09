@@ -3010,7 +3010,6 @@ function hasPerm(permsOrKey, maybeKey){
     const key = permsOrKey;
     return !!(__AUTH_ME?.perms && __AUTH_ME.perms[key]);
   }catch(_e){ return false; }
-}catch(_e){ return false; } }
 function roleIs(...rs){
   const r1=String(__AUTH_ME?.user?.role||"");
   const r2=String(__AUTH_ME?.user?.role2||"");
