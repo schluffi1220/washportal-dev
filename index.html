@@ -805,6 +805,10 @@ body[data-authed="1"] .hide-on-auth{display:none}
   <div class="muted">
     ✅ Login erkannt – dieser Bereich erscheint nur für Patientensprecher / Stellvertreter.
   </div>
+
+  <button class="btn" onclick="alert('PS Funktion aktiv')">
+    Test-Button
+  </button>
 </div>
 </div>
 <script>
@@ -1327,22 +1331,7 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    
-<script>
-(function(){
-  window.__post = async function(url, body){
-    const r = await fetch(url,{
-      method:"POST",
-      credentials:"include",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(body||{})
-    });
-    return r.json();
-  };
-})();
-</script>
-
-</body></html>`;
+    </body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
@@ -3532,10 +3521,10 @@ function authHas(p){
 }
 
 async function authMeCached(){
-  // Always fetch fresh, because role perms can change in Admin-User.
-  return await authMe();
+  const me = await authMe();
+  if (me) window.__AUTH_ME_CACHE = me;
+  return me;
 }
-
 
 async function authLoadConfig(){
   const det = $("authConfigDetails"); if(det){det.style.display=""; det.open=true;}
@@ -4232,12 +4221,7 @@ document.addEventListener("DOMContentLoaded", wireV8UI);
    ============================ */
 
 function hasPerm(p){ try{ return !!(__AUTH_ME?.perms && __AUTH_ME.perms[p]); }catch(_e){ return false; } }
-function roleIs(...rs){
-  const r1 = String(__AUTH_ME?.user?.role||"");
-  const r2 = String(__AUTH_ME?.user?.role2||"");
-  return rs.includes(r1) || (r2 && rs.includes(r2));
-}
-
+function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.includes(r); }
 
 function updateAuthSections(){
   const loggedIn = !!(getAuth()?.token);
@@ -4250,7 +4234,7 @@ function updateAuthSections(){
   };
 
   // Config
-  show("authConfigDetails", hasPerm("admin.config.view") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
+  show("authConfigDetails", roleIs("admin","superadmin","super_admin") || hasPerm("admin.config.manage") || hasPerm("admin.news.edit"));
 
   // Logs + bookings
   show("authLogsDetails", roleIs("admin","superadmin","super_admin","ps","vs") || hasPerm("admin.logs.view"));
@@ -4694,16 +4678,73 @@ document.addEventListener("DOMContentLoaded", ()=>{
 </script>
 
 <script>
+/* ===== Portal safety fixes (no-op stubs + robust config save binding) ===== */
 (function(){
-  window.__post = async function(url, body){
-    const r = await fetch(url,{
-      method:"POST",
-      credentials:"include",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(body||{})
+  // Prevent hard crash if these helpers are referenced but missing
+  if (typeof window.scheduleAutoLogout !== "function") {
+    window.scheduleAutoLogout = function(){ /* no-op */ };
+  }
+  if (typeof window.setAuth !== "function") {
+    window.setAuth = function(){ /* no-op */ };
+  }
+
+  // Remove any visible "Test" buttons/links to reduce confusion
+  document.addEventListener("DOMContentLoaded", ()=>{
+    document.querySelectorAll("button,a,div").forEach(el=>{
+      const t=(el.textContent||"").trim().toLowerCase();
+      if (t==="test" || t.startsWith("test ")) {
+        el.remove();
+      }
     });
-    return r.json();
-  };
+
+    // Ensure config save/load always trigger a network request
+    const API = (typeof window.API_BASE === "string" && window.API_BASE) ? window.API_BASE : "";
+    async function postAuth(path, body){
+      const headers={"Content-Type":"application/json"};
+      // If your auth uses bearer tokens, respect it (optional)
+      try{
+        const a = (typeof window.getAuth === "function") ? window.getAuth() : null;
+        if (a && a.token) headers["Authorization"] = "Bearer " + a.token;
+      }catch(e){}
+      const r = await fetch(API + path, {method:"POST", credentials:"include", headers, body: JSON.stringify(body||{})});
+      const t = await r.text();
+      let data; try{ data = JSON.parse(t);}catch(e){ data = {ok:false, error:"bad_json", raw:t}; }
+      if (!r.ok) throw {status:r.status, data};
+      return data;
+    }
+
+    const btnSave = document.getElementById("btnAuthConfigSave") || document.getElementById("btnConfigSave");
+    const btnLoad = document.getElementById("btnAuthConfigLoad") || document.getElementById("btnConfigLoad");
+
+    async function doLoad(){
+      try{
+        // Prefer existing handler
+        if (typeof window.authLoadConfig === "function") return await window.authLoadConfig();
+        const res = await postAuth("/api/admin/config/get", {});
+        if (typeof window.applyAuthConfigToForm === "function") window.applyAuthConfigToForm(res.config || res.value || {});
+        if (typeof window.toast === "function") window.toast("✅ Laden: OK");
+      }catch(e){
+        console.error("config load failed", e);
+        if (typeof window.toast === "function") window.toast("⛔ Laden: Fehler");
+      }
+    }
+
+    async function doSave(){
+      try{
+        // Prefer existing handler
+        if (typeof window.authSaveConfig === "function") return await window.authSaveConfig();
+        const cfg = (typeof window.collectAuthConfigFromForm === "function") ? window.collectAuthConfigFromForm() : {};
+        const res = await postAuth("/api/admin/config/set", { config: cfg });
+        if (typeof window.toast === "function") window.toast(res.ok ? "✅ Speichern: OK" : "⛔ Speichern: Fehler");
+      }catch(e){
+        console.error("config save failed", e);
+        if (typeof window.toast === "function") window.toast("⛔ Speichern: Fehler");
+      }
+    }
+
+    if (btnLoad) btnLoad.addEventListener("click", (ev)=>{ ev.preventDefault(); doLoad(); });
+    if (btnSave) btnSave.addEventListener("click", (ev)=>{ ev.preventDefault(); doSave(); });
+  });
 })();
 </script>
 
