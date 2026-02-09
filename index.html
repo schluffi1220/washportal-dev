@@ -3002,6 +3002,9 @@ document.addEventListener("DOMContentLoaded", wireV8UI);
 
 function hasPerm(permsOrKey, maybeKey){
   try{
+    // support both signatures:
+    // 1) hasPerm(permsObj, "perm.key")
+    // 2) hasPerm("perm.key") using __AUTH_ME.perms
     if (typeof maybeKey !== "undefined") {
       const perms = permsOrKey || {};
       const key = maybeKey;
@@ -3010,6 +3013,7 @@ function hasPerm(permsOrKey, maybeKey){
     const key = permsOrKey;
     return !!(__AUTH_ME?.perms && __AUTH_ME.perms[key]);
   }catch(_e){ return false; }
+}
 function roleIs(...rs){
   const r1=String(__AUTH_ME?.user?.role||"");
   const r2=String(__AUTH_ME?.user?.role2||"");
