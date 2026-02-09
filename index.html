@@ -171,7 +171,11 @@
 /* #btnPsLogin,#btnPsLogout,#psLoginState{display:none !important;} */
 
 .auth-only{display:none}
-body[data-authed="1"] .auth-only{display:block}
+body[data-authed="1"] .auth-only,
+body[data-authed="true"] .auth-only{
+  display:block !important;
+}
+
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
@@ -831,7 +835,7 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
   // do NOT mark authed yet; /api/auth/me will verify
-  document.body.setAttribute("data-authed","0");
+  document.body.setAttribute("data-authed","1");
 }
 function clearAuth(){
   sessionStorage.removeItem(AUTH_KEY);
