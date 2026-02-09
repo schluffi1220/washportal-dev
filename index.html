@@ -175,11 +175,6 @@ body[data-authed="1"] .auth-only{display:block}
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
-
-/* === RBAC HARD-GUARD (fail-safe) === */
-:root[data-wp-logged="1"] #psOnly{display:block !important; visibility:visible !important; opacity:1 !important;}
-:root[data-wp-logged="0"] #psOnly{display:none !important;}
-
 </style>
 </head>
 <body data-authed="0">
@@ -494,7 +489,7 @@ body[data-authed="1"] .hide-on-auth{display:none}
         </details>
       </div>
     </div>
-<div class="card hide-on-auth" id="psLoginCard" style="margin-top:20px">
+<div class="card" id="psLoginCard" style="margin-top:20px">
   <h3>PS / VS / Admin Login (E-Mail + Passwort)</h3>
 
   <div class="row">
@@ -800,8 +795,8 @@ body[data-authed="1"] .hide-on-auth{display:none}
   </details>
 
   <div class="row">
-    <button class="btn" class="hide-on-auth" id="btnPsLogin">Anmelden</button>
-    <button class="btn inline" class="hide-on-auth" id="btnPsLogout" style="display:none">Abmelden</button>
+    <button class="btn hide-on-auth" id="btnPsLogin">Anmelden</button>
+    <button class="btn inline hide-on-auth" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
   </div>
   <div class="card" id="psOnly" style="display:none; margin-top:20px">
@@ -918,20 +913,7 @@ function roleLabel(r){
   return r || "";
 }
 
-function applyRoleVisibility(){
-  const a = getAuth();
-
-  // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
-  const psOnly = document.getElementById("psOnly");
-  const adminOnly = document.getElementById("adminOnly");
-
-  const logged = !!a.token;
-  const isAdmin = logged && a.role === "admin";
-  const isPS = logged && (a.role === "ps" || a.role === "vs");
-
-  if (psOnly) psOnly.style.display = "none"; // Bereich unten deaktiviert (Dashboard nutzt Kacheln)
-  if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
-}
+function applyRoleVisibility(){}
 
 function updatePsDashUI(){
   const a = getAuth();
@@ -4681,135 +4663,5 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
-
-<script>
-/* === RBAC HARD-GUARD (no more "psOnly -> none") === */
-(function(){
-  // 1) Maintain a single source of truth for logged/perms
-  function setLogged(on){
-    try{ document.documentElement.dataset.wpLogged = on ? "1" : "0"; }catch(e){}
-  }
-  function storeMe(me){
-    try{
-      const p = (me && (me.perms || me.user?.perms)) ? (me.perms || me.user?.perms) : {};
-      localStorage.setItem("wp.perms", JSON.stringify(p||{}));
-      localStorage.setItem("wp.role", String(me?.user?.role||""));
-      localStorage.setItem("wp.role2", String(me?.user?.role2||""));
-    }catch(e){}
-  }
-  function loadPerms(){
-    try{ return JSON.parse(localStorage.getItem("wp.perms")||"{}")||{}; }catch(e){ return {}; }
-  }
-
-  // 2) Gate UI purely by perms (if elements exist)
-  function hasAny(perms, keys){
-    for(const k of keys){
-      if(perms[k]) return true;
-      // prefix bridge: allow "foo.bar" to match "admin.foo.bar" etc.
-      if(perms["admin."+k]) return true;
-      if(perms["ps."+k]) return true;
-      if(perms["vs."+k]) return true;
-      if(perms["sv."+k]) return true;
-      if(k.startsWith("admin.") && perms[k.slice(6)]) return true;
-      if(k.startsWith("ps.") && perms[k.slice(3)]) return true;
-      if(k.startsWith("vs.") && perms[k.slice(3)]) return true;
-      if(k.startsWith("sv.") && perms[k.slice(3)]) return true;
-    }
-    return false;
-  }
-
-  function toggle(id, on){
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.style.display = on ? "" : "none";
-    el.classList.toggle("hidden", !on);
-  }
-
-  function applyGates(perms){
-    // ensure main dashboard container is visible if present
-    const psOnly = document.getElementById("psOnly");
-    if(psOnly){ psOnly.style.display = ""; }
-
-    // common cards/tabs (only if they exist in your HTML)
-    // bookings
-    toggle("tabBookings", hasAny(perms, ["bookings.view","admin.bookings.view","ps.bookings.view","vs.bookings.view","sv.bookings.view"]));
-    toggle("cardBookings", hasAny(perms, ["bookings.view","admin.bookings.view","ps.bookings.view","vs.bookings.view","sv.bookings.view"]));
-
-    // machines
-    toggle("tabMachines", hasAny(perms, ["machines.view","machines.manage"]));
-    toggle("cardMachines", hasAny(perms, ["machines.view","machines.manage"]));
-
-    // rooms / roomcontrol
-    toggle("tabRooms", hasAny(perms, ["rooms.view","rooms.manage","admin.roomcontrol.manage","ps.rooms.manage"]));
-    toggle("cardRooms", hasAny(perms, ["rooms.view","rooms.manage","admin.roomcontrol.manage","ps.rooms.manage"]));
-
-    // feedback/news/protocol
-    toggle("tabFeedback", hasAny(perms, ["feedback.view","admin.feedback.view","ps.feedback.view","feedback.psvs.view"]));
-    toggle("cardFeedback", hasAny(perms, ["feedback.view","admin.feedback.view","ps.feedback.view","feedback.psvs.view"]));
-
-    toggle("tabNews", hasAny(perms, ["news.view","news.edit","admin.news.edit","news.psvs.view","news.psvs.edit"]));
-    toggle("cardNews", hasAny(perms, ["news.view","news.edit","admin.news.edit","news.psvs.view","news.psvs.edit"]));
-
-    toggle("tabProtocol", hasAny(perms, ["protocol.view","protocol.create","protocol.edit","protocol.delete"]));
-    toggle("cardProtocol", hasAny(perms, ["protocol.view","protocol.create","protocol.edit","protocol.delete"]));
-
-    // config
-    toggle("tabConfig", hasAny(perms, ["admin.config.view","admin.config.manage","ps.config.view"]));
-    toggle("cardConfig", hasAny(perms, ["admin.config.view","admin.config.manage","ps.config.view"]));
-
-    // admin-only
-    toggle("tabUsers", hasAny(perms, ["admin.users.view","admin.users.manage"]));
-    toggle("cardUsers", hasAny(perms, ["admin.users.view","admin.users.manage"]));
-
-    toggle("tabLogs", hasAny(perms, ["admin.logs.view","ps.logs.view"]));
-    toggle("cardLogs", hasAny(perms, ["admin.logs.view","ps.logs.view"]));
-
-    // finally: tiles container visibility (if exists)
-    const tiles = document.getElementById("psDashTiles");
-    if(tiles){
-      // if it has children but no rects, force layout visibility
-      tiles.style.display = tiles.style.display || "grid";
-      tiles.style.visibility = "visible";
-      tiles.style.opacity = "1";
-    }
-  }
-
-  // 3) Monkey-patch authMe so every successful auth forces logged=1 and ungates
-  const origAuthMe = window.authMe;
-  if(typeof origAuthMe === "function"){
-    window.authMe = async function(){
-      const me = await origAuthMe.apply(this, arguments);
-      if(me && me.ok && (me.user||me.perms)){
-        setLogged(true);
-        storeMe(me);
-        applyGates(me.perms || me.user?.perms || {});
-      }else{
-        setLogged(false);
-        applyGates(loadPerms());
-      }
-      return me;
-    };
-  }else{
-    // fallback: mark as not logged, but still apply stored perms
-    setLogged(false);
-    applyGates(loadPerms());
-  }
-
-  // 4) If some legacy code tries to hide psOnly again, undo it.
-  const psOnly = document.getElementById("psOnly");
-  if(psOnly){
-    const obs = new MutationObserver(()=>{
-      if(document.documentElement.dataset.wpLogged === "1" && getComputedStyle(psOnly).display === "none"){
-        psOnly.style.display = "";
-      }
-    });
-    obs.observe(psOnly, {attributes:true, attributeFilter:["style","class"]});
-  }
-
-  // initial
-  setLogged(false);
-})();
-</script>
-
 </body>
 </html>
