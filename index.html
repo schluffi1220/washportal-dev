@@ -1327,7 +1327,22 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    </body></html>`;
+    
+<script>
+(function(){
+  window.__post = async function(url, body){
+    const r = await fetch(url,{
+      method:"POST",
+      credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body||{})
+    });
+    return r.json();
+  };
+})();
+</script>
+
+</body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
@@ -4677,5 +4692,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
+
+<script>
+(function(){
+  window.__post = async function(url, body){
+    const r = await fetch(url,{
+      method:"POST",
+      credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body||{})
+    });
+    return r.json();
+  };
+})();
+</script>
+
 </body>
 </html>
