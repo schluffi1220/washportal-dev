@@ -175,6 +175,9 @@ body[data-authed="1"] .auth-only{display:block}
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
+
+/* hide legacy test button */
+#btnPsTest, #psTestBtn, #btnTest, .ps-test-btn { display:none !important; }
 </style>
 </head>
 <body data-authed="0">
@@ -2238,7 +2241,7 @@ async function renderPsVsAdminDash(){
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
+  if (hasPerm(perms,"admin.users.manage") || ["admin","mod"].includes(role)){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2248,7 +2251,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
+  if (hasPerm(perms,"admin.logs.view") || ["admin","mod"].includes(role)){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2258,7 +2261,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
+  if (hasPerm(perms,"admin.bookings.view") || ["admin","mod"].includes(role) || ["ps","ps_deputy","vs","sv"].includes(role)){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2268,7 +2271,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || ["admin","mod"].includes(role)){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2278,7 +2281,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || ["admin","mod"].includes(role)){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2288,7 +2291,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || ["admin","mod"].includes(role)){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2298,7 +2301,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
+  if (hasPerm(perms,"admin.feedback.view") || ["admin","mod"].includes(role)){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -3503,7 +3506,7 @@ function authHas(p){
     const me = window.__AUTH_ME_CACHE || null;
     const perms = me?.perms || {};
     const role = me?.user?.role || (getAuth()?.role||"");
-    return !!(perms[p] || role==="admin");
+    return !!(perms[p] || ["admin","mod"].includes(role));
   }catch{ return false; }
 }
 
