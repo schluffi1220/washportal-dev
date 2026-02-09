@@ -175,6 +175,11 @@ body[data-authed="1"] .auth-only{display:block}
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
+
+/* === RBAC HARD-GUARD (fail-safe) === */
+:root[data-wp-logged="1"] #psOnly{display:block !important; visibility:visible !important; opacity:1 !important;}
+:root[data-wp-logged="0"] #psOnly{display:none !important;}
+
 </style>
 </head>
 <body data-authed="0">
@@ -877,21 +882,10 @@ async function renderAuthState(){
   const me = await authMe();
   if(me){
     window.__ME = me;
-      try{
-        const p = (me.perms || me.user?.perms || {});
-        localStorage.setItem("wp.perms", JSON.stringify(p||{}));
-        localStorage.setItem("wp.role", String(me.user?.role||""));
-        localStorage.setItem("wp.role2", String(me.user?.role2||""));
-      }catch(e){}
     document.body.setAttribute("data-authed","1");
   }else{
     clearAuth();
     window.__ME = null;
-      try{
-        localStorage.removeItem("wp.perms");
-        localStorage.removeItem("wp.role");
-        localStorage.removeItem("wp.role2");
-      }catch(e){}
     document.body.setAttribute("data-authed","0");
   }
   renderAuth();
@@ -924,7 +918,7 @@ function roleLabel(r){
   return r || "";
 }
 
-function applyRoleVisibility(me){
+function applyRoleVisibility(){
   const a = getAuth();
 
   // Diese IDs kannst du später für Bereiche nutzen, die nur PS/Admin sehen sollen
@@ -2236,68 +2230,10 @@ async function authMe(){
     return null;
   }
 }
-function normalizeRole(r){
-  r = String(r||"").toLowerCase().trim();
-  // allow both "-" and "_" spellings
-  r = r.replace(/-/g, "_");
-  if (r === "superadmin" || r === "super_admin") return "sa";
-  if (r === "ps_deputy") return "vs"; // legacy naming
-  if (r === "vs_deputy") return "vs";
-  return r || "";
-}
-
-// Backward-compatible permission aliases (mirror Worker)
-const PERM_ALIASES = {
-  "rooms.manage": ["admin.roomcontrol.manage","ps.rooms.manage"],
-  "rooms.view": ["admin.roomcontrol.view"],
-  "machines.manage": ["admin.machines.manage"],
-  "machines.view": ["admin.machines.view"],
-  "bookings.view": ["admin.bookings.view","ps.bookings.view","vs.bookings.view"],
-  "bookings.manage": ["admin.bookings.manage","ps.bookings.manage","vs.bookings.manage"],
-  "config.manage": ["admin.config.manage"],
-  "news.edit": ["admin.news.edit"],
-  "feedback.view": ["admin.feedback.view"],
-  "logs.view": ["admin.logs.view"],
-  "users.manage": ["admin.users.manage"],
-  "users.view": ["admin.users.view"]
-};
-
-function permHas(perms, key){
-  if (!perms) return false;
-  if (perms["sa.all"]) return true;
-  if (perms[key]) return true;
-  const aliases = PERM_ALIASES[key] || [];
-  for (const a of aliases) if (perms[a]) return true;
-  // reverse lookup: if key itself is an alias, check canonical
-  for (const [canon, list] of Object.entries(PERM_ALIASES)){
-    if (list.includes(key) && perms[canon]) return true;
-  }
-  return false;
-}
-
 function hasPerm(perms, key){
-  if(!perms) return false;
-
-  if(perms[key]) return true;
-
-  // 🔥 wichtig: admin.* Alias
-  if(perms["admin."+key]) return true;
-
-  // fallback remove admin prefix
-  if(key.startsWith("admin.") && perms[key.slice(6)]) return true;
-
-  return false;
+  return !!(perms && perms[key]);
 }
 
-
-function rolesFrom(me, a){
-  const r1 = normalizeRole(me?.user?.role || a?.role || "");
-  const r2 = normalizeRole(me?.user?.role2 || a?.role2 || "");
-  const set = new Set();
-  if (r1) set.add(r1);
-  if (r2) set.add(r2);
-  return set;
-}
 async function renderPsVsAdminDash(){
   const a = getAuth();
   const tiles = document.getElementById("psDashTiles");
@@ -2312,18 +2248,15 @@ async function renderPsVsAdminDash(){
 
   const me = await authMe();
   const perms = me?.perms || {};
-  const roles = rolesFrom(me, a);
-  const role1 = normalizeRole(me?.user?.role || a.role || "");
-  const role2 = normalizeRole(me?.user?.role2 || a.role2 || "");
+  const role = me?.user?.role || a.role || "";
   const email = me?.user?.email || a.email || "";
 
-  const roleText = [role1, role2].filter(Boolean).map(roleLabel).join(" + ") || "user";
-  info.textContent = `Angemeldet als ${roleText} (${email})`;
+  info.textContent = `Angemeldet als ${roleLabel(role)} (${email})`;
 
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm(perms,"users.manage") || roles.has("admin") || roles.has("sa")){
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2333,7 +2266,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm(perms,"logs.view") || roles.has("admin") || roles.has("sa")){
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2343,7 +2276,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"bookings.view") || roles.has("admin") || roles.has("ps") || roles.has("vs") || roles.has("sa")){
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -4748,5 +4681,135 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
+
+<script>
+/* === RBAC HARD-GUARD (no more "psOnly -> none") === */
+(function(){
+  // 1) Maintain a single source of truth for logged/perms
+  function setLogged(on){
+    try{ document.documentElement.dataset.wpLogged = on ? "1" : "0"; }catch(e){}
+  }
+  function storeMe(me){
+    try{
+      const p = (me && (me.perms || me.user?.perms)) ? (me.perms || me.user?.perms) : {};
+      localStorage.setItem("wp.perms", JSON.stringify(p||{}));
+      localStorage.setItem("wp.role", String(me?.user?.role||""));
+      localStorage.setItem("wp.role2", String(me?.user?.role2||""));
+    }catch(e){}
+  }
+  function loadPerms(){
+    try{ return JSON.parse(localStorage.getItem("wp.perms")||"{}")||{}; }catch(e){ return {}; }
+  }
+
+  // 2) Gate UI purely by perms (if elements exist)
+  function hasAny(perms, keys){
+    for(const k of keys){
+      if(perms[k]) return true;
+      // prefix bridge: allow "foo.bar" to match "admin.foo.bar" etc.
+      if(perms["admin."+k]) return true;
+      if(perms["ps."+k]) return true;
+      if(perms["vs."+k]) return true;
+      if(perms["sv."+k]) return true;
+      if(k.startsWith("admin.") && perms[k.slice(6)]) return true;
+      if(k.startsWith("ps.") && perms[k.slice(3)]) return true;
+      if(k.startsWith("vs.") && perms[k.slice(3)]) return true;
+      if(k.startsWith("sv.") && perms[k.slice(3)]) return true;
+    }
+    return false;
+  }
+
+  function toggle(id, on){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.display = on ? "" : "none";
+    el.classList.toggle("hidden", !on);
+  }
+
+  function applyGates(perms){
+    // ensure main dashboard container is visible if present
+    const psOnly = document.getElementById("psOnly");
+    if(psOnly){ psOnly.style.display = ""; }
+
+    // common cards/tabs (only if they exist in your HTML)
+    // bookings
+    toggle("tabBookings", hasAny(perms, ["bookings.view","admin.bookings.view","ps.bookings.view","vs.bookings.view","sv.bookings.view"]));
+    toggle("cardBookings", hasAny(perms, ["bookings.view","admin.bookings.view","ps.bookings.view","vs.bookings.view","sv.bookings.view"]));
+
+    // machines
+    toggle("tabMachines", hasAny(perms, ["machines.view","machines.manage"]));
+    toggle("cardMachines", hasAny(perms, ["machines.view","machines.manage"]));
+
+    // rooms / roomcontrol
+    toggle("tabRooms", hasAny(perms, ["rooms.view","rooms.manage","admin.roomcontrol.manage","ps.rooms.manage"]));
+    toggle("cardRooms", hasAny(perms, ["rooms.view","rooms.manage","admin.roomcontrol.manage","ps.rooms.manage"]));
+
+    // feedback/news/protocol
+    toggle("tabFeedback", hasAny(perms, ["feedback.view","admin.feedback.view","ps.feedback.view","feedback.psvs.view"]));
+    toggle("cardFeedback", hasAny(perms, ["feedback.view","admin.feedback.view","ps.feedback.view","feedback.psvs.view"]));
+
+    toggle("tabNews", hasAny(perms, ["news.view","news.edit","admin.news.edit","news.psvs.view","news.psvs.edit"]));
+    toggle("cardNews", hasAny(perms, ["news.view","news.edit","admin.news.edit","news.psvs.view","news.psvs.edit"]));
+
+    toggle("tabProtocol", hasAny(perms, ["protocol.view","protocol.create","protocol.edit","protocol.delete"]));
+    toggle("cardProtocol", hasAny(perms, ["protocol.view","protocol.create","protocol.edit","protocol.delete"]));
+
+    // config
+    toggle("tabConfig", hasAny(perms, ["admin.config.view","admin.config.manage","ps.config.view"]));
+    toggle("cardConfig", hasAny(perms, ["admin.config.view","admin.config.manage","ps.config.view"]));
+
+    // admin-only
+    toggle("tabUsers", hasAny(perms, ["admin.users.view","admin.users.manage"]));
+    toggle("cardUsers", hasAny(perms, ["admin.users.view","admin.users.manage"]));
+
+    toggle("tabLogs", hasAny(perms, ["admin.logs.view","ps.logs.view"]));
+    toggle("cardLogs", hasAny(perms, ["admin.logs.view","ps.logs.view"]));
+
+    // finally: tiles container visibility (if exists)
+    const tiles = document.getElementById("psDashTiles");
+    if(tiles){
+      // if it has children but no rects, force layout visibility
+      tiles.style.display = tiles.style.display || "grid";
+      tiles.style.visibility = "visible";
+      tiles.style.opacity = "1";
+    }
+  }
+
+  // 3) Monkey-patch authMe so every successful auth forces logged=1 and ungates
+  const origAuthMe = window.authMe;
+  if(typeof origAuthMe === "function"){
+    window.authMe = async function(){
+      const me = await origAuthMe.apply(this, arguments);
+      if(me && me.ok && (me.user||me.perms)){
+        setLogged(true);
+        storeMe(me);
+        applyGates(me.perms || me.user?.perms || {});
+      }else{
+        setLogged(false);
+        applyGates(loadPerms());
+      }
+      return me;
+    };
+  }else{
+    // fallback: mark as not logged, but still apply stored perms
+    setLogged(false);
+    applyGates(loadPerms());
+  }
+
+  // 4) If some legacy code tries to hide psOnly again, undo it.
+  const psOnly = document.getElementById("psOnly");
+  if(psOnly){
+    const obs = new MutationObserver(()=>{
+      if(document.documentElement.dataset.wpLogged === "1" && getComputedStyle(psOnly).display === "none"){
+        psOnly.style.display = "";
+      }
+    });
+    obs.observe(psOnly, {attributes:true, attributeFilter:["style","class"]});
+  }
+
+  // initial
+  setLogged(false);
+})();
+</script>
+
 </body>
 </html>
