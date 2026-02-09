@@ -1,97 +1,144 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Washportal (Minimal)</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Washportal – Login (Minimal, Bearer)</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;background:#0b1220;color:#e6eefc}
-    .card{max-width:760px;margin:0 auto;background:#111b2e;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px}
-    label{display:block;margin:10px 0 6px}
-    input{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#0b1220;color:#e6eefc}
-    button{margin-top:12px;padding:10px 14px;border-radius:10px;border:0;background:#37d0a8;color:#072016;font-weight:700;cursor:pointer}
-    pre{white-space:pre-wrap;word-break:break-word;background:#0b1220;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px}
-    .row{display:flex;gap:10px}
-    .row>*{flex:1}
-    small{opacity:.75}
+    :root{color-scheme:dark;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b1220;color:#e6eefc;margin:0;padding:24px;}
+    .card{max-width:980px;margin:0 auto;background:#101a2e;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px 18px 14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{font-size:20px;margin:0 0 10px}
+    p{margin:6px 0 12px;color:rgba(230,238,252,.8)}
+    label{font-size:12px;color:rgba(230,238,252,.85)}
+    input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0b1220;color:#e6eefc;outline:none}
+    input:focus{border-color:rgba(0,220,200,.55)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+    button{cursor:pointer;border:1px solid rgba(255,255,255,.12);background:linear-gradient(90deg,#23c6f0,#29f4b6);color:#052126;font-weight:700;border-radius:12px;padding:10px 14px}
+    button.secondary{background:#0b1220;color:#e6eefc}
+    pre{white-space:pre-wrap;word-break:break-word;background:#0b1220;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin:0}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(230,238,252,.85)}
+    .warn{color:#ffd38a}
   </style>
 </head>
 <body>
   <div class="card">
-    <h2 style="margin:0 0 8px">Washportal – Login (Minimal)</h2>
-    <small>Wichtig: API läuft auf dem Worker – nicht auf GitHub Pages.</small>
+    <h1>Washportal – Login (Minimal)</h1>
+    <p>
+      Wichtig: Diese Seite spricht den <span class="pill">Worker</span> direkt an. Sie nutzt <b>Bearer Token</b> (kein Cookie), damit GitHub Pages/CORS kein Thema ist.
+      <span class="warn">Wenn /api/auth/me nach erfolgreichem Login 403 liefert, wird der Token nicht mitgeschickt.</span>
+    </p>
 
     <label>API Base (Worker URL)</label>
-    <input id="apiBase" value="https://washportal-dev-worker.schluffi1220.workers.dev" />
+    <input id="apiBase" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
 
-    <div class="row">
+    <div style="height:10px"></div>
+
+    <div class="grid">
       <div>
         <label>E‑Mail</label>
         <input id="email" autocomplete="username" />
       </div>
       <div>
         <label>Passwort</label>
-        <input id="pass" type="password" autocomplete="current-password" />
+        <input id="pw" type="password" autocomplete="current-password" />
       </div>
     </div>
 
-    <button id="btnLogin">Login</button>
-    <button id="btnMe" style="background:#5aa7ff;color:#061225">/api/auth/me testen</button>
+    <div class="row">
+      <button id="btnLogin">Login</button>
+      <button class="secondary" id="btnMe">/api/auth/me testen</button>
+      <button class="secondary" id="btnClear">Token löschen</button>
+    </div>
 
-    <h3 style="margin:14px 0 8px">Output</h3>
-    <pre id="out">–</pre>
+    <p style="margin:8px 0 8px"><b>Token:</b> <span id="tok" class="pill">(leer)</span></p>
+
+    <p style="margin:8px 0 8px"><b>Output</b></p>
+    <pre id="out">{
+  "step": "ready"
+}</pre>
   </div>
 
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-  const out = (x) => $("out").textContent = (typeof x === "string") ? x : JSON.stringify(x, null, 2);
+  const out = (obj) => { $("out").textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2); };
 
-  function apiBase() {
-    return ($("apiBase").value || "").replace(/\/+$/,"");
-  }
+  const state = {
+    token: localStorage.getItem('wp_token') || ''
+  };
 
-  async function jpost(path, body, opts={}) {
-    const url = apiBase() + path;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type":"application/json" },
-      body: JSON.stringify(body || {}),
-      // Wenn du Cookie-basierte Session nutzt: credentials:"include"
-      // Wenn du Bearer Token nutzt: weglassen.
-      credentials: "include",
-      ...opts
+  const renderToken = () => {
+    $("tok").textContent = state.token ? (state.token.slice(0, 6) + "…" + state.token.slice(-6)) : "(leer)";
+  };
+  renderToken();
+
+  const apiBase = () => (($("apiBase").value || '').trim().replace(/\/$/, ''));
+
+  async function jpost(path, body, useAuth){
+    const headers = { 'Content-Type': 'application/json' };
+    if(useAuth && state.token){
+      headers['Authorization'] = 'Bearer ' + state.token;
+    }
+    const res = await fetch(apiBase() + path, {
+      method: 'POST',
+      headers,
+      // IMPORTANT: omit credentials -> CORS easy
+      credentials: 'omit',
+      body: JSON.stringify(body || {})
     });
-    const text = await res.text();
     let data;
-    try { data = JSON.parse(text); }
-    catch { data = { ok:false, error:"bad_json", raw:text.slice(0,400) }; }
+    try{ data = await res.json(); }
+    catch(e){ data = { ok:false, error:'bad_json', raw: await res.text().catch(()=>''), status: res.status }; }
     if(!res.ok) throw { status: res.status, data };
     return data;
   }
 
-  async function login() {
+  async function doLogin(){
+    out({ step:'login_start' });
     const email = $("email").value.trim();
-    const pass  = $("pass").value;
-    const data = await jpost("/api/auth/login", { email, password: pass });
-    out({ step:"login_ok", data });
-    return data;
+    const pw = $("pw").value;
+    try{
+      const data = await jpost('/api/auth/login', { email, password: pw }, false);
+      // Support both: {token} OR {ok:true, token}
+      const token = data?.token || data?.data?.token || '';
+      if(!token){
+        out({ step:'login_no_token', data });
+        return;
+      }
+      state.token = token;
+      localStorage.setItem('wp_token', token);
+      renderToken();
+      out({ step:'login_ok', gotToken:true, role: data?.user?.role, role2: data?.user?.role2, build: data?.build || data?.data?.build });
+      // auto test me
+      await doMe();
+    } catch(e){
+      out({ step:'login_error', e });
+    }
   }
 
-  async function me() {
-    const data = await jpost("/api/auth/me", {});
-    out({ step:"me_ok", data });
-    return data;
+  async function doMe(){
+    if(!state.token){
+      out({ step:'me_skip_no_token' });
+      return;
+    }
+    out({ step:'me_start' });
+    try{
+      const data = await jpost('/api/auth/me', {}, true);
+      out({ step:'me_ok', data });
+    } catch(e){
+      out({ step:'me_error', e, hint:'403 => Token wird nicht akzeptiert oder Endpoint erwartet Cookie. Dann Worker bitte so patchen, dass /api/auth/me Bearer akzeptiert.' });
+    }
   }
 
-  $("btnLogin").addEventListener("click", async () => {
-    try { await login(); await me(); }
-    catch (e) { out({ step:"error", e }); console.error(e); }
-  });
-
-  $("btnMe").addEventListener("click", async () => {
-    try { await me(); }
-    catch (e) { out({ step:"error", e }); console.error(e); }
+  $("btnLogin").addEventListener('click', doLogin);
+  $("btnMe").addEventListener('click', doMe);
+  $("btnClear").addEventListener('click', () => {
+    state.token = '';
+    localStorage.removeItem('wp_token');
+    renderToken();
+    out({ step:'token_cleared' });
   });
 })();
 </script>
