@@ -175,9 +175,6 @@ body[data-authed="1"] .auth-only{display:block}
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
-
-/* hide legacy test button */
-#btnPsTest, #psTestBtn, #btnTest, .ps-test-btn { display:none !important; }
 </style>
 </head>
 <body data-authed="0">
@@ -469,7 +466,7 @@ body[data-authed="1"] .hide-on-auth{display:none}
   <input id="adminLogsFilter" placeholder="Logs filtern (Zimmer/Text)…" style="flex:1;min-width:220px" />
 </div>
 
-<details id="adminLogsDetails" style="margin-top:10px" open>
+<details id="authLogsDetails" style="margin-top:10px" open>
   <summary>Logs</summary>
   <div class="card" style="margin-top:10px">
     <div id="adminLogsBox" class="small" style="margin-top:8px"></div>
@@ -798,8 +795,8 @@ body[data-authed="1"] .hide-on-auth{display:none}
   </details>
 
   <div class="row">
-    <button class="btn hide-on-auth" id="btnPsLogin">Anmelden</button>
-    <button class="btn inline hide-on-auth" id="btnPsLogout" style="display:none">Abmelden</button>
+    <button class="btn" class="hide-on-auth" id="btnPsLogin">Anmelden</button>
+    <button class="btn inline" class="hide-on-auth" id="btnPsLogout" style="display:none">Abmelden</button>
     <div id="psLoginState" class="muted"></div>
   </div>
   <div class="card" id="psOnly" style="display:none; margin-top:20px">
@@ -859,6 +856,27 @@ function roleLabel(r){
   return r || "";
 }
 
+function normalizePortalRole(r){
+  r = String(r||"").toLowerCase().trim();
+  if(!r) return "";
+  if(r === "patientensprecher") return "ps";
+  if(r === "stellvertreter") return "sv";
+  if(["ps_deputy","ps-deputy","psdeputy","deputy","sv"].includes(r)) return "sv";
+  if(r === "vs") return "vs";
+  if(["moderator","mod"].includes(r)) return "mod";
+  if(["superadmin","super_admin","super-admin","sa"].includes(r)) return "sa";
+  return r;
+}
+
+function hasAnyPerm(perms, keys){
+  if(!perms) return false;
+  for(const k of keys){
+    if(perms[k] === true) return true;
+  }
+  return false;
+}
+
+
 function renderAuth(){
   const a=getAuth();
   const st=document.getElementById("psLoginState");
@@ -916,7 +934,26 @@ function roleLabel(r){
   return r || "";
 }
 
-function applyRoleVisibility(){}
+function applyRoleVisibility(){
+  const a = getAuth();
+  const logged = !!(a && (a.token || a.tok));
+  const rawRole = (a && (a.role || a.userRole || a.user?.role)) || "";
+  const role = normalizePortalRole(rawRole);
+
+  // Always start hidden (prevents UI leak before auth is verified)
+  show("psOnly", false);
+  show("adminOnly", false);
+  show("psLoginCard", !logged);
+
+  if(!logged) return;
+
+  // PS/VS/SV/MOD/ADMIN see the internal dashboard area
+  const isPsVs = ["ps","sv","vs","mod","admin","sa"].includes(role);
+  const isAdmin = ["admin","sa"].includes(role);
+
+  show("psOnly", isPsVs);
+  show("adminOnly", isAdmin);
+}
 
 function updatePsDashUI(){
   const a = getAuth();
@@ -2043,7 +2080,7 @@ async function adminReload(){
   const s = getAdminSession();
   if (!s){ toast("Admin Session abgelaufen"); return; }
   try{
-    const r = await jpost("/api/admin/config/get", {adminPassword: s.pw});
+    const r = await jpost("/api/auth/admin/config/get", {adminPassword: s.pw});
     renderAdminConfig(r.config, r.newsSeenCount||0);
     await adminLoadMachines();
     await adminLoadFeedbackThreads();
@@ -2241,7 +2278,7 @@ async function renderPsVsAdminDash(){
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm(perms,"admin.users.manage") || ["admin","mod"].includes(role)){
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2251,7 +2288,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm(perms,"admin.logs.view") || ["admin","mod"].includes(role)){
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2261,7 +2298,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"admin.bookings.view") || ["admin","mod"].includes(role) || ["ps","ps_deputy","vs","sv"].includes(role)){
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
@@ -2271,7 +2308,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Konfiguration / News
-  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || ["admin","mod"].includes(role)){
+  if (hasPerm(perms,"admin.config.manage") || hasPerm(perms,"admin.news.edit") || role==="admin"){
     items.push(`
       <div class="tile bad" role="button" tabindex="0" data-act="config">
         ⚙️<br><b>Konfiguration</b><br>
@@ -2281,7 +2318,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Maschinen
-  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || ["admin","mod"].includes(role)){
+  if (hasPerm(perms,"admin.machines.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="machines">
         🧺<br><b>Maschinen</b><br>
@@ -2291,7 +2328,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Zimmer sperren
-  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || ["admin","mod"].includes(role)){
+  if (hasPerm(perms,"admin.roomcontrol.manage") || hasPerm(perms,"ps.rooms.manage") || role==="admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="roomctrl">
         🚫<br><b>Zimmer</b><br>
@@ -2301,7 +2338,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Feedback
-  if (hasPerm(perms,"admin.feedback.view") || ["admin","mod"].includes(role)){
+  if (hasPerm(perms,"admin.feedback.view") || role==="admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="feedback">
         💬<br><b>Feedback</b><br>
@@ -2676,7 +2713,7 @@ async function authLoadLogs(){
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((x,y)=>(y.ts||0)-(x.ts||0));
     renderAdminLogs();
     const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const detLogs = document.getElementById("adminLogsDetails"); if (detLogs) detLogs.open = true;
+    const detLogs = document.getElementById("authLogsDetails"); if (detLogs) detLogs.open = true;
     toast("✅ Logs geladen");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -2713,7 +2750,7 @@ async function authLoadLogs(){
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderAdminLogs();
     const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const detLogs1 = $("adminLogsDetails"); if (detLogs1) detLogs1.open = false;
+    const detLogs1 = $("authLogsDetails"); if (detLogs1) detLogs1.open = false;
     toast("✅ Logs geladen");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -2745,7 +2782,7 @@ async function adminLoadLogs(){
     __ADMIN_LOGS_CACHE = (r.logs||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderAdminLogs();
     const d = $("authLogsDetails"); if(d){d.open=true; d.style.display=""; d.scrollIntoView({behavior:"smooth", block:"start"});}
-    const detLogsX = $("adminLogsDetails"); if (detLogsX) detLogsX.open = false;
+    const detLogsX = $("authLogsDetails"); if (detLogsX) detLogsX.open = false;
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
     if (box) box.innerHTML = `<div class="small">⛔ Logs laden fehlgeschlagen (${esc(msg)})</div>`;
@@ -3143,7 +3180,7 @@ $("btnSaveWasherHours").onclick = async ()=>{
       const cb = document.getElementById(`wh_${h}`);
       if (cb && cb.checked) hours.push(h);
     }
-    await jpost("/api/admin/config/set", {adminPassword:s.pw, washerHours: hours});
+    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, washerHours: hours});
     toast("✅ Waschzeiten gespeichert");
     await adminReload();
     try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
@@ -3167,7 +3204,7 @@ $("btnSaveDryerMinutes").onclick = async ()=>{
   try{
     const ok = confirm2("Trockner-Dauer speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
+    await jpost("/api/auth/admin/config/set", {adminPassword:s.pw, dryerMinutes: Number($("dryerMinutes").value)});
     toast("✅ Trockner-Dauer gespeichert");
     await adminReload();
     try{ const _el=document.getElementById("btnJumpRole"); if(_el) _el.onclick = ()=>document.getElementById("saRoleEditor")&&document.getElementById("saRoleEditor").scrollIntoView({behavior:"smooth"}); }catch(e){}
@@ -3191,7 +3228,7 @@ $("btnSaveDaysWindow").onclick = async ()=>{
   try{
     const ok = confirm2("Tage-Fenster speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/admin/config/set", {
+    await jpost("/api/auth/admin/config/set", {
       adminPassword:s.pw,
       daysPast: Number($("daysPast").value),
       daysFuture: Number($("daysFuture").value),
@@ -3219,7 +3256,7 @@ $("btnSaveNews").onclick = async ()=>{
   try{
     const ok = confirm2("News speichern?", "Gespeichert.");
     if (!ok) return;
-    await jpost("/api/admin/config/set", {
+    await jpost("/api/auth/admin/config/set", {
       adminPassword:s.pw,
       newsEnabled: $("newsEnabled").checked,
       newsText: $("newsText").value,
@@ -3290,7 +3327,7 @@ $("btnSaveDefectRules").onclick = async ()=>{
       }
     }
 
-    await jpost("/api/admin/config/set", {
+    await jpost("/api/auth/admin/config/set", {
       adminPassword: s.pw,
       userDefectEnabled: $("userDefectEnabled").checked,
       userDefectAllowed: allowed
@@ -3506,7 +3543,7 @@ function authHas(p){
     const me = window.__AUTH_ME_CACHE || null;
     const perms = me?.perms || {};
     const role = me?.user?.role || (getAuth()?.role||"");
-    return !!(perms[p] || ["admin","mod"].includes(role));
+    return !!(perms[p] || role==="admin");
   }catch{ return false; }
 }
 
@@ -3521,7 +3558,7 @@ async function authLoadConfig(){
   const msg = $("authConfigMsg"); if (msg) msg.innerHTML = `<div class="small">Lade Konfiguration…</div>`;
   try{
     await authMeCached();
-    const r = await jpostAuth("/api/admin/config/get", {});
+    const r = await jpostAuth("/api/auth/admin/config/get", {});
     __AUTH_CONFIG_CACHE = r.config || {};
     renderAuthConfigForm(__AUTH_CONFIG_CACHE);
     toast("✅ Konfiguration geladen");
@@ -3537,7 +3574,7 @@ async function authSaveConfig(){
   const msg = $("authConfigMsg");
   try{
     const payload = collectAuthConfigFromForm();
-    await jpostAuth("/api/admin/config/set", payload);
+    await jpostAuth("/api/auth/admin/config/set", payload);
     toast("✅ Konfiguration gespeichert");
     if (msg) msg.innerHTML = `<div class="small">✅ Gespeichert.</div>`;
   }catch(e){
@@ -3670,7 +3707,7 @@ async function authLoadFeedbackThreads(){
   const det = $("authFeedbackDetails"); if(det){det.style.display=""; det.open=true;}
   const box = $("authFeedbackBox"); if (box) box.innerHTML = `<div class="small">Lade Threads…</div>`;
   try{
-    const r = await jpostAuth("/api/auth/feedback/threads", { limit: 200 });
+    const r = await jpostAuth("/api/auth/feedback/list", { limit: 200 });
     __AUTH_FB_THREADS = r.threads || [];
     if (!__AUTH_FB_THREADS.length){
       if (box) box.innerHTML = `<div class="small">Keine Threads.</div>`;
@@ -4054,7 +4091,7 @@ async function authFbLoadThreads(){
   const listBox = $("authFbThreadsBox"); if(listBox) listBox.innerHTML = `<div class="small">Lade Threads…</div>`;
   try{
     let r;
-    try{ r = await jpostAuth("/api/auth/feedback/threads", { limit: 300 }); }
+    try{ r = await jpostAuth("/api/auth/feedback/list", { limit: 300 }); }
     catch(_e){ r = await jpostAuth("/api/auth/feedback/list", { limit: 300 }); }
     __FB_THREADS = (r.threads || r.items || []).slice().sort((a,b)=>(Number(b.updatedAt||b.updated_at||0)-Number(a.updatedAt||a.updated_at||0)));
     renderFbThreads();
@@ -4666,5 +4703,68 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 </script>
+
+<script>
+/* ===== Roles-only UI gating (safe) ===== */
+(function(){
+  function permHas(perms, key){
+    if(!perms) return false;
+    if(perms["sa.all"]) return true;
+    if(perms[key]) return true;
+    if(perms["admin."+key]) return true;
+    if(key && key.startsWith("admin.") && perms[key.slice(6)]) return true;
+    return false;
+  }
+
+  function getPerms(){
+    const me = window.__AUTH_ME || window.__ME || null;
+    return (me && (me.perms || me.user?.perms)) || {};
+  }
+
+  function gate(){
+    const perms = getPerms();
+
+    // Hide/show the DETAILS blocks only (never parents)
+    const users = document.getElementById("authUsersDetails");
+    if(users){
+      const allow = permHas(perms,"admin.users.view") || permHas(perms,"admin.users.manage");
+      users.style.display = allow ? "" : "none";
+    }
+
+    const logs = document.getElementById("authLogsDetails");
+    if(logs){
+      const allow = permHas(perms,"admin.logs.view") || permHas(perms,"admin.logs.export");
+      logs.style.display = allow ? "" : "none";
+    }
+
+    const cfg = document.getElementById("authConfigDetails");
+    if(cfg){
+      const allow =
+        permHas(perms,"admin.config.view") || permHas(perms,"admin.config.manage") ||
+        permHas(perms,"ps.config.view") || permHas(perms,"vs.config.view") ||
+        permHas(perms,"ps.config.manage") || permHas(perms,"vs.config.manage") ||
+        permHas(perms,"config.view") || permHas(perms,"config.manage");
+      cfg.style.display = allow ? "" : "none";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    setTimeout(gate, 200);
+    setTimeout(gate, 800);
+  });
+
+  if(typeof window.renderAuthState === "function"){
+    const old = window.renderAuthState;
+    window.renderAuthState = async function(){
+      const r = await old.apply(this, arguments);
+      try{ gate(); }catch(_e){}
+      return r;
+    };
+  }
+
+  window.__gateRolesOnly = gate;
+})();
+</script>
+
 </body>
 </html>
