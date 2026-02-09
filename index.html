@@ -1331,7 +1331,132 @@ function protoPdf(){
       <h3>Von der Pflege</h3><p>${escapeHtml(f.care_from||"Keine Information")}</p>
       <h3>Allgemein</h3><p>${escapeHtml(f.general||"Keine Information")}</p>
       <script>window.onload=()=>window.print();<\/script>
-    </body></html>`;
+    
+<script>
+/* === RBAC hardening patch (2026-02-09) ===
+   Goal: never hide PS/VS/Admin dashboards when perms indicate access;
+   and never show Logs unless permitted. Also ensure Konfig speichern
+   always triggers a network call (no silent UI-only error).
+*/
+(function(){
+  const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+  const $  = (sel, root=document)=>root.querySelector(sel);
+
+  function permList(me){
+    try { return Object.keys((me && me.perms) || {}); } catch(e){ return []; }
+  }
+  function hasAnyPrefix(perms, prefixes){
+    for(const k of perms){
+      for(const p of prefixes){
+        if(k.startsWith(p)) return true;
+      }
+    }
+    return false;
+  }
+  function hasPermKey(me, key){
+    const perms = (me && me.perms) || {};
+    return !!(perms["sa.all"] || perms[key]);
+  }
+  function show(el){ if(el) el.style.display = ""; }
+  function hide(el){ if(el) el.style.display = "none"; }
+
+  async function postProcessVisibility(){
+    if(typeof authMe !== "function") return;
+    let me=null;
+    try { me = await authMe(); } catch(e){ return; }
+    const perms = permList(me);
+    const role  = String(me?.user?.role||"");
+    const role2 = String(me?.user?.role2||"");
+    // Decide dashboard visibility by PERMS (source of truth), not by role string.
+    const canAdmin = hasAnyPrefix(perms, ["admin."]) || perms.includes("sa.all");
+    const canPS    = hasAnyPrefix(perms, ["ps."]) || perms.includes("role.ps.transfer") || role==="ps" || role2==="ps";
+    const canVS    = hasAnyPrefix(perms, ["vs.","sv."]) || perms.includes("role.vs.transfer") || role==="vs" || role==="sv" || role2==="vs" || role2==="sv";
+
+    // Unhide dashboard wrappers if present
+    if(canAdmin){ show(document.getElementById("adminOnly")); show(document.getElementById("adminDashTiles")); }
+    if(canPS){    show(document.getElementById("psOnly"));    show(document.getElementById("psDashTiles")); }
+    if(canVS){    show(document.getElementById("vsOnly"));    show(document.getElementById("vsDashTiles")); }
+
+    // Gate Logs card strictly
+    const canLogs = perms.includes("sa.all") || perms.includes("admin.logs.view") || perms.includes("ps.logs.view") || perms.includes("vs.logs.view") || perms.includes("logs.view");
+    // try a few known ids/classes
+    hide(document.getElementById("logsCard"));
+    const logsDetails = document.getElementById("logsDetails") || document.getElementById("logs") || document.querySelector("[data-card='logs']");
+    if(canLogs){ show(document.getElementById("logsCard")); show(logsDetails); } else { hide(logsDetails); }
+
+    // Ensure Konfig speichern always triggers request if user can manage config.
+    // If a click handler already exists, we don't fight it—only add a fallback.
+    const btnSave = document.getElementById("btnCfgSave") || document.getElementById("cfgSave") || document.querySelector("[data-action='cfg-save']");
+    const btnLoad = document.getElementById("btnCfgLoad") || document.getElementById("cfgLoad") || document.querySelector("[data-action='cfg-load']");
+    const statusEl = document.getElementById("cfgStatus") || document.querySelector(".cfgStatus");
+
+    function toastErr(msg){
+      try { if(typeof toast==="function") toast(msg,"err"); else console.warn(msg); } catch(e){ console.warn(msg); }
+    }
+    function toastOk(msg){
+      try { if(typeof toast==="function") toast(msg,"ok"); else console.log(msg); } catch(e){ console.log(msg); }
+    }
+
+    async function fallbackSave(){
+      // prefer admin.config.manage, but allow ps.config.manage/vs.config.manage if you later add them
+      const canSave = perms.includes("sa.all") || perms.includes("admin.config.manage") || perms.includes("ps.config.manage") || perms.includes("vs.config.manage");
+      if(!canSave){ toastErr("Speichern: forbidden"); return; }
+      // collect payload from existing form fields if present
+      const payload = {};
+      const map = [
+        ["daysPast","cfgDaysPast"],["daysFuture","cfgDaysFuture"],
+        ["dryerMinutes","cfgDryerMinutes"],["washerSlotMinutes","cfgWasherSlotMinutes"],
+        ["newsEnabled","cfgNewsEnabled"],["newsText","cfgNewsText"],["newsVersion","cfgNewsVersion"],
+        ["userDefectEnabled","cfgUserDefectEnabled"]
+      ];
+      for(const [k,id] of map){
+        const el = document.getElementById(id);
+        if(!el) continue;
+        if(el.type==="checkbox") payload[k]=!!el.checked;
+        else if(el.tagName==="TEXTAREA") payload[k]=el.value||"";
+        else payload[k]=Number.isFinite(+el.value) ? +el.value : el.value;
+      }
+      try{
+        const r = await jpostAuth("/api/admin/config/set", payload);
+        if(r?.ok){ toastOk("Speichern: OK"); if(statusEl) statusEl.textContent="Gespeichert."; }
+        else { toastErr("Speichern fehlgeschlagen ("+(r?.error||"Fehler")+")"); }
+      }catch(e){
+        toastErr("Speichern fehlgeschlagen (Fehler)");
+      }
+    }
+
+    if(btnSave && !btnSave.__rbacFallbackBound){
+      btnSave.__rbacFallbackBound = true;
+      btnSave.addEventListener("click", async (ev)=>{
+        // if existing handler triggers network, we do nothing; we only guard "no request" situations.
+        // Try detect within next tick if a fetch happened by wrapping window.fetch once.
+        let called = false;
+        const origFetch = window.fetch;
+        window.fetch = function(){
+          called = true;
+          return origFetch.apply(this, arguments);
+        };
+        setTimeout(()=>{ window.fetch = origFetch; if(!called) fallbackSave(); }, 0);
+      }, true);
+    }
+    if(btnLoad && !btnLoad.__rbacFallbackBound){
+      btnLoad.__rbacFallbackBound = true;
+      btnLoad.addEventListener("click", async (ev)=>{
+        // no-op: leave to existing handler
+      }, true);
+    }
+  }
+
+  // Run after first auth UI render AND whenever user clicks "Aktualisieren"
+  document.addEventListener("DOMContentLoaded", ()=>{ setTimeout(postProcessVisibility, 50); });
+  window.addEventListener("focus", ()=>{ setTimeout(postProcessVisibility, 50); });
+
+  // Also expose manual command for you (no UI button)
+  window.__rbacRefreshUI = postProcessVisibility;
+})();
+</script>
+
+</body></html>`;
   const w=window.open("", "_blank");
   if(w){ w.document.open(); w.document.write(html); w.document.close(); }
 }
