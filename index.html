@@ -5,6 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Washportal</title>
+<script>
+function $(id){return document.getElementById(id);} 
+</script>
   <style>
     :root{
       --bg:#0b1220;
@@ -171,11 +174,7 @@
 /* #btnPsLogin,#btnPsLogout,#psLoginState{display:none !important;} */
 
 .auth-only{display:none}
-body[data-authed="1"] .auth-only,
-body[data-authed="true"] .auth-only{
-  display:block !important;
-}
-
+body[data-authed="1"] .auth-only{display:block}
 
 .hide-on-auth{display:block}
 body[data-authed="1"] .hide-on-auth{display:none}
@@ -835,7 +834,7 @@ function setAuth(t,r,e,exp){
   localStorage.setItem(AUTH_EMAIL, e || "");
   localStorage.setItem(AUTH_EXP, String(exp || 0));
   // do NOT mark authed yet; /api/auth/me will verify
-  document.body.setAttribute("data-authed","1");
+  document.body.setAttribute("data-authed","0");
 }
 function clearAuth(){
   sessionStorage.removeItem(AUTH_KEY);
@@ -909,7 +908,7 @@ async function renderAuthState(){
     document.body.setAttribute("data-authed","0");
   }
   renderAuth();
-  try{ applyRoleVisibility(me); }catch(e){}
+  try{ applyRoleVisibility(me); }catch(e){ console.warn("applyRoleVisibility error", e); }
   try{ updatePsDashUI(me); }catch(e){}
 }
 window.renderAuthState = renderAuthState;
@@ -938,26 +937,30 @@ function roleLabel(r){
   return r || "";
 }
 
-function applyRoleVisibility(){
-  const a = getAuth();
-  const logged = !!(a && (a.token || a.tok));
-  const rawRole = (a && (a.role || a.userRole || a.user?.role)) || "";
-  const role = normalizePortalRole(rawRole);
+function applyRoleVisibility(me){
+  // Never show privileged UI unless /api/auth/me succeeded
+  const authed = !!(me && me.ok && (me.user || me.perms));
+  const roleRaw = authed ? (me.user && me.user.role ? me.user.role : "") : "";
+  const role = normalizePortalRole(roleRaw);
 
-  // Always start hidden (prevents UI leak before auth is verified)
-  show("psOnly", false);
-  show("adminOnly", false);
-  show("psLoginCard", !logged);
+  const psOnly = document.getElementById("psOnly");
+  const adminOnly = document.getElementById("adminOnly");
+  const psLoginCard = document.getElementById("psLoginCard");
 
-  if(!logged) return;
+  // Default: hide everything sensitive
+  if (psOnly) psOnly.style.display = "none";
+  if (adminOnly) adminOnly.style.display = "none";
+  if (psLoginCard) psLoginCard.style.display = authed ? "none" : "";
 
-  // PS/VS/SV/MOD/ADMIN see the internal dashboard area
+  if (!authed) return;
+
   const isPsVs = ["ps","sv","vs","mod","admin","sa"].includes(role);
   const isAdmin = ["admin","sa"].includes(role);
 
-  show("psOnly", isPsVs);
-  show("adminOnly", isAdmin);
+  if (psOnly) psOnly.style.display = isPsVs ? "" : "none";
+  if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
+
 
 function updatePsDashUI(){
   const a = getAuth();
