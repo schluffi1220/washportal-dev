@@ -809,6 +809,37 @@ body[data-authed="1"] .hide-on-auth{display:none}
 <script>
 // API base (global)
 var API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
+// --- helpers (no jQuery needed) ---
+function $(id){ return document.getElementById(id); }
+function esc(v){
+  const s = String(v ?? "");
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function fmtBerlin(ts){
+  try{
+    const d = new Date(Number(ts||0));
+    return new Intl.DateTimeFormat("de-DE", { timeZone:"Europe/Berlin", day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" }).format(d);
+  }catch(e){ return String(ts||""); }
+}
+
+async function jpostAuth(path, body){
+  const a = getAuth ? getAuth() : {token:""};
+  const headers = {"content-type":"application/json"};
+  if (a.token) headers["authorization"] = "Bearer " + a.token;
+  const r = await fetch(API_BASE + path, {
+    method:"POST",
+    headers,
+    body: JSON.stringify(body || {}),
+    credentials: "include"
+  });
+  const data = await r.json().catch(()=>({ok:false, error:"bad_json"}));
+  if (!r.ok || data?.ok === false){
+    const err = {status:r.status, data};
+    throw err;
+  }
+  return data;
+}
+
 
 // Auth storage keys (guarded against accidental double-includes)
 var AUTH_KEY   = window.AUTH_KEY   || "wp_token";
@@ -2969,8 +3000,22 @@ document.addEventListener("DOMContentLoaded", wireV8UI);
    UI v9: Auth sections + Users
    ============================ */
 
-function hasPerm(p){ try{ return !!(__AUTH_ME?.perms && __AUTH_ME.perms[p]); }catch(_e){ return false; } }
-function roleIs(...rs){ const r=String(__AUTH_ME?.user?.role||""); return rs.includes(r); }
+function hasPerm(permsOrKey, maybeKey){
+  try{
+    if (typeof maybeKey !== "undefined") {
+      const perms = permsOrKey || {};
+      const key = maybeKey;
+      return !!perms[key];
+    }
+    const key = permsOrKey;
+    return !!(__AUTH_ME?.perms && __AUTH_ME.perms[key]);
+  }catch(_e){ return false; }
+}catch(_e){ return false; } }
+function roleIs(...rs){
+  const r1=String(__AUTH_ME?.user?.role||"");
+  const r2=String(__AUTH_ME?.user?.role2||"");
+  return rs.includes(r1) || rs.includes(r2);
+}
 
 function updateAuthSections(){
   const loggedIn = !!(getAuth()?.token);
