@@ -875,6 +875,7 @@ function renderAuth(){
 async function renderAuthState(){
   document.body.setAttribute("data-authed","0");
   const me = await authMe();
+  const perms = me?.perms || me?.user?.perms || {};
   if(me){
     window.__ME = me;
     document.body.setAttribute("data-authed","1");
@@ -921,11 +922,18 @@ function applyRoleVisibility(){
   const adminOnly = document.getElementById("adminOnly");
 
   const logged = !!a.token;
-  const p = a.perms || {};
-  const isAdmin = logged && (p["sa.all"] || Object.keys(p).some(k=>k.startsWith("admin.")));
-  const isPS = logged && !isAdmin; // PS/VS/SV/MOD etc.
+  const isAdmin = logged && a.role === "admin";
+  const isPS = logged && (a.role === "ps" || a.role === "vs");
 
-  if (psOnly) psOnly.style.display = logged ? "block" : "none"; // show PS/VS/Admin dashboard container when logged in
+  if (psOnly) {
+    const canSeePsDash = !!(a && a.token) && (
+      hasPerm(perms,"bookings.view") || hasPerm(perms,"feedback.view") || hasPerm(perms,"news.view") ||
+      hasPerm(perms,"rooms.manage") || hasPerm(perms,"logs.view") || hasPerm(perms,"users.manage") ||
+      hasPerm(perms,"protocol.view") || hasPerm(perms,"machines.view")
+    );
+    psOnly.style.display = canSeePsDash ? "block" : "none";
+  }
+  // Dashboard nutzt Kacheln)
   if (adminOnly) adminOnly.style.display = isAdmin ? "" : "none";
 }
 
@@ -2226,68 +2234,48 @@ async function authMe(){
     return null;
   }
 }
-function normalizeRole(r){
-  r = String(r||"").toLowerCase().trim();
-  // allow both "-" and "_" spellings
-  r = r.replace(/-/g, "_");
-  if (r === "superadmin" || r === "super_admin") return "sa";
-  if (r === "ps_deputy") return "vs"; // legacy naming
-  if (r === "vs_deputy") return "vs";
-  return r || "";
-}
-
-// Backward-compatible permission aliases (mirror Worker)
-const PERM_ALIASES = {
-  "rooms.manage": ["admin.roomcontrol.manage","ps.rooms.manage"],
-  "rooms.view": ["admin.roomcontrol.view"],
-  "machines.manage": ["admin.machines.manage"],
-  "machines.view": ["admin.machines.view"],
-  "bookings.view": ["admin.bookings.view","ps.bookings.view","vs.bookings.view"],
-  "bookings.manage": ["admin.bookings.manage","ps.bookings.manage","vs.bookings.manage"],
-  "config.manage": ["admin.config.manage"],
-  "news.edit": ["admin.news.edit"],
-  "feedback.view": ["admin.feedback.view"],
-  "logs.view": ["admin.logs.view"],
-  "users.manage": ["admin.users.manage"],
-  "users.view": ["admin.users.view"]
-};
-
-function permHas(perms, key){
-  if (!perms) return false;
-  if (perms["sa.all"]) return true;
-  if (perms[key]) return true;
-  const aliases = PERM_ALIASES[key] || [];
-  for (const a of aliases) if (perms[a]) return true;
-  // reverse lookup: if key itself is an alias, check canonical
-  for (const [canon, list] of Object.entries(PERM_ALIASES)){
-    if (list.includes(key) && perms[canon]) return true;
-  }
-  return false;
-}
-
 function hasPerm(perms, key){
-  if(!perms) return false;
+  if(!perms || !key) return false;
 
+  // direct
   if(perms[key]) return true;
 
-  // 🔥 wichtig: admin.* Alias
-  if(perms["admin."+key]) return true;
+  // common prefix bridges
+  if(!key.startsWith("admin.") && perms["admin."+key]) return true;
+  if(!key.startsWith("ps.") && perms["ps."+key]) return true;
+  if(!key.startsWith("vs.") && perms["vs."+key]) return true;
 
-  // fallback remove admin prefix
+  // remove admin/ps/vs prefix
   if(key.startsWith("admin.") && perms[key.slice(6)]) return true;
+  if(key.startsWith("ps.") && perms[key.slice(3)]) return true;
+  if(key.startsWith("vs.") && perms[key.slice(3)]) return true;
+
+  // canonical aliases used by UI
+  const ALIAS = {
+    "users.manage": ["admin.users.manage","admin.users.view"],
+    "users.view": ["admin.users.view"],
+    "logs.view": ["admin.logs.view","ps.logs.view"],
+    "logs.export": ["admin.logs.export"],
+    "config.view": ["admin.config.view","ps.config.view"],
+    "config.manage": ["admin.config.manage"],
+    "feedback.view": ["admin.feedback.view","feedback.view","ps.feedback.view","feedback.psvs.view"],
+    "feedback.reply": ["admin.feedback.reply","feedback.reply","ps.feedback.reply","feedback.psvs.reply"],
+    "news.edit": ["admin.news.edit","news.edit","news.psvs.edit"],
+    "news.view": ["news.view","news.psvs.view","ps.news.view"],
+    "rooms.manage": ["admin.roomcontrol.manage","rooms.manage","ps.rooms.manage"],
+    "bookings.view": ["admin.bookings.view","bookings.view","ps.bookings.view","ps.bookings.cancel"],
+  };
+  const list = ALIAS[key];
+  if(list){
+    for(const k of list) if(perms[k]) return true;
+  }
+
+  // SA override (if present)
+  if(perms["sa.all"]) return true;
 
   return false;
 }
 
-
-function rolesFrom(me, a){
-  const r1 = normalizeRole(me?.user?.role || a?.role || "");
-  const r2 = normalizeRole(me?.user?.role2 || a?.role2 || "");
-  const set = new Set();
-  if (r1) set.add(r1);
-  if (r2) set.add(r2);
-  return set;
-}
 async function renderPsVsAdminDash(){
   const a = getAuth();
   const tiles = document.getElementById("psDashTiles");
@@ -2302,18 +2290,15 @@ async function renderPsVsAdminDash(){
 
   const me = await authMe();
   const perms = me?.perms || {};
-  const roles = rolesFrom(me, a);
-  const role1 = normalizeRole(me?.user?.role || a.role || "");
-  const role2 = normalizeRole(me?.user?.role2 || a.role2 || "");
+  const role = me?.user?.role || a.role || "";
   const email = me?.user?.email || a.email || "";
 
-  const roleText = [role1, role2].filter(Boolean).map(roleLabel).join(" + ") || "user";
-  info.textContent = `Angemeldet als ${roleText} (${email})`;
+  info.textContent = `Angemeldet als ${roleLabel(role)} (${email})`;
 
   const items = [];
 
   // Benutzer / Rollen & Rechte
-  if (hasPerm(perms,"users.manage") || roles.has("admin") || roles.has("sa")){
+  if (hasPerm(perms,"admin.users.manage") || role === "admin"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="users">
         👥<br><b>Benutzer</b><br>
@@ -2323,7 +2308,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Logs
-  if (hasPerm(perms,"logs.view") || roles.has("admin") || roles.has("sa")){
+  if (hasPerm(perms,"admin.logs.view") || role === "admin"){
     items.push(`
       <div class="tile busy" role="button" tabindex="0" data-act="logs">
         📋<br><b>Logs</b><br>
@@ -2333,7 +2318,7 @@ async function renderPsVsAdminDash(){
   }
 
   // Buchungen
-  if (hasPerm(perms,"bookings.view") || roles.has("admin") || roles.has("ps") || roles.has("vs") || roles.has("sa")){
+  if (hasPerm(perms,"admin.bookings.view") || role === "admin" || role === "ps" || role === "vs"){
     items.push(`
       <div class="tile free" role="button" tabindex="0" data-act="bookings">
         📅<br><b>Buchungen</b><br>
