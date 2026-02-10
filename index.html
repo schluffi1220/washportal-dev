@@ -302,15 +302,31 @@
 
   async function configSave(){
     $("configOut").textContent = "…";
+    let cfg;
     try{
-      const raw = $("configJson").value || "{}";
-      const cfg = JSON.parse(raw);
-      const j = await apiPost("/api/admin/config/set", {config: cfg});
-      $("configOut").textContent = JSON.stringify(j, null, 2);
+      const raw = ($("configJson").value || "").trim() || "{}";
+      cfg = JSON.parse(raw);
     }catch(e){
-      if(e && e.json) $("configOut").textContent = JSON.stringify(e.json, null, 2);
-      else $("configOut").textContent = String(e && e.message ? e.message : e);
+      $("configOut").textContent = JSON.stringify({ok:false,error:"bad_json",message:e?.message||String(e)}, null, 2);
+      toast("Speichern: JSON ungültig");
+      return;
     }
+    try{
+      // Wichtig: Worker erwartet die Felder direkt (nicht {config:{...}})
+      const j = await apiPost("/api/admin/config/set", cfg);
+      $("configOut").textContent = JSON.stringify(j, null, 2);
+      if(j?.ok){
+        // UI konsistent halten: gespeicherte Version anzeigen
+        if(j.config) $("configJson").value = JSON.stringify(j.config, null, 2);
+        toast("Speichern: OK");
+      }else{
+        toast("Speichern: Fehler");
+      }
+    }catch(e){
+      $("configOut").textContent = JSON.stringify({ok:false,error:"network",message:String(e)}, null, 2);
+      toast("Speichern: Fehler");
+    }
+  }
   }
 
   function renderProtRows(entries){
