@@ -1,429 +1,427 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Washportal DEV – Schritt 1 (Login + Konfig + Protokoll)</title>
-  <style>
-    :root{color-scheme:dark}
-    body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b1220;color:#e7eefc}
-    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
-    .card{background:#0f1b33;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    h1{font-size:18px;margin:0 0 10px}
-    h2{font-size:15px;margin:0 0 10px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    input,textarea,select,button{background:#0b1428;color:#e7eefc;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px}
-    input,select{min-width:240px}
-    textarea{width:100%;min-height:110px;resize:vertical}
-    button{cursor:pointer}
-    button.primary{background:linear-gradient(90deg,#2dd4bf,#60a5fa);border:0;color:#051023;font-weight:700}
-    button.danger{background:#ef4444;border:0;color:#0b1220;font-weight:700}
-    .muted{opacity:.8}
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:#0b1428}
-    .ok{color:#34d399}
-    .bad{color:#fb7185}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width:900px){.grid{grid-template-columns:1fr}}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top}
-    th{opacity:.85;text-align:left}
-    .hidden{display:none !important;}
-    pre{margin:0;white-space:pre-wrap;word-break:break-word;background:#07102a;border:1px solid rgba(255,255,255,.08);padding:10px;border-radius:12px}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Washportal – RBAC Dashboard</title>
+<style>
+  :root{color-scheme:dark;}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b1020;color:#e9eefc}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:14px;margin:12px 0;backdrop-filter: blur(6px)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,textarea,select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e9eefc;border-radius:10px;padding:10px;font-size:14px}
+  input,select{height:42px}
+  textarea{width:100%;min-height:160px}
+  button{background:linear-gradient(90deg,#5fd3ff,#41f0b3);border:0;color:#061018;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+  button.secondary{background:rgba(255,255,255,.10);color:#e9eefc;border:1px solid rgba(255,255,255,.14)}
+  button.danger{background:rgba(255,80,80,.18);color:#ffb3b3;border:1px solid rgba(255,80,80,.35)}
+  .muted{opacity:.75}
+  .pill{display:inline-flex;gap:6px;align-items:center;border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px}
+  .ok{color:#70ffb6}
+  .bad{color:#ff8b8b}
+  details{border-radius:14px;overflow:hidden}
+  summary{list-style:none;cursor:pointer;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px}
+  details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  details .detail-body{padding:12px 14px;border:1px solid rgba(255,255,255,.10);border-top:0;border-bottom-left-radius:14px;border-bottom-right-radius:14px;background:rgba(255,255,255,.03)}
+  pre{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.10);max-height:420px;overflow:auto}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .tile{padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06)}
+  .tile h4{margin:0 0 8px 0}
+  .tile small{opacity:.75}
+  .sep{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Washportal DEV – Schritt 1</h1>
-      <div class="muted">Nur Grundstein, aber <b>sauber</b>: Login → Token → RBAC → (Konfig + Protokoll) sichtbar/bedienbar nur wenn Perm gesetzt.</div>
-      <div style="margin-top:10px" class="row">
-        <label class="muted">API Base (Worker)</label>
-        <input id="apiBase" />
-        <button id="btnStatus">Status</button>
-        <span id="statusOut" class="pill muted">—</span>
+<div class="wrap">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div style="font-size:20px;font-weight:900">Washportal – RBAC Dashboard</div>
+        <div class="muted">Zeigt **nur** Funktionen, für die du Rechte hast. API via Worker (Bearer Token).</div>
       </div>
-    </div>
-
-    <div class="card" id="cardLogin">
-      <h2>Login</h2>
       <div class="row">
-        <input id="email" placeholder="E‑Mail" autocomplete="username" />
-        <input id="password" placeholder="Passwort" type="password" autocomplete="current-password" />
-        <button class="primary" id="btnLogin">Login</button>
-        <button id="btnMe">/api/auth/me</button>
-        <button id="btnLogout" class="danger">Logout</button>
-      </div>
-      <div style="margin-top:10px" class="grid">
-        <div>
-          <div class="muted">Token (sessionStorage: <code>wp_token</code>)</div>
-          <pre id="tokenOut">—</pre>
-        </div>
-        <div>
-          <div class="muted">me</div>
-          <pre id="meOut">—</pre>
-        </div>
+        <span class="pill">Build: <span id="buildPill" class="muted">–</span></span>
+        <span class="pill">Status: <span id="statusPill" class="muted">–</span></span>
       </div>
     </div>
-
-    <div class="card hidden" id="cardConfig">
-      <h2>Konfiguration</h2>
-      <div class="row">
-        <span class="pill" id="permConfigView">view: —</span>
-        <span class="pill" id="permConfigManage">manage: —</span>
-        <button id="btnConfigLoad">Konfig laden</button>
-        <button class="primary" id="btnConfigSave">Konfig speichern</button>
-      </div>
-      <div class="grid" style="margin-top:10px">
-        <div>
-          <div class="muted">Konfig JSON (bearbeitbar)</div>
-          <textarea id="configJson"></textarea>
-        </div>
-        <div>
-          <div class="muted">Antwort</div>
-          <pre id="configOut">—</pre>
-        </div>
-      </div>
+    <div class="sep"></div>
+    <div class="row">
+      <input id="apiBase" style="min-width:340px;flex:1" placeholder="API Base (Worker URL)" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
+      <input id="email" style="min-width:260px;flex:1" placeholder="E-Mail"/>
+      <input id="password" style="min-width:220px;flex:1" placeholder="Passwort" type="password"/>
+      <button id="btnLogin">Login</button>
+      <button id="btnMe" class="secondary">/auth/me</button>
+      <button id="btnLogout" class="danger">Logout</button>
     </div>
-
-    <div class="card hidden" id="cardProtocol">
-      <h2>Protokoll</h2>
-      <div class="row">
-        <span class="pill" id="permProtView">view: —</span>
-        <span class="pill" id="permProtCreate">create: —</span>
-        <span class="pill" id="permProtEdit">edit: —</span>
-        <span class="pill" id="permProtDelete">delete: —</span>
-      </div>
-
-      <div class="card" style="margin-top:10px">
-        <div class="row">
-          <input id="protQ" placeholder="Suche…" />
-          <button id="btnProtLoad">Laden</button>
-        </div>
-        <div style="margin-top:10px; overflow:auto">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:160px">Datum</th>
-                <th>Titel</th>
-                <th>Text</th>
-                <th style="width:160px">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="protTbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:10px">
-        <div class="muted">Neu / Bearbeiten</div>
-        <div class="row" style="margin-top:8px">
-          <input id="protId" placeholder="id (für Update/Delete)" />
-          <input id="protTitle" placeholder="Titel" />
-        </div>
-        <div style="margin-top:8px">
-          <textarea id="protBody" placeholder="Text…"></textarea>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button class="primary" id="btnProtCreate">Anlegen</button>
-          <button id="btnProtUpdate">Update</button>
-          <button class="danger" id="btnProtDelete">Löschen</button>
-        </div>
-        <div style="margin-top:8px">
-          <pre id="protOut">—</pre>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Debug</h2>
-      <div class="muted">Wenn etwas „nicht sichtbar“ ist: es wird hier <b>nicht</b> gerendert, solange <code>me</code> nicht ok ist oder die Perm fehlt.</div>
-      <pre id="debugOut">—</pre>
+    <div class="row" style="margin-top:10px">
+      <span class="pill">User: <span id="userPill" class="muted">nicht eingeloggt</span></span>
+      <span class="pill">Perms: <span id="permCount" class="muted">0</span></span>
+      <span class="pill">Token: <span id="tokenPill" class="muted">–</span></span>
     </div>
   </div>
 
+  <div class="card">
+    <div style="font-weight:900;margin-bottom:8px">Funktionen (sichtbar nur bei passenden Rechten)</div>
+    <div id="tiles" class="tiles"></div>
+  </div>
+
+  <details class="card" open>
+    <summary><b>Antwort / Debug</b> <span class="muted">– letzte API Antwort + warum etwas sichtbar/unsichtbar ist</span></summary>
+    <div class="detail-body">
+      <pre id="out">{}</pre>
+    </div>
+  </details>
+
+  <div id="modules"></div>
+</div>
+
 <script>
-(function(){
-  const DEFAULT_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  const $ = (id)=>document.getElementById(id);
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const out = (obj) => { $("out").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); };
 
-  function nowIso(ts){
-    try{ return new Date(ts).toLocaleString(); }catch(_){ return String(ts||""); }
+  const LS_TOKEN_KEY = "wp_token"; // sessionStorage
+  function apiBase(){ return ($("apiBase").value || "").replace(/\/+$/,""); }
+  function getToken(){ return sessionStorage.getItem(LS_TOKEN_KEY) || ""; }
+  function setToken(t){ if(t) sessionStorage.setItem(LS_TOKEN_KEY, t); else sessionStorage.removeItem(LS_TOKEN_KEY); }
+  function authHeaders(){
+    const h = {"content-type":"application/json"};
+    const t = getToken();
+    if (t) h["authorization"] = "Bearer " + t;
+    return h;
   }
-
-  function getBase(){
-    const v = ($("apiBase").value||"").trim().replace(/\/+$/,"");
-    return v || DEFAULT_BASE;
+  async function post(path, body){
+    const url = apiBase() + path;
+    const r = await fetch(url, {method:"POST", headers: authHeaders(), body: JSON.stringify(body||{})});
+    const text = await r.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    return { status: r.status, ok: r.ok, data, url };
   }
-
-  function setPill(el, ok, label){
-    el.textContent = label + ": " + (ok ? "✓" : "✗");
-    el.className = "pill " + (ok ? "ok" : "bad");
-  }
-
-  function getToken(){
-    return sessionStorage.getItem("wp_token") || "";
-  }
-  function setToken(t){
-    if(t) sessionStorage.setItem("wp_token", t);
-    else sessionStorage.removeItem("wp_token");
-    $("tokenOut").textContent = t ? t : "—";
-  }
-
-  async function apiPost(path, bodyObj){
-    const base = getBase();
-    const url = base + path;
-    const token = getToken();
-    const headers = {"content-type":"application/json"};
-    if(token) headers["authorization"] = "Bearer " + token;
-    const res = await fetch(url, {
-      method:"POST",
-      mode:"cors",
-      credentials:"omit",
-      headers,
-      body: JSON.stringify(bodyObj || {})
-    });
-    const text = await res.text();
-    let json=null;
-    try{ json = JSON.parse(text); }catch(_){}
-    if(!res.ok){
-      const err = {status: res.status, text, json};
-      throw err;
-    }
-    return json ?? {ok:true, raw:text};
-  }
-
-  async function apiGet(path){
-    const base = getBase();
-    const url = base + path;
-    const res = await fetch(url, {method:"GET", mode:"cors", credentials:"omit"});
-    const text = await res.text();
-    let json=null; try{ json=JSON.parse(text);}catch(_){}
-    if(!res.ok) throw {status:res.status,text,json};
-    return json ?? {ok:true, raw:text};
-  }
-
-  function renderVisibility(me){
-    const ok = !!(me && me.ok);
-    const p = (me && (me.perms || (me.user && me.user.perms))) || {};
-
-    // Reset: hide everything
-    $("cardConfig").classList.add("hidden");
-    $("cardProtocol").classList.add("hidden");
-
-    // Pills
-    setPill($("permConfigView"), !!p["admin.config.view"] || !!p["ps.config.view"] || !!p["sa.all"], "view");
-    setPill($("permConfigManage"), !!p["admin.config.manage"] || !!p["sa.all"], "manage");
-
-    setPill($("permProtView"), !!p["protocol.view"] || !!p["sa.all"], "view");
-    setPill($("permProtCreate"), !!p["protocol.create"] || !!p["sa.all"], "create");
-    setPill($("permProtEdit"), !!p["protocol.edit"] || !!p["sa.all"], "edit");
-    setPill($("permProtDelete"), !!p["protocol.delete"] || !!p["sa.all"], "delete");
-
-    // Show sections only if logged in + perm
-    if(ok && (p["admin.config.view"] || p["ps.config.view"] || p["sa.all"])) $("cardConfig").classList.remove("hidden");
-    if(ok && (p["protocol.view"] || p["sa.all"])) $("cardProtocol").classList.remove("hidden");
-
-    // Button enable
-    $("btnConfigSave").disabled = !(ok && (p["admin.config.manage"] || p["sa.all"]));
-    $("btnConfigLoad").disabled = !(ok && (p["admin.config.view"] || p["ps.config.view"] || p["sa.all"]));
-
-    $("btnProtCreate").disabled = !(ok && (p["protocol.create"] || p["sa.all"]));
-    $("btnProtUpdate").disabled = !(ok && (p["protocol.edit"] || p["sa.all"]));
-    $("btnProtDelete").disabled = !(ok && (p["protocol.delete"] || p["sa.all"]));
-
-    $("debugOut").textContent = JSON.stringify({
-      loggedIn: ok,
-      role: me && me.user && me.user.role,
-      role2: me && me.user && me.user.role2,
-      permCount: Object.keys(p||{}).length,
-      show: {config: !$("cardConfig").classList.contains("hidden"), protocol: !$("cardProtocol").classList.contains("hidden")}
-    }, null, 2);
-  }
-
-  async function doStatus(){
-    $("statusOut").textContent = "…";
+  async function getStatus(){
     try{
-      const j = await apiGet("/api/_status?ts="+Date.now());
-      $("statusOut").textContent = (j.ok ? "OK" : "ERR") + " · " + (j.build||"") + " · " + nowIso(j.now);
-      $("statusOut").className = "pill " + (j.ok ? "ok" : "bad");
-    }catch(e){
-      $("statusOut").textContent = "ERR";
-      $("statusOut").className = "pill bad";
-      console.error("status err", e);
+      const r = await fetch(apiBase()+"/api/_status?ts="+Date.now(), {method:"GET"});
+      const j = await r.json();
+      $("buildPill").textContent = j.build || "–";
+      $("statusPill").textContent = j.ok ? "OK" : "ERR";
+      return j;
+    } catch(e){
+      $("statusPill").textContent = "ERR";
+      return null;
     }
   }
 
-  async function doLogin(){
-    const email = ($("email").value||"").trim();
-    const password = $("password").value||"";
-    $("meOut").textContent = "…";
-    try{
-      const j = await apiPost("/api/auth/login", {email, password});
-      const token = j && (j.token || (j.data && j.data.token));
-      setToken(token || "");
-      $("meOut").textContent = JSON.stringify(j, null, 2);
-      await doMe();
-    }catch(e){
-      $("meOut").textContent = JSON.stringify(e.json || {status:e.status, text:e.text}, null, 2);
-      renderVisibility(null);
+  // ---- RBAC helpers ----
+  function hasPerm(perms, key){ return !!(perms && perms[key]); }
+  function hasAny(perms, keys){ return (keys||[]).some(k => hasPerm(perms,k)); }
+  function needLabel(keys){ return (keys||[]).join(", "); }
+
+  // ---- feature registry (controls visibility + modules) ----
+  const FEATURES = [
+    { id:"cfg", title:"Konfiguration / News", desc:"Konfig JSON laden/speichern", permsAny:["admin.config.view","admin.config.manage","admin.news.edit"], module: renderConfig },
+    { id:"proto", title:"Protokoll", desc:"Einträge ansehen + schreiben", permsAny:["protocol.view","protocol.create","protocol.edit","protocol.delete"], module: renderProtocol },
+    { id:"logs", title:"Logs", desc:"Logs laden + CSV Export (später)", permsAny:["admin.logs.view","admin.logs.export"], module: renderLogs },
+    { id:"users", title:"Admin-User", desc:"User Liste (Basis)", permsAny:["admin.users.view","admin.users.manage","admin.users.delete"], module: renderUsers },
+    { id:"book", title:"Buchungen (Admin)", desc:"Buchungen ansehen/stornieren", permsAny:["admin.bookings.view","admin.bookings.cancel"], module: renderBookings },
+    { id:"rooms", title:"Zimmer sperren", desc:"Roomcontrol", permsAny:["admin.roomcontrol.manage","ps.rooms.manage"], module: renderRooms },
+    { id:"fb", title:"Feedback", desc:"Threads laden + antworten", permsAny:["admin.feedback.view","admin.feedback.reply","feedback.view","feedback.reply","ps.feedback.view","ps.feedback.reply"], module: renderFeedback },
+    { id:"news", title:"News", desc:"News ansehen/bearbeiten", permsAny:["news.view","news.edit","admin.news.edit","ps.news.view"], module: renderNews },
+  ];
+
+  // --- modules (minimal implementations using known worker endpoints) ---
+  function moduleShell(title, subtitle){
+    const d = document.createElement("details");
+    d.className = "card";
+    const s = document.createElement("summary");
+    s.innerHTML = `<b>${title}</b> <span class="muted">– ${subtitle||""}</span>`;
+    const b = document.createElement("div");
+    b.className = "detail-body";
+    d.appendChild(s); d.appendChild(b);
+    return {details:d, body:b};
+  }
+
+  function renderConfig(ctx){
+    const {perms} = ctx;
+    const canView = hasAny(perms, ["admin.config.view","admin.config.manage","admin.news.edit"]);
+    const canManage = hasPerm(perms, "admin.config.manage") || hasPerm(perms, "admin.news.edit");
+    const sh = moduleShell("Konfiguration / News", "GET/SET via /api/auth/admin/config/*");
+    sh.details.open = true;
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">view: <b class="${canView?'ok':'bad'}">${canView?'✓':'✗'}</b></span>
+        <span class="pill">manage: <b class="${canManage?'ok':'bad'}">${canManage?'✓':'✗'}</b></span>
+        <button id="cfgLoad" class="secondary">Konfig laden</button>
+        <button id="cfgSave">Konfig speichern</button>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="muted" style="margin-bottom:6px">Konfig JSON (bearbeitbar)</div>
+          <textarea id="cfgJson" spellcheck="false"></textarea>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:6px">Antwort</div>
+          <pre id="cfgOut">{}</pre>
+        </div>
+      </div>
+    `;
+    sh.body.querySelector("#cfgLoad").onclick = async () => {
+      const r = await post("/api/auth/admin/config/get", {});
+      sh.body.querySelector("#cfgOut").textContent = JSON.stringify(r, null, 2);
+      if (r.ok && r.data && r.data.config) sh.body.querySelector("#cfgJson").value = JSON.stringify(r.data.config, null, 2);
+      out(r);
+    };
+    sh.body.querySelector("#cfgSave").onclick = async () => {
+      if (!canManage){ out({ok:false, error:"forbidden", message:"missing admin.config.manage"}); return; }
+      let cfg = {};
+      try { cfg = JSON.parse(sh.body.querySelector("#cfgJson").value||"{}"); }
+      catch(e){ out({ok:false, error:"bad_json", message:String(e)}); return; }
+      const r = await post("/api/auth/admin/config/set", { config: cfg });
+      sh.body.querySelector("#cfgOut").textContent = JSON.stringify(r, null, 2);
+      out(r);
+    };
+    return sh.details;
+  }
+
+  function renderProtocol(ctx){
+    const {perms} = ctx;
+    const canView = hasPerm(perms,"protocol.view");
+    const canCreate = hasPerm(perms,"protocol.create");
+    const canEdit = hasPerm(perms,"protocol.edit");
+    const canDelete = hasPerm(perms,"protocol.delete");
+    const sh = moduleShell("Protokoll", "Liste + Create/Update/Delete via /api/auth/protocol/*");
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">view: <b class="${canView?'ok':'bad'}">${canView?'✓':'✗'}</b></span>
+        <span class="pill">create: <b class="${canCreate?'ok':'bad'}">${canCreate?'✓':'✗'}</b></span>
+        <span class="pill">edit: <b class="${canEdit?'ok':'bad'}">${canEdit?'✓':'✗'}</b></span>
+        <span class="pill">delete: <b class="${canDelete?'ok':'bad'}">${canDelete?'✓':'✗'}</b></span>
+        <button id="pLoad" class="secondary">Laden</button>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="card" style="margin:0">
+          <div style="font-weight:800;margin-bottom:8px">Neuer Eintrag</div>
+          <div class="row">
+            <input id="pRoom" placeholder="Zimmer" style="flex:1;min-width:120px"/>
+            <input id="pAction" placeholder="Aktion" style="flex:1;min-width:160px"/>
+          </div>
+          <textarea id="pText" placeholder="Text/Meta..." spellcheck="false" style="min-height:110px;margin-top:8px"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button id="pCreate">Speichern</button>
+          </div>
+          <div class="muted" style="margin-top:8px">Hinweis: Update/Delete kommt als nächstes Feintuning (IDs aus Liste).</div>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:6px">Antwort / Liste</div>
+          <pre id="pOut">{}</pre>
+        </div>
+      </div>
+    `;
+    sh.body.querySelector("#pLoad").onclick = async () => {
+      const r = await post("/api/auth/protocol/list", { limit: 200 });
+      sh.body.querySelector("#pOut").textContent = JSON.stringify(r, null, 2);
+      out(r);
+    };
+    sh.body.querySelector("#pCreate").onclick = async () => {
+      if (!canCreate){ out({ok:false, error:"forbidden", message:"missing protocol.create"}); return; }
+      const room = sh.body.querySelector("#pRoom").value || "";
+      const action = sh.body.querySelector("#pAction").value || "note";
+      const text = sh.body.querySelector("#pText").value || "";
+      const r = await post("/api/auth/protocol/create", { room, action, text });
+      sh.body.querySelector("#pOut").textContent = JSON.stringify(r, null, 2);
+      out(r);
+    };
+    return sh.details;
+  }
+
+  function renderLogs(ctx){
+    const {perms} = ctx;
+    const can = hasPerm(perms,"admin.logs.view");
+    const sh = moduleShell("Logs", "via /api/auth/logs (admin.logs.view)");
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">view: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
+        <input id="lLim" type="number" min="1" max="500" value="200" style="width:110px"/>
+        <button id="lLoad" class="secondary">Laden</button>
+      </div>
+      <pre id="lOut" style="margin-top:10px">{}</pre>
+    `;
+    sh.body.querySelector("#lLoad").onclick = async () => {
+      const limit = parseInt(sh.body.querySelector("#lLim").value||"200",10);
+      const r = await post("/api/auth/logs", { limit });
+      sh.body.querySelector("#lOut").textContent = JSON.stringify(r, null, 2);
+      out(r);
+    };
+    return sh.details;
+  }
+
+  function renderUsers(ctx){
+    const {perms} = ctx;
+    const can = hasAny(perms, ["admin.users.view","admin.users.manage","admin.users.delete"]);
+    const sh = moduleShell("Admin-User", "Liste via /api/auth/admin/users/list");
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">view/manage/delete: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
+        <button id="uLoad" class="secondary">User laden</button>
+      </div>
+      <pre id="uOut" style="margin-top:10px">{}</pre>
+    `;
+    sh.body.querySelector("#uLoad").onclick = async () => {
+      const r = await post("/api/auth/admin/users/list", {});
+      sh.body.querySelector("#uOut").textContent = JSON.stringify(r, null, 2);
+      out(r);
+    };
+    return sh.details;
+  }
+
+  function renderBookings(ctx){
+    const {perms} = ctx;
+    const can = hasAny(perms, ["admin.bookings.view","admin.bookings.cancel","bookings.view"]);
+    const sh = moduleShell("Buchungen", "Listen (Admin) via /api/auth/admin/bookings/list");
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">view: <b class="${hasPerm(perms,"admin.bookings.view")?'ok':'bad'}">${hasPerm(perms,"admin.bookings.view")?'✓':'✗'}</b></span>
+        <span class="pill">cancel: <b class="${hasPerm(perms,"admin.bookings.cancel")?'ok':'bad'}">${hasPerm(perms,"admin.bookings.cancel")?'✓':'✗'}</b></span>
+        <button id="bLoad" class="secondary">Admin-List</button>
+      </div>
+      <pre id="bOut" style="margin-top:10px">{}</pre>
+    `;
+    sh.body.querySelector("#bLoad").onclick = async () => {
+      const r = await post("/api/auth/admin/bookings/list", { limit: 200 });
+      sh.body.querySelector("#bOut").textContent = JSON.stringify(r, null, 2);
+      out(r);
+    };
+    return sh.details;
+  }
+
+  function renderRooms(ctx){
+    const {perms} = ctx;
+    const can = hasAny(perms, ["admin.roomcontrol.manage","ps.rooms.manage"]);
+    const sh = moduleShell("Zimmer sperren / Hinweis", "Basis-UI, API je nach Worker-Route");
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">manage: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
+        <span class="muted">UI/Routes werden als nächstes sauber verdrahtet.</span>
+      </div>
+      <pre style="margin-top:10px">TODO: roomcontrol endpoints im Worker verdrahten (wenn du mir sagst, welche Route du nutzt).</pre>
+    `;
+    return sh.details;
+  }
+
+  function renderFeedback(ctx){
+    const {perms} = ctx;
+    const can = hasAny(perms, ["admin.feedback.view","admin.feedback.reply","feedback.view","feedback.reply","ps.feedback.view","ps.feedback.reply"]);
+    const sh = moduleShell("Feedback", "Routes variieren – wir prüfen als nächstes den Worker (threads etc.)");
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">any: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
+        <span class="muted">Wenn Threads 404 geben, fehlt die Route im Worker – dann fixen wir Worker zuerst.</span>
+      </div>
+      <pre style="margin-top:10px">TODO: Feedback-Threads/Replies in nächstem Schritt.</pre>
+    `;
+    return sh.details;
+  }
+
+  function renderNews(ctx){
+    const {perms} = ctx;
+    const can = hasAny(perms, ["news.view","news.edit","admin.news.edit","ps.news.view","news.psvs.view","news.psvs.edit"]);
+    const sh = moduleShell("News", "Ist in Config enthalten (newsText/newsVersion). Separate UI kommt danach.");
+    sh.body.innerHTML = `
+      <div class="row">
+        <span class="pill">any: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
+        <span class="muted">News steckt in der Config (newsText/newsVersion).</span>
+      </div>
+    `;
+    return sh.details;
+  }
+
+  // ---- UI rendering ----
+  function renderTiles(perms){
+    const tiles = $("tiles");
+    tiles.innerHTML = "";
+    const mods = $("modules");
+    mods.innerHTML = "";
+    const visible = [];
+    const hidden = [];
+    for (const f of FEATURES){
+      const allowed = hasAny(perms, f.permsAny);
+      (allowed ? visible : hidden).push({id:f.id, title:f.title, need:f.permsAny});
+      if (!allowed) continue;
+
+      const t = document.createElement("div");
+      t.className = "tile";
+      t.innerHTML = `<h4>${f.title}</h4><small>${f.desc}</small><div class="sep"></div><small class="muted">Perms: ${needLabel(f.permsAny)}</small>`;
+      t.onclick = () => {
+        const el = document.getElementById("mod-"+f.id);
+        if (el){ el.open = true; el.scrollIntoView({behavior:"smooth",block:"start"}); }
+      };
+      tiles.appendChild(t);
+
+      const mod = f.module({perms});
+      mod.id = "mod-"+f.id;
+      mods.appendChild(mod);
     }
+    // Debug: show why hidden
+    out({ visible, hidden, tokenPresent: !!getToken() });
   }
 
   async function doMe(){
-    $("meOut").textContent = "…";
-    try{
-      const j = await apiPost("/api/auth/me", {});
-      $("meOut").textContent = JSON.stringify(j, null, 2);
-      renderVisibility(j);
-      return j;
-    }catch(e){
-      $("meOut").textContent = JSON.stringify(e.json || {status:e.status, text:e.text}, null, 2);
-      renderVisibility(null);
-      throw e;
+    const r = await post("/api/auth/me", {});
+    out(r);
+    if (r.ok && r.data && r.data.ok){
+      const u = r.data.user || {};
+      $("userPill").textContent = `${u.role||"-"} ${u.email||""}`.trim();
+      const perms = r.data.perms || u.perms || {};
+      $("permCount").textContent = String(Object.keys(perms||{}).length);
+      renderTiles(perms);
+    } else {
+      $("userPill").textContent = "nicht eingeloggt";
+      $("permCount").textContent = "0";
+      $("tiles").innerHTML = `<div class="muted">Keine Funktionen sichtbar – bitte einloggen.</div>`;
+      $("modules").innerHTML = "";
+    }
+    return r;
+  }
+
+  async function doLogin(){
+    const email = $("email").value || "";
+    const password = $("password").value || "";
+    const r = await post("/api/auth/login", { email, password });
+    out(r);
+    if (r.ok && r.data && r.data.ok && r.data.token){
+      setToken(r.data.token);
+      $("tokenPill").textContent = "gesetzt";
+      await doMe();
+    } else {
+      setToken("");
+      $("tokenPill").textContent = "–";
+      await doMe();
     }
   }
 
-  async function doLogout(){
+  function doLogout(){
     setToken("");
-    $("meOut").textContent = "—";
-    renderVisibility(null);
+    $("tokenPill").textContent = "–";
+    $("userPill").textContent = "nicht eingeloggt";
+    $("permCount").textContent = "0";
+    $("tiles").innerHTML = `<div class="muted">Ausgeloggt.</div>`;
+    $("modules").innerHTML = "";
+    out({ok:true, step:"logout"});
   }
 
-  async function configLoad(){
-    $("configOut").textContent = "…";
-    try{
-      const j = await apiPost("/api/admin/config/get", {});
-      $("configOut").textContent = JSON.stringify(j, null, 2);
-      if(j && j.config) $("configJson").value = JSON.stringify(j.config, null, 2);
-    }catch(e){
-      $("configOut").textContent = JSON.stringify(e.json || {status:e.status, text:e.text}, null, 2);
-    }
-  }
+  // wire
+  $("btnLogin").onclick = doLogin;
+  $("btnMe").onclick = doMe;
+  $("btnLogout").onclick = doLogout;
 
-  async function configSave(){
-    $("configOut").textContent = "…";
-    let cfg;
-    try{
-      const raw = ($("configJson").value || "").trim() || "{}";
-      cfg = JSON.parse(raw);
-    }catch(e){
-      $("configOut").textContent = JSON.stringify({ok:false,error:"bad_json",message:e?.message||String(e)}, null, 2);
-      toast("Speichern: JSON ungültig");
-      return;
-    }
-    try{
-      // Wichtig: Worker erwartet die Felder direkt (nicht {config:{...}})
-      const j = await apiPost("/api/admin/config/set", cfg);
-      $("configOut").textContent = JSON.stringify(j, null, 2);
-      if(j?.ok){
-        // UI konsistent halten: gespeicherte Version anzeigen
-        if(j.config) $("configJson").value = JSON.stringify(j.config, null, 2);
-        toast("Speichern: OK");
-      }else{
-        toast("Speichern: Fehler");
-      }
-    }catch(e){
-      $("configOut").textContent = JSON.stringify({ok:false,error:"network",message:String(e)}, null, 2);
-      toast("Speichern: Fehler");
-    }
-  }
-
-  function renderProtRows(entries){
-    const tb = $("protTbody");
-    tb.innerHTML = "";
-    for(const it of (entries||[])){
-      const tr = document.createElement("tr");
-      const dt = document.createElement("td");
-      dt.textContent = nowIso(it.createdAt || it.updatedAt);
-      const t = document.createElement("td");
-      t.textContent = it.title || "";
-      const b = document.createElement("td");
-      b.textContent = it.body || "";
-      const a = document.createElement("td");
-      const btn = document.createElement("button");
-      btn.textContent = "Übernehmen";
-      btn.onclick = ()=>{
-        $("protId").value = it.id || "";
-        $("protTitle").value = it.title || "";
-        $("protBody").value = it.body || "";
-      };
-      a.appendChild(btn);
-      tr.appendChild(dt); tr.appendChild(t); tr.appendChild(b); tr.appendChild(a);
-      tb.appendChild(tr);
-    }
-  }
-
-  async function protLoad(){
-    $("protOut").textContent = "…";
-    try{
-      const q = ($("protQ").value||"").trim();
-      const j = await apiPost("/api/auth/protocol/list", {q});
-      $("protOut").textContent = JSON.stringify(j, null, 2);
-      renderProtRows(j.entries || []);
-    }catch(e){
-      $("protOut").textContent = JSON.stringify(e.json || {status:e.status, text:e.text}, null, 2);
-    }
-  }
-
-  async function protCreate(){
-    $("protOut").textContent = "…";
-    try{
-      const title = ($("protTitle").value||"").trim();
-      const body = ($("protBody").value||"").trim();
-      const j = await apiPost("/api/auth/protocol/create", {title, body});
-      $("protOut").textContent = JSON.stringify(j, null, 2);
-      await protLoad();
-    }catch(e){
-      $("protOut").textContent = JSON.stringify(e.json || {status:e.status, text:e.text}, null, 2);
-    }
-  }
-
-  async function protUpdate(){
-    $("protOut").textContent = "…";
-    try{
-      const id = ($("protId").value||"").trim();
-      const title = ($("protTitle").value||"").trim();
-      const body = ($("protBody").value||"").trim();
-      const j = await apiPost("/api/auth/protocol/update", {id, title, body});
-      $("protOut").textContent = JSON.stringify(j, null, 2);
-      await protLoad();
-    }catch(e){
-      $("protOut").textContent = JSON.stringify(e.json || {status:e.status, text:e.text}, null, 2);
-    }
-  }
-
-  async function protDelete(){
-    $("protOut").textContent = "…";
-    try{
-      const id = ($("protId").value||"").trim();
-      const j = await apiPost("/api/auth/protocol/delete", {id});
-      $("protOut").textContent = JSON.stringify(j, null, 2);
-      await protLoad();
-    }catch(e){
-      $("protOut").textContent = JSON.stringify(e.json || {status:e.status, text:e.text}, null, 2);
-    }
-  }
-
-  // Wire
-  $("apiBase").value = DEFAULT_BASE;
-  setToken(getToken());
-  renderVisibility(null);
-
-  $("btnStatus").addEventListener("click", doStatus);
-  $("btnLogin").addEventListener("click", doLogin);
-  $("btnMe").addEventListener("click", doMe);
-  $("btnLogout").addEventListener("click", doLogout);
-
-  $("btnConfigLoad").addEventListener("click", configLoad);
-  $("btnConfigSave").addEventListener("click", configSave);
-
-  $("btnProtLoad").addEventListener("click", protLoad);
-  $("btnProtCreate").addEventListener("click", protCreate);
-  $("btnProtUpdate").addEventListener("click", protUpdate);
-  $("btnProtDelete").addEventListener("click", protDelete);
-
-  // Auto status
-  doStatus().catch(()=>{});
+  // boot
+  (async () => {
+    $("tokenPill").textContent = getToken() ? "gesetzt" : "–";
+    await getStatus();
+    await doMe();
+  })();
 })();
 </script>
 </body>
