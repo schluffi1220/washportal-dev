@@ -32,6 +32,13 @@
   .tile h4{margin:0 0 8px 0}
   .tile small{opacity:.75}
   .sep{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
+
+.btn-xs{ padding:6px 10px; font-size:12px; border-radius:10px; }
+.tableWrap{ overflow:auto; border:1px solid rgba(255,255,255,.08); border-radius:14px; }
+.tbl{ width:100%; border-collapse:collapse; font-size:13px; }
+.tbl th,.tbl td{ padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; }
+.tbl th{ color:rgba(255,255,255,.75); font-weight:600; background:rgba(255,255,255,.03); position:sticky; top:0; }
+.badge{ display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.08); }
 </style>
 </head>
 <body>
@@ -129,7 +136,16 @@
     { id:"rooms", title:"Zimmer sperren", desc:"Roomcontrol", permsAny:["admin.roomcontrol.manage","ps.rooms.manage"], module: renderRooms },
     { id:"fb", title:"Feedback", desc:"Threads laden + antworten", permsAny:["admin.feedback.view","admin.feedback.reply","feedback.view","feedback.reply","ps.feedback.view","ps.feedback.reply"], module: renderFeedback },
     { id:"news", title:"News", desc:"News ansehen/bearbeiten", permsAny:["news.view","news.edit","admin.news.edit","ps.news.view"], module: renderNews },
-  ];
+  
+  ,
+  {
+    key: "adminUsers",
+    title: "Admin-User",
+    desc: "User Liste + Rollenwechsel (PS/SV Übergabe)",
+    permsAny: ["admin.users.manage","admin.users.view"],
+    render: renderAdminUsers
+  }
+];
 
   // --- modules (minimal implementations using known worker endpoints) ---
   function moduleShell(title, subtitle){
@@ -402,7 +418,124 @@
   }
 
   function doLogout(){
-    setToken("");
+    s
+// -----------------------------
+// Admin-Users (PS/SV Übergabe)
+// -----------------------------
+function renderAdminUsers(host, me){
+  host.innerHTML = `
+    <div class="panel">
+      <div class="panel-h">
+        <div>
+          <div class="panel-title">Admin-User</div>
+          <div class="panel-sub">Liste laden + Rollen setzen. PS=Patientensprecher, SV=Stellvertreter (ps_deputy).</div>
+        </div>
+        <div class="row" style="gap:8px;">
+          <button class="btn" id="btnUsersLoad">User laden</button>
+        </div>
+      </div>
+
+      <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <span class="pill">PS: <b id="curPS">?</b></span>
+        <span class="pill">SV: <b id="curSV">?</b></span>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <input id="usersFilter" class="input" style="flex:1" placeholder="Suche: E-Mail / Name / Rolle" />
+      </div>
+
+      <div class="tableWrap" style="margin-top:10px;">
+        <table class="tbl" id="usersTbl">
+          <thead>
+            <tr>
+              <th>E-Mail</th><th>Name</th><th>Rolle</th><th>Status</th><th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="muted" style="margin-top:8px;">
+        Hinweis: Rollenwechsel nutzt <code>/api/auth/admin/users/set-role</code>. Dabei wird PS/SV automatisch „einzigartig“ gehalten.
+      </div>
+    </div>
+  `;
+
+  const btn = host.querySelector("#btnUsersLoad");
+  const filter = host.querySelector("#usersFilter");
+  const tbody = host.querySelector("#usersTbl tbody");
+  const curPS = host.querySelector("#curPS");
+  const curSV = host.querySelector("#curSV");
+
+  let users = [];
+
+  function norm(s){ return String(s||"").toLowerCase(); }
+
+  function render(){
+    const q = norm(filter.value);
+    const rows = users.filter(u=>{
+      const hay = [u.email,u.firstName,u.lastName,u.role,u.role2,u.status].map(norm).join(" ");
+      return !q || hay.includes(q);
+    });
+
+    const ps = users.find(u=>u.role==="ps");
+    const sv = users.find(u=>u.role==="ps_deputy");
+    curPS.textContent = ps ? ps.email : "-";
+    curSV.textContent = sv ? sv.email : "-";
+
+    tbody.innerHTML = rows.map(u=>{
+      const name = [u.firstName,u.lastName].filter(Boolean).join(" ").trim() || "-";
+      const role = u.role || "-";
+      const status = u.status || "-";
+      const disabled = (status==="deleted") ? "disabled" : "";
+      return `
+        <tr>
+          <td>${esc(u.email||"-")}</td>
+          <td>${esc(name)}</td>
+          <td><span class="badge">${esc(role)}</span></td>
+          <td>${esc(status)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-xs" data-act="ps" data-id="${u.id}" ${disabled}>PS</button>
+            <button class="btn btn-xs" data-act="sv" data-id="${u.id}" ${disabled}>SV</button>
+            <button class="btn btn-xs" data-act="user" data-id="${u.id}" ${disabled}>User</button>
+            <button class="btn btn-xs" data-act="admin" data-id="${u.id}" ${disabled}>Admin</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    tbody.querySelectorAll("button[data-act]").forEach(b=>{
+      b.addEventListener("click", async ()=>{
+        const id = b.getAttribute("data-id");
+        const act = b.getAttribute("data-act");
+        const role = act==="ps" ? "ps" : act==="sv" ? "ps_deputy" : act;
+        await doSetRole(id, role);
+      });
+    });
+  }
+
+  async function doLoad(){
+    const data = await apiPost("/api/auth/admin/users/list", {});
+    if (!data.ok) throw new Error(data.error || "list_failed");
+    users = data.users || [];
+    render();
+  }
+
+  async function doSetRole(userId, role){
+    const res = await apiPost("/api/auth/admin/users/set-role", { userId, role });
+    if (!res.ok) throw new Error(res.error || res.message || "set_role_failed");
+    await doLoad();
+    toast("Rolle gesetzt: " + role);
+  }
+
+  btn.addEventListener("click", ()=>safeRun(doLoad));
+  filter.addEventListener("input", render);
+
+  // auto-load once
+  safeRun(doLoad);
+}
+
+etToken("");
     $("tokenPill").textContent = "–";
     $("userPill").textContent = "nicht eingeloggt";
     $("permCount").textContent = "0";
