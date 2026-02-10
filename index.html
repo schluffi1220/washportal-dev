@@ -147,7 +147,7 @@
     const {perms} = ctx;
     const canView = hasAny(perms, ["admin.config.view","admin.config.manage","admin.news.edit"]);
     const canManage = hasPerm(perms, "admin.config.manage") || hasPerm(perms, "admin.news.edit");
-    const sh = moduleShell("Konfiguration / News", "GET/SET via /api/auth/admin/config/*");
+    const sh = moduleShell("Konfiguration / News", "GET/SET via /api/admin/config/*");
     sh.details.open = true;
     sh.body.innerHTML = `
       <div class="row">
@@ -168,7 +168,7 @@
       </div>
     `;
     sh.body.querySelector("#cfgLoad").onclick = async () => {
-      const r = await post("/api/auth/admin/config/get", {});
+      const r = await post("/api/admin/config/get", {});
       sh.body.querySelector("#cfgOut").textContent = JSON.stringify(r, null, 2);
       if (r.ok && r.data && r.data.config) sh.body.querySelector("#cfgJson").value = JSON.stringify(r.data.config, null, 2);
       out(r);
@@ -178,7 +178,7 @@
       let cfg = {};
       try { cfg = JSON.parse(sh.body.querySelector("#cfgJson").value||"{}"); }
       catch(e){ out({ok:false, error:"bad_json", message:String(e)}); return; }
-      const r = await post("/api/auth/admin/config/set", { config: cfg });
+      const r = await post("/api/admin/config/set", { config: cfg });
       sh.body.querySelector("#cfgOut").textContent = JSON.stringify(r, null, 2);
       out(r);
     };
