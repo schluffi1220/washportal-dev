@@ -1,532 +1,334 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Washportal – RBAC Dashboard</title>
-<style>
-  :root{color-scheme:dark;}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b1020;color:#e9eefc}
-  .wrap{max-width:1100px;margin:0 auto;padding:18px}
-  .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:14px;margin:12px 0;backdrop-filter: blur(6px)}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  input,textarea,select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e9eefc;border-radius:10px;padding:10px;font-size:14px}
-  input,select{height:42px}
-  textarea{width:100%;min-height:160px}
-  button{background:linear-gradient(90deg,#5fd3ff,#41f0b3);border:0;color:#061018;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
-  button.secondary{background:rgba(255,255,255,.10);color:#e9eefc;border:1px solid rgba(255,255,255,.14)}
-  button.danger{background:rgba(255,80,80,.18);color:#ffb3b3;border:1px solid rgba(255,80,80,.35)}
-  .muted{opacity:.75}
-  .pill{display:inline-flex;gap:6px;align-items:center;border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px}
-  .ok{color:#70ffb6}
-  .bad{color:#ff8b8b}
-  details{border-radius:14px;overflow:hidden}
-  summary{list-style:none;cursor:pointer;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:14px}
-  details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
-  details .detail-body{padding:12px 14px;border:1px solid rgba(255,255,255,.10);border-top:0;border-bottom-left-radius:14px;border-bottom-right-radius:14px;background:rgba(255,255,255,.03)}
-  pre{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.10);max-height:420px;overflow:auto}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
-  .tile{padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06)}
-  .tile h4{margin:0 0 8px 0}
-  .tile small{opacity:.75}
-  .sep{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Washportal – RBAC Dashboard (C8)</title>
+  <style>
+    :root{--bg:#070d18;--card:#0d172a;--muted:#9aa6b2;--txt:#e9eef5;--b:#1f2a44;--good:#3ddc97;--bad:#ff5b6c;--btn:#1b2a4a}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(1200px 600px at 30% 0%, #0d1a33 0%, var(--bg) 60%);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1200px;margin:18px auto;padding:0 14px}
+    .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    h1{margin:0 0 6px 0;font-size:20px}
+    .muted{color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--b);border-radius:999px;background:rgba(255,255,255,.03)}
+    .pill b{font-weight:700}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid var(--b);border-radius:16px;padding:14px;margin:12px 0;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,textarea{background:rgba(255,255,255,.04);border:1px solid var(--b);color:var(--txt);border-radius:10px;padding:10px 12px;outline:none}
+    input{min-width:240px}
+    textarea{width:100%;min-height:220px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    button{background:linear-gradient(90deg,#38bdf8,#34d399);border:0;color:#03111a;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+    button.secondary{background:var(--btn);color:var(--txt);border:1px solid var(--b)}
+    button.danger{background:linear-gradient(90deg,#ff5b6c,#f59e0b);color:#1a0b0e}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:640px){.grid{grid-template-columns:1fr}}
+    .tile{background:rgba(0,0,0,.18);border:1px solid var(--b);border-radius:14px;padding:12px;min-height:110px}
+    .tile h3{margin:0 0 6px 0;font-size:14px}
+    .kv{display:flex;gap:10px;flex-wrap:wrap}
+    .kv .pill{padding:4px 8px}
+    .ok{color:var(--good)} .err{color:var(--bad)}
+    pre{margin:0;white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.18);border:1px solid var(--b);border-radius:12px;padding:10px;max-height:240px;overflow:auto}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:900px){.split{grid-template-columns:1fr}}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+  </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <div>
-        <div style="font-size:20px;font-weight:900">Washportal – RBAC Dashboard</div>
-        <div class="muted">Zeigt **nur** Funktionen, für die du Rechte hast. API via Worker (Bearer Token).</div>
-      </div>
-      <div class="row">
-        <span class="pill">Build: <span id="buildPill" class="muted">–</span></span>
-        <span class="pill">Status: <span id="statusPill" class="muted">–</span></span>
-      </div>
+  <div class="top">
+    <div>
+      <h1>Washportal – RBAC Dashboard <span class="muted">(C8)</span></h1>
+      <div class="muted">Stabiler Grundstein: Login → Token → /auth/me → RBAC → nur erlaubte Features rendern.</div>
     </div>
-    <div class="sep"></div>
+    <div class="kv">
+      <span class="pill">Build: <b id="build">-</b></span>
+      <span class="pill">Status: <b id="st">-</b></span>
+      <span class="pill">User: <b id="u">nicht eingeloggt</b></span>
+      <span class="pill">Perms: <b id="pc">0</b></span>
+      <span class="pill">Token: <b id="tk">-</b></span>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="row">
-      <input id="apiBase" style="min-width:340px;flex:1" placeholder="API Base (Worker URL)" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
-      <input id="email" style="min-width:260px;flex:1" placeholder="E-Mail"/>
-      <input id="password" style="min-width:220px;flex:1" placeholder="Passwort" type="password"/>
-      <button id="btnLogin">Login</button>
-      <button id="btnMe" class="secondary">/auth/me</button>
-      <button id="btnLogout" class="danger">Logout</button>
+      <input id="base" value="https://washportal-dev-worker.schluffi1220.workers.dev" />
+      <button class="secondary" id="btnStatus">Status</button>
+      <button class="secondary" id="btnMe">/auth/me</button>
+      <button class="danger" id="btnLogout">Logout</button>
     </div>
-    <div class="row" style="margin-top:10px">
-      <span class="pill">User: <span id="userPill" class="muted">nicht eingeloggt</span></span>
-      <span class="pill">Perms: <span id="permCount" class="muted">0</span></span>
-      <span class="pill">Token: <span id="tokenPill" class="muted">–</span></span>
+    <div style="height:10px"></div>
+    <div class="row">
+      <input id="email" placeholder="E-Mail" />
+      <input id="pw" placeholder="Passwort" type="password" />
+      <button id="btnLogin">Login</button>
     </div>
   </div>
 
   <div class="card">
-    <div style="font-weight:900;margin-bottom:8px">Funktionen (sichtbar nur bei passenden Rechten)</div>
-    <div id="tiles" class="tiles"></div>
+    <h2 style="margin:0 0 10px 0;font-size:16px">Funktionen (sichtbar nur bei passenden Rechten)</h2>
+    <div id="tiles" class="grid"></div>
   </div>
 
-  <details class="card" open>
-    <summary><b>Antwort / Debug</b> <span class="muted">– letzte API Antwort + warum etwas sichtbar/unsichtbar ist</span></summary>
-    <div class="detail-body">
-      <pre id="out">{}</pre>
-    </div>
-  </details>
+  <div class="card">
+    <h2 style="margin:0 0 10px 0;font-size:16px">Antwort / Debug</h2>
+    <pre id="dbg">{}</pre>
+  </div>
 
-  <div id="modules"></div>
+  <div id="sections"></div>
 </div>
 
 <script>
 (() => {
-  const $ = (id) => document.getElementById(id);
-  const out = (obj) => { $("out").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); };
+  const byId = (id) => document.getElementById(id);
 
-  const LS_TOKEN_KEY = "wp_token"; // sessionStorage
-  function apiBase(){ return ($("apiBase").value || "").replace(/\/+$/,""); }
-  function getToken(){ return sessionStorage.getItem(LS_TOKEN_KEY) || ""; }
-  function setToken(t){ if(t) sessionStorage.setItem(LS_TOKEN_KEY, t); else sessionStorage.removeItem(LS_TOKEN_KEY); }
-  function authHeaders(){
-    const h = {"content-type":"application/json"};
+  const setText = (id, v) => { const el = byId(id); if (el) el.textContent = v; };
+  const pretty = (x) => { try { return JSON.stringify(x, null, 2); } catch { return String(x); } };
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+  const getToken = () => sessionStorage.getItem("wp_token") || "";
+  const setToken = (t) => { if (t) sessionStorage.setItem("wp_token", t); else sessionStorage.removeItem("wp_token"); paintAuthBadge(); };
+
+  const base = () => (byId("base").value || "").replace(/\/+$/,"");
+  const hdrs = (withJson=true) => {
+    const h = {};
+    if (withJson) h["content-type"] = "application/json";
     const t = getToken();
     if (t) h["authorization"] = "Bearer " + t;
     return h;
+  };
+
+  function paintAuthBadge(){
+    setText("tk", getToken() ? "gesetzt" : "-");
   }
-  async function post(path, body){
-    const url = apiBase() + path;
-    const r = await fetch(url, {method:"POST", headers: authHeaders(), body: JSON.stringify(body||{})});
-    const text = await r.text();
-    let data = null;
-    try { data = JSON.parse(text); } catch { data = { raw: text }; }
-    return { status: r.status, ok: r.ok, data, url };
-  }
-  async function getStatus(){
-    try{
-      const r = await fetch(apiBase()+"/api/_status?ts="+Date.now(), {method:"GET"});
-      const j = await r.json();
-      $("buildPill").textContent = j.build || "–";
-      $("statusPill").textContent = j.ok ? "OK" : "ERR";
-      return j;
-    } catch(e){
-      $("statusPill").textContent = "ERR";
-      return null;
+
+  async function api(path, {method="POST", body=null, json=true} = {}) {
+    const url = base() + path;
+    const init = { method, headers: hdrs(json) };
+    if (body !== null) init.body = (typeof body === "string") ? body : JSON.stringify(body);
+
+    try {
+      const res = await fetch(url, init);
+      const text = await res.text();
+      let data;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+      const out = { status: res.status, ok: res.ok, data, url };
+      byId("dbg").textContent = pretty(out);
+      return out;
+    } catch (e) {
+      const out = { status: 0, ok: false, data: { ok:false, error:"network", message: String(e) }, url };
+      byId("dbg").textContent = pretty(out);
+      return out;
     }
   }
 
-  // ---- RBAC helpers ----
-  function hasPerm(perms, key){ return !!(perms && perms[key]); }
-  function hasAny(perms, keys){ return (keys||[]).some(k => hasPerm(perms,k)); }
-  function needLabel(keys){ return (keys||[]).join(", "); }
-
-  // ---- feature registry (controls visibility + modules) ----
-  const FEATURES = [
-    { id:"cfg", title:"Konfiguration / News", desc:"Konfig JSON laden/speichern", permsAny:["admin.config.view","admin.config.manage","admin.news.edit"], module: renderConfig },
-    { id:"proto", title:"Protokoll", desc:"Einträge ansehen + schreiben", permsAny:["protocol.view","protocol.create","protocol.edit","protocol.delete"], module: renderProtocol },
-    { id:"logs", title:"Logs", desc:"Logs laden + CSV Export (später)", permsAny:["admin.logs.view","admin.logs.export"], module: renderLogs },
-    { id:"users", title:"Admin-User", desc:"User Liste (Basis)", permsAny:["admin.users.view","admin.users.manage","admin.users.delete"], module: renderUsers },
-    { id:"book", title:"Buchungen (Admin)", desc:"Buchungen ansehen/stornieren", permsAny:["admin.bookings.view","admin.bookings.cancel"], module: renderBookings },
-    { id:"rooms", title:"Zimmer sperren", desc:"Roomcontrol", permsAny:["admin.roomcontrol.manage","ps.rooms.manage"], module: renderRooms },
-    { id:"fb", title:"Feedback", desc:"Threads laden + antworten", permsAny:["admin.feedback.view","admin.feedback.reply","feedback.view","feedback.reply","ps.feedback.view","ps.feedback.reply"], module: renderFeedback },
-    { id:"news", title:"News", desc:"News ansehen/bearbeiten", permsAny:["news.view","news.edit","admin.news.edit","ps.news.view"], module: renderNews },
-  ];
-
-  // --- modules (minimal implementations using known worker endpoints) ---
-  function moduleShell(title, subtitle){
-    const d = document.createElement("details");
-    d.className = "card";
-    const s = document.createElement("summary");
-    s.innerHTML = `<b>${title}</b> <span class="muted">– ${subtitle||""}</span>`;
-    const b = document.createElement("div");
-    b.className = "detail-body";
-    d.appendChild(s); d.appendChild(b);
-    return {details:d, body:b};
+  function hasPerm(p, ...keys){
+    if (!p) return false;
+    for (const k of keys) if (p[k] === true) return true;
+    return false;
   }
 
-  function renderConfig(ctx){
-    const {perms} = ctx;
-    const canView = hasAny(perms, ["admin.config.view","admin.config.manage","admin.news.edit"]);
-    const canManage = hasPerm(perms, "admin.config.manage") || hasPerm(perms, "admin.news.edit");
-    const sh = moduleShell("Konfiguration / News", "GET/SET via /api/admin/config/*");
-    sh.details.open = true;
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">view: <b class="${canView?'ok':'bad'}">${canView?'✓':'✗'}</b></span>
-        <span class="pill">manage: <b class="${canManage?'ok':'bad'}">${canManage?'✓':'✗'}</b></span>
-        <button id="cfgLoad" class="secondary">Konfig laden</button>
-        <button id="cfgSave">Konfig speichern</button>
-      </div>
-      <div class="grid2" style="margin-top:10px">
+  // FIX: war bei dir undefined → Dashboard bricht ab
+  function mkSection(id, title, subtitle=""){
+    const wrap = document.createElement("div");
+    wrap.className = "card";
+    wrap.id = id;
+    const h = document.createElement("div");
+    h.innerHTML = `<h2 style="margin:0 0 6px 0;font-size:16px">${title}</h2>` + (subtitle ? `<div class="muted">${subtitle}</div>` : "");
+    wrap.appendChild(h);
+    return wrap;
+  }
+
+  const Modules = {};
+
+  Modules.config = {
+    id: "sec-config",
+    title: "Konfiguration / News",
+    subtitle: "GET/SET via /api/admin/config/get und /api/admin/config/set (Bearer)",
+    permsAny: ["admin.config.view","admin.config.manage","ps.config.view","admin.news.edit","news.edit"],
+    async render(me){
+      const p = (me && me.perms) ? me.perms : {};
+      const canView = hasPerm(p, "admin.config.view", "ps.config.view");
+      const canManage = hasPerm(p, "admin.config.manage");
+
+      const sec = mkSection(this.id, this.title, this.subtitle);
+
+      const row = document.createElement("div");
+      row.className="row";
+      row.innerHTML = `
+        <span class="pill">view: <b class="${canView ? "ok" : "err"}">${canView ? "✓" : "×"}</b></span>
+        <span class="pill">manage: <b class="${canManage ? "ok" : "err"}">${canManage ? "✓" : "×"}</b></span>
+        <button class="secondary" id="btnCfgLoad">Konfig laden</button>
+        <button id="btnCfgSave">Konfig speichern</button>
+        <button class="secondary" id="btnCfgVerify">Verify (neu laden)</button>
+      `;
+      sec.appendChild(row);
+
+      const split = document.createElement("div");
+      split.className="split";
+      split.style.marginTop="10px";
+      split.innerHTML = `
         <div>
-          <div class="muted" style="margin-bottom:6px">Konfig JSON (bearbeitbar)</div>
+          <div class="muted" style="margin:0 0 6px 0">Konfig JSON (bearbeitbar)</div>
           <textarea id="cfgJson" spellcheck="false"></textarea>
         </div>
         <div>
-          <div class="muted" style="margin-bottom:6px">Antwort</div>
+          <div class="muted" style="margin:0 0 6px 0">Antwort</div>
           <pre id="cfgOut">{}</pre>
         </div>
-      </div>
-    `;
-    sh.body.querySelector("#cfgLoad").onclick = async () => {
-      const r = await post("/api/admin/config/get", {});
-      sh.body.querySelector("#cfgOut").textContent = JSON.stringify(r, null, 2);
-      if (r.ok && r.data && r.data.config) sh.body.querySelector("#cfgJson").value = JSON.stringify(r.data.config, null, 2);
-      out(r);
-    };
-    sh.body.querySelector("#cfgSave").onclick = async () => {
-      if (!canManage){ out({ok:false, error:"forbidden", message:"missing admin.config.manage"}); return; }
-      let cfg = {};
-      try { cfg = JSON.parse(sh.body.querySelector("#cfgJson").value||"{}"); }
-      catch(e){ out({ok:false, error:"bad_json", message:String(e)}); return; }
-      const r = await post("/api/admin/config/set", { config: cfg });
-      sh.body.querySelector("#cfgOut").textContent = JSON.stringify(r, null, 2);
-      out(r);
-    };
-    return sh.details;
-  }
+      `;
+      sec.appendChild(split);
 
-  function renderProtocol(ctx){
-    const {perms} = ctx;
-    const canView = hasPerm(perms,"protocol.view");
-    const canCreate = hasPerm(perms,"protocol.create");
-    const canEdit = hasPerm(perms,"protocol.edit");
-    const canDelete = hasPerm(perms,"protocol.delete");
-    const sh = moduleShell("Protokoll", "Liste + Create/Update/Delete via /api/auth/protocol/*");
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">view: <b class="${canView?'ok':'bad'}">${canView?'✓':'✗'}</b></span>
-        <span class="pill">create: <b class="${canCreate?'ok':'bad'}">${canCreate?'✓':'✗'}</b></span>
-        <span class="pill">edit: <b class="${canEdit?'ok':'bad'}">${canEdit?'✓':'✗'}</b></span>
-        <span class="pill">delete: <b class="${canDelete?'ok':'bad'}">${canDelete?'✓':'✗'}</b></span>
-        <button id="pLoad" class="secondary">Laden</button>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div class="card" style="margin:0">
-          <div style="font-weight:800;margin-bottom:8px">Neuer Eintrag</div>
-          <div class="row">
-            <input id="pRoom" placeholder="Zimmer" style="flex:1;min-width:120px"/>
-            <input id="pAction" placeholder="Aktion" style="flex:1;min-width:160px"/>
-          </div>
-          <textarea id="pText" placeholder="Text/Meta..." spellcheck="false" style="min-height:110px;margin-top:8px"></textarea>
-          <div class="row" style="margin-top:8px">
-            <button id="pCreate">Speichern</button>
-          </div>
-          <div class="muted" style="margin-top:8px">Hinweis: Update/Delete kommt als nächstes Feintuning (IDs aus Liste).</div>
-        </div>
-        <div>
-          <div class="muted" style="margin-bottom:6px">Antwort / Liste</div>
-          <pre id="pOut">{}</pre>
-        </div>
-      </div>
-    `;
-    sh.body.querySelector("#pLoad").onclick = async () => {
-      const r = await post("/api/auth/protocol/list", { limit: 200 });
-      sh.body.querySelector("#pOut").textContent = JSON.stringify(r, null, 2);
-      out(r);
-    };
-    sh.body.querySelector("#pCreate").onclick = async () => {
-      if (!canCreate){ out({ok:false, error:"forbidden", message:"missing protocol.create"}); return; }
-      const room = sh.body.querySelector("#pRoom").value || "";
-      const action = sh.body.querySelector("#pAction").value || "note";
-      const text = sh.body.querySelector("#pText").value || "";
-      const r = await post("/api/auth/protocol/create", { room, action, text });
-      sh.body.querySelector("#pOut").textContent = JSON.stringify(r, null, 2);
-      out(r);
-    };
-    return sh.details;
-  }
+      const out = sec.querySelector("#cfgOut");
+      const ta = sec.querySelector("#cfgJson");
+      const btnLoad = sec.querySelector("#btnCfgLoad");
+      const btnSave = sec.querySelector("#btnCfgSave");
+      const btnVerify = sec.querySelector("#btnCfgVerify");
 
-  function renderLogs(ctx){
-    const {perms} = ctx;
-    const can = hasPerm(perms,"admin.logs.view");
-    const sh = moduleShell("Logs", "via /api/auth/logs (admin.logs.view)");
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">view: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
-        <input id="lLim" type="number" min="1" max="500" value="200" style="width:110px"/>
-        <button id="lLoad" class="secondary">Laden</button>
-      </div>
-      <pre id="lOut" style="margin-top:10px">{}</pre>
-    `;
-    sh.body.querySelector("#lLoad").onclick = async () => {
-      const limit = parseInt(sh.body.querySelector("#lLim").value||"200",10);
-      const r = await post("/api/auth/logs", { limit });
-      sh.body.querySelector("#lOut").textContent = JSON.stringify(r, null, 2);
-      out(r);
-    };
-    return sh.details;
-  }
+      btnLoad.disabled = !canView;
+      btnSave.disabled = !canManage;
+      btnVerify.disabled = !canView;
 
-  function renderUsers(ctx){
-    const {perms} = ctx;
-    const sh = mkSection("Admin-User", "User Liste + Rollen ändern (Beta)");
-
-    const canView = hasPerm(perms, "admin.users.view") || hasPerm(perms, "admin.users.manage") || hasPerm(perms, "admin.users.delete");
-    const canManage = hasPerm(perms, "admin.users.manage");
-
-    const actions = document.createElement("div"); actions.className = "row";
-    const btnLoad = mkBtn("User laden");
-    const btnSave = mkBtn("Änderungen speichern"); btnSave.disabled = !canManage;
-    actions.append(btnLoad, btnSave);
-
-    const info = document.createElement("div"); info.className = "muted";
-    info.textContent = canManage ? "Du kannst Rollen/Status ändern." : "Nur Ansicht (admin.users.manage fehlt).";
-
-    const tableWrap = document.createElement("div"); tableWrap.style.overflow = "auto";
-    const table = document.createElement("table"); table.style.width = "100%";
-    table.innerHTML = `<thead><tr>
-      <th style="text-align:left">E-Mail</th>
-      <th style="text-align:left">Rolle</th>
-      <th style="text-align:left">Rolle2</th>
-      <th style="text-align:left">Status</th>
-      <th style="text-align:left">Name</th>
-    </tr></thead><tbody></tbody>`;
-    tableWrap.appendChild(table);
-
-    let users = [];
-
-    function render(){
-      const tbody = table.querySelector('tbody');
-      tbody.innerHTML = "";
-      for(const u of users){
-        const tr = document.createElement('tr');
-        const tdEmail = document.createElement('td'); tdEmail.textContent = u.email || '';
-
-        const tdRole = document.createElement('td');
-        const inRole = document.createElement('input'); inRole.value = u.role || ''; inRole.disabled = !canManage;
-        inRole.addEventListener('input', ()=>{u.role=inRole.value.trim();});
-        tdRole.appendChild(inRole);
-
-        const tdRole2 = document.createElement('td');
-        const inRole2 = document.createElement('input'); inRole2.value = u.role2 || ''; inRole2.disabled = !canManage;
-        inRole2.addEventListener('input', ()=>{u.role2=inRole2.value.trim();});
-        tdRole2.appendChild(inRole2);
-
-        const tdStatus = document.createElement('td');
-        const sel = document.createElement('select');
-        for(const opt of ['active','disabled','pending']){ const o=document.createElement('option'); o.value=opt; o.textContent=opt; if((u.status||'active')===opt) o.selected=true; sel.appendChild(o);} 
-        sel.disabled = !canManage;
-        sel.addEventListener('change', ()=>{u.status=sel.value;});
-        tdStatus.appendChild(sel);
-
-        const tdName = document.createElement('td'); tdName.textContent = ((u.firstName||'')+' '+(u.lastName||'')).trim();
-
-        tr.append(tdEmail, tdRole, tdRole2, tdStatus, tdName);
-        tbody.appendChild(tr);
+      async function load(){
+        const r = await api("/api/admin/config/get", { body: "{}" });
+        out.textContent = pretty(r);
+        if (r.ok && r.data && r.data.ok && r.data.config) ta.value = pretty(r.data.config);
       }
-    }
 
-    btnLoad.addEventListener('click', async ()=>{
-      if(!canView){
-        sh.out.textContent = JSON.stringify({ok:false,error:'forbidden',message:'missing_perm',need:['admin.users.view or manage']}, null, 2);
-        return;
-      }
-      // endpoint alias: some workers expose /api/admin/users/list, others /api/admin/users
-      const tries = [
-        {url: '/api/admin/users/list', body: {}},
-        {url: '/api/admin/users', body: {}},
-      ];
-      for(const t of tries){
-        const res = await apiPostMaybe(t.url, t.body);
-        if(res && res.ok){
-          users = Array.isArray(res.users) ? res.users : (Array.isArray(res.data) ? res.data : []);
-          render();
-          return;
+      async function save(){
+        try{
+          const cfg = JSON.parse(ta.value || "{}");
+          // Wichtig: Worker erwartet Wrapper {config: {...}}
+          const r = await api("/api/admin/config/set", { body: { config: cfg } });
+          out.textContent = pretty(r);
+          await sleep(120);
+          await load();
+        } catch (e){
+          out.textContent = pretty({ ok:false, error:"bad_json", message:String(e) });
         }
       }
-    });
 
-    btnSave.addEventListener('click', async ()=>{
-      if(!canManage) return;
-      // Save only minimal fields
-      const payload = {users: users.map(u=>({id:u.id,email:u.email,role:u.role||'',role2:u.role2||'',status:u.status||'active'}))};
-      const tries = [
-        '/api/admin/users/save',
-        '/api/admin/users/update',
-        '/api/admin/users/bulk',
-      ];
-      for(const u of tries){
-        const res = await apiPostMaybe(u, payload);
-        if(res && res.ok){
-          sh.out.textContent = JSON.stringify(res, null, 2);
-          return;
-        }
-      }
-    });
+      btnLoad.addEventListener("click", load);
+      btnSave.addEventListener("click", save);
+      btnVerify.addEventListener("click", load);
 
-    sh.details.append(actions, info, tableWrap);
-    sh.details.open = false;
-    return sh.details;
-  }
-
-  // Helper: POST and return json with debug
-  async function apiPostMaybe(path, body){
-    try{
-      const r = await fetch(API_BASE + path, {
-        method: 'POST',
-        headers: {'content-type':'application/json', ...(authHeaders())},
-        body: JSON.stringify(body||{})
-      });
-      const txt = await r.text();
-      let data; try{ data = JSON.parse(txt);}catch{ data = {raw: txt}; }
-      if(!r.ok){
-        setLast({status:r.status, ok:false, data, url: API_BASE+path});
-        return null;
-      }
-      setLast({status:r.status, ok:true, data, url: API_BASE+path});
-      return data;
-    }catch(e){
-      setLast({status:0, ok:false, data:{ok:false,error:'network',message:String(e)}, url: API_BASE+path});
-      return null;
+      if (canView) load();
+      return sec;
     }
+  };
+
+  Modules.protocol = {
+    id: "sec-proto",
+    title: "Protokoll",
+    subtitle: "Als nächstes: CRUD UI + Calls (wenn Worker-Endpunkte final sind).",
+    permsAny: ["protocol.view","protocol.create","protocol.edit","protocol.delete"],
+    async render(){
+      const sec = mkSection(this.id, this.title, this.subtitle);
+      const pre = document.createElement("pre");
+      pre.textContent = "Noch nicht verdrahtet (kommt als nächstes – dann SP/SV Übergabe).";
+      sec.appendChild(pre);
+      return sec;
+    }
+  };
+
+  Modules.users = {
+    id: "sec-users",
+    title: "Admin-User",
+    subtitle: "Noch nicht aktiv: wir verdrahten /api/admin/auth/users/* sauber sobald Worker stabil ist.",
+    permsAny: ["admin.users.view","admin.users.manage","admin.users.delete"],
+    async render(){
+      const sec = mkSection(this.id, this.title, this.subtitle);
+      const pre = document.createElement("pre");
+      pre.textContent = "Noch nicht aktiv. Grund: zuletzt CORS/503 auf /api/admin/auth/users/list. Fix kommt im Worker, dann UI.";
+      sec.appendChild(pre);
+      return sec;
+    }
+  };
+
+  function tile(title, desc, perms){
+    const el = document.createElement("div");
+    el.className="tile";
+    el.innerHTML = `<h3>${title}</h3><div class="muted">${desc}</div><div style="height:8px"></div><div class="muted">Perms: ${perms.map(x=>`<code>${x}</code>`).join(", ")}</div>`;
+    return el;
   }
 
-function renderBookings(ctx){
-    const {perms} = ctx;
-    const can = hasAny(perms, ["admin.bookings.view","admin.bookings.cancel","bookings.view"]);
-    const sh = moduleShell("Buchungen", "Listen (Admin) via /api/auth/admin/bookings/list");
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">view: <b class="${hasPerm(perms,"admin.bookings.view")?'ok':'bad'}">${hasPerm(perms,"admin.bookings.view")?'✓':'✗'}</b></span>
-        <span class="pill">cancel: <b class="${hasPerm(perms,"admin.bookings.cancel")?'ok':'bad'}">${hasPerm(perms,"admin.bookings.cancel")?'✓':'✗'}</b></span>
-        <button id="bLoad" class="secondary">Admin-List</button>
-      </div>
-      <pre id="bOut" style="margin-top:10px">{}</pre>
-    `;
-    sh.body.querySelector("#bLoad").onclick = async () => {
-      const r = await post("/api/auth/admin/bookings/list", { limit: 200 });
-      sh.body.querySelector("#bOut").textContent = JSON.stringify(r, null, 2);
-      out(r);
-    };
-    return sh.details;
-  }
+  function clearSections(){ byId("sections").innerHTML = ""; }
 
-  function renderRooms(ctx){
-    const {perms} = ctx;
-    const can = hasAny(perms, ["admin.roomcontrol.manage","ps.rooms.manage"]);
-    const sh = moduleShell("Zimmer sperren / Hinweis", "Basis-UI, API je nach Worker-Route");
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">manage: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
-        <span class="muted">UI/Routes werden als nächstes sauber verdrahtet.</span>
-      </div>
-      <pre style="margin-top:10px">TODO: roomcontrol endpoints im Worker verdrahten (wenn du mir sagst, welche Route du nutzt).</pre>
-    `;
-    return sh.details;
-  }
+  async function render(me){
+    const p = (me && me.perms) ? me.perms : {};
+    setText("u", me && me.user ? (me.user.role + " " + (me.user.email||"")) : "nicht eingeloggt");
+    setText("pc", String(Object.keys(p||{}).length));
 
-  function renderFeedback(ctx){
-    const {perms} = ctx;
-    const can = hasAny(perms, ["admin.feedback.view","admin.feedback.reply","feedback.view","feedback.reply","ps.feedback.view","ps.feedback.reply"]);
-    const sh = moduleShell("Feedback", "Routes variieren – wir prüfen als nächstes den Worker (threads etc.)");
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">any: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
-        <span class="muted">Wenn Threads 404 geben, fehlt die Route im Worker – dann fixen wir Worker zuerst.</span>
-      </div>
-      <pre style="margin-top:10px">TODO: Feedback-Threads/Replies in nächstem Schritt.</pre>
-    `;
-    return sh.details;
-  }
-
-  function renderNews(ctx){
-    const {perms} = ctx;
-    const can = hasAny(perms, ["news.view","news.edit","admin.news.edit","ps.news.view","news.psvs.view","news.psvs.edit"]);
-    const sh = moduleShell("News", "Ist in Config enthalten (newsText/newsVersion). Separate UI kommt danach.");
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">any: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
-        <span class="muted">News steckt in der Config (newsText/newsVersion).</span>
-      </div>
-    `;
-    return sh.details;
-  }
-
-  // ---- UI rendering ----
-  function renderTiles(perms){
-    const tiles = $("tiles");
+    const tiles = byId("tiles");
     tiles.innerHTML = "";
-    const mods = $("modules");
-    mods.innerHTML = "";
-    const visible = [];
-    const hidden = [];
-    for (const f of FEATURES){
-      const allowed = hasAny(perms, f.permsAny);
-      (allowed ? visible : hidden).push({id:f.id, title:f.title, need:f.permsAny});
-      if (!allowed) continue;
 
-      const t = document.createElement("div");
-      t.className = "tile";
-      t.innerHTML = `<h4>${f.title}</h4><small>${f.desc}</small><div class="sep"></div><small class="muted">Perms: ${needLabel(f.permsAny)}</small>`;
-      t.onclick = () => {
-        const el = document.getElementById("mod-"+f.id);
-        if (el){ el.open = true; el.scrollIntoView({behavior:"smooth",block:"start"}); }
-      };
-      tiles.appendChild(t);
+    const defs = [
+      {title:"Konfiguration / News", desc:"Konfig JSON laden/speichern", perms:["admin.config.view","admin.config.manage","ps.config.view"]},
+      {title:"Protokoll", desc:"Einträge ansehen + schreiben", perms:["protocol.view","protocol.create","protocol.edit","protocol.delete"]},
+      {title:"Admin-User", desc:"User/Rollen/Übergabe", perms:["admin.users.view","admin.users.manage","admin.users.delete"]},
+    ];
 
-      const mod = f.module({perms});
-      mod.id = "mod-"+f.id;
-      mods.appendChild(mod);
+    for (const d of defs){
+      if (hasPerm(p, ...d.perms)) tiles.appendChild(tile(d.title, d.desc, d.perms));
     }
-    // Debug: show why hidden
-    out({ visible, hidden, tokenPresent: !!getToken() });
+
+    clearSections();
+    for (const k of ["config","protocol","users"]){
+      const m = Modules[k];
+      if (!m) continue;
+      if (hasPerm(p, ...m.permsAny)){
+        const sec = await m.render(me);
+        byId("sections").appendChild(sec);
+      }
+    }
   }
 
-  async function doMe(){
-    const r = await post("/api/auth/me", {});
-    out(r);
+  async function doStatus(){
+    const r = await api("/api/_status?ts=" + Date.now(), { method:"GET", body:null, json:false });
     if (r.ok && r.data && r.data.ok){
-      const u = r.data.user || {};
-      $("userPill").textContent = `${u.role||"-"} ${u.email||""}`.trim();
-      const perms = r.data.perms || u.perms || {};
-      $("permCount").textContent = String(Object.keys(perms||{}).length);
-      renderTiles(perms);
+      setText("st","OK"); setText("build", r.data.build || "-");
     } else {
-      $("userPill").textContent = "nicht eingeloggt";
-      $("permCount").textContent = "0";
-      $("tiles").innerHTML = `<div class="muted">Keine Funktionen sichtbar – bitte einloggen.</div>`;
-      $("modules").innerHTML = "";
+      setText("st","ERR"); setText("build", (r.data && r.data.build) ? r.data.build : "-");
     }
     return r;
   }
 
   async function doLogin(){
-    const email = $("email").value || "";
-    const password = $("password").value || "";
-    const r = await post("/api/auth/login", { email, password });
-    out(r);
+    const email = byId("email").value.trim();
+    const password = byId("pw").value;
+    const r = await api("/api/auth/login", { body: { email, password } });
     if (r.ok && r.data && r.data.ok && r.data.token){
       setToken(r.data.token);
-      $("tokenPill").textContent = "gesetzt";
-      await doMe();
-    } else {
-      setToken("");
-      $("tokenPill").textContent = "–";
       await doMe();
     }
   }
 
-  function doLogout(){
-    setToken("");
-    $("tokenPill").textContent = "–";
-    $("userPill").textContent = "nicht eingeloggt";
-    $("permCount").textContent = "0";
-    $("tiles").innerHTML = `<div class="muted">Ausgeloggt.</div>`;
-    $("modules").innerHTML = "";
-    out({ok:true, step:"logout"});
+  async function doMe(){
+    const r = await api("/api/auth/me", { body:"{}" });
+    if (r.ok && r.data && r.data.ok) await render(r.data);
+    else await render(null);
+    return r;
   }
 
-  // wire
-  $("btnLogin").onclick = doLogin;
-  $("btnMe").onclick = doMe;
-  $("btnLogout").onclick = doLogout;
+  function doLogout(){
+    setToken("");
+    setText("u","nicht eingeloggt");
+    setText("pc","0");
+    byId("tiles").innerHTML = "";
+    clearSections();
+    byId("dbg").textContent = "{}";
+  }
 
-  // boot
-  (async () => {
-    $("tokenPill").textContent = getToken() ? "gesetzt" : "–";
-    await getStatus();
-    await doMe();
-  })();
+  byId("btnStatus").addEventListener("click", doStatus);
+  byId("btnLogin").addEventListener("click", doLogin);
+  byId("btnMe").addEventListener("click", doMe);
+  byId("btnLogout").addEventListener("click", doLogout);
+
+  paintAuthBadge();
+  doStatus();
+  if (getToken()) doMe(); else render(null);
 })();
 </script>
 </body>
