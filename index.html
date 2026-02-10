@@ -32,13 +32,6 @@
   .tile h4{margin:0 0 8px 0}
   .tile small{opacity:.75}
   .sep{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
-
-.btn-xs{ padding:6px 10px; font-size:12px; border-radius:10px; }
-.tableWrap{ overflow:auto; border:1px solid rgba(255,255,255,.08); border-radius:14px; }
-.tbl{ width:100%; border-collapse:collapse; font-size:13px; }
-.tbl th,.tbl td{ padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; }
-.tbl th{ color:rgba(255,255,255,.75); font-weight:600; background:rgba(255,255,255,.03); position:sticky; top:0; }
-.badge{ display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.08); }
 </style>
 </head>
 <body>
@@ -136,16 +129,7 @@
     { id:"rooms", title:"Zimmer sperren", desc:"Roomcontrol", permsAny:["admin.roomcontrol.manage","ps.rooms.manage"], module: renderRooms },
     { id:"fb", title:"Feedback", desc:"Threads laden + antworten", permsAny:["admin.feedback.view","admin.feedback.reply","feedback.view","feedback.reply","ps.feedback.view","ps.feedback.reply"], module: renderFeedback },
     { id:"news", title:"News", desc:"News ansehen/bearbeiten", permsAny:["news.view","news.edit","admin.news.edit","ps.news.view"], module: renderNews },
-  
-  ,
-  {
-    key: "adminUsers",
-    title: "Admin-User",
-    desc: "User Liste + Rollenwechsel (PS/SV Übergabe)",
-    permsAny: ["admin.users.manage","admin.users.view"],
-    render: renderAdminUsers
-  }
-];
+  ];
 
   // --- modules (minimal implementations using known worker endpoints) ---
   function moduleShell(title, subtitle){
@@ -275,24 +259,129 @@
 
   function renderUsers(ctx){
     const {perms} = ctx;
-    const can = hasAny(perms, ["admin.users.view","admin.users.manage","admin.users.delete"]);
-    const sh = moduleShell("Admin-User", "Liste via /api/auth/admin/users/list");
-    sh.body.innerHTML = `
-      <div class="row">
-        <span class="pill">view/manage/delete: <b class="${can?'ok':'bad'}">${can?'✓':'✗'}</b></span>
-        <button id="uLoad" class="secondary">User laden</button>
-      </div>
-      <pre id="uOut" style="margin-top:10px">{}</pre>
-    `;
-    sh.body.querySelector("#uLoad").onclick = async () => {
-      const r = await post("/api/auth/admin/users/list", {});
-      sh.body.querySelector("#uOut").textContent = JSON.stringify(r, null, 2);
-      out(r);
-    };
+    const sh = mkSection("Admin-User", "User Liste + Rollen ändern (Beta)");
+
+    const canView = hasPerm(perms, "admin.users.view") || hasPerm(perms, "admin.users.manage") || hasPerm(perms, "admin.users.delete");
+    const canManage = hasPerm(perms, "admin.users.manage");
+
+    const actions = document.createElement("div"); actions.className = "row";
+    const btnLoad = mkBtn("User laden");
+    const btnSave = mkBtn("Änderungen speichern"); btnSave.disabled = !canManage;
+    actions.append(btnLoad, btnSave);
+
+    const info = document.createElement("div"); info.className = "muted";
+    info.textContent = canManage ? "Du kannst Rollen/Status ändern." : "Nur Ansicht (admin.users.manage fehlt).";
+
+    const tableWrap = document.createElement("div"); tableWrap.style.overflow = "auto";
+    const table = document.createElement("table"); table.style.width = "100%";
+    table.innerHTML = `<thead><tr>
+      <th style="text-align:left">E-Mail</th>
+      <th style="text-align:left">Rolle</th>
+      <th style="text-align:left">Rolle2</th>
+      <th style="text-align:left">Status</th>
+      <th style="text-align:left">Name</th>
+    </tr></thead><tbody></tbody>`;
+    tableWrap.appendChild(table);
+
+    let users = [];
+
+    function render(){
+      const tbody = table.querySelector('tbody');
+      tbody.innerHTML = "";
+      for(const u of users){
+        const tr = document.createElement('tr');
+        const tdEmail = document.createElement('td'); tdEmail.textContent = u.email || '';
+
+        const tdRole = document.createElement('td');
+        const inRole = document.createElement('input'); inRole.value = u.role || ''; inRole.disabled = !canManage;
+        inRole.addEventListener('input', ()=>{u.role=inRole.value.trim();});
+        tdRole.appendChild(inRole);
+
+        const tdRole2 = document.createElement('td');
+        const inRole2 = document.createElement('input'); inRole2.value = u.role2 || ''; inRole2.disabled = !canManage;
+        inRole2.addEventListener('input', ()=>{u.role2=inRole2.value.trim();});
+        tdRole2.appendChild(inRole2);
+
+        const tdStatus = document.createElement('td');
+        const sel = document.createElement('select');
+        for(const opt of ['active','disabled','pending']){ const o=document.createElement('option'); o.value=opt; o.textContent=opt; if((u.status||'active')===opt) o.selected=true; sel.appendChild(o);} 
+        sel.disabled = !canManage;
+        sel.addEventListener('change', ()=>{u.status=sel.value;});
+        tdStatus.appendChild(sel);
+
+        const tdName = document.createElement('td'); tdName.textContent = ((u.firstName||'')+' '+(u.lastName||'')).trim();
+
+        tr.append(tdEmail, tdRole, tdRole2, tdStatus, tdName);
+        tbody.appendChild(tr);
+      }
+    }
+
+    btnLoad.addEventListener('click', async ()=>{
+      if(!canView){
+        sh.out.textContent = JSON.stringify({ok:false,error:'forbidden',message:'missing_perm',need:['admin.users.view or manage']}, null, 2);
+        return;
+      }
+      // endpoint alias: some workers expose /api/admin/users/list, others /api/admin/users
+      const tries = [
+        {url: '/api/admin/users/list', body: {}},
+        {url: '/api/admin/users', body: {}},
+      ];
+      for(const t of tries){
+        const res = await apiPostMaybe(t.url, t.body);
+        if(res && res.ok){
+          users = Array.isArray(res.users) ? res.users : (Array.isArray(res.data) ? res.data : []);
+          render();
+          return;
+        }
+      }
+    });
+
+    btnSave.addEventListener('click', async ()=>{
+      if(!canManage) return;
+      // Save only minimal fields
+      const payload = {users: users.map(u=>({id:u.id,email:u.email,role:u.role||'',role2:u.role2||'',status:u.status||'active'}))};
+      const tries = [
+        '/api/admin/users/save',
+        '/api/admin/users/update',
+        '/api/admin/users/bulk',
+      ];
+      for(const u of tries){
+        const res = await apiPostMaybe(u, payload);
+        if(res && res.ok){
+          sh.out.textContent = JSON.stringify(res, null, 2);
+          return;
+        }
+      }
+    });
+
+    sh.details.append(actions, info, tableWrap);
+    sh.details.open = false;
     return sh.details;
   }
 
-  function renderBookings(ctx){
+  // Helper: POST and return json with debug
+  async function apiPostMaybe(path, body){
+    try{
+      const r = await fetch(API_BASE + path, {
+        method: 'POST',
+        headers: {'content-type':'application/json', ...(authHeaders())},
+        body: JSON.stringify(body||{})
+      });
+      const txt = await r.text();
+      let data; try{ data = JSON.parse(txt);}catch{ data = {raw: txt}; }
+      if(!r.ok){
+        setLast({status:r.status, ok:false, data, url: API_BASE+path});
+        return null;
+      }
+      setLast({status:r.status, ok:true, data, url: API_BASE+path});
+      return data;
+    }catch(e){
+      setLast({status:0, ok:false, data:{ok:false,error:'network',message:String(e)}, url: API_BASE+path});
+      return null;
+    }
+  }
+
+function renderBookings(ctx){
     const {perms} = ctx;
     const can = hasAny(perms, ["admin.bookings.view","admin.bookings.cancel","bookings.view"]);
     const sh = moduleShell("Buchungen", "Listen (Admin) via /api/auth/admin/bookings/list");
@@ -418,124 +507,7 @@
   }
 
   function doLogout(){
-    s
-// -----------------------------
-// Admin-Users (PS/SV Übergabe)
-// -----------------------------
-function renderAdminUsers(host, me){
-  host.innerHTML = `
-    <div class="panel">
-      <div class="panel-h">
-        <div>
-          <div class="panel-title">Admin-User</div>
-          <div class="panel-sub">Liste laden + Rollen setzen. PS=Patientensprecher, SV=Stellvertreter (ps_deputy).</div>
-        </div>
-        <div class="row" style="gap:8px;">
-          <button class="btn" id="btnUsersLoad">User laden</button>
-        </div>
-      </div>
-
-      <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
-        <span class="pill">PS: <b id="curPS">?</b></span>
-        <span class="pill">SV: <b id="curSV">?</b></span>
-      </div>
-
-      <div class="row" style="margin-top:10px;">
-        <input id="usersFilter" class="input" style="flex:1" placeholder="Suche: E-Mail / Name / Rolle" />
-      </div>
-
-      <div class="tableWrap" style="margin-top:10px;">
-        <table class="tbl" id="usersTbl">
-          <thead>
-            <tr>
-              <th>E-Mail</th><th>Name</th><th>Rolle</th><th>Status</th><th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div class="muted" style="margin-top:8px;">
-        Hinweis: Rollenwechsel nutzt <code>/api/auth/admin/users/set-role</code>. Dabei wird PS/SV automatisch „einzigartig“ gehalten.
-      </div>
-    </div>
-  `;
-
-  const btn = host.querySelector("#btnUsersLoad");
-  const filter = host.querySelector("#usersFilter");
-  const tbody = host.querySelector("#usersTbl tbody");
-  const curPS = host.querySelector("#curPS");
-  const curSV = host.querySelector("#curSV");
-
-  let users = [];
-
-  function norm(s){ return String(s||"").toLowerCase(); }
-
-  function render(){
-    const q = norm(filter.value);
-    const rows = users.filter(u=>{
-      const hay = [u.email,u.firstName,u.lastName,u.role,u.role2,u.status].map(norm).join(" ");
-      return !q || hay.includes(q);
-    });
-
-    const ps = users.find(u=>u.role==="ps");
-    const sv = users.find(u=>u.role==="ps_deputy");
-    curPS.textContent = ps ? ps.email : "-";
-    curSV.textContent = sv ? sv.email : "-";
-
-    tbody.innerHTML = rows.map(u=>{
-      const name = [u.firstName,u.lastName].filter(Boolean).join(" ").trim() || "-";
-      const role = u.role || "-";
-      const status = u.status || "-";
-      const disabled = (status==="deleted") ? "disabled" : "";
-      return `
-        <tr>
-          <td>${esc(u.email||"-")}</td>
-          <td>${esc(name)}</td>
-          <td><span class="badge">${esc(role)}</span></td>
-          <td>${esc(status)}</td>
-          <td style="white-space:nowrap;">
-            <button class="btn btn-xs" data-act="ps" data-id="${u.id}" ${disabled}>PS</button>
-            <button class="btn btn-xs" data-act="sv" data-id="${u.id}" ${disabled}>SV</button>
-            <button class="btn btn-xs" data-act="user" data-id="${u.id}" ${disabled}>User</button>
-            <button class="btn btn-xs" data-act="admin" data-id="${u.id}" ${disabled}>Admin</button>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    tbody.querySelectorAll("button[data-act]").forEach(b=>{
-      b.addEventListener("click", async ()=>{
-        const id = b.getAttribute("data-id");
-        const act = b.getAttribute("data-act");
-        const role = act==="ps" ? "ps" : act==="sv" ? "ps_deputy" : act;
-        await doSetRole(id, role);
-      });
-    });
-  }
-
-  async function doLoad(){
-    const data = await apiPost("/api/auth/admin/users/list", {});
-    if (!data.ok) throw new Error(data.error || "list_failed");
-    users = data.users || [];
-    render();
-  }
-
-  async function doSetRole(userId, role){
-    const res = await apiPost("/api/auth/admin/users/set-role", { userId, role });
-    if (!res.ok) throw new Error(res.error || res.message || "set_role_failed");
-    await doLoad();
-    toast("Rolle gesetzt: " + role);
-  }
-
-  btn.addEventListener("click", ()=>safeRun(doLoad));
-  filter.addEventListener("input", render);
-
-  // auto-load once
-  safeRun(doLoad);
-}
-
-etToken("");
+    setToken("");
     $("tokenPill").textContent = "–";
     $("userPill").textContent = "nicht eingeloggt";
     $("permCount").textContent = "0";
