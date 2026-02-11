@@ -241,7 +241,7 @@ async function loadMe(){
 async function loadUsers(render=true){
   $("usersOut").textContent = "";
   try{
-    const out = await jget("/api/auth/admin/users/list");
+    const out = await jpost("/api/auth/admin/users/list", {});
     USERS = out.users || [];
     if(render) renderUsers();
   }catch(e){
