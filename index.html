@@ -147,7 +147,9 @@
   // Compatibility helper: some modules still call mkSection()
   function mkSection(title, subtitle){
     const sh = moduleShell(title, subtitle);
-    return { card: sh.details, details: sh.details, body: sh.body };
+    // Return a real Element so renderTiles() can append it.
+    sh.details.body = sh.body;
+    return sh.details;
   }
 
   function renderConfig(ctx){
