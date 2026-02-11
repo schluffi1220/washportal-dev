@@ -391,7 +391,7 @@
       const role = state.currentRole;
       // send only allowed=true entries to keep DB small
       const allowed = Object.entries(state.roleDraft).filter(([,v])=>!!v).map(([k])=>k);
-      const j = await api('/api/auth/admin/rbac/role/set', {body:{role, allowed}});
+      const j = await api('/api/auth/admin/rbac/role/set', {body:{role, permKeys: allowed}});
       setOut(j);
       toast('Rechte gespeichert');
       await loadSnapshot();
