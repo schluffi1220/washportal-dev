@@ -52,6 +52,17 @@ h2{font-size:16px;margin:0 0 10px}
 .permKey b{font-size:12px}
 .permKey small{display:block;margin-top:2px}
 .permRow input[type="checkbox"]{width:20px;height:20px;flex:0 0 auto;margin-top:2px}
+
+@media (max-width: 900px){
+  .grid2{ grid-template-columns: 1fr !important; }
+  .topRow{ grid-template-columns: 1fr !important; }
+  .helpPanel{ display:none !important; }
+  .tabs{ position: sticky; top:0; background: rgba(10,12,18,.95); z-index: 50; padding-bottom: 6px; }
+  button{ padding: 14px 14px; font-size: 16px; }
+  input, select{ font-size: 16px; padding: 12px; }
+  .card{ border-radius: 16px; }
+}
+
 </style>
 </head>
 <body>
@@ -374,14 +385,37 @@ async function loadRbac(){
   showOut(r.data || r);
   if(!r.ok){ toast("bad","RBAC", `HTTP ${r.status}`); return; }
 
-  // try normalize snapshot shapes
-  const d = r.data?.data || r.data;
+  const d = r.data?.data || r.data || {};
+  // catalog can come as catalog/permCatalog/permsCatalog/results...
+  const catalog =
+    (d.catalog && (d.catalog.results||d.catalog)) ||
+    (d.permCatalog && (d.permCatalog.results||d.permCatalog)) ||
+    (d.permsCatalog && (d.permsCatalog.results||d.permsCatalog)) ||
+    [];
+
+  // role perms can come as map OR as rows [{role,permKey,allowed}]
+  let rolePerms = d.rolePerms || d.roles || d.role_perms || {};
+  if (Array.isArray(rolePerms)) {
+    const map = {};
+    for (const row of rolePerms) {
+      const rr = String(row.role||"");
+      if(!map[rr]) map[rr] = {};
+      map[rr][String(row.permKey)] = !!row.allowed;
+    }
+    rolePerms = map;
+  }
+  if (Array.isArray(d.rolePermsRows)) {
+    // ignore; already mapped by worker v9
+  }
+
   SNAPSHOT = {
     build: d.build,
-    users: d.users || d.data?.users,
-    catalog: d.catalog?.results || d.catalog || d.permCatalog?.results || d.permCatalog || [],
-    rolePerms: d.rolePerms || d.roles || d.role_perms || {}
+    users: d.users || [],
+    catalog,
+    rolePerms,
+    userPerms: d.userPerms || {}
   };
+
   toast("ok","RBAC","geladen");
   renderRbac();
 }
