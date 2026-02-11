@@ -26,6 +26,17 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;fon
 .pill.user{border-color:#4bd38a}
 .pill.sa{border-color:#ff6bd6}
 hr{border:none;border-top:1px solid #223042;margin:12px 0}
+
+  .permList{ margin-top:12px; display:grid; gap:10px; }
+  .permGroup{ border:1px solid #e5e7eb; border-radius:14px; padding:10px; background:#fff; }
+  .permGroup h3{ margin:0 0 8px 0; font-size:14px; }
+  .permItem{ display:flex; align-items:flex-start; gap:10px; padding:8px; border-radius:12px; }
+  .permItem:hover{ background:#f8fafc; }
+  .permItem input{ margin-top:3px; transform:scale(1.1); }
+  .permMeta{ display:flex; flex-direction:column; gap:2px; }
+  .permKey{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; color:#475569;}
+  .permTitle{ font-size:13px; }
+
 </style>
 </head>
 <body>
@@ -296,6 +307,149 @@ $("filter").addEventListener("keydown",(ev)=>{ if(ev.key==="Enter") renderUsers(
       }
     });
   }
+
+
+// -----------------------------
+// RBAC Editor (Role Perms)
+// -----------------------------
+let _rbacSnapshot = null;
+
+function groupCatalogRows(rows){
+  const groups = new Map();
+  for (const r of (rows||[])){
+    const g = (r.permGroup || "Sonstiges").toString();
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(r);
+  }
+  // sort by group then sort index
+  for (const [g, arr] of groups){
+    arr.sort((a,b)=> (Number(a.sort||0) - Number(b.sort||0)) || String(a.permKey).localeCompare(String(b.permKey)));
+  }
+  return Array.from(groups.entries()).sort((a,b)=> a[0].localeCompare(b[0]));
+}
+
+function getRoleAllowedSet(role){
+  const set = new Set();
+  const list = (_rbacSnapshot?.rolePerms || []).filter(x => String(x.role||"") === role && Number(x.allowed||0) === 1);
+  for (const it of list) set.add(String(it.permKey||""));
+  return set;
+}
+
+function renderRolePerms(){
+  const role = document.getElementById("roleSelect").value;
+  const q = (document.getElementById("permSearch").value || "").trim().toLowerCase();
+  const catalog = _rbacSnapshot?.permsCatalog || [];
+  const allowed = getRoleAllowedSet(role);
+
+  const permList = document.getElementById("permList");
+  permList.innerHTML = "";
+
+  if (!catalog.length){
+    permList.innerHTML = '<div class="muted">Noch kein RBAC geladen. Klicke „RBAC laden“.</div>';
+    return;
+  }
+
+  const grouped = groupCatalogRows(catalog);
+  let shown = 0;
+
+  for (const [groupName, rows] of grouped){
+    const groupWrap = document.createElement("div");
+    groupWrap.className = "permGroup";
+
+    const h = document.createElement("h3");
+    h.textContent = groupName;
+    groupWrap.appendChild(h);
+
+    let anyInGroup = false;
+
+    for (const r of rows){
+      const key = String(r.permKey||"");
+      const title = String(r.title||"");
+      const hay = (key + " " + title + " " + groupName).toLowerCase();
+      if (q && !hay.includes(q)) continue;
+
+      anyInGroup = true;
+      shown++;
+
+      const item = document.createElement("label");
+      item.className = "permItem";
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.permKey = key;
+      cb.checked = allowed.has(key);
+
+      const meta = document.createElement("div");
+      meta.className = "permMeta";
+
+      const t = document.createElement("div");
+      t.className = "permTitle";
+      t.textContent = title || key;
+
+      const k = document.createElement("div");
+      k.className = "permKey";
+      k.textContent = key;
+
+      meta.appendChild(t);
+      meta.appendChild(k);
+
+      item.appendChild(cb);
+      item.appendChild(meta);
+
+      groupWrap.appendChild(item);
+    }
+
+    if (anyInGroup) permList.appendChild(groupWrap);
+  }
+
+  document.getElementById("rbacHint").textContent =
+    shown ? `Anzeige: ${shown} Berechtigungen (Rolle: ${role})` : `Keine Treffer für „${q}“.`;
+}
+
+async function loadRbacSnapshot(){
+  const res = await api("/api/auth/admin/rbac/snapshot", {}, "POST");
+  if (!res.ok) throw new Error(res.message || res.error || "rbac_snapshot_failed");
+  _rbacSnapshot = res;
+  renderRolePerms();
+}
+
+async function saveRolePerms(){
+  if (!_rbacSnapshot) await loadRbacSnapshot();
+  const role = document.getElementById("roleSelect").value;
+
+  const keys = [];
+  document.querySelectorAll('#permList input[type="checkbox"][data-perm-key]').forEach(cb=>{
+    if (cb.checked) keys.push(cb.dataset.permKey);
+  });
+
+  const res = await api("/api/auth/admin/rbac/role/set", { role, permKeys: keys }, "POST");
+  if (!res.ok) throw new Error(res.message || res.error || "role_set_failed");
+
+  // reload snapshot to reflect changes
+  await loadRbacSnapshot();
+}
+
+document.getElementById("btnLoadRbac")?.addEventListener("click", async ()=>{
+  try { setMsg("RBAC wird geladen…"); await loadRbacSnapshot(); setMsg("RBAC geladen."); }
+  catch(e){ setErr(String(e.message||e)); }
+});
+
+document.getElementById("btnSaveRolePerms")?.addEventListener("click", async ()=>{
+  try { setMsg("Speichere Rechte…"); await saveRolePerms(); setMsg("Rechte gespeichert."); }
+  catch(e){ setErr(String(e.message||e)); }
+});
+
+document.getElementById("btnResetView")?.addEventListener("click", ()=>{
+  document.getElementById("permSearch").value = "";
+  renderRolePerms();
+});
+
+document.getElementById("roleSelect")?.addEventListener("change", renderRolePerms);
+document.getElementById("permSearch")?.addEventListener("input", ()=>{ 
+  // debounce light
+  window.clearTimeout(window.__permT);
+  window.__permT = window.setTimeout(renderRolePerms, 120);
+});
 
 </script>
 </body>
