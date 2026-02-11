@@ -1,608 +1,203 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Benutzerverwaltung</title>
-  <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial; margin:18px; color:#eaeaea; background:#111316;}
-    a{color:inherit}
-    input,select,button{padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#eaeaea}
-    button{cursor:pointer}
-    button:disabled{opacity:.5; cursor:not-allowed}
-    .muted{opacity:.8}
-    .top{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;margin:12px 0}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top}
-    .badge{padding:2px 8px;border-radius:999px;font-size:12px}
-    .b-active{background:rgba(0,255,0,.14)}
-    .b-pending{background:rgba(255,200,0,.16)}
-    .b-disabled{background:rgba(255,0,0,.14)}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
-    .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
-  
-/* RBAC editor */
-#rbacCard details{ background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px; margin:10px 0; }
-#rbacCard summary{ cursor:pointer; font-weight:600; }
-#rbacCard .permList{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-#rbacCard .permRow{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background: rgba(0,0,0,0.18); }
-#rbacCard .permTitle{ flex:1; }
-#rbacCard .permKey{ opacity:.6; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; }
-
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Washportal – Admin-User RBAC Editor (SA)</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:#0b0f14;color:#e7eef7}
+input,select,button,textarea{font:inherit;padding:10px;border-radius:10px;border:1px solid #223042;background:#0f1621;color:#e7eef7}
+button{cursor:pointer}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.card{border:1px solid #223042;border-radius:14px;padding:12px;margin:12px 0;background:#0f1621}
+h1{font-size:18px;margin:0 0 8px 0}
+h2{font-size:15px;margin:0 0 8px 0}
+.small{opacity:.8;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.perms{max-height:52vh;overflow:auto;border:1px solid #223042;border-radius:12px;padding:10px}
+.perm{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed #223042}
+.perm:last-child{border-bottom:none}
+code{background:#0b0f14;padding:2px 6px;border-radius:8px}
+.ok{color:#7CFC9A}
+.bad{color:#ff7b7b}
 </style>
 </head>
 <body>
+<h1>Admin-User RBAC Editor (SA)</h1>
+<div class="small">Nur Rollen/Perms bearbeiten. Auth via <code>x-sa-password</code> + Body. Kein Login nötig.</div>
 
-  <div 
-<div class="card" id="saToolsCard" style="margin-top:14px;">
-  <h3 style="margin:0 0 10px 0;">SA Tools</h3>
-  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-    <button id="btnApiTest">API Test (/api/_status)</button>
-    <button id="btnRbacLoad" class="primary">Rollenrechte laden</button>
-    <span class="muted">Falls hier Fehler stehen: unten im Log.</span>
+<div class="card">
+  <div class="row">
+    <label class="small">Worker Base
+      <input id="base" style="min-width:340px" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
+    </label>
+    <label class="small">SA Passwort
+      <input id="sa" type="password" style="min-width:240px" placeholder="SA Passwort"/>
+    </label>
+    <button id="btnStatus">Status</button>
+    <button id="btnLoad">RBAC Snapshot laden</button>
   </div>
+  <div id="statusOut" class="small"></div>
 </div>
 
-<div class="card" id="rbacCard" style="margin-top:14px; display:none;">
-  <h3 style="margin:0 0 10px 0;">Rollen & Rechte (SA)</h3>
-  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-    <div style="display:flex; flex-direction:column; gap:6px; min-width:220px;">
-      <span class="muted">Rolle</span>
-      <select id="roleSelect">
-        <option value="admin">Admin</option>
-        <option value="ps">PS</option>
-        <option value="sv">SV</option>
-        <option value="vs">VS</option>
-        <option value="mod">Mod</option>
-        <option value="user">User</option>
-        <option value="sa">SA</option>
-      </select>
-    </div>
-    <button id="btnRoleReload">Rolle laden</button>
-    <button id="btnRoleSave" class="primary">Rolle speichern</button>
-  </div>
-  <div id="roleGroups" style="margin-top:12px;"></div>
-</div>
-
-<div class="card" id="saLogCard" style="margin-top:14px;">
-  <h3 style="margin:0 0 10px 0;">Log</h3>
-  <pre id="saLog" style="white-space:pre-wrap; margin:0; font-size:12px; opacity:.9;"></pre>
-</div>
-class="muted">
-    Washportal ·
-    <a href="https://schluffi1220.github.io/washportal-dev/">← Portal</a>
-    ·
-    <a href="https://schluffi1220.github.io/washportal-dev/privacy/">Datenschutz</a>
-  </div>
-
-  <h2>Benutzerverwaltung</h2>
-
+<div class="grid">
   <div class="card">
-    <div class="top">
-      <input id="adminPw" type="password" placeholder="Super-Admin Passwort" />
-      <button id="btnLoad">Liste laden</button>
-      <span id="msg" class="muted"></span>
+    <h2>Rolle auswählen</h2>
+    <div class="row">
+      <select id="roleSel" style="min-width:220px"></select>
+      <button id="btnAll">Alle an</button>
+      <button id="btnNone">Alle aus</button>
+      <button id="btnSave">Rolle speichern</button>
     </div>
-    <div class="muted" style="margin-top:8px">
-      Freischalten deaktiviert automatisch den bisherigen aktiven Patientensprecher / Stellvertreter derselben Rolle.
-    </div>
+    <div class="small">Speichert in <code>/api/admin/auth/rbac/role/bulk</code>.</div>
+    <div id="saveOut" class="small"></div>
   </div>
 
   <div class="card">
-    <div class="top" style="justify-content:space-between">
-      <h3 style="margin:0">Registrierungen</h3>
-      <select id="filterRole">
-        <option value="">Alle Rollen</option>
-        <option value="ps">Patientensprecher</option>
-        <option value="ps_deputy">Stellvertreter</option>
-        <option value="admin">Admin</option>
-      </select>
-    </div>
-    <div id="tbl" style="margin-top:8px"></div>
+    <h2>Debug</h2>
+    <pre id="debug" class="small" style="white-space:pre-wrap;margin:0"></pre>
   </div>
+</div>
 
-  <script>
-
-    const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev";
-
-    const $ = (id)=>document.getElementById(id);
-    const esc = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
-
-    function badge(status){
-      if (status==="active") return `<span class="badge b-active">active</span>`;
-      if (status==="disabled") return `<span class="badge b-disabled">disabled</span>`;
-      return `<span class="badge b-pending">pending</span>`;
-    }
-
-    function roleLabel(r){
-      if (r==="ps") return "Patientensprecher";
-      if (r==="ps_deputy") return "Stellvertreter";
-      if (r==="admin") return "Admin";
-      if (r==="") return "—";
-      return r || "";
-    }
-
-    async function jpost(path, body){
-      const r = await fetch(API_BASE + path, {
-        method:"POST",
-        headers:{"content-type":"application/json"},
-        body: JSON.stringify(body||{})
-      });
-      const t = await r.text();
-      let data={}; try{ data=t?JSON.parse(t):{} }catch(_){ data={raw:t} }
-      if (!r.ok) throw {status:r.status,data};
-      return data;
-    }
-
-    let __users = [];
-    let __perms = [];
-    let __userPermsMap = {}; // userId -> permKey -> 0/1
-
-    function ensureDefaultPerms(){
-      // If worker didn't return per-user perms, default everyone to all allowed
-      if (__perms.length === 0 || __users.length === 0) return;
-      if (__userPermsMap && Object.keys(__userPermsMap).length > 0) return;
-
-      __userPermsMap = {};
-      for (const u of __users){
-        __userPermsMap[u.id] = {};
-        for (const p of __perms) __userPermsMap[u.id][p.permKey] = 1;
-      }
-    }
-
-    async function loadUsers(){
-      const pw = ($("adminPw").value||"").trim();
-      $("msg").textContent = "lade…";
-      try{
-        const res = await jpost("/api/admin/auth/users/list", { adminPassword: pw });
-
-        __users = res.users || [];
-        __perms = res.perms || [];
-
-        // accept either userPermsMap or raw rows
-        if (res.userPermsMap && typeof res.userPermsMap === "object") {
-          __userPermsMap = res.userPermsMap || {};
-        } else {
-          __userPermsMap = {};
-          const rows = Array.isArray(res.userPerms) ? res.userPerms : [];
-          for (const r of rows){
-            if (!r || !r.userId || !r.permKey) continue;
-            if (!__userPermsMap[r.userId]) __userPermsMap[r.userId] = {};
-            __userPermsMap[r.userId][r.permKey] = Number(r.allowed) ? 1 : 0;
-          }
-        }
-
-        ensureDefaultPerms();
-
-        $("msg").textContent = `ok (${__users.length})`;
-        render();
-      }catch(e){
-        console.error(e);
-        $("msg").textContent = `Fehler (HTTP ${e?.status||"?"})`;
-        $("tbl").innerHTML = "";
-      }
-    }
-
-    async function approve(userId){
-      const pw = ($("adminPw").value||"").trim();
-      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-      if (!confirm("Freischalten? (Alter aktiver derselben Rolle wird deaktiviert)")) return;
-      try{
-        await jpost("/api/admin/auth/users/approve", { adminPassword: pw, userId });
-        await loadUsers();
-      }catch(e){
-        console.error(e);
-        alert(`Fehler: Freischalten fehlgeschlagen (HTTP ${e?.status||"?"})`);
-      }
-    }
-
-    async function genCode(userId){
-      const pw = ($("adminPw").value||"").trim();
-      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-      try{
-        const r = await jpost("/api/admin/auth/users/issue-code", { adminPassword: pw, userId });
-        const until = new Date(r.expiresAt).toLocaleString();
-        // show mail status if present
-        const mailInfo = (typeof r.mailSent === "boolean")
-          ? (`
-Mail: ${r.mailSent ? "gesendet" : ("FEHLER - " + (r.mailError||""))}`)
-          : "";
-        alert(`Login-Code (${roleLabel(r.role)}): ${r.code}
-Gültig bis: ${until}${mailInfo}`);
-      }catch(e){
-        console.error(e);
-        alert(`Fehler: Code erzeugen fehlgeschlagen (HTTP ${e?.status||"?"})`);
-      }
-    }
-
-    
-function fmtDT(ms){
-  if (!ms) return "";
-  try{
-    return new Date(Number(ms)).toLocaleString("de-DE");
-  }catch(_){ return String(ms); }
-}
-
-async function disableUser(userId, disabled){
-  const pw = ($("adminPw").value||"").trim();
-  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-  const msg = disabled ? "User deaktivieren? (alle Rechte werden entfernt)" : "User reaktivieren? (Status -> pending)";
-  if (!confirm(msg)) return;
-  try{
-    if (disabled){
-      await jpost("/api/admin/auth/users/disable", { adminPassword: pw, userId, disabled:true });
-    }else{
-      await jpost("/api/admin/auth/users/reactivate", { adminPassword: pw, userId });
-    }
-    await loadUsers();
-  }catch(e){
-    console.error(e);
-    alert(`Fehler: Aktion fehlgeschlagen (HTTP ${e?.status||"?"})`);
-  }
-}
-
-async function markDelete(userId){
-  const pw = ($("adminPw").value||"").trim();
-  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-  if (!confirm("Zum Löschen freigeben? (deaktiviert sofort, endgültiges Löschen nach 14 Tagen)")) return;
-  try{
-    const r = await jpost("/api/admin/auth/users/mark-delete", { adminPassword: pw, userId, days:14 });
-    alert("✅ Markiert. Wird gelöscht ab: " + fmtDT(r.deleteAfter));
-    await loadUsers();
-  }catch(e){
-    console.error(e);
-    alert(`Fehler: Markieren fehlgeschlagen (HTTP ${e?.status||"?"})`);
-  }
-}
-
-async function deleteNow(userId){
-  const pw = ($("adminPw").value||"").trim();
-  if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-  if (!confirm("Wirklich SOFORT endgültig löschen? (nicht rückgängig)")) return;
-  try{
-    await jpost("/api/admin/auth/users/delete-now", { adminPassword: pw, userId });
-    await loadUsers();
-  }catch(e){
-    console.error(e);
-    alert(`Fehler: Löschen fehlgeschlagen (HTTP ${e?.status||"?"})`);
-  }
-}
-
-    function readPermsFromUI(userId){
-      const m = {};
-      for (const p of __perms){
-        const id = `perm__${userId}__${p.permKey}`;
-        const el = document.getElementById(id);
-        m[p.permKey] = !!(el && el.checked);
-      }
-      return m;
-    }
-
-    async function saveUser(userId){
-      const pw = ($("adminPw").value||"").trim();
-      if (!pw) return alert("Bitte Super-Admin Passwort eingeben");
-
-      const role1 = (document.getElementById(`role1__${userId}`)?.value || "").trim();
-      const role2 = (document.getElementById(`role2__${userId}`)?.value || "").trim();
-      const perms = readPermsFromUI(userId);
-
-      try{
-        await jpost("/api/admin/auth/users/update", {
-          adminPassword: pw,
-          userId,
-          role1,
-          role2,
-          perms
-        });
-        alert("Gespeichert.");
-        await loadUsers();
-      }catch(e){
-        console.error(e);
-        const msg = e?.data?.message ? `
-${e.data.message}` : "";
-        alert(`Fehler: Speichern fehlgeschlagen (HTTP ${e?.status||"?"})${msg}`);
-      }
-    }
-
-    function render(){
-      const f = $("filterRole").value;
-      const users = f ? __users.filter(u=>u.role===f) : __users;
-
-      const roleOpts = [
-        ["admin","Admin"],
-        ["ps","Patientensprecher"],
-        ["ps_deputy","Stellvertreter"],
-      ];
-
-      const roleSelect = (id, val, allowEmpty=false) => {
-        const opts = (allowEmpty ? [["","—"]] : []).concat(roleOpts).map(([k,lab])=>{
-          const sel = (String(val||"")===k) ? "selected" : "";
-          return `<option value="${esc(k)}" ${sel}>${esc(lab)}</option>`;
-        }).join("");
-        return `<select id="${esc(id)}">${opts}</select>`;
-      };
-
-      const permBox = (userId, permKey, label, checked) => {
-        const id = `perm__${userId}__${permKey}`;
-        const ch = checked ? "checked" : "";
-        return `<label class="perm"><input type="checkbox" id="${esc(id)}" ${ch}/> <span>${esc(label)}</span></label>`;
-      };
-
-      const rows = users.map(u=>{
-        const approveDisabled = u.status === "active";
-        const codeDisabled = u.status !== "active";
-
-        const up = __userPermsMap[u.id] || {};
-        const permHtml = (__perms||[]).map(p=>permBox(u.id, p.permKey, p.label, up[p.permKey] !== 0)).join("") || `<div class="muted">Keine Permissions</div>`;
-
-        // role2 not provided by backend yet -> default empty
-        const role2Val = u.role2 || "";
-
-        return `<tr>
-          <td class="mono">${esc(u.id)}</td>
-          <td>${esc(u.firstName||"")} ${esc(u.lastName||"")}</td>
-          <td>${esc(u.email||"")}</td>
-          <td>${roleSelect(`role1__${u.id}`, u.role)}</td>
-          <td>${roleSelect(`role2__${u.id}`, role2Val, true)}</td>
-          <td>${badge(u.status)}</td>
-          <td class="mono">${u.deleteAfter ? esc(fmtDT(u.deleteAfter)) : ""}</td>
-          <td>
-            <div class="permwrap">${permHtml}</div>
-          </td>
-          <td>
-            <div class="rowbtns">
-              <button ${approveDisabled?"disabled":""} onclick="approve('${esc(u.id)}')">Freischalten</button>
-              <button ${codeDisabled?"disabled":""} onclick="genCode('${esc(u.id)}')">Login-Code</button>
-              <button onclick="saveUser('${esc(u.id)}')">Speichern</button>
-              <button onclick="disableUser('${esc(u.id)}', true)">Deaktivieren</button>
-              <button onclick="disableUser('${esc(u.id)}', false)">Reaktivieren</button>
-              <button onclick="markDelete('${esc(u.id)}')">Zum Löschen freigeben</button>
-              <button onclick="deleteNow('${esc(u.id)}')">Sofort löschen</button>
-            </div>
-          </td>
-        </tr>`;
-      }).join("");
-
-      $("tbl").innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th><th>Name</th><th>Email</th><th>Rolle</th><th>2. Rolle</th><th>Status</th><th>Rechte</th><th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows || `<tr><td colspan="8" class="muted">Keine Einträge</td></tr>`}
-          </tbody>
-        </table>
-      `;
-    }
-
-    $("btnLoad").onclick = loadUsers;
-    $("filterRole").onchange = render;
-
-    window.approve = approve;
-    window.genCode = genCode;
-    window.saveUser = saveUser;
-    window.disableUser = disableUser;
-    window.markDelete = markDelete;
-    window.deleteNow = deleteNow;
-    window.saveUser = saveUser;
-
-  
-
-// Delete user (soft delete)
-async function authDeleteUser(userId){
-  if(!confirm("User wirklich löschen? (soft delete)")) return;
-  try{
-    await jpostAuth("/api/auth/admin/users/delete",{userId});
-    toast("✅ User gelöscht");
-    if (typeof authLoadUsers === "function") await authLoadUsers();
-  }catch(e){
-    toast("⛔ Löschen fehlgeschlagen");
-    console.warn(e);
-  }
-}
-
-</script>
-
+<div class="card">
+  <h2>Permissions (Katalog)</h2>
+  <div id="permsWrap" class="perms"></div>
+</div>
 
 <script>
-(function(){
-  const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // same origin
+const $ = (id)=>document.getElementById(id);
 
-  function logLine(...args){
-    const el = document.getElementById("saLog");
-    const msg = args.map(a=>{
-      if (typeof a === "string") return a;
-      try { return JSON.stringify(a, null, 2); } catch(e){ return String(a); }
-    }).join(" ");
-    if(el) el.textContent += (el.textContent ? "\n" : "") + msg;
-    console.log("[SA]", ...args);
+function hdrs(){
+  const pw = $("sa").value || "";
+  return {
+    "content-type":"application/json",
+    "x-sa-password": pw
+  };
+}
+async function jpost(path, body){
+  const base = $("base").value.replace(/\/$/,'');
+  const res = await fetch(base+path, {method:"POST", headers: hdrs(), body: JSON.stringify(body||{})});
+  const txt = await res.text();
+  let data; try{ data = JSON.parse(txt);}catch(e){ data={ok:false,error:"bad_json",raw:txt}; }
+  if(!res.ok) throw {status:res.status, data};
+  return data;
+}
+
+let SNAP = null; // snapshot
+let CATALOG = []; // [{permKey,title,label,permGroup,sort}]
+let ROLE_PERMS = []; // [{role,permKey,allowed}]
+let ROLE = "";
+
+function normRole(r){ return String(r||"").trim().toLowerCase(); }
+
+function buildRoleList(){
+  const roles = new Set();
+  (SNAP?.users||[]).forEach(u=>{ if(u.role) roles.add(normRole(u.role)); if(u.role2) roles.add(normRole(u.role2)); });
+  (ROLE_PERMS||[]).forEach(rp=>roles.add(normRole(rp.role)));
+  const list=[...roles].filter(Boolean).sort();
+  const sel=$("roleSel"); sel.innerHTML="";
+  for(const r of list){ const o=document.createElement("option"); o.value=r; o.textContent=r; sel.appendChild(o); }
+  ROLE = sel.value || list[0] || "admin";
+  if(!sel.value && ROLE){ sel.value = ROLE; }
+}
+
+function rolePermMap(role){
+  role = normRole(role);
+  const m = {};
+  for(const rp of (ROLE_PERMS||[])){
+    if(normRole(rp.role)===role) m[String(rp.permKey)] = !!rp.allowed;
   }
+  return m;
+}
 
-  function getPw(){
-    const pwEl = document.getElementById("adminPw");
-    return (pwEl ? pwEl.value : "").trim();
-  }
-
-  async function postJson(path, body){
-    const res = await fetch(API_BASE + path, {
-      method:"POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(body||{})
-    });
-    const text = await res.text();
-    let data = null;
-    try{ data = JSON.parse(text); }catch(e){ data = { ok:false, error:"bad_json", raw:text }; }
-    if(!res.ok || data.ok === false){
-      throw { status: res.status, data };
-    }
-    return data;
-  }
-
-  async function getJson(path){
-    const res = await fetch(API_BASE + path, { method:"GET" });
-    const text = await res.text();
-    let data = null;
-    try{ data = JSON.parse(text); }catch(e){ data = { ok:false, error:"bad_json", raw:text }; }
-    if(!res.ok || data.ok === false){
-      throw { status: res.status, data };
-    }
-    return data;
-  }
-
-  let SNAP = null;
-
-  function permTitle(p){ return p.title || p.label || p.permKey; }
-  function permGroup(p){ return p.permGroup || p.category || "Sonstiges"; }
-
-  function buildRoleMap(role){
-    const map = {};
-    const rp = (SNAP && (SNAP.rolePerms || SNAP.rolePerms || [])) || [];
-    for(const r of rp){
-      if(String(r.role||"").toLowerCase() === String(role||"").toLowerCase()){
-        map[r.permKey] = !!r.allowed;
-      }
-    }
-    return map;
-  }
-
-  function renderRole(){
-    const card = document.getElementById("rbacCard");
-    if(!card) return;
-    if(!SNAP){ card.style.display="none"; return; }
-    card.style.display="block";
-
-    const role = document.getElementById("roleSelect").value;
-    const current = buildRoleMap(role);
-
-    const permsCatalog = SNAP.permsCatalog || SNAP.perms || SNAP.catalog || [];
-    const groups = {};
-    for(const p of permsCatalog){
-      const g = permGroup(p);
-      (groups[g] ||= []).push(p);
-    }
-    const groupNames = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
-    for(const g of groupNames){
-      groups[g].sort((a,b)=>{
-        const sa = Number(a.sort||0), sb = Number(b.sort||0);
-        if(sa!==sb) return sa-sb;
-        return String(permTitle(a)).localeCompare(String(permTitle(b)));
-      });
-    }
-
-    const wrap = document.getElementById("roleGroups");
-    wrap.innerHTML = "";
-    for(const g of groupNames){
-      const det = document.createElement("details");
-      det.open = true;
-      det.innerHTML = `<summary>${g}</summary>`;
-      const list = document.createElement("div");
-      list.className = "permList";
-      for(const p of groups[g]){
-        const key = p.permKey;
-        const row = document.createElement("label");
-        row.className = "permRow";
-        row.innerHTML = `
-          <input type="checkbox" data-permkey="${key}" ${current[key] ? "checked":""}/>
-          <span class="permTitle">${permTitle(p)}</span>
-          <span class="permKey">${key}</span>
-        `;
-        list.appendChild(row);
-      }
-      det.appendChild(list);
-      wrap.appendChild(det);
-    }
-    logLine("Rolle geladen:", role, "Perms im Katalog:", permsCatalog.length);
-  }
-
-  async function loadSnapshot(){
-    const pw = getPw();
-    if(!pw){
-      alert("Bitte SA Passwort eingeben");
-      return;
-    }
-    logLine("Lade RBAC Snapshot...");
-    const paths = [
-      "/api/admin/auth/rbac/snapshot",
-      "/api/auth/admin/rbac/snapshot"
-    ];
-    let snap = null;
-    let lastErr = null;
-    for (const path of paths){
-      try{
-        snap = await postJson(path, { adminPassword: pw });
-        if(snap && snap.ok) { logLine("Snapshot OK via "+path); break; }
-        // if server returned a structured error, treat as error
-        if(snap && snap.ok === false) throw snap;
-      }catch(e){
-        lastErr = e;
-      }
-    }
-    if(!snap || snap.ok !== true){
-      console.error("Snapshot FEHLER:", lastErr || snap);
-      alert("Snapshot FEHLER. Prüfe Worker Route (/api/auth/admin/rbac/snapshot) und SA Passwort.");
-      throw lastErr || snap;
-    }
-    // normalize
-    SNAP = {
-      ...snap,
-      permsCatalog: snap.permsCatalog || snap.perms || [],
-      rolePerms: snap.rolePerms || snap.rolePerms || []
-    };
-    renderRole();
-  }
-
-
-  async function saveRole(){
-    const pw = getPw();
-    if(!pw){ alert("Bitte SA Passwort eingeben"); return; }
-    if(!SNAP){ await loadSnapshot(); }
-    const role = document.getElementById("roleSelect").value;
-    const changes = {};
-    document.querySelectorAll("#roleGroups input[type='checkbox'][data-permkey]").forEach(cb=>{
-      changes[cb.getAttribute("data-permkey")] = cb.checked ? 1 : 0;
-    });
-    logLine("Speichere Rolle:", role, "Änderungen:", Object.keys(changes).length);
-    const res = await postJson("/api/admin/auth/rbac/role/bulk", { adminPassword: pw, role, changes });
-    logLine("OK gespeichert.", res);
-    await loadSnapshot();
-  }
-
-  // Wire
-  document.getElementById("btnApiTest")?.addEventListener("click", async ()=>{
-    try{
-      const s = await getJson("/api/_status");
-      logLine("API OK:", s);
-    }catch(e){
-      logLine("API Test FEHLER:", e);
-      alert("API Test fehlgeschlagen – siehe Log");
-    }
+function renderPerms(){
+  const wrap=$("permsWrap");
+  wrap.innerHTML="";
+  if(!CATALOG.length){ wrap.textContent="(kein Katalog)"; return; }
+  const map = rolePermMap(ROLE);
+  const items = [...CATALOG].sort((a,b)=>{
+    const ga=String(a.permGroup||""); const gb=String(b.permGroup||"");
+    if(ga!==gb) return ga.localeCompare(gb);
+    const sa=Number(a.sort||0), sb=Number(b.sort||0);
+    if(sa!==sb) return sa-sb;
+    return String(a.permKey).localeCompare(String(b.permKey));
   });
 
-  document.getElementById("btnRbacLoad")?.addEventListener("click", async ()=>{
-    try{ await loadSnapshot(); }
-    catch(e){ logLine("Snapshot FEHLER:", e); alert("Snapshot fehlgeschlagen – siehe Log"); }
-  });
+  for(const p of items){
+    const row=document.createElement("div");
+    row.className="perm";
+    const cb=document.createElement("input");
+    cb.type="checkbox";
+    cb.checked=!!map[p.permKey];
+    cb.dataset.perm=p.permKey;
 
-  document.getElementById("btnRoleReload")?.addEventListener("click", async ()=>{
-    try{ await loadSnapshot(); }
-    catch(e){ logLine("Rolle laden FEHLER:", e); alert("Rolle laden fehlgeschlagen – siehe Log"); }
-  });
+    const meta=document.createElement("div");
+    meta.innerHTML = `<div><b>${(p.title||p.label||p.permKey)}</b></div>
+                      <div class="small"><code>${p.permKey}</code> <span style="opacity:.7">(${p.permGroup||"-"})</span></div>`;
+    row.appendChild(cb); row.appendChild(meta);
+    wrap.appendChild(row);
+  }
+}
 
-  document.getElementById("btnRoleSave")?.addEventListener("click", async ()=>{
-    try{ await saveRole(); }
-    catch(e){ logLine("Speichern FEHLER:", e); alert("Speichern fehlgeschlagen – siehe Log"); }
-  });
+function setAll(val){
+  [...$("permsWrap").querySelectorAll("input[type=checkbox]")].forEach(cb=>cb.checked=val);
+}
 
-  document.getElementById("roleSelect")?.addEventListener("change", ()=>{
-    try{ renderRole(); }catch(e){ logLine("Render error:", e); }
-  });
+async function loadSnapshot(){
+  $("saveOut").textContent="";
+  $("debug").textContent="Lade RBAC Snapshot…";
+  try{
+    SNAP = await jpost("/api/admin/auth/rbac/snapshot", { saPassword: $("sa").value||"" });
+    CATALOG = SNAP.permsCatalog || SNAP.perms || [];
+    ROLE_PERMS = SNAP.rolePerms || [];
+    buildRoleList();
+    renderPerms();
+    $("debug").textContent = JSON.stringify({build: SNAP.build, users:(SNAP.users||[]).length, permsCatalog:CATALOG.length, rolePerms:ROLE_PERMS.length}, null, 2);
+  }catch(e){
+    $("debug").textContent = JSON.stringify(e, null, 2);
+  }
+}
 
-  logLine("Admin-User RBAC Editor bereit. Pfad:", location.pathname);
-})();
+async function saveRole(){
+  const role = normRole($("roleSel").value);
+  const perms = [...$("permsWrap").querySelectorAll("input[type=checkbox]")].map(cb=>({
+    permKey: cb.dataset.perm,
+    allowed: !!cb.checked
+  }));
+  $("saveOut").textContent="Speichere…";
+  try{
+    const out = await jpost("/api/admin/auth/rbac/role/bulk", { saPassword: $("sa").value||"", role, perms });
+    $("saveOut").innerHTML = `<span class="ok">OK</span> • ${perms.length} perms • build ${out.build||""}`;
+    // refresh rolePerms local from response if included
+    if(out.rolePerms) ROLE_PERMS = out.rolePerms;
+  }catch(e){
+    $("saveOut").innerHTML = `<span class="bad">FEHLER</span> • ` + (e?.data?.message || e?.data?.error || e?.status || "unknown");
+    $("debug").textContent = JSON.stringify(e, null, 2);
+  }
+}
+
+$("btnStatus").onclick = async ()=>{
+  const base=$("base").value.replace(/\/$/,'');
+  $("statusOut").textContent="…";
+  try{
+    const r = await fetch(base+"/api/_status?ts="+Date.now());
+    const j = await r.json();
+    $("statusOut").innerHTML = (j.ok?'<span class="ok">OK</span>':'<span class="bad">FEHLER</span>') + " • " + JSON.stringify(j);
+  }catch(e){
+    $("statusOut").innerHTML = '<span class="bad">FEHLER</span> • ' + String(e);
+  }
+};
+
+$("btnLoad").onclick = loadSnapshot;
+
+$("roleSel").onchange = ()=>{
+  ROLE = $("roleSel").value;
+  renderPerms();
+};
+
+$("btnAll").onclick = ()=>setAll(true);
+$("btnNone").onclick = ()=>setAll(false);
+$("btnSave").onclick = saveRole;
 </script>
-
 </body>
 </html>
