@@ -524,7 +524,27 @@ async function authDeleteUser(userId){
       return;
     }
     logLine("Lade RBAC Snapshot...");
-    const snap = await postJson("/api/admin/auth/rbac/snapshot", { adminPassword: pw });
+    const paths = [
+      "/api/admin/auth/rbac/snapshot",
+      "/api/auth/admin/rbac/snapshot"
+    ];
+    let snap = null;
+    let lastErr = null;
+    for (const path of paths){
+      try{
+        snap = await postJson(path, { adminPassword: pw });
+        if(snap && snap.ok) { logLine("Snapshot OK via "+path); break; }
+        // if server returned a structured error, treat as error
+        if(snap && snap.ok === false) throw snap;
+      }catch(e){
+        lastErr = e;
+      }
+    }
+    if(!snap || snap.ok !== true){
+      console.error("Snapshot FEHLER:", lastErr || snap);
+      alert("Snapshot FEHLER. Prüfe Worker Route (/api/auth/admin/rbac/snapshot) und SA Passwort.");
+      throw lastErr || snap;
+    }
     // normalize
     SNAP = {
       ...snap,
@@ -533,6 +553,7 @@ async function authDeleteUser(userId){
     };
     renderRole();
   }
+
 
   async function saveRole(){
     const pw = getPw();
