@@ -50,6 +50,7 @@ hr{border:none;border-top:1px solid #223042;margin:12px 0}
     <div class="row">
       <button id="btnStatus">/api/_status</button>
       <button id="btnMe">/api/auth/me</button>
+      <button class="btn" id="btnSaLogin">SA-Login</button>
       <button id="btnUsers">Benutzer laden</button>
       <span id="statusOut" class="small"></span>
     </div>
@@ -275,6 +276,27 @@ $("btnUsers").onclick = async ()=>{
 
 $("btnApplyFilter").onclick = renderUsers;
 $("filter").addEventListener("keydown",(ev)=>{ if(ev.key==="Enter") renderUsers(); });
+
+  const btnSaLogin = document.getElementById('btnSaLogin');
+  if (btnSaLogin){
+    btnSaLogin.addEventListener('click', async () => {
+      // SA login is "stateless": we just test that the SA header works.
+      await loadMe();
+      toast('SA-Login geprüft (siehe Ausgabe).');
+    });
+  }
+
+  // Allow Enter to trigger SA-Login check
+  const saInput = document.getElementById('saPw');
+  if (saInput){
+    saInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnSaLogin?.click();
+      }
+    });
+  }
+
 </script>
 </body>
 </html>
