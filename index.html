@@ -416,7 +416,7 @@ function renderHandover(ctx){
 
   const token = sessionStorage.getItem("wp_token") || "";
   if(!token){
-    wrap.appendChild(mkInfo("Nicht eingeloggt."));
+    wrap.body.appendChild(mkInfo("Nicht eingeloggt."));
     return wrap;
   }
 
@@ -441,7 +441,7 @@ function renderHandover(ctx){
     </div>
     <div class="muted">Die Anfrage geht an den aktuellen PS/SV. Admin ist Fallback.</div>
   `;
-  wrap.appendChild(reqBox);
+  wrap.body.appendChild(reqBox);
 
   reqBox.querySelector("#ho-send").addEventListener("click", async ()=>{
     try{
@@ -465,7 +465,7 @@ function renderHandover(ctx){
   const inboxBox = document.createElement("div");
   inboxBox.className = "card";
   inboxBox.innerHTML = `<h3>Offene Anfragen</h3><div id="ho-inbox" class="muted">—</div>`;
-  wrap.appendChild(inboxBox);
+  wrap.body.appendChild(inboxBox);
 
   async function loadInbox(){
     if(!canInbox){
