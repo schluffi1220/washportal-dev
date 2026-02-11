@@ -3,490 +3,426 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Washportal – Benutzerverwaltung & RBAC (Admin/SA)</title>
+<title>Washportal – Admin (Benutzer, Rollen & Rechte)</title>
 <style>
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:#0b0f14;color:#e7eef7}
-input,select,button,textarea{font:inherit;padding:10px;border-radius:10px;border:1px solid #223042;background:#0f1621;color:#e7eef7}
-button{cursor:pointer}
+:root{--bg:#0b0f14;--panel:#0f1621;--border:#223042;--txt:#e7eef7;--muted:#9fb0c5;--ok:#28d17c;--bad:#ff5a6a;--warn:#ffcc66}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:var(--txt)}
+a{color:inherit}
+input,select,button,textarea{font:inherit;padding:10px;border-radius:12px;border:1px solid var(--border);background:var(--panel);color:var(--txt);width:100%}
+button{cursor:pointer;white-space:nowrap}
+small{color:var(--muted)}
+h1{font-size:20px;margin:0 0 10px}
+h2{font-size:16px;margin:0 0 10px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid var(--border);border-radius:18px;padding:14px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:980px){.grid{grid-template-columns:1.15fr .85fr}}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.card{border:1px solid #223042;border-radius:14px;padding:12px;margin:12px 0;background:#0f1621}
-h1{font-size:18px;margin:0 0 8px 0}
-h2{font-size:15px;margin:0 0 8px 0}
-.small{opacity:.8;font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
-.bad{color:#ff7b7b}
-.ok{color:#7bff9d}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #223042;text-align:left;vertical-align:top}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
-.pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #223042;font-size:12px;opacity:.95}
-.pill.ps{border-color:#4a7bd8}
-.pill.sv{border-color:#7a60ff}
-.pill.admin{border-color:#ffbf60}
-.pill.user{border-color:#4bd38a}
-.pill.sa{border-color:#ff6bd6}
-hr{border:none;border-top:1px solid #223042;margin:12px 0}
-
-  .permList{ margin-top:12px; display:grid; gap:10px; }
-  .permGroup{ border:1px solid #e5e7eb; border-radius:14px; padding:10px; background:#fff; }
-  .permGroup h3{ margin:0 0 8px 0; font-size:14px; }
-  .permItem{ display:flex; align-items:flex-start; gap:10px; padding:8px; border-radius:12px; }
-  .permItem:hover{ background:#f8fafc; }
-  .permItem input{ margin-top:3px; transform:scale(1.1); }
-  .permMeta{ display:flex; flex-direction:column; gap:2px; }
-  .permKey{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; color:#475569;}
-  .permTitle{ font-size:13px; }
-
+.row > *{flex:1 1 220px}
+.row.compact > *{flex:0 0 auto}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap;word-break:break-word}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:4px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+.pill.ok{border-color:rgba(40,209,124,.5);color:var(--ok)}
+.pill.bad{border-color:rgba(255,90,106,.5);color:var(--bad)}
+.topnav{position:sticky;top:0;background:rgba(11,15,20,.9);backdrop-filter:blur(10px);padding:10px 0;z-index:5}
+.tabs{display:flex;gap:8px;overflow:auto;padding-bottom:6px}
+.tab{flex:0 0 auto;padding:10px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted)}
+.tab.active{background:rgba(255,255,255,.06);color:var(--txt);border-color:rgba(255,255,255,.18)}
+.toastWrap{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:50}
+.toast{border:1px solid var(--border);background:rgba(15,22,33,.96);border-radius:14px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.toast strong{display:block;font-size:13px}
+.toast small{display:block}
+.toast.ok{border-color:rgba(40,209,124,.45)}
+.toast.bad{border-color:rgba(255,90,106,.45)}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center}
+.kv div:first-child{color:var(--muted);font-size:12px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px 8px;border-bottom:1px solid rgba(34,48,66,.7);text-align:left;vertical-align:top}
+.table th{color:var(--muted);font-weight:600;font-size:12px}
+.miniBtn{padding:8px 10px}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px}
+.badge.role{color:#d6e5ff}
+.section{display:none}
+.section.active{display:block}
+.permGroup{border:1px solid rgba(34,48,66,.7);border-radius:14px;padding:10px;margin:8px 0;background:rgba(15,22,33,.6)}
+.permRow{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid rgba(34,48,66,.5)}
+.permRow:first-child{border-top:none}
+.permKey{flex:1 1 auto}
+.permKey b{font-size:12px}
+.permKey small{display:block;margin-top:2px}
+.permRow input[type="checkbox"]{width:20px;height:20px;flex:0 0 auto;margin-top:2px}
 </style>
 </head>
 <body>
-  <h1>Benutzerverwaltung (primär Admin-User)</h1>
-  <div class="small">
-    Nutzt deine BASE (Cloudflare Worker). Admin/PS/SV arbeiten über <b>Bearer Token</b>, SA zusätzlich über <b>x-sa-password</b>.
+<div class="topnav">
+  <h1>Benutzerverwaltung (Admin-User) – mobile first</h1>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="users">Benutzer</button>
+    <button class="tab" data-tab="rbac">Rollen & Rechte</button>
+    <button class="tab" data-tab="config">Konfig</button>
+    <button class="tab" data-tab="bookings">Buchungen</button>
+    <button class="tab" data-tab="logs">Logs</button>
+    <button class="tab" data-tab="locks">Zimmersperren</button>
+    <button class="tab" data-tab="news">News</button>
+    <button class="tab" data-tab="feedback">Feedback</button>
+    <button class="tab" data-tab="chat">Chat</button>
+    <button class="tab" data-tab="media">Bilder</button>
+    <button class="tab" data-tab="whitecard">Whitecard</button>
   </div>
+</div>
 
+<div class="grid">
   <div class="card">
     <h2>Verbindung</h2>
     <div class="row">
-      <label class="small">BASE<br/>
-        <input id="base" style="min-width:360px" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
-      </label>
-      <label class="small">Bearer Token (Admin/PS/SV/SA)<br/>
-        <input id="token" style="min-width:360px" placeholder="Bearer Token (optional)"/>
-      </label>
-      <label class="small">SA Passwort (optional)<br/>
-        <input id="sa" type="password" style="min-width:240px" placeholder="x-sa-password"/>
-      </label>
+      <div>
+        <div class="kv"><div>BASE</div><div><input id="base" value="https://washportal-dev-worker.schluffi1220.workers.dev"/></div></div>
+        <small>Alle Admin-Funktionen laufen über diese Worker-BASE (CORS aktiv).</small>
+      </div>
+      <div>
+        <div class="kv"><div>Bearer Token</div><div><input id="bearer" placeholder="optional (Admin/PS/SV Token)"/></div></div>
+        <small>Wenn leer, kannst du trotzdem per SA-Header arbeiten.</small>
+      </div>
+      <div>
+        <div class="kv"><div>SA Passwort</div><div><input id="sa" type="password" placeholder="optional (SA)"/></div></div>
+        <small>SA wird per <span class="mono">x-sa-password</span> gesendet.</small>
+      </div>
     </div>
+    <div class="row compact" style="margin-top:10px">
+      <button class="miniBtn" id="btnStatus">/api/_status</button>
+      <button class="miniBtn" id="btnMe">/api/auth/me</button>
+      <button class="miniBtn" id="btnSaLogin">SA-Login</button>
+      <button class="miniBtn" id="btnUsers">Benutzer laden</button>
+      <button class="miniBtn" id="btnRbac">RBAC laden</button>
+    </div>
+    <div class="pills" style="margin-top:10px">
+      <span class="pill" id="pillBuild">build: –</span>
+      <span class="pill" id="pillAuth">auth: –</span>
+    </div>
+    <div class="mono" id="out" style="margin-top:10px;max-height:240px;overflow:auto"></div>
+  </div>
+
+  <div class="card">
+    <h2>Hinweise</h2>
+    <ul style="margin:0;padding-left:18px;color:var(--muted)">
+      <li><b>PS & SV nur einmal:</b> Das erzwingt der Worker beim Rollen setzen (PS→SV→User).</li>
+      <li><b>Rechte:</b> Im Tab <b>Rollen & Rechte</b> kannst du RolePerms pro Rolle setzen (SA empfohlen).</li>
+      <li><b>Mobile:</b> Tabellen werden als Cards/kompakte Zeilen dargestellt. Am PC wird’s breiter.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- SECTIONS -->
+<div class="section active" id="sec-users" style="margin-top:12px">
+  <div class="card">
     <div class="row">
-      <button id="btnStatus">/api/_status</button>
-      <button id="btnMe">/api/auth/me</button>
-      <button class="btn" id="btnSaLogin">SA-Login</button>
-      <button id="btnUsers">Benutzer laden</button>
-      <span id="statusOut" class="small"></span>
+      <div><h2>Benutzer</h2><small>Rollen setzen / User anzeigen</small></div>
+      <div><input id="userFilter" placeholder="Filter (E-Mail / Name / Rolle)"/></div>
+      <div><button id="btnFilter">Filter</button></div>
     </div>
-    <pre id="meOut" class="small" style="white-space:pre-wrap;margin:10px 0 0 0"></pre>
+    <div id="usersWrap" style="margin-top:8px"></div>
   </div>
+</div>
 
-  <div class="grid">
-    <div class="card">
-      <h2>Benutzer</h2>
-      <div class="row">
-        <label class="small">Filter (E-Mail / Name / Rolle)<br/>
-          <input id="filter" placeholder="z.B. 203, müller, ps, admin…" style="min-width:320px"/>
-        </label>
-        <button id="btnApplyFilter">Filter</button>
+<div class="section" id="sec-rbac" style="margin-top:12px">
+  <div class="card">
+    <div class="row">
+      <div>
+        <h2>Rollen & Rechte (RBAC)</h2>
+        <small>SA empfohlen. Änderungen wirken sofort.</small>
       </div>
-
-      <div class="small" id="usersHint">Noch nicht geladen.</div>
-      <div style="overflow:auto;max-height:60vh;margin-top:8px">
-        <table id="usersTbl">
-          <thead>
-            <tr>
-              <th>E-Mail</th>
-              <th>Name</th>
-              <th>Rolle</th>
-              <th>Status</th>
-              <th>Aktion</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <div>
+        <select id="rbacRole">
+          <option value="admin">Admin</option>
+          <option value="ps">PS</option>
+          <option value="ps_deputy">SV</option>
+          <option value="user">User</option>
+          <option value="super_admin">SA</option>
+        </select>
       </div>
-      <div class="small" id="usersOut"></div>
+      <div><input id="permSearch" placeholder="Permission suchen (z.B. bookings, logs, delete)"/></div>
+      <div class="row compact">
+        <button class="miniBtn" id="btnRbacLoad2">RBAC laden</button>
+        <button class="miniBtn" id="btnRbacSave">Speichern</button>
+      </div>
     </div>
-
-    <div class="card">
-      <h2>Hinweise zur Rechte-Logik</h2>
-      <ul class="small">
-        <li><b>Admin</b>: kann Rollen setzen (User/Admin/PS/SV) – wie gefordert.</li>
-        <li><b>PS/SV</b>: sollen primär nur Übergabe sehen (dein Worker hat die Transfer-Logik in <code>/api/auth/admin/users/set-role</code> integriert).</li>
-        <li><b>SA</b>: kann zusätzlich RBAC-Katalog & direkte Perms pflegen (separates RBAC-Tool empfehlenswert).</li>
-      </ul>
-      <hr/>
-      <div class="small">
-        Rollen-Mapping:
-        <ul>
-          <li><code>admin</code> = Admin</li>
-          <li><code>ps</code> = PS</li>
-          <li><code>ps_deputy</code> = SV</li>
-          <li><code>user</code> = User</li>
-          <li><code>super_admin</code>/<code>superadmin</code> = SA</li>
-        </ul>
-      </div>
-      <pre id="debug" class="small" style="white-space:pre-wrap"></pre>
-    </div>
+    <div id="rbacWrap" style="margin-top:10px"></div>
   </div>
+</div>
 
+<!-- placeholders -->
+<div class="section" id="sec-config" style="margin-top:12px"><div class="card"><h2>Konfig</h2><small>kommt als nächstes – wird nach Rechten sichtbar/änderbar.</small></div></div>
+<div class="section" id="sec-bookings" style="margin-top:12px"><div class="card"><h2>Buchungen</h2><small>kommt als nächstes – inkl. Filter M1/M2/M3 und Storno.</small></div></div>
+<div class="section" id="sec-logs" style="margin-top:12px"><div class="card"><h2>Logs</h2><small>kommt als nächstes – alle Änderungen, Buchungen, Konfig, etc.</small></div></div>
+<div class="section" id="sec-locks" style="margin-top:12px"><div class="card"><h2>Zimmersperren</h2><small>kommt als nächstes – PIN-unabhängig, inkl. Nachricht + Verlauf.</small></div></div>
+<div class="section" id="sec-news" style="margin-top:12px"><div class="card"><h2>News</h2><small>kommt als nächstes – Sender PS/SV oder Admin auswählbar.</small></div></div>
+<div class="section" id="sec-feedback" style="margin-top:12px"><div class="card"><h2>Feedback</h2><small>kommt als nächstes – Empfänger PS/SV+Admin oder nur Admin.</small></div></div>
+<div class="section" id="sec-chat" style="margin-top:12px"><div class="card"><h2>Chat</h2><small>kommt als nächstes – globaler Toggle (Admin kann aus, PS/SV nicht wieder an).</small></div></div>
+<div class="section" id="sec-media" style="margin-top:12px"><div class="card"><h2>Bilder</h2><small>kommt als nächstes – Upload Waschmaschine/Trockner + Popup-Haken.</small></div></div>
+<div class="section" id="sec-whitecard" style="margin-top:12px"><div class="card"><h2>Whitecard</h2><small>kommt als nächstes – Überbuchung + weiße Kachel.</small></div></div>
 
-<script>
-/** Minimal Toast (no deps) */
-function toast(message, kind="info"){
-  try{
-    let el=document.getElementById("toastBox");
-    if(!el){
-      el=document.createElement("div");
-      el.id="toastBox";
-      el.style.position="fixed";
-      el.style.left="50%";
-      el.style.bottom="16px";
-      el.style.transform="translateX(-50%)";
-      el.style.zIndex="99999";
-      el.style.maxWidth="min(92vw,520px)";
-      el.style.width="fit-content";
-      el.style.padding="10px 12px";
-      el.style.borderRadius="12px";
-      el.style.backdropFilter="blur(10px)";
-      el.style.background="rgba(20,20,24,.88)";
-      el.style.border="1px solid rgba(255,255,255,.12)";
-      el.style.color="#fff";
-      el.style.fontSize="14px";
-      el.style.boxShadow="0 12px 28px rgba(0,0,0,.45)";
-      el.style.textAlign="center";
-      document.body.appendChild(el);
-    }
-    el.textContent = message;
-    el.style.display="block";
-    clearTimeout(window.__toastT);
-    window.__toastT=setTimeout(()=>{ el.style.display="none"; }, 2600);
-  }catch(e){
-    // no-op
-    console.log(message);
-  }
-}
-</script>
+<div class="toastWrap" id="toasts"></div>
+
 <script>
 const $ = (id)=>document.getElementById(id);
 
-function baseUrl(){
-  return ($("base").value || "").replace(/\/$/,'');
+function toast(type, title, msg){
+  const wrap = $("toasts");
+  const el = document.createElement("div");
+  el.className = "toast " + (type||"");
+  el.innerHTML = `<div><strong>${escapeHtml(title||"")}</strong><small>${escapeHtml(msg||"")}</small></div>
+                  <button class="miniBtn" aria-label="close">✕</button>`;
+  el.querySelector("button").onclick = ()=>el.remove();
+  wrap.appendChild(el);
+  setTimeout(()=>{ if(el.isConnected) el.remove(); }, 5200);
 }
-function headersJson(){
-  const h = {"content-type":"application/json"};
-  const t = ($("token").value || "").trim();
-  const sa = ($("sa").value || "").trim();
-  if(t){
-    const raw = t.trim();
-    const looksJwt = (raw.split(".").length >= 3) && raw.length > 20;
-    if(looksJwt){
-      h["authorization"] = raw.toLowerCase().startsWith("bearer ") ? raw : ("Bearer " + raw);
-    }
-  }
-  if(sa) h["x-sa-password"] = sa;
-  return h;
+
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+
+function getBase(){ return ($("base").value||"").replace(/\/$/,""); }
+function looksLikeToken(v){
+  if(!v) return false;
+  // crude JWT-ish check
+  return v.split(".").length >= 3 || v.length > 40;
 }
-async function jget(path){
-  const res = await fetch(baseUrl()+path, {method:"GET", headers: headersJson()});
+
+async function api(path, opts={}){
+  const url = getBase() + path;
+  const headers = new Headers(opts.headers||{});
+  headers.set("content-type","application/json");
+  const sa = $("sa").value?.trim();
+  if(sa) headers.set("x-sa-password", sa);
+
+  const bearer = $("bearer").value?.trim();
+  if(bearer && looksLikeToken(bearer)) headers.set("authorization","Bearer " + bearer);
+
+  const res = await fetch(url, { ...opts, headers, mode:"cors" });
   const txt = await res.text();
-  let data; try{ data = JSON.parse(txt);}catch(e){ data={ok:false,error:"bad_json",raw:txt}; }
-  if(!res.ok) throw {status:res.status, data};
-  return data;
-}
-async function jpost(path, body){
-  const res = await fetch(baseUrl()+path, {method:"POST", headers: headersJson(), body: JSON.stringify(body||{})});
-  const txt = await res.text();
-  let data; try{ data = JSON.parse(txt);}catch(e){ data={ok:false,error:"bad_json",raw:txt}; }
-  if(!res.ok) throw {status:res.status, data};
-  return data;
+  let data; try{ data = JSON.parse(txt); }catch{ data = { raw: txt }; }
+  return { ok: res.ok, status: res.status, data };
 }
 
-function roleLabel(role){
-  role = String(role||"").toLowerCase();
-  if(role==="ps") return ["PS","ps"];
-  if(role==="ps_deputy") return ["SV","sv"];
-  if(role==="admin") return ["Admin","admin"];
-  if(role==="user" || !role) return ["User","user"];
-  if(role==="super_admin" || role==="superadmin") return ["SA","sa"];
-  return [role, "user"];
-}
-function pill(role){
-  const [lbl, cls] = roleLabel(role);
-  return `<span class="pill ${cls}">${lbl}</span>`;
+function showOut(obj){
+  $("out").textContent = JSON.stringify(obj, null, 2);
+  if(obj?.data?.build) $("pillBuild").textContent = "build: " + obj.data.build;
 }
 
-let USERS = [];
-let ME = null;
+let SNAPSHOT = null;
 
-function canSeeActions(){
-  const r = String(ME?.user?.role||"").toLowerCase();
-  // SA/Admin/PS/SV may open the page; but only Admin/SA should be able to change roles here.
-  return ["admin","super_admin","superadmin"].includes(r);
-}
-
-function renderUsers(){
-  const q = ($("filter").value||"").trim().toLowerCase();
-  const tbody = $("usersTbl").querySelector("tbody");
-  tbody.innerHTML = "";
-
-  const filtered = (USERS||[]).filter(u=>{
-    if(!q) return true;
-    const s = [
-      u.email, u.firstName, u.lastName, u.role, u.role2, u.status
-    ].map(x=>String(x||"").toLowerCase()).join(" ");
-    return s.includes(q);
-  });
-
-  $("usersHint").textContent = `Geladen: ${USERS.length} • angezeigt: ${filtered.length}`;
-
-  const allowActions = canSeeActions();
-
-  for(const u of filtered){
-    const tr = document.createElement("tr");
-    const name = [u.firstName,u.lastName].filter(Boolean).join(" ").trim();
-    tr.innerHTML = `
-      <td><code>${(u.email||"")}</code></td>
-      <td>${name || "<span class='small'>(ohne Name)</span>"}</td>
-      <td>${pill(u.role)} ${u.role2?("<span class='small'>+ "+pill(u.role2)+"</span>"):""}</td>
-      <td>${u.status || ""}</td>
-      <td></td>
-    `;
-
-    const td = tr.querySelector("td:last-child");
-
-    if(allowActions){
-      const sel = document.createElement("select");
-      sel.innerHTML = `
-        <option value="">Rolle setzen…</option>
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-        <option value="ps">PS</option>
-        <option value="ps_deputy">SV</option>
-      `;
-      const btn = document.createElement("button");
-      btn.textContent = "Speichern";
-      btn.onclick = async ()=>{
-        const role = sel.value;
-        if(!role) return;
-        if(!confirm(`Rolle von ${u.email} wirklich auf "${role}" setzen?`)) return;
-        td.querySelectorAll("button,select").forEach(x=>x.disabled=true);
-        try{
-          const out = await jpost("/api/auth/admin/users/set-role", { userId: u.id, role });
-          $("usersOut").innerHTML = `<span class="ok">OK</span> • build ${out.build||""}`;
-          await loadUsers(false);
-        }catch(e){
-          $("usersOut").innerHTML = `<span class="bad">FEHLER</span> • ` + (e?.data?.message||e?.data?.error||e?.status||"unknown");
-          $("debug").textContent = JSON.stringify(e, null, 2);
-        }finally{
-          td.querySelectorAll("button,select").forEach(x=>x.disabled=false);
-        }
-      };
-
-      td.appendChild(sel);
-      td.appendChild(document.createTextNode(" "));
-      td.appendChild(btn);
-    }else{
-      td.innerHTML = `<span class="small">Keine Admin-Rechte für Rollenänderung.</span>`;
-    }
-
-    tbody.appendChild(tr);
-  }
+async function loadStatus(){
+  const r = await api("/api/_status", { method:"GET" });
+  showOut(r.data || r);
+  if(r.ok) toast("ok","Status","Worker erreichbar");
+  else toast("bad","Status",`HTTP ${r.status}`);
 }
 
 async function loadMe(){
-  $("meOut").textContent = "…";
-  try{
-    ME = await jget("/api/auth/me");
-    $("meOut").textContent = JSON.stringify(ME, null, 2);
-  }catch(e){
-    $("meOut").textContent = JSON.stringify(e, null, 2);
-    ME = null;
-  }
+  const r = await api("/api/auth/me",{ method:"GET" });
+  showOut(r.data || r);
+  $("pillAuth").textContent = "auth: " + (r.ok ? "ok" : "no");
+  if(!r.ok) toast("bad","Auth",`/me: HTTP ${r.status}`);
+  else toast("ok","Auth","/me ok");
 }
 
-async function loadUsers(render=true){
-  $("usersOut").textContent = "";
-  try{
-    const out = await jpost("/api/auth/admin/users/list", {});
-    USERS = out.users || [];
-    if(render) renderUsers();
-  }catch(e){
-    $("usersOut").innerHTML = `<span class="bad">FEHLER</span> • ` + (e?.data?.message||e?.data?.error||e?.status||"unknown");
-    $("debug").textContent = JSON.stringify(e, null, 2);
-  }
-}
-
-$("btnStatus").onclick = async ()=>{
-  $("statusOut").textContent="…";
-  try{
-    const out = await jget("/api/_status?ts="+Date.now());
-    $("statusOut").innerHTML = (out.ok?'<span class="ok">OK</span>':'<span class="bad">FEHLER</span>') + " • build " + (out.build||"");
-  }catch(e){
-    $("statusOut").innerHTML = '<span class="bad">FEHLER</span> • ' + (e?.data?.message||e?.data?.error||e?.status||String(e));
-  }
-};
-
-$("btnMe").onclick = loadMe;
-
-$("btnUsers").onclick = async ()=>{
+async function saLogin(){
+  // SA-Login ist nur ein Test: wenn /me klappt, ist SA Header ok.
   await loadMe();
-  await loadUsers(true);
-};
-
-$("btnApplyFilter").onclick = renderUsers;
-$("filter").addEventListener("keydown",(ev)=>{ if(ev.key==="Enter") renderUsers(); });
-
-  const btnSaLogin = document.getElementById('btnSaLogin');
-  if (btnSaLogin){
-    btnSaLogin.addEventListener('click', async () => {
-      // SA login is "stateless": we just test that the SA header works.
-      await loadMe();
-      toast('SA-Login geprüft (siehe Ausgabe).');
-    });
-  }
-
-  // Allow Enter to trigger SA-Login check
-  const saInput = document.getElementById('saPw');
-  if (saInput){
-    saInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        btnSaLogin?.click();
-      }
-    });
-  }
-
-
-// -----------------------------
-// RBAC Editor (Role Perms)
-// -----------------------------
-let _rbacSnapshot = null;
-
-function groupCatalogRows(rows){
-  const groups = new Map();
-  for (const r of (rows||[])){
-    const g = (r.permGroup || "Sonstiges").toString();
-    if (!groups.has(g)) groups.set(g, []);
-    groups.get(g).push(r);
-  }
-  // sort by group then sort index
-  for (const [g, arr] of groups){
-    arr.sort((a,b)=> (Number(a.sort||0) - Number(b.sort||0)) || String(a.permKey).localeCompare(String(b.permKey)));
-  }
-  return Array.from(groups.entries()).sort((a,b)=> a[0].localeCompare(b[0]));
 }
 
-function getRoleAllowedSet(role){
-  const set = new Set();
-  const list = (_rbacSnapshot?.rolePerms || []).filter(x => String(x.role||"") === role && Number(x.allowed||0) === 1);
-  for (const it of list) set.add(String(it.permKey||""));
-  return set;
+function normalizeUser(u){
+  const roleMap = { admin:"Admin", ps:"PS", ps_deputy:"SV", user:"User", super_admin:"SA", superadmin:"SA" };
+  return {
+    id: u.id, email: u.email||"", name: [u.firstName,u.lastName].filter(Boolean).join(" ").trim(),
+    role: u.role, roleLabel: roleMap[u.role] || u.role || "?", status: u.status||""
+  };
 }
 
-function renderRolePerms(){
-  const role = document.getElementById("roleSelect").value;
-  const q = (document.getElementById("permSearch").value || "").trim().toLowerCase();
-  const catalog = _rbacSnapshot?.permsCatalog || [];
-  const allowed = getRoleAllowedSet(role);
-
-  const permList = document.getElementById("permList");
-  permList.innerHTML = "";
-
-  if (!catalog.length){
-    permList.innerHTML = '<div class="muted">Noch kein RBAC geladen. Klicke „RBAC laden“.</div>';
+function renderUsers(list){
+  const wrap = $("usersWrap");
+  wrap.innerHTML = "";
+  if(!list?.length){
+    wrap.innerHTML = `<small>Keine Benutzer geladen.</small>`;
     return;
   }
+  // mobile-friendly rows
+  const table = document.createElement("table");
+  table.className = "table";
+  table.innerHTML = `<thead><tr><th>E-Mail</th><th>Name</th><th>Rolle</th><th>Status</th><th>Aktion</th></tr></thead>`;
+  const tb = document.createElement("tbody");
+  for(const u0 of list){
+    const u = normalizeUser(u0);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(u.email)}</td>
+      <td>${escapeHtml(u.name||"")}</td>
+      <td><span class="badge role">${escapeHtml(u.roleLabel)}</span></td>
+      <td>${escapeHtml(u.status||"")}</td>
+      <td>
+        <div class="row compact" style="gap:8px">
+          <select data-id="${u.id}" class="roleSel">
+            <option value="user">User</option>
+            <option value="ps">PS</option>
+            <option value="ps_deputy">SV</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="miniBtn saveRole" data-id="${u.id}">Speichern</button>
+        </div>
+      </td>`;
+    tb.appendChild(tr);
+    tr.querySelector(".roleSel").value = u.role || "user";
+  }
+  table.appendChild(tb);
+  wrap.appendChild(table);
 
-  const grouped = groupCatalogRows(catalog);
-  let shown = 0;
+  wrap.querySelectorAll(".saveRole").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute("data-id");
+      const sel = wrap.querySelector(`select.roleSel[data-id="${id}"]`);
+      const role = sel.value;
+      const r = await api("/api/auth/admin/users/set-role", { method:"POST", body: JSON.stringify({ id:Number(id), role }) });
+      showOut(r.data || r);
+      if(r.ok) toast("ok","Rolle gesetzt",`User ${id} → ${role}`);
+      else toast("bad","Fehler", r.data?.data?.message || r.data?.message || ("HTTP "+r.status));
+    };
+  });
+}
 
-  for (const [groupName, rows] of grouped){
-    const groupWrap = document.createElement("div");
-    groupWrap.className = "permGroup";
+async function loadUsers(){
+  const r = await api("/api/auth/admin/users/list", { method:"POST", body: JSON.stringify({}) });
+  showOut(r.data || r);
+  if(!r.ok){ toast("bad","Benutzer", `HTTP ${r.status}`); return; }
+  const users = r.data?.data?.users || r.data?.users || r.data?.data || [];
+  window.__users = users;
+  toast("ok","Benutzer","geladen");
+  applyUserFilter();
+}
 
-    const h = document.createElement("h3");
-    h.textContent = groupName;
-    groupWrap.appendChild(h);
+function applyUserFilter(){
+  const q = ($("userFilter").value||"").toLowerCase().trim();
+  const list = (window.__users || []);
+  if(!q){ renderUsers(list); return; }
+  const f = list.filter(u=>{
+    const s = [u.email,u.firstName,u.lastName,u.role,u.role2,u.status].filter(Boolean).join(" ").toLowerCase();
+    return s.includes(q);
+  });
+  renderUsers(f);
+}
 
-    let anyInGroup = false;
+function groupPerms(catalog){
+  // catalog: array of {key, name/label, desc/description}
+  const groups = {};
+  for(const p of catalog){
+    const k = p.key || p.perm || p.name;
+    if(!k) continue;
+    const g = k.split(".")[0];
+    (groups[g] ||= []).push({ key:k, desc: p.description||p.desc||p.label||"" });
+  }
+  for(const g of Object.keys(groups)){
+    groups[g].sort((a,b)=>a.key.localeCompare(b.key));
+  }
+  return groups;
+}
 
-    for (const r of rows){
-      const key = String(r.permKey||"");
-      const title = String(r.title||"");
-      const hay = (key + " " + title + " " + groupName).toLowerCase();
-      if (q && !hay.includes(q)) continue;
+function renderRbac(){
+  const wrap = $("rbacWrap");
+  wrap.innerHTML = "";
+  if(!SNAPSHOT){
+    wrap.innerHTML = `<small>Noch nichts geladen. Klick <b>RBAC laden</b>.</small>`;
+    return;
+  }
+  const role = $("rbacRole").value;
+  const rolePerms = (SNAPSHOT.rolePerms && (SNAPSHOT.rolePerms[role] || SNAPSHOT.rolePerms[role.replace("_","")] )) || SNAPSHOT.roles?.[role] || {};
+  const catalog = SNAPSHOT.catalog || SNAPSHOT.permCatalog || [];
+  const q = ($("permSearch").value||"").toLowerCase().trim();
 
-      anyInGroup = true;
-      shown++;
+  const groups = groupPerms(catalog);
+  const keys = Object.keys(groups).sort();
 
-      const item = document.createElement("label");
-      item.className = "permItem";
-
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.dataset.permKey = key;
-      cb.checked = allowed.has(key);
-
-      const meta = document.createElement("div");
-      meta.className = "permMeta";
-
-      const t = document.createElement("div");
-      t.className = "permTitle";
-      t.textContent = title || key;
-
-      const k = document.createElement("div");
-      k.className = "permKey";
-      k.textContent = key;
-
-      meta.appendChild(t);
-      meta.appendChild(k);
-
-      item.appendChild(cb);
-      item.appendChild(meta);
-
-      groupWrap.appendChild(item);
+  for(const g of keys){
+    const box = document.createElement("div");
+    box.className = "permGroup";
+    box.innerHTML = `<div class="row compact" style="justify-content:space-between">
+        <b>${escapeHtml(g)}</b>
+        <small>${groups[g].length} perms</small>
+      </div>`;
+    let any = false;
+    for(const p of groups[g]){
+      if(q && !p.key.toLowerCase().includes(q) && !(p.desc||"").toLowerCase().includes(q)) continue;
+      any = true;
+      const row = document.createElement("div");
+      row.className = "permRow";
+      const checked = !!rolePerms[p.key];
+      row.innerHTML = `
+        <input type="checkbox" data-perm="${escapeHtml(p.key)}" ${checked?"checked":""}/>
+        <div class="permKey">
+          <b class="mono">${escapeHtml(p.key)}</b>
+          ${p.desc?`<small>${escapeHtml(p.desc)}</small>`:""}
+        </div>`;
+      box.appendChild(row);
     }
-
-    if (anyInGroup) permList.appendChild(groupWrap);
+    if(any) wrap.appendChild(box);
   }
 
-  document.getElementById("rbacHint").textContent =
-    shown ? `Anzeige: ${shown} Berechtigungen (Rolle: ${role})` : `Keine Treffer für „${q}“.`;
+  if(!wrap.children.length){
+    wrap.innerHTML = `<small>Nichts gefunden für diesen Filter.</small>`;
+  }
 }
 
-async function loadRbacSnapshot(){
-  const res = await api("/api/auth/admin/rbac/snapshot", {}, "POST");
-  if (!res.ok) throw new Error(res.message || res.error || "rbac_snapshot_failed");
-  _rbacSnapshot = res;
-  renderRolePerms();
+async function loadRbac(){
+  const r = await api("/api/auth/admin/rbac/snapshot", { method:"GET" });
+  showOut(r.data || r);
+  if(!r.ok){ toast("bad","RBAC", `HTTP ${r.status}`); return; }
+
+  // try normalize snapshot shapes
+  const d = r.data?.data || r.data;
+  SNAPSHOT = {
+    build: d.build,
+    users: d.users || d.data?.users,
+    catalog: d.catalog?.results || d.catalog || d.permCatalog?.results || d.permCatalog || [],
+    rolePerms: d.rolePerms || d.roles || d.role_perms || {}
+  };
+  toast("ok","RBAC","geladen");
+  renderRbac();
 }
 
-async function saveRolePerms(){
-  if (!_rbacSnapshot) await loadRbacSnapshot();
-  const role = document.getElementById("roleSelect").value;
-
-  const keys = [];
-  document.querySelectorAll('#permList input[type="checkbox"][data-perm-key]').forEach(cb=>{
-    if (cb.checked) keys.push(cb.dataset.permKey);
+async function saveRbac(){
+  if(!SNAPSHOT){ toast("bad","RBAC","Bitte zuerst RBAC laden"); return; }
+  const role = $("rbacRole").value;
+  const wrap = $("rbacWrap");
+  const perms = {};
+  wrap.querySelectorAll("input[type=checkbox][data-perm]").forEach(cb=>{
+    perms[cb.getAttribute("data-perm")] = cb.checked;
   });
-
-  const res = await api("/api/auth/admin/rbac/role/set", { role, permKeys: keys }, "POST");
-  if (!res.ok) throw new Error(res.message || res.error || "role_set_failed");
-
-  // reload snapshot to reflect changes
-  await loadRbacSnapshot();
+  const r = await api("/api/auth/admin/rbac/role/set", { method:"POST", body: JSON.stringify({ role, perms }) });
+  showOut(r.data || r);
+  if(r.ok){ toast("ok","RBAC","gespeichert"); await loadRbac(); }
+  else toast("bad","RBAC", r.data?.data?.message || r.data?.message || ("HTTP "+r.status));
 }
 
-document.getElementById("btnLoadRbac")?.addEventListener("click", async ()=>{
-  try { setMsg("RBAC wird geladen…"); await loadRbacSnapshot(); setMsg("RBAC geladen."); }
-  catch(e){ setErr(String(e.message||e)); }
+function setTab(name){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  const sec = $("sec-"+name);
+  if(sec) sec.classList.add("active");
+}
+
+document.querySelectorAll(".tab").forEach(b=>{
+  b.onclick = ()=>setTab(b.dataset.tab);
 });
 
-document.getElementById("btnSaveRolePerms")?.addEventListener("click", async ()=>{
-  try { setMsg("Speichere Rechte…"); await saveRolePerms(); setMsg("Rechte gespeichert."); }
-  catch(e){ setErr(String(e.message||e)); }
-});
-
-document.getElementById("btnResetView")?.addEventListener("click", ()=>{
-  document.getElementById("permSearch").value = "";
-  renderRolePerms();
-});
-
-document.getElementById("roleSelect")?.addEventListener("change", renderRolePerms);
-document.getElementById("permSearch")?.addEventListener("input", ()=>{ 
-  // debounce light
-  window.clearTimeout(window.__permT);
-  window.__permT = window.setTimeout(renderRolePerms, 120);
-});
+$("btnStatus").onclick = loadStatus;
+$("btnMe").onclick = loadMe;
+$("btnSaLogin").onclick = saLogin;
+$("btnUsers").onclick = loadUsers;
+$("btnRbac").onclick = loadRbac;
+$("btnRbacLoad2").onclick = loadRbac;
+$("btnRbacSave").onclick = saveRbac;
+$("btnFilter").onclick = applyUserFilter;
+$("userFilter").addEventListener("input", ()=>applyUserFilter());
+$("permSearch").addEventListener("input", ()=>renderRbac());
+$("rbacRole").addEventListener("change", ()=>renderRbac());
+$("sa").addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); saLogin(); } });
 
 </script>
 </body>
