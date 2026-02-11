@@ -277,25 +277,118 @@
     return sh.details;
   }
 
+  
   function renderBookings(ctx){
     const {perms} = ctx;
-    const can = hasAny(perms, ["admin.bookings.view","admin.bookings.cancel","bookings.view"]);
-    const sh = moduleShell("Buchungen", "Listen (Admin) via /api/auth/admin/bookings/list");
+    const canView = hasAny(perms, ["admin.bookings.view","bookings.view","sa.all"]);
+    const canCancel = hasAny(perms, ["admin.bookings.cancel","bookings.cancel","sa.all"]);
+
+    const sh = moduleShell("Buchungen", "Laden über /api/auth/bookings/list (Worker) • Storno über /api/auth/bookings/cancel");
     sh.body.innerHTML = `
       <div class="row">
-        <span class="pill">view: <b class="${hasPerm(perms,"admin.bookings.view")?'ok':'bad'}">${hasPerm(perms,"admin.bookings.view")?'✓':'✗'}</b></span>
-        <span class="pill">cancel: <b class="${hasPerm(perms,"admin.bookings.cancel")?'ok':'bad'}">${hasPerm(perms,"admin.bookings.cancel")?'✓':'✗'}</b></span>
-        <button id="bLoad" class="secondary">Admin-List</button>
+        <span class="pill">view: <b class="${canView?'ok':'bad'}">${canView?'✓':'✗'}</b></span>
+        <span class="pill">cancel: <b class="${canCancel?'ok':'bad'}">${canCancel?'✓':'✗'}</b></span>
+        <button id="bLoad" class="secondary" ${canView?'':'disabled'}>Buchungen laden</button>
+        <button id="bCsv" class="secondary" ${canView?'':'disabled'}>CSV export</button>
       </div>
-      <pre id="bOut" style="margin-top:10px">{}</pre>
+      <div id="bHint" class="muted" style="margin-top:8px"></div>
+      <div style="overflow:auto; margin-top:10px">
+        <table class="tbl" id="bTbl" style="min-width:920px; display:none">
+          <thead>
+            <tr>
+              <th>ID</th><th>Maschine</th><th>User</th><th>Start</th><th>Ende</th><th>Status</th><th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <pre id="bOut" style="margin-top:10px; display:none"></pre>
     `;
-    sh.body.querySelector("#bLoad").onclick = async () => {
-      const r = await post("/api/auth/admin/bookings/list", { limit: 200 });
-      sh.body.querySelector("#bOut").textContent = JSON.stringify(r, null, 2);
+
+    const $tbl = sh.body.querySelector("#bTbl");
+    const $tb = $tbl.querySelector("tbody");
+    const $hint = sh.body.querySelector("#bHint");
+
+    function toIso(ms){
+      try{
+        const d = new Date(Number(ms)||0);
+        if(!Number.isFinite(d.getTime()) || d.getTime()===0) return "";
+        return d.toLocaleString();
+      }catch(_){ return ""; }
+    }
+
+    function inferRow(b){
+      const id = b.id || b.bookingId || b.uuid || "";
+      const machine = b.machine || b.machineId || b.washerId || b.dryerId || b.slotId || "";
+      const user = b.userEmail || b.email || b.userId || b.user || "";
+      const start = b.startAt || b.start || b.from || b.tsStart || b.begin || "";
+      const end = b.endAt || b.end || b.to || b.tsEnd || b.finish || "";
+      const status = b.status || (b.canceled? "canceled" : (b.cancelled? "canceled" : ""));
+      return {id, machine, user, start, end, status};
+    }
+
+    async function load(){
+      if(!canView) return;
+      $hint.textContent = "Lade…";
+      $tb.innerHTML = "";
+      $tbl.style.display = "none";
+      const r = await post("/api/auth/bookings/list", { limit: 250 });
+      if(!r || !r.ok){
+        $hint.textContent = "Fehler beim Laden.";
+        const pre = sh.body.querySelector("#bOut");
+        pre.style.display = "block";
+        pre.textContent = JSON.stringify(r, null, 2);
+        out(r);
+        return;
+      }
+      const list = r.bookings || r.results || r.items || [];
+      $hint.textContent = `OK • ${list.length} Buchungen`;
+      $tbl.style.display = "table";
+      for(const b of list){
+        const row = inferRow(b);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="mono">${escapeHtml(String(row.id||""))}</td>
+          <td class="mono">${escapeHtml(String(row.machine||""))}</td>
+          <td>${escapeHtml(String(row.user||""))}</td>
+          <td>${escapeHtml(toIso(row.start))}</td>
+          <td>${escapeHtml(toIso(row.end))}</td>
+          <td>${escapeHtml(String(row.status||""))}</td>
+          <td></td>
+        `;
+        const tdAct = tr.lastElementChild;
+        if(canCancel && row.id){
+          const btn = document.createElement("button");
+          btn.className = "secondary";
+          btn.textContent = "Storno";
+          btn.onclick = async () => {
+            if(!confirm("Buchung wirklich stornieren?")) return;
+            const res = await post("/api/auth/bookings/cancel", { id: row.id });
+            toast(res?.ok ? "Storniert" : ("Fehler: "+(res?.message||res?.error||"unknown")));
+            if(res?.ok) load();
+          };
+          tdAct.appendChild(btn);
+        }else{
+          tdAct.innerHTML = '<span class="muted">—</span>';
+        }
+        $tb.appendChild(tr);
+      }
+
+      sh.body.querySelector("#bCsv").onclick = () => {
+        if(!canView) return;
+        const rows = [...$tb.querySelectorAll("tr")].map(tr => [...tr.children].slice(0,6).map(td => td.innerText.replace(/\s+/g," ").trim()));
+        const header = ["id","machine","user","start","end","status"];
+        const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+        downloadText("bookings.csv", csv);
+      };
+
       out(r);
-    };
+    }
+
+    sh.body.querySelector("#bLoad").onclick = load;
     return sh.details;
   }
+
 
   function renderRooms(ctx){
     const {perms} = ctx;
