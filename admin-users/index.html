@@ -118,6 +118,43 @@ hr{border:none;border-top:1px solid #223042;margin:12px 0}
     </div>
   </div>
 
+
+<script>
+/** Minimal Toast (no deps) */
+function toast(message, kind="info"){
+  try{
+    let el=document.getElementById("toastBox");
+    if(!el){
+      el=document.createElement("div");
+      el.id="toastBox";
+      el.style.position="fixed";
+      el.style.left="50%";
+      el.style.bottom="16px";
+      el.style.transform="translateX(-50%)";
+      el.style.zIndex="99999";
+      el.style.maxWidth="min(92vw,520px)";
+      el.style.width="fit-content";
+      el.style.padding="10px 12px";
+      el.style.borderRadius="12px";
+      el.style.backdropFilter="blur(10px)";
+      el.style.background="rgba(20,20,24,.88)";
+      el.style.border="1px solid rgba(255,255,255,.12)";
+      el.style.color="#fff";
+      el.style.fontSize="14px";
+      el.style.boxShadow="0 12px 28px rgba(0,0,0,.45)";
+      el.style.textAlign="center";
+      document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.style.display="block";
+    clearTimeout(window.__toastT);
+    window.__toastT=setTimeout(()=>{ el.style.display="none"; }, 2600);
+  }catch(e){
+    // no-op
+    console.log(message);
+  }
+}
+</script>
 <script>
 const $ = (id)=>document.getElementById(id);
 
