@@ -144,6 +144,12 @@
     return {details:d, body:b};
   }
 
+  // Compatibility helper: some modules still call mkSection()
+  function mkSection(title, subtitle){
+    const sh = moduleShell(title, subtitle);
+    return { card: sh.details, details: sh.details, body: sh.body };
+  }
+
   function renderConfig(ctx){
     const {perms} = ctx;
     const canView = hasAny(perms, ["admin.config.view","admin.config.manage","admin.news.edit"]);
