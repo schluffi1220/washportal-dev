@@ -54,6 +54,9 @@
     .wrap{max-width:980px;margin:0 auto;padding:0 14px}
     h1{margin:0;font-size:18px}
     .sub{margin-top:4px;color:var(--muted);font-size:13px}
+    .link{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(121,214,255,.35)}
+    .link:hover{text-decoration:underline}
+
     main{padding:14px 0 70px}
     .card{
       background: rgba(17,26,43,.90);
@@ -171,7 +174,7 @@
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
-      <div class="sub">DEV-Stand</div>
+      <div class="sub">Alpha Stand · <a href="./admin-user" class="link">Admin-User</a> · Mit der Benutzung dieser Seite erklärst du dich mit den <a href="./privacy" class="link">Datenschutzbestimmungen</a> einverstanden.</div>
     </div>
   </header>
 
@@ -240,12 +243,6 @@
       <div id="feedbackList" style="margin-top:10px"></div>
 
       <label>Neue Nachricht</label>
-      <label>Empfänger</label>
-      <select id="feedbackTarget">
-        <option value="psvs">PS/SV</option>
-        <option value="admin">Admin</option>
-      </select>
-
       <textarea id="feedbackText" placeholder="Deine Nachricht…"></textarea>
       <button class="btn" id="btnSendFeedback">Senden</button>
     </div>
@@ -386,7 +383,7 @@
 
 <script>
 /*** SET THIS ***/
-const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-- DEV Worker URL
+const API_BASE = "https://washportal-dev-worker.schluffi1220.worker.dev"; // <-- DEV Worker URL
 
 // ---------- UI helpers ----------
 const $ = (id)=>document.getElementById(id);
@@ -1550,7 +1547,7 @@ $("btnSendFeedback").onclick = async ()=>{
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
   if (!msg) return toast("Nachricht fehlt");
   try{
-    await jpost("/api/feedback/send", { ...c, message: msg, target: ($("feedbackTarget")?.value || "psvs") });
+    await jpost("/api/feedback/send", { ...c, message: msg });
     $("feedbackText").value = "";
     toast("✅ Gesendet");
     await loadFeedback(false);
