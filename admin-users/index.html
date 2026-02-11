@@ -400,6 +400,13 @@ async function loadRbac(){
     (d.permCatalog && (d.permCatalog.results||d.permCatalog)) ||
     (d.permsCatalog && (d.permsCatalog.results||d.permsCatalog)) ||
     [];
+  const catalogCount = Array.isArray(catalog) ? catalog.length : 0;
+  if(catalogCount===0){
+    toast('bad','RBAC','Keine Permissions im Katalog erhalten. Bitte Worker v12 deployen (RBAC Tabellen + Seed).');
+  } else {
+    toast('ok','RBAC',`Katalog geladen: ${catalogCount} Permissions`);
+  }
+
 
   // role perms can come as map OR as rows [{role,permKey,allowed}]
   let rolePerms = d.rolePerms || d.roles || d.role_perms || {};
