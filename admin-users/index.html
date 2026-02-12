@@ -43,7 +43,7 @@
 </head>
 <body>
 <div style="position:sticky;top:0;z-index:99999;background:rgba(255,190,120,.10);border-bottom:1px solid rgba(255,190,120,.25);padding:6px 10px;font-size:12px;font-weight:800">
-  UI-Version: v19-transfer (auto-load users + transfer list) • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.
+  UI-Version: v20-transfer+approve (auto-load users + transfer list) • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.
 </div>
 <div class="wrap">
   <h1>Admin-User (mobile-first)</h1>
@@ -496,7 +496,8 @@
 
   async function loadUsers(){
     try{ const j=await api('/api/auth/admin/users/list', {body:{}}); state.users=j.users||j.data?.users||[]; setOut(j); toast(`Benutzer: ${state.users.length}`); renderUsers();
-      fillTransferUserSelect(); }
+      fillTransferUserSelect();
+      wireApproveButtons(); }
     catch(e){ toast(`Users Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
 
@@ -587,7 +588,26 @@
   }
 
   
-  function fillTransferUserSelect(){
+  
+  function wireApproveButtons(){
+    document.querySelectorAll('.btnApprove').forEach(btn=>{
+      if(btn._wired) return;
+      btn._wired = true;
+      btn.addEventListener('click', async ()=>{
+        const userId = btn.getAttribute('data-id');
+        try{
+          const j = await api('/api/auth/admin/users/approve', {body:{userId, status:'active'}});
+          setOut(j); toast('User freigeschaltet');
+          await loadUsers();
+        }catch(e){
+          toast(`Freischalten Fehler (${e.status||'?'}) ${e.message}`);
+          setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+        }
+      });
+    });
+  }
+
+function fillTransferUserSelect(){
     const sel = $('trUserSel');
     if(!sel) return;
     const users = state.users || [];
@@ -683,7 +703,7 @@
     const targetRole = String($('trTarget')?.value||'').trim();
     if(!userId){ toast('Bitte Benutzer laden/auswählen'); return; }
     try{
-      const j = await api('/api/auth/roles/transfer/request', {body:{userId, targetRole}});
+      const j = await api('/api/auth/roles/transfer/request', {body:{applicantUserId:userId, targetRole}});
       setOut(j); toast('Bewerbung erstellt');
       await loadTransferList();
     }catch(e){
