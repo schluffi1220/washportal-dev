@@ -168,16 +168,26 @@
 
   async function api(path, opts={}){
     const url = base()+path;
-    const res = await fetch(url, {
-      method: opts.method || 'POST',
+    const method = (opts.method || (opts.body===undefined ? 'GET' : 'POST')).toUpperCase();
+    const init = {
+      method,
       headers: {...headers(), ...(opts.headers||{})},
-      body: opts.body === undefined ? undefined : (typeof opts.body==='string'? opts.body : JSON.stringify(opts.body))
-    });
+    };
+    if(method !== 'GET' && method !== 'HEAD' && opts.body !== undefined){
+      init.body = (typeof opts.body==='string') ? opts.body : JSON.stringify(opts.body);
+    }
+    const res = await fetch(url, init);
     const txt = await res.text();
     let json;
     try{ json = JSON.parse(txt); }catch{ json = {raw: txt}; }
+
     if(!res.ok){
-      throw new Error((json && json.data && json.data.message) || (json && json.message) || ('HTTP '+res.status));
+      const msg = (json && json.data && (json.data.message || json.data.error)) || json.message || json.error || json.raw || ('HTTP '+res.status);
+      const err = new Error(msg);
+      err.status = res.status;
+      err.url = url;
+      err.payload = json;
+      throw err;
     }
     return json;
   }
@@ -391,11 +401,12 @@
       const role = state.currentRole;
       // send only allowed=true entries to keep DB small
       const allowed = Object.entries(state.roleDraft).filter(([,v])=>!!v).map(([k])=>k);
-      const j = await api('/api/auth/admin/rbac/role/set', {body:{role, permKeys: allowed}});
+      const j = await api('/api/auth/admin/rbac/role/set', {method:'POST', body:{role, permKeys: allowed}});
       setOut(j);
       toast('Rechte gespeichert');
       await loadSnapshot();
-    }catch(e){ toast('Speichern Fehler: '+e.message); }
+    }catch(e){ toast(`Speichern Fehler (${e.status||'?'}) — ${e.message}`);
+      if(e.url){ $('out').textContent = JSON.stringify({error:true,status:e.status,url:e.url,payload:e.payload}, null, 2); } }
   }
 
   // Tabs
