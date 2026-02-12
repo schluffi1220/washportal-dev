@@ -1476,6 +1476,45 @@ async function adminOpenThread(threadId){
 }
 
 // ---------- main refresh ----------
+
+function renderRoomControl(rc){
+  const modal = $("roomLockModal");
+  if(!modal) return;
+  const blocked = !!(rc && rc.blocked);
+  const msg = (rc && rc.message) ? String(rc.message) : "";
+  if(blocked){
+    $("roomLockMsg").textContent = msg || "Dieses Zimmer ist aktuell gesperrt.";
+    $("roomLockMeta").textContent = "Buchungen/Änderungen sind deaktiviert.";
+    modal.style.display = "block";
+    // disable booking buttons in UI
+    ["btnBookWasher","btnBookDryer","btnBook","btnCancel","btnRelease","btnBookWasher","btnBookDryer"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.disabled = true;
+    });
+    // also disable selects
+    ["slotSelect","machineSelect"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.disabled = true;
+    });
+  }else{
+    modal.style.display = "none";
+    // re-enable basic booking inputs if present
+    ["btnBookWasher","btnBookDryer","btnBook"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.disabled = false;
+    });
+    ["slotSelect","machineSelect"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.disabled = false;
+    });
+  }
+}
+document.addEventListener("click", (e)=>{
+  if(e.target && e.target.id === "btnRoomLockClose"){
+    const modal = $("roomLockModal"); if(modal) modal.style.display="none";
+  }
+});
+
 async function refreshAll(){
   const c = getCreds();
   if (!c.room || !c.pin || !c.stationPin){
@@ -1488,6 +1527,9 @@ async function refreshAll(){
   try{
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
+
+    // room lock handling (PIN-unabhängig)
+    renderRoomControl(r.roomControl);
 
     renderNewsBox();
     renderSlotDropdown();
@@ -1808,5 +1850,24 @@ if ($("btnLoadLogs")) {
   }
 })();
 </script>
+
+<!-- Room Lock Modal -->
+<div id="roomLockModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.72);">
+  <div style="max-width:520px; margin:10vh auto; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:44px; height:44px; border-radius:12px; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; font-size:22px;">🔒</div>
+      <div style="flex:1">
+        <div style="font-weight:800; font-size:16px;">Zimmer gesperrt</div>
+        <div class="small" id="roomLockMeta" style="margin-top:2px; opacity:.85"></div>
+      </div>
+      <button class="btn" id="btnRoomLockClose" style="width:auto; padding:10px 12px;">OK</button>
+    </div>
+    <div id="roomLockMsg" style="margin-top:12px; padding:12px; border-radius:14px; background:rgba(0,0,0,.25); border:1px solid var(--line); white-space:pre-wrap;"></div>
+    <div class="small" style="margin-top:10px; opacity:.8">
+      Hinweis: Die Sperre ist PIN-unabhängig. Bitte melde dich beim PS/SV oder Admin.
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
