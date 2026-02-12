@@ -48,6 +48,7 @@
   <div class="tabs" id="tabs">
     <button class="tab active" data-tab="users">Benutzer</button>
     <button class="tab" data-tab="rbac">Rollen &amp; Rechte</button>
+    <button class="tab" data-tab="transfer">Übergabe</button>
     <button class="tab" data-tab="room">Zimmer sperren</button>
     <button class="tab" data-tab="config">Konfig</button>
     <button class="tab" data-tab="debug">Debug</button>
@@ -142,6 +143,45 @@
     <div id="permList" class="permList"></div>
     <div id="permEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Rechte gefunden (Filter?)</div>
   </div>
+
+
+  <!-- TRANSFER -->
+  <div class="card section" id="sec-transfer" style="margin-top:10px">
+    <b>PS/SV Übergabe</b>
+    <div class="small" style="margin-top:6px">
+      Workflow: <b>Bewerbung erstellen</b> (für einen User) → PS/SV/Admin sieht es hier → <b>annehmen</b> (optional Daten vom alten Inhaber löschen).
+      <div style="margin-top:6px;opacity:.85">Hinweis: Aktuell erfolgt die Bewerbung über diese Admin-User Seite (smartphone-tauglich). Portal-Bewerbung bauen wir als nächsten Schritt.</div>
+    </div>
+
+    <div class="group" style="margin-top:10px">
+      <b style="font-size:12px">Neue Bewerbung</b>
+      <div class="small" style="margin-top:6px">Wähle einen User aus und erstelle eine Bewerbung für PS oder SV.</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px">
+        <div>
+          <label>User</label>
+          <select id="trUser"></select>
+        </div>
+        <div>
+          <label>Zielrolle</label>
+          <select id="trRole">
+            <option value="ps">PS</option>
+            <option value="sv">SV</option>
+          </select>
+        </div>
+      </div>
+      <div class="btnrow" style="margin-top:8px">
+        <button id="btnTrCreate">Bewerbung erstellen</button>
+        <button id="btnTrReload">Bewerbungen laden</button>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:10px">
+      <b style="font-size:12px">Offene Bewerbungen</b>
+      <div class="small" style="margin-top:6px">Annehmen = Rolle wird übertragen, aktueller Inhaber wird sofort User.</div>
+      <div id="trList" style="margin-top:10px;display:grid;gap:10px"></div>
+    </div>
+  </div>
+
 
   <!-- ROOM CONTROL -->
   <div class="card section" id="sec-room" style="margin-top:10px">
@@ -293,7 +333,7 @@
   // Tabs
   function setTab(tab){
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
-    ['users','rbac','room','config','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
+    ['users','rbac','transfer','room','config','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
   }
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>setTab(t.dataset.tab)));
 
@@ -447,7 +487,8 @@
   }
 
   async function loadUsers(){
-    try{ const j=await api('/api/auth/admin/users/list', {body:{}}); state.users=j.users||j.data?.users||[]; setOut(j); toast(`Benutzer: ${state.users.length}`); renderUsers(); }
+    try{ const j=await api('/api/auth/admin/users/list', {body:{}}); state.users=j.users||j.data?.users||[]; setOut(j); toast(`Benutzer: ${state.users.length}`); renderUsers();
+      fillTransferUserSelect(); }
     catch(e){ toast(`Users Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
 
@@ -531,13 +572,97 @@
   function applyTabGates(){
     // RBAC is SA-only for saving; view allowed for admins via snapshot? keep visible if can load
     // room tab requires admin.roomcontrol.manage or ps.rooms.manage
+    document.querySelector('button.tab[data-tab="transfer"]').style.display = (hasPerm('role.ps.transfer') || hasPerm('role.vs.transfer') || hasPerm('role.cross.transfer') || hasPerm('admin.users.manage') || hasPerm('sa.all')) ? '' : 'none';
     document.querySelector('button.tab[data-tab="room"]').style.display = (hasPerm('admin.roomcontrol.manage') || hasPerm('ps.rooms.manage') || hasPerm('sa.all')) ? '' : 'none';
     document.querySelector('button.tab[data-tab="config"]').style.display = (hasPerm('admin.config.view') || hasPerm('ps.config.view') || hasPerm('sa.all')) ? '' : 'none';
     // users tab requires admin.users.view typically
     // keep visible always (SA can do everything), but if not allowed, load will fail anyway.
   }
 
-  // wires
+  
+  async function loadTransfers(){
+    try{
+      const j = await api('/api/auth/roles/transfer/list', {body:{status:'pending'}});
+      state.transfers = j.requests || [];
+      setOut(j); toast(`Bewerbungen: ${state.transfers.length}`);
+      renderTransferList();
+    }catch(e){ toast(`Übergabe Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+  }
+
+  function renderTransferList(){
+    const host = $('trList'); host.innerHTML='';
+    if(!state.transfers || state.transfers.length===0){
+      host.innerHTML = `<div class="small" style="opacity:.8">Keine offenen Bewerbungen.</div>`;
+      return;
+    }
+    for(const r of state.transfers){
+      const who = `${escapeHtml(r.firstName||'')} ${escapeHtml(r.lastName||'')} <span class="small">(${escapeHtml(r.email||'')})</span>`;
+      const roleLabel = (String(r.targetRole)==='ps') ? 'PS' : 'SV';
+      const card=document.createElement('div'); card.className='group';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+          <div style="min-width:220px">
+            <div style="font-weight:800">${who}</div>
+            <div class="small">Zielrolle: <b>${roleLabel}</b></div>
+            <div class="small">Bewerbung: ${escapeHtml(fmtTs(r.createdAt))}</div>
+          </div>
+          <div style="display:grid;gap:6px;min-width:220px">
+            <label style="margin:0;display:flex;gap:8px;align-items:center;font-size:11px;opacity:.85">
+              <input type="checkbox" data-del="${escapeHtml(r.id)}" style="width:18px;height:18px"> Daten vom alten Inhaber löschen
+            </label>
+            <button class="trAccept" data-id="${escapeHtml(r.id)}">Annehmen</button>
+            <button class="trDecline" data-id="${escapeHtml(r.id)}">Ablehnen</button>
+          </div>
+        </div>`;
+      host.appendChild(card);
+    }
+
+    host.querySelectorAll('.trAccept').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.getAttribute('data-id');
+        const cb = host.querySelector(`input[type="checkbox"][data-del="${CSS.escape(id)}"]`);
+        const deleteOldHolder = !!(cb && cb.checked);
+        try{
+          const j = await api('/api/auth/roles/transfer/decide', {body:{id, accept:true, deleteOldHolder}});
+          setOut(j); toast('Übergabe durchgeführt');
+          await loadUsers();
+          await loadTransfers();
+        }catch(e){ toast(`Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+      });
+    });
+    host.querySelectorAll('.trDecline').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.getAttribute('data-id');
+        try{
+          const j = await api('/api/auth/roles/transfer/decide', {body:{id, accept:false}});
+          setOut(j); toast('Bewerbung abgelehnt');
+          await loadTransfers();
+        }catch(e){ toast(`Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+      });
+    });
+  }
+
+  function fillTransferUserSelect(){
+    const sel = $('trUser');
+    if(!sel) return;
+    const users = state.users || [];
+    sel.innerHTML = users
+      .filter(u=>String(u.status||'')==='active')
+      .map(u=>`<option value="${escapeHtml(u.id)}">${escapeHtml((u.firstName||'')+' '+(u.lastName||''))} — ${escapeHtml(u.email||'')}</option>`)
+      .join('');
+  }
+
+  async function createTransfer(){
+    try{
+      const applicantUserId = $('trUser').value;
+      const targetRole = $('trRole').value;
+      const j = await api('/api/auth/roles/transfer/request', {body:{applicantUserId, targetRole}});
+      setOut(j); toast('Bewerbung erstellt');
+      await loadTransfers();
+    }catch(e){ toast(`Bewerbung Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+  }
+
+// wires
   $('btnStatus').addEventListener('click', loadStatus);
   $('btnMe').addEventListener('click', loadMe);
   $('btnSa').addEventListener('click', async ()=>{ await loadMe(); applyTabGates(); });
@@ -554,6 +679,11 @@
   $('permSearch').addEventListener('input', renderPerms);
 
   $('btnRoomList').addEventListener('click', async ()=>{ setTab('room'); await roomList(); });
+
+  // transfer
+  $('btnTrReload').addEventListener('click', async ()=>{ setTab('transfer'); await loadTransfers(); });
+  $('btnTrCreate').addEventListener('click', createTransfer);
+
   $('btnRoomReload').addEventListener('click', roomList);
   $('btnRoomSet').addEventListener('click', roomSet);
 
