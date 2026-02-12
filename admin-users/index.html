@@ -43,7 +43,7 @@
 </head>
 <body>
 <div style="position:sticky;top:0;z-index:99999;background:rgba(255,190,120,.10);border-bottom:1px solid rgba(255,190,120,.25);padding:6px 10px;font-size:12px;font-weight:800">
-  UI-Version: v21-transfer+approve • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
+  UI-Version: v23-login+transfer+approve • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
 <div class="wrap">
   <h1>Admin-User (mobile-first)</h1>
 
@@ -74,6 +74,26 @@
           </div>
         </div>
       </div>
+
+      <div class="group" style="margin-top:10px">
+        <b style="font-size:12px">Login (Email + Passwort)</b>
+        <div class="small" style="margin-top:6px">Für Admin/PS/SV. Speichert danach automatisch den Bearer Token.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <div>
+            <label>Email</label>
+            <input id="loginEmail" placeholder="name@domain.de"/>
+          </div>
+          <div>
+            <label>Passwort</label>
+            <input id="loginPw" type="password" placeholder="••••••••"/>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button id="btnLogin">Login</button>
+          <button id="btnLogout">Logout</button>
+        </div>
+      </div>
+
 
       <div class="btnrow">
         <button id="btnStatus">_status</button>
@@ -293,6 +313,8 @@
 (function(){
   const $ = (id)=>document.getElementById(id);
   const state = { me:null, snapshot:null, catalog:[], rolePerms:{}, currentRole:"admin", roleDraft:{}, users:[], rooms:[], cfg:null };
+  // restore saved token (email/password login)
+  try{ const savedTok = localStorage.getItem('wp_admin_token'); if(savedTok && !($('token').value||'').trim()) $('token').value = savedTok; }catch(_e){}
 
   function toast(msg){
     const el=document.createElement('div'); el.className='toast'; el.textContent=msg;
@@ -707,11 +729,38 @@
     }
   }
 
+
+  async function doLogin(){
+    const email = String($('loginEmail').value||'').trim();
+    const password = String($('loginPw').value||'').trim();
+    if(!email || !password){ toast('Email + Passwort eingeben'); return; }
+    try{
+      const j = await api('/api/ps/login', {body:{email, password}, noAuth:true});
+      if(!j.ok){ setOut(j); toast('Login fehlgeschlagen'); return; }
+      $('token').value = j.token || '';
+      localStorage.setItem('wp_admin_token', $('token').value);
+      toast(`Eingeloggt als ${j.role||''}`);
+      setOut(j);
+      await loadMe();
+    }catch(e){
+      toast(`Login Fehler (${e.status||'?'}) ${e.message}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
+  }
+  function doLogout(){
+    $('token').value='';
+    localStorage.removeItem('wp_admin_token');
+    toast('Ausgeloggt');
+  }
+
 // wires
   $('btnStatus').addEventListener('click', loadStatus);
   $('btnMe').addEventListener('click', loadMe);
+  const btnLogin=$('btnLogin'); if(btnLogin) btnLogin.addEventListener('click', doLogin);
+  const btnLogout=$('btnLogout'); if(btnLogout) btnLogout.addEventListener('click', doLogout);
   $('btnSa').addEventListener('click', async ()=>{ await loadMe(); applyTabGates(); });
-  $('btnUsers').addEventListener('click', async ()=>{ setTab('users'); await loadUsers(); });
+  $('btnUsers').addEventListener('click', async ()=>{ const savedTok=localStorage.getItem('wp_admin_token'); if(savedTok && !$('token').value) $('token').value=savedTok;
+  setTab('users'); await loadUsers(); });
   $('btnSnap').addEventListener('click', async ()=>{ setTab('rbac'); await loadSnapshot(); });
   $('btnSnap2').addEventListener('click', loadSnapshot);
   $('btnSaveRole').addEventListener('click', saveRolePerms);
