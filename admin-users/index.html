@@ -2,488 +2,202 @@
 <html lang="de">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Admin-User – Washportal (ALPHA)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Washportal – Admin-User RBAC Editor (SA)</title>
 <style>
-  :root{color-scheme:dark; --bg:#070b12; --card:rgba(255,255,255,.03); --line:rgba(255,255,255,.10); --txt:#e7eefc; --muted:rgba(231,238,252,.72);}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:var(--bg);color:var(--txt)}
-  .wrap{max-width:1100px;margin:0 auto;padding:10px}
-  h1{font-size:14px;margin:0 0 8px 0;font-weight:800}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
-  .grid{display:grid;grid-template-columns:1fr;gap:10px}
-  @media(min-width:980px){.grid{grid-template-columns:1.2fr .8fr}}
-  label{font-size:11px;opacity:.85;display:block;margin-bottom:6px}
-  input,select,button,textarea{width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--txt);border-radius:12px;padding:9px 10px;font-size:13px}
-  textarea{min-height:90px;resize:vertical}
-  button{cursor:pointer}
-  .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .btnrow button{width:auto;padding:6px 8px;font-size:11px;border-radius:10px}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);border-radius:12px;padding:9px;border:1px solid rgba(255,255,255,.08);max-height:260px;overflow:auto}
-  .pill{display:inline-block;padding:3px 7px;border-radius:999px;font-size:10px;border:1px solid rgba(255,255,255,.16);opacity:.95}
-  .toast{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(0,0,0,.78);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);padding:9px 10px;border-radius:12px;max-width:92vw;z-index:9999;font-size:12px}
-  .tabs{display:flex;gap:6px;overflow:auto;padding:6px 0;margin:8px 0 10px 0;position:sticky;top:0;background:linear-gradient(to bottom, rgba(7,11,18,.95), rgba(7,11,18,.6));backdrop-filter:blur(8px);z-index:10}
-  .tab{padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);font-size:11px;white-space:nowrap}
-  .tab.active{background:rgba(255,255,255,.10)}
-  .section{display:none}
-  .section.active{display:block}
-  .small{font-size:11px;opacity:.8;line-height:1.35}
-  .group{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:#0b0f14;color:#e7eef7}
+input,select,button,textarea{font:inherit;padding:10px;border-radius:10px;border:1px solid #223042;background:#0f1621;color:#e7eef7}
+button{cursor:pointer}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.card{border:1px solid #223042;border-radius:14px;padding:12px;margin:12px 0;background:#0f1621}
+h1{font-size:18px;margin:0 0 8px 0}
+h2{font-size:15px;margin:0 0 8px 0}
+.small{opacity:.8;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.perms{max-height:52vh;overflow:auto;border:1px solid #223042;border-radius:12px;padding:10px}
+.perm{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed #223042}
+.perm:last-child{border-bottom:none}
+code{background:#0b0f14;padding:2px 6px;border-radius:8px}
+.ok{color:#7CFC9A}
+.bad{color:#ff7b7b}
 </style>
 </head>
 <body>
-<div style="position:sticky;top:0;z-index:99999;background:rgba(255,190,120,.10);border-bottom:1px solid rgba(255,190,120,.25);padding:6px 10px;font-size:12px;font-weight:800">
-  UI-Version: v25-alpha-usersfix • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
+<h1>Admin-User RBAC Editor (SA)</h1>
+<div class="small">Nur Rollen/Perms bearbeiten. Auth via <code>x-sa-password</code> + Body. Kein Login nötig.</div>
 
-<div class="wrap">
-  <h1>Admin-User (mobile-first)</h1>
-
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-tab="users">Benutzer</button>
-    <button class="tab" data-tab="rbac">Rollen &amp; Rechte</button>
-    <button class="tab" data-tab="config">Konfig</button>
-    <button class="tab" data-tab="transfer">Übergabe</button>
-    <button class="tab" data-tab="debug">Debug</button>
+<div class="card">
+  <div class="row">
+    <label class="small">Worker Base
+      <input id="base" style="min-width:340px" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
+    </label>
+    <label class="small">SA Passwort
+      <input id="sa" type="password" style="min-width:240px" placeholder="SA Passwort"/>
+    </label>
+    <button id="btnStatus">Status</button>
+    <button id="btnLoad">RBAC Snapshot laden</button>
   </div>
+  <div id="statusOut" class="small"></div>
+</div>
 
-  <div class="grid">
-    <div class="card">
-      <div style="display:grid;gap:8px">
-        <div>
-          <label>Worker BASE</label>
-          <input id="base" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div>
-            <label>Bearer Token (optional)</label>
-            <input id="token" placeholder="optional (Admin/PS/SV Token)"/>
-          </div>
-          <div>
-            <label>SA Passwort</label>
-            <input id="sa" type="password" placeholder="••••••••"/>
-          </div>
-        </div>
-      </div>
-
-      <div class="group" style="margin-top:10px">
-        <b style="font-size:12px">Login (Email + Passwort)</b>
-        <div class="small" style="margin-top:6px">Für Admin/PS/SV. Speichert danach automatisch den Bearer Token.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-          <div>
-            <label>Email</label>
-            <input id="loginEmail" placeholder="name@domain.de"/>
-          </div>
-          <div>
-            <label>Passwort</label>
-            <input id="loginPw" type="password" placeholder="••••••••"/>
-          </div>
-        </div>
-        <div class="btnrow">
-          <button id="btnLogin">Login</button>
-          <button id="btnLogout">Logout</button>
-        </div>
-      </div>
-
-      <div class="btnrow">
-        <button id="btnStatus">_status</button>
-        <button id="btnRoutes">_routes</button>
-        <button id="btnMe">me</button>
-        <button id="btnUsers">Benutzer laden</button>
-        <button id="btnSnap">RBAC laden</button>
-        <button id="btnCfg">Konfig laden</button>
-        <button id="btnTrList">Übergabe laden</button>
-      </div>
-
-      <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <span class="pill" id="pillBuild">build: –</span>
-        <span class="pill" id="pillAuth">auth: –</span>
-        <span class="pill" id="pillRole">role: –</span>
-      </div>
-
-      <div class="mono" id="out" style="margin-top:8px">{}</div>
+<div class="grid">
+  <div class="card">
+    <h2>Rolle auswählen</h2>
+    <div class="row">
+      <select id="roleSel" style="min-width:220px"></select>
+      <button id="btnAll">Alle an</button>
+      <button id="btnNone">Alle aus</button>
+      <button id="btnSave">Rolle speichern</button>
     </div>
-
-    <div class="card">
-      <b style="font-size:12px">Fix in dieser Version</b>
-      <div class="small" style="margin-top:6px">
-        <div>• liest <b>users</b> aus <code>res.users</code> ODER <code>res.data.users</code></div>
-        <div>• zeigt <b>pending</b> + <b>active</b></div>
-        <div>• approve Button, wenn <code>/api/auth/admin/users/approve</code> existiert</div>
-      </div>
-    </div>
+    <div class="small">Speichert in <code>/api/admin/auth/rbac/role/bulk</code>.</div>
+    <div id="saveOut" class="small"></div>
   </div>
 
-  <!-- USERS -->
-  <div class="card section active" id="sec-users" style="margin-top:10px">
-    <b>Benutzer</b>
-    <div class="small" style="margin-top:6px">Zeigt active + pending. Rolle ändern / Freischalten ist serverseitig.</div>
-
-    <div class="group" style="margin-top:10px;display:grid;gap:8px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <label>Filter Status</label>
-          <select id="userStatusFilter">
-            <option value="all">alle</option>
-            <option value="active">nur active</option>
-            <option value="pending">nur pending</option>
-          </select>
-        </div>
-        <div>
-          <label>Suche (Name/Email)</label>
-          <input id="userSearch" placeholder="z.B. steve oder @googlemail"/>
-        </div>
-      </div>
-    </div>
-
-    <div id="usersList" style="margin-top:10px;display:grid;gap:10px"></div>
-    <div id="usersEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Benutzer (Filter?)</div>
+  <div class="card">
+    <h2>Debug</h2>
+    <pre id="debug" class="small" style="white-space:pre-wrap;margin:0"></pre>
   </div>
+</div>
 
-  <!-- RBAC -->
-  <div class="card section" id="sec-rbac" style="margin-top:10px">
-    <b>Rollen &amp; Rechte (RBAC)</b>
-    <div class="small" style="margin-top:6px">Nur anzeigen.</div>
-    <div class="mono" id="rbacOut" style="margin-top:10px">{}</div>
-  </div>
-
-  <!-- CONFIG -->
-  <div class="card section" id="sec-config" style="margin-top:10px">
-    <b>Konfiguration</b>
-    <div class="btnrow" style="margin-top:10px">
-      <button id="btnCfgLoad">Konfig laden</button>
-      <button id="btnCfgSave">Konfig speichern</button>
-    </div>
-    <div class="group" style="margin-top:10px;display:grid;gap:10px">
-      <div>
-        <label>Raw JSON</label>
-        <textarea id="cfgRaw" placeholder='{"daysPast":1,"daysFuture":6}'></textarea>
-      </div>
-    </div>
-  </div>
-
-  <!-- TRANSFER -->
-  <div class="card section" id="sec-transfer" style="margin-top:10px">
-    <b>Übergabe / Bewerbung</b>
-    <div class="btnrow" style="margin-top:10px">
-      <button id="btnTrList2">Aktualisieren</button>
-    </div>
-    <div id="trList" style="margin-top:10px;display:grid;gap:10px"></div>
-    <div id="trEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine offenen Bewerbungen.</div>
-  </div>
-
-  <!-- DEBUG -->
-  <div class="card section" id="sec-debug" style="margin-top:10px">
-    <b>Debug</b>
-    <div class="mono" id="debugOut" style="margin-top:8px">{}</div>
-  </div>
-
+<div class="card">
+  <h2>Permissions (Katalog)</h2>
+  <div id="permsWrap" class="perms"></div>
 </div>
 
 <script>
-(function(){
-  const $ = (id)=>document.getElementById(id);
-  const state = { me:null, users:[], snapshot:null, transfer:[] };
+const $ = (id)=>document.getElementById(id);
 
+function hdrs(){
+  const pw = $("sa").value || "";
+  return {
+    "content-type":"application/json",
+    "x-sa-password": pw
+  };
+}
+async function jpost(path, body){
+  const base = $("base").value.replace(/\/$/,'');
+  const res = await fetch(base+path, {method:"POST", headers: hdrs(), body: JSON.stringify(body||{})});
+  const txt = await res.text();
+  let data; try{ data = JSON.parse(txt);}catch(e){ data={ok:false,error:"bad_json",raw:txt}; }
+  if(!res.ok) throw {status:res.status, data};
+  return data;
+}
+
+let SNAP = null; // snapshot
+let CATALOG = []; // [{permKey,title,label,permGroup,sort}]
+let ROLE_PERMS = []; // [{role,permKey,allowed}]
+let ROLE = "";
+
+function normRole(r){ return String(r||"").trim().toLowerCase(); }
+
+function buildRoleList(){
+  const roles = new Set();
+  (SNAP?.users||[]).forEach(u=>{ if(u.role) roles.add(normRole(u.role)); if(u.role2) roles.add(normRole(u.role2)); });
+  (ROLE_PERMS||[]).forEach(rp=>roles.add(normRole(rp.role)));
+  const list=[...roles].filter(Boolean).sort();
+  const sel=$("roleSel"); sel.innerHTML="";
+  for(const r of list){ const o=document.createElement("option"); o.value=r; o.textContent=r; sel.appendChild(o); }
+  ROLE = sel.value || list[0] || "admin";
+  if(!sel.value && ROLE){ sel.value = ROLE; }
+}
+
+function rolePermMap(role){
+  role = normRole(role);
+  const m = {};
+  for(const rp of (ROLE_PERMS||[])){
+    if(normRole(rp.role)===role) m[String(rp.permKey)] = !!rp.allowed;
+  }
+  return m;
+}
+
+function renderPerms(){
+  const wrap=$("permsWrap");
+  wrap.innerHTML="";
+  if(!CATALOG.length){ wrap.textContent="(kein Katalog)"; return; }
+  const map = rolePermMap(ROLE);
+  const items = [...CATALOG].sort((a,b)=>{
+    const ga=String(a.permGroup||""); const gb=String(b.permGroup||"");
+    if(ga!==gb) return ga.localeCompare(gb);
+    const sa=Number(a.sort||0), sb=Number(b.sort||0);
+    if(sa!==sb) return sa-sb;
+    return String(a.permKey).localeCompare(String(b.permKey));
+  });
+
+  for(const p of items){
+    const row=document.createElement("div");
+    row.className="perm";
+    const cb=document.createElement("input");
+    cb.type="checkbox";
+    cb.checked=!!map[p.permKey];
+    cb.dataset.perm=p.permKey;
+
+    const meta=document.createElement("div");
+    meta.innerHTML = `<div><b>${(p.title||p.label||p.permKey)}</b></div>
+                      <div class="small"><code>${p.permKey}</code> <span style="opacity:.7">(${p.permGroup||"-"})</span></div>`;
+    row.appendChild(cb); row.appendChild(meta);
+    wrap.appendChild(row);
+  }
+}
+
+function setAll(val){
+  [...$("permsWrap").querySelectorAll("input[type=checkbox]")].forEach(cb=>cb.checked=val);
+}
+
+async function loadSnapshot(){
+  $("saveOut").textContent="";
+  $("debug").textContent="Lade RBAC Snapshot…";
   try{
-    const savedTok = localStorage.getItem('wp_admin_token');
-    if(savedTok && !String($('token').value||'').trim()) $('token').value = savedTok;
-  }catch(_e){}
-
-  function toast(msg){
-    const el=document.createElement('div'); el.className='toast'; el.textContent=msg;
-    document.body.appendChild(el); setTimeout(()=>el.remove(), 2400);
+    SNAP = await jpost("/api/admin/auth/rbac/snapshot", { saPassword: $("sa").value||"" });
+    CATALOG = SNAP.permsCatalog || SNAP.perms || [];
+    ROLE_PERMS = SNAP.rolePerms || [];
+    buildRoleList();
+    renderPerms();
+    $("debug").textContent = JSON.stringify({build: SNAP.build, users:(SNAP.users||[]).length, permsCatalog:CATALOG.length, rolePerms:ROLE_PERMS.length}, null, 2);
+  }catch(e){
+    $("debug").textContent = JSON.stringify(e, null, 2);
   }
-  function base(){ return String($('base').value||"").trim().replace(/\/+$/,''); }
+}
 
-  function headers(includeAuth=true){
-    const h = {'content-type':'application/json'};
-    const sa = String($('sa').value||'').trim();
-    if(sa) h['x-sa-password'] = sa;
-    if(includeAuth){
-      const t = String($('token').value||"").trim();
-      if(t && (t.includes('.') || t.length>40)) h['authorization'] = 'Bearer ' + t;
-    }
-    return h;
+async function saveRole(){
+  const role = normRole($("roleSel").value);
+  const perms = [...$("permsWrap").querySelectorAll("input[type=checkbox]")].map(cb=>({
+    permKey: cb.dataset.perm,
+    allowed: !!cb.checked
+  }));
+  $("saveOut").textContent="Speichere…";
+  try{
+    const out = await jpost("/api/admin/auth/rbac/role/bulk", { saPassword: $("sa").value||"", role, perms });
+    $("saveOut").innerHTML = `<span class="ok">OK</span> • ${perms.length} perms • build ${out.build||""}`;
+    // refresh rolePerms local from response if included
+    if(out.rolePerms) ROLE_PERMS = out.rolePerms;
+  }catch(e){
+    $("saveOut").innerHTML = `<span class="bad">FEHLER</span> • ` + (e?.data?.message || e?.data?.error || e?.status || "unknown");
+    $("debug").textContent = JSON.stringify(e, null, 2);
   }
+}
 
-  async function api(path, opts={}){
-    const url = base()+path;
-    const method = (opts.method || (opts.body===undefined ? 'GET' : 'POST')).toUpperCase();
-    const init = { method, headers: {...headers(opts.noAuth?false:true), ...(opts.headers||{})} };
-    if(method!=='GET' && method!=='HEAD' && opts.body!==undefined){
-      init.body = (typeof opts.body==='string') ? opts.body : JSON.stringify(opts.body);
-    }
-    const res = await fetch(url, init);
-    const txt = await res.text();
-    let j; try{ j = JSON.parse(txt); }catch{ j = {raw: txt}; }
-    if(!res.ok){
-      const msg = (j?.message || j?.error || j?.raw || ('HTTP '+res.status));
-      const err = new Error(msg); err.status=res.status; err.url=url; err.payload=j; throw err;
-    }
-    return j;
+$("btnStatus").onclick = async ()=>{
+  const base=$("base").value.replace(/\/$/,'');
+  $("statusOut").textContent="…";
+  try{
+    const r = await fetch(base+"/api/_status?ts="+Date.now());
+    const j = await r.json();
+    $("statusOut").innerHTML = (j.ok?'<span class="ok">OK</span>':'<span class="bad">FEHLER</span>') + " • " + JSON.stringify(j);
+  }catch(e){
+    $("statusOut").innerHTML = '<span class="bad">FEHLER</span> • ' + String(e);
   }
+};
 
-  function setOut(obj){
-    const o = JSON.stringify(obj, null, 2);
-    $('out').textContent = o;
-    $('debugOut').textContent = o;
-    const build = obj?.build || obj?.data?.build || "–";
-    $('pillBuild').textContent = 'build: ' + build;
-  }
-  function setAuth(ok){ $('pillAuth').textContent = 'auth: ' + (ok ? 'ok' : '–'); }
-  function setRole(){ $('pillRole').textContent = 'role: ' + (state.me?.user?.role || '–'); }
+$("btnLoad").onclick = loadSnapshot;
 
-  function setTab(tab){
-    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
-    ['users','rbac','config','transfer','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
-  }
-  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>setTab(t.dataset.tab)));
+$("roleSel").onchange = ()=>{
+  ROLE = $("roleSel").value;
+  renderPerms();
+};
 
-  function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-  function fmtTs(ms){
-    if(!ms) return "";
-    try{ return new Date(Number(ms)).toLocaleString('de-DE'); }catch{ return String(ms); }
-  }
-  function roleLabel(u){
-    if(u.roleLabel) return u.roleLabel;
-    const r = String(u.role||'').toLowerCase();
-    if(r==='ps_deputy' || r==='vs' || r==='sv') return 'SV';
-    if(r==='ps') return 'PS';
-    if(r==='admin') return 'Admin';
-    if(r==='super_admin' || r==='sa') return 'SA';
-    return (u.role||'User');
-  }
-
-  function renderUsers(){
-    const host = $('usersList'); host.innerHTML='';
-    const empty = $('usersEmpty');
-    const statusFilter = $('userStatusFilter').value;
-    const q = String($('userSearch').value||'').trim().toLowerCase();
-
-    const filtered = (state.users||[]).filter(u=>{
-      if(statusFilter!=='all' && String(u.status||'').toLowerCase()!==statusFilter) return false;
-      if(q){
-        const hay = (String(u.firstName||'')+' '+String(u.lastName||'')+' '+String(u.email||'')).toLowerCase();
-        if(!hay.includes(q)) return false;
-      }
-      return true;
-    });
-
-    if(empty) empty.style.display = filtered.length ? 'none' : '';
-
-    for(const u of filtered){
-      const card=document.createElement('div'); card.className='group';
-      const st = String(u.status||'');
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-          <div>
-            <div style="font-weight:800">${escapeHtml(u.firstName||'')} ${escapeHtml(u.lastName||'')}</div>
-            <div class="small">${escapeHtml(u.email||'')}</div>
-            <div class="small">Status: <b>${escapeHtml(st||'-')}</b> • Rolle: <b>${escapeHtml(roleLabel(u))}</b></div>
-            <div class="small" style="opacity:.7">id: ${escapeHtml(u.id||'')} • erstellt: ${escapeHtml(fmtTs(u.createdAt))}</div>
-          </div>
-          <div style="min-width:240px;display:grid;gap:6px">
-            <select data-user="${escapeHtml(u.id)}" class="rolePick">
-              <option value="user" ${String(u.role).toLowerCase()==='user'?'selected':''}>User</option>
-              <option value="ps" ${String(u.role).toLowerCase()==='ps'?'selected':''}>PS</option>
-              <option value="ps_deputy" ${String(u.role).toLowerCase()==='ps_deputy'?'selected':''}>SV</option>
-              <option value="admin" ${String(u.role).toLowerCase()==='admin'?'selected':''}>Admin</option>
-            </select>
-            <button data-user="${escapeHtml(u.id)}" class="saveRoleBtn">Rolle speichern</button>
-            ${st==='pending' ? `<button data-user="${escapeHtml(u.id)}" class="approveBtn" style="border-color:rgba(120,255,160,.35)">Freischalten</button>` : ``}
-          </div>
-        </div>`;
-      host.appendChild(card);
-    }
-
-    host.querySelectorAll('.saveRoleBtn').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const userId = btn.getAttribute('data-user');
-        const sel = host.querySelector(`select.rolePick[data-user="${CSS.escape(userId)}"]`);
-        const role = sel ? sel.value : 'user';
-        try{
-          const j = await api('/api/auth/admin/users/set-role', {body:{userId, role}});
-          setOut(j); toast('Rolle gespeichert');
-          await loadUsers();
-        }catch(e){ toast(`Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
-      });
-    });
-
-    host.querySelectorAll('.approveBtn').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const userId = btn.getAttribute('data-user');
-        try{
-          const j = await api('/api/auth/admin/users/approve', {body:{userId}});
-          setOut(j); toast('User freigeschaltet');
-          await loadUsers();
-        }catch(e){ toast(`Freischalten Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
-      });
-    });
-  }
-
-  async function loadStatus(){
-    try{ const j=await api('/api/_status', {method:'GET'}); setOut(j); toast('Status ok'); }
-    catch(e){ toast(`Status Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-  async function loadRoutes(){
-    try{ const j=await api('/api/_routes', {method:'GET'}); setOut(j); toast('Routes ok'); }
-    catch(e){ toast(`Routes Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-  async function loadMe(){
-    try{ const j=await api('/api/auth/me', {method:'GET'}); state.me=j; setOut(j); setAuth(true); setRole(); toast('auth ok'); }
-    catch(e){ setAuth(false); toast(`auth Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-  async function loadUsers(){
-    try{
-      const j=await api('/api/auth/admin/users/list', {body:{}});
-      const users = j.users || j.data?.users || j.data?.data?.users || [];
-      state.users = Array.isArray(users) ? users : [];
-      setOut(j);
-      toast(`Benutzer: ${state.users.length}`);
-      renderUsers();
-    }catch(e){
-      toast(`Users Fehler (${e.status||'?‘}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      state.users=[];
-      renderUsers();
-    }
-  }
-
-  async function loadSnapshot(){
-    try{
-      const j=await api('/api/auth/admin/rbac/snapshot', {body:{}});
-      setOut(j); $('rbacOut').textContent = JSON.stringify(j,null,2);
-      toast('RBAC geladen');
-    }catch(e){
-      toast(`RBAC Fehler (${e.status||'?‘}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-  async function cfgLoad(){
-    try{
-      const j = await api('/api/auth/admin/config/get', {body:{}});
-      setOut(j);
-      const c = j.config || j.data?.config || {};
-      $('cfgRaw').value = JSON.stringify(c, null, 2);
-      toast('Konfig geladen');
-    }catch(e){
-      toast(`Konfig Fehler (${e.status||'?‘}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-  async function cfgSave(){
-    try{
-      let cfg={};
-      try{ cfg = JSON.parse(String($('cfgRaw').value||'{}')||'{}'); }catch(_e){ toast('JSON ungültig'); return; }
-      const j = await api('/api/auth/admin/config/set', {body:{config: cfg}});
-      setOut(j); toast('Konfig gespeichert');
-      await cfgLoad();
-    }catch(e){
-      toast(`Konfig speichern Fehler (${e.status||'?‘}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-  function renderTransfer(items){
-    const host = $('trList'); host.innerHTML='';
-    const empty = $('trEmpty'); if(empty) empty.style.display = (items && items.length) ? 'none' : '';
-    for(const it of (items||[])){
-      const card = document.createElement('div'); card.className='group';
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
-          <div>
-            <div style="font-weight:800">${escapeHtml(it.applicantFirstName||'')} ${escapeHtml(it.applicantLastName||'')}</div>
-            <div class="small">${escapeHtml(it.applicantEmail||'')}</div>
-            <div class="small">Zielrolle: <b>${escapeHtml(it.targetRole||'')}</b> • ${escapeHtml(fmtTs(it.createdAt))}</div>
-            <div class="small" style="opacity:.7">id: ${escapeHtml(it.id||'')}</div>
-          </div>
-          <div style="min-width:220px;display:flex;gap:8px">
-            <button class="trAccept" data-id="${escapeHtml(it.id||'')}" style="flex:1">Annehmen</button>
-            <button class="trReject" data-id="${escapeHtml(it.id||'')}" style="flex:1">Ablehnen</button>
-          </div>
-        </div>`;
-      host.appendChild(card);
-    }
-    host.querySelectorAll('.trAccept').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const id = btn.getAttribute('data-id');
-        try{
-          const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'accept'}});
-          setOut(j); toast('Übergabe angenommen');
-          await loadUsers();
-          await loadTransfer();
-        }catch(e){ toast(`Übergabe Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-      });
-    });
-    host.querySelectorAll('.trReject').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const id = btn.getAttribute('data-id');
-        try{
-          const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'reject'}});
-          setOut(j); toast('Bewerbung abgelehnt');
-          await loadTransfer();
-        }catch(e){ toast(`Reject Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-      });
-    });
-  }
-
-  async function loadTransfer(){
-    try{
-      const j = await api('/api/auth/roles/transfer/list', {body:{}});
-      setOut(j);
-      const items = j.requests || j.items || j.data?.requests || [];
-      state.transfer = Array.isArray(items) ? items : [];
-      toast(`Bewerbungen: ${state.transfer.length}`);
-      renderTransfer(state.transfer);
-    }catch(e){
-      toast(`Transfer Fehler (${e.status||'?‘}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      state.transfer=[];
-      renderTransfer([]);
-    }
-  }
-
-  async function doLogin(){
-    const email = String($('loginEmail').value||'').trim();
-    const password = String($('loginPw').value||'').trim();
-    if(!email || !password){ toast('Email + Passwort eingeben'); return; }
-    try{
-      const j = await api('/api/ps/login', {body:{email, password}, noAuth:true});
-      $('token').value = j.token || '';
-      localStorage.setItem('wp_admin_token', $('token').value);
-      toast(`Eingeloggt als ${j.role||''}`);
-      setOut(j);
-      await loadMe();
-    }catch(e){
-      toast(`Login Fehler (${e.status||'?‘}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-  function doLogout(){
-    $('token').value='';
-    localStorage.removeItem('wp_admin_token');
-    toast('Ausgeloggt');
-  }
-
-  $('btnStatus').addEventListener('click', loadStatus);
-  $('btnRoutes').addEventListener('click', loadRoutes);
-  $('btnMe').addEventListener('click', loadMe);
-  $('btnUsers').addEventListener('click', ()=>{ setTab('users'); loadUsers(); });
-  $('btnSnap').addEventListener('click', ()=>{ setTab('rbac'); loadSnapshot(); });
-  $('btnCfg').addEventListener('click', ()=>{ setTab('config'); cfgLoad(); });
-  $('btnCfgLoad').addEventListener('click', cfgLoad);
-  $('btnCfgSave').addEventListener('click', cfgSave);
-  $('btnTrList').addEventListener('click', ()=>{ setTab('transfer'); loadTransfer(); });
-  $('btnTrList2').addEventListener('click', loadTransfer);
-
-  $('btnLogin').addEventListener('click', doLogin);
-  $('btnLogout').addEventListener('click', doLogout);
-
-  $('userStatusFilter').addEventListener('change', renderUsers);
-  $('userSearch').addEventListener('input', renderUsers);
-
-  loadStatus();
-})();
+$("btnAll").onclick = ()=>setAll(true);
+$("btnNone").onclick = ()=>setAll(false);
+$("btnSave").onclick = saveRole;
 </script>
 </body>
 </html>
