@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Admin-User – Washportal</title>
+<title>Admin-User – Washportal (ALPHA)</title>
 <style>
   :root{color-scheme:dark; --bg:#070b12; --card:rgba(255,255,255,.03); --line:rgba(255,255,255,.10); --txt:#e7eefc; --muted:rgba(231,238,252,.72);}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:var(--bg);color:var(--txt)}
@@ -18,7 +18,7 @@
   button{cursor:pointer}
   .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .btnrow button{width:auto;padding:6px 8px;font-size:11px;border-radius:10px}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);border-radius:12px;padding:9px;border:1px solid rgba(255,255,255,.08);max-height:220px;overflow:auto}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);border-radius:12px;padding:9px;border:1px solid rgba(255,255,255,.08);max-height:260px;overflow:auto}
   .pill{display:inline-block;padding:3px 7px;border-radius:999px;font-size:10px;border:1px solid rgba(255,255,255,.16);opacity:.95}
   .toast{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(0,0,0,.78);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);padding:9px 10px;border-radius:12px;max-width:92vw;z-index:9999;font-size:12px}
   .tabs{display:flex;gap:6px;overflow:auto;padding:6px 0;margin:8px 0 10px 0;position:sticky;top:0;background:linear-gradient(to bottom, rgba(7,11,18,.95), rgba(7,11,18,.6));backdrop-filter:blur(8px);z-index:10}
@@ -28,29 +28,18 @@
   .section.active{display:block}
   .small{font-size:11px;opacity:.8;line-height:1.35}
   .group{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
-  .permbar{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
-  @media(min-width:720px){.permbar{grid-template-columns:220px 1fr 160px}}
-  .permList{margin-top:10px;display:grid;gap:10px}
-  .permRow{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;padding:7px;border-radius:12px}
-  .permRow:hover{background:rgba(255,255,255,.04)}
-  .permKey{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;opacity:.95}
-  .permTitle{font-size:11px;opacity:.8;margin-top:2px}
-  input[type="checkbox"]{width:20px;height:20px;accent-color:#7aa2ff}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th,td{border-bottom:1px solid rgba(255,255,255,.08);padding:8px 6px;text-align:left;vertical-align:top}
-  th{font-size:11px;opacity:.8}
 </style>
 </head>
 <body>
 <div style="position:sticky;top:0;z-index:99999;background:rgba(255,190,120,.10);border-bottom:1px solid rgba(255,190,120,.25);padding:6px 10px;font-size:12px;font-weight:800">
-  UI-Version: v21-transfer+approve • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
+  UI-Version: v25-alpha-usersfix • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
+
 <div class="wrap">
   <h1>Admin-User (mobile-first)</h1>
 
   <div class="tabs" id="tabs">
     <button class="tab active" data-tab="users">Benutzer</button>
     <button class="tab" data-tab="rbac">Rollen &amp; Rechte</button>
-    <button class="tab" data-tab="room">Zimmer sperren</button>
     <button class="tab" data-tab="config">Konfig</button>
     <button class="tab" data-tab="transfer">Übergabe</button>
     <button class="tab" data-tab="debug">Debug</button>
@@ -75,14 +64,33 @@
         </div>
       </div>
 
+      <div class="group" style="margin-top:10px">
+        <b style="font-size:12px">Login (Email + Passwort)</b>
+        <div class="small" style="margin-top:6px">Für Admin/PS/SV. Speichert danach automatisch den Bearer Token.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <div>
+            <label>Email</label>
+            <input id="loginEmail" placeholder="name@domain.de"/>
+          </div>
+          <div>
+            <label>Passwort</label>
+            <input id="loginPw" type="password" placeholder="••••••••"/>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button id="btnLogin">Login</button>
+          <button id="btnLogout">Logout</button>
+        </div>
+      </div>
+
       <div class="btnrow">
         <button id="btnStatus">_status</button>
+        <button id="btnRoutes">_routes</button>
         <button id="btnMe">me</button>
-        <button id="btnSa">SA-Login</button>
-        <button id="btnUsers">Benutzer</button>
-        <button id="btnSnap">RBAC</button>
-        <button id="btnRoomList">Zimmer</button>
-        <button id="btnCfg">Konfig</button>
+        <button id="btnUsers">Benutzer laden</button>
+        <button id="btnSnap">RBAC laden</button>
+        <button id="btnCfg">Konfig laden</button>
+        <button id="btnTrList">Übergabe laden</button>
       </div>
 
       <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -95,14 +103,11 @@
     </div>
 
     <div class="card">
-      <b style="font-size:12px">Wie es gedacht ist</b>
+      <b style="font-size:12px">Fix in dieser Version</b>
       <div class="small" style="margin-top:6px">
-        <div>• <b>RBAC ändern</b> = SA (x-sa-password) ✅</div>
-        <div>• <b>PS/SV nur einmal</b> = Worker erzwingt das ✅</div>
-        <div>• <b>Zimmer sperren</b> = PIN-unabhängig (wirkt sofort) ✅</div>
-        <div style="margin-top:6px;opacity:.85">
-          Wenn ein Tab nicht sichtbar ist: dir fehlt die <b>view</b>-Permission.
-        </div>
+        <div>• liest <b>users</b> aus <code>res.users</code> ODER <code>res.data.users</code></div>
+        <div>• zeigt <b>pending</b> + <b>active</b></div>
+        <div>• approve Button, wenn <code>/api/auth/admin/users/approve</code> existiert</div>
       </div>
     </div>
   </div>
@@ -110,180 +115,64 @@
   <!-- USERS -->
   <div class="card section active" id="sec-users" style="margin-top:10px">
     <b>Benutzer</b>
-    <div class="small" style="margin-top:6px">Rolle ändern: Dropdown pro User → speichern (PS/SV Einmaligkeit wird serverseitig erzwungen).</div>
+    <div class="small" style="margin-top:6px">Zeigt active + pending. Rolle ändern / Freischalten ist serverseitig.</div>
+
+    <div class="group" style="margin-top:10px;display:grid;gap:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label>Filter Status</label>
+          <select id="userStatusFilter">
+            <option value="all">alle</option>
+            <option value="active">nur active</option>
+            <option value="pending">nur pending</option>
+          </select>
+        </div>
+        <div>
+          <label>Suche (Name/Email)</label>
+          <input id="userSearch" placeholder="z.B. steve oder @googlemail"/>
+        </div>
+      </div>
+    </div>
+
     <div id="usersList" style="margin-top:10px;display:grid;gap:10px"></div>
+    <div id="usersEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Benutzer (Filter?)</div>
   </div>
 
   <!-- RBAC -->
   <div class="card section" id="sec-rbac" style="margin-top:10px">
     <b>Rollen &amp; Rechte (RBAC)</b>
-    <div class="small" style="margin-top:6px">RBAC laden → Rolle wählen → Häkchen setzen → Speichern.</div>
-
-    <div class="permbar">
-      <div>
-        <label>Rolle</label>
-        <select id="roleSel">
-          <option value="admin">Admin</option>
-          <option value="ps">PS</option>
-          <option value="ps_deputy">SV</option>
-          <option value="user">User</option>
-          <option value="sa">SA</option>
-          <option value="moderator">Moderator</option>
-        </select>
-      </div>
-      <div>
-        <label>Permission suchen</label>
-        <input id="permSearch" placeholder="z.B. bookings, logs, delete"/>
-      </div>
-      <div style="display:flex;gap:8px;align-items:end">
-        <button id="btnSnap2">Laden</button>
-        <button id="btnSaveRole">Speichern</button>
-      </div>
-    </div>
-
-    <div id="rbacMeta" class="small" style="margin-top:10px;opacity:.85"></div>
-    <div id="permList" class="permList"></div>
-    <div id="permEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Rechte gefunden (Filter?)</div>
-  </div>
-
-  <!-- ROOM CONTROL -->
-  <div class="card section" id="sec-room" style="margin-top:10px">
-    <b>Zimmer sperren / freigeben</b>
-    <div class="small" style="margin-top:6px">Sperre ist PIN-unabhängig. Nachricht wird dem Zimmer angezeigt.</div>
-
-    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">
-      <div class="group">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div>
-            <label>Zimmer</label>
-            <input id="rcRoom" inputmode="numeric" placeholder="z.B. 316"/>
-          </div>
-          <div>
-            <label>Status</label>
-            <select id="rcBlocked">
-              <option value="1">Sperren</option>
-              <option value="0">Freigeben</option>
-            </select>
-          </div>
-        </div>
-        <div style="margin-top:8px">
-          <label>Nachricht an das Zimmer</label>
-          <textarea id="rcMsg" placeholder="z.B. Bitte melde dich beim PS/SV."></textarea>
-        </div>
-        <div class="btnrow" style="margin-top:8px">
-          <button id="btnRoomSet">Speichern</button>
-          <button id="btnRoomReload">Liste aktualisieren</button>
-        </div>
-      </div>
-
-      <div class="group">
-        <b style="font-size:12px">Aktueller Verlauf</b>
-        <div class="small" style="margin-top:6px">Sichtbar bleibt Sperren/Freigeben inkl. Zeitstempel.</div>
-        <div style="margin-top:8px;overflow:auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Zimmer</th><th>Status</th><th>Nachricht</th><th>Update</th><th>von</th>
-              </tr>
-            </thead>
-            <tbody id="rcTable"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <div class="small" style="margin-top:6px">Nur anzeigen.</div>
+    <div class="mono" id="rbacOut" style="margin-top:10px">{}</div>
   </div>
 
   <!-- CONFIG -->
   <div class="card section" id="sec-config" style="margin-top:10px">
-    <b>Konfiguration (DEV)</b>
-    <div class="small" style="margin-top:6px">Aktuell vorhandene Keys: daysPast/daysFuture/washerHours/dryerMinutes/newsEnabled/newsText …</div>
-
-    <div class="group" style="margin-top:10px">
-      <div class="btnrow">
-        <button id="btnCfgLoad">Konfig laden</button>
-        <button id="btnCfgSave">Konfig speichern</button>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">
-        <div>
-          <label>daysPast</label>
-          <input id="cfgDaysPast" inputmode="numeric" placeholder="1"/>
-        </div>
-        <div>
-          <label>daysFuture</label>
-          <input id="cfgDaysFuture" inputmode="numeric" placeholder="6"/>
-        </div>
-        <div>
-          <label>dryerMinutes (60/90/120)</label>
-          <input id="cfgDryerMinutes" inputmode="numeric" placeholder="120"/>
-        </div>
-        <div>
-          <label>washerHours (Komma getrennt)</label>
-          <input id="cfgWasherHours" placeholder="6,8,10,12,14,16,18,20,22"/>
-        </div>
-        <div>
-          <label>News aktiviert</label>
-          <select id="cfgNewsEnabled">
-            <option value="true">Ja</option>
-            <option value="false">Nein</option>
-          </select>
-        </div>
-        <div>
-          <label>News Text</label>
-          <textarea id="cfgNewsText" placeholder="News…"></textarea>
-        </div>
+    <b>Konfiguration</b>
+    <div class="btnrow" style="margin-top:10px">
+      <button id="btnCfgLoad">Konfig laden</button>
+      <button id="btnCfgSave">Konfig speichern</button>
+    </div>
+    <div class="group" style="margin-top:10px;display:grid;gap:10px">
+      <div>
+        <label>Raw JSON</label>
+        <textarea id="cfgRaw" placeholder='{"daysPast":1,"daysFuture":6}'></textarea>
       </div>
     </div>
   </div>
-
 
   <!-- TRANSFER -->
   <div class="card section" id="sec-transfer" style="margin-top:10px">
-    <b>Übergabe / Bewerbung (PS/SV/Admin)</b>
-    <div class="small" style="margin-top:6px">User kann sich bewerben; PS/SV/Admin können annehmen. Bei Annahme wird der aktuelle Inhaber sofort zu <b>User</b> (PS/SV nur einmal).</div>
-
-    <div class="group" style="margin-top:10px">
-      <b style="font-size:12px">Bewerbung erstellen</b>
-      <div class="small" style="margin-top:6px">Wähle einen Benutzer und die Zielrolle. (Tipp: erst „Benutzer“ laden, falls Dropdown leer ist.)</div>
-
-      <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">
-        <div>
-          <label>Benutzer</label>
-          <select id="trUserSel"></select>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div>
-            <label>Zielrolle</label>
-            <select id="trTarget">
-              <option value="ps">PS</option>
-              <option value="sv">SV</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div style="display:flex;align-items:end">
-            <button id="btnTrRequest">Bewerbung erstellen</button>
-          </div>
-        </div>
-      </div>
+    <b>Übergabe / Bewerbung</b>
+    <div class="btnrow" style="margin-top:10px">
+      <button id="btnTrList2">Aktualisieren</button>
     </div>
-
-    <div class="group" style="margin-top:10px">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-        <b style="font-size:12px">Offene Bewerbungen</b>
-        <div class="btnrow" style="margin:0">
-          <button id="btnTrList">Aktualisieren</button>
-        </div>
-      </div>
-      <div id="trList" style="margin-top:10px;display:grid;gap:10px"></div>
-      <div id="trEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine offenen Bewerbungen.</div>
-    </div>
+    <div id="trList" style="margin-top:10px;display:grid;gap:10px"></div>
+    <div id="trEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine offenen Bewerbungen.</div>
   </div>
-
 
   <!-- DEBUG -->
   <div class="card section" id="sec-debug" style="margin-top:10px">
     <b>Debug</b>
-    <div class="small" style="margin-top:6px">Hier siehst du die letzten Antworten des Workers.</div>
     <div class="mono" id="debugOut" style="margin-top:8px">{}</div>
   </div>
 
@@ -292,380 +181,238 @@
 <script>
 (function(){
   const $ = (id)=>document.getElementById(id);
-  const state = { me:null, snapshot:null, catalog:[], rolePerms:{}, currentRole:"admin", roleDraft:{}, users:[], rooms:[], cfg:null };
+  const state = { me:null, users:[], snapshot:null, transfer:[] };
+
+  try{
+    const savedTok = localStorage.getItem('wp_admin_token');
+    if(savedTok && !String($('token').value||'').trim()) $('token').value = savedTok;
+  }catch(_e){}
 
   function toast(msg){
     const el=document.createElement('div'); el.className='toast'; el.textContent=msg;
     document.body.appendChild(el); setTimeout(()=>el.remove(), 2400);
   }
+  function base(){ return String($('base').value||"").trim().replace(/\/+$/,''); }
 
-  function base(){ return ($('base').value||"").trim().replace(/\/+$/,''); }
-
-  function headers(){
+  function headers(includeAuth=true){
     const h = {'content-type':'application/json'};
-    const t = ($('token').value||"").trim();
-    const sa = ($('sa').value||"").trim();
-    if(t && (t.includes('.') || t.length>40)) h['authorization'] = 'Bearer ' + t;
+    const sa = String($('sa').value||'').trim();
     if(sa) h['x-sa-password'] = sa;
+    if(includeAuth){
+      const t = String($('token').value||"").trim();
+      if(t && (t.includes('.') || t.length>40)) h['authorization'] = 'Bearer ' + t;
+    }
     return h;
   }
 
   async function api(path, opts={}){
     const url = base()+path;
     const method = (opts.method || (opts.body===undefined ? 'GET' : 'POST')).toUpperCase();
-    const init = { method, headers: {...headers(), ...(opts.headers||{})} };
+    const init = { method, headers: {...headers(opts.noAuth?false:true), ...(opts.headers||{})} };
     if(method!=='GET' && method!=='HEAD' && opts.body!==undefined){
       init.body = (typeof opts.body==='string') ? opts.body : JSON.stringify(opts.body);
     }
     const res = await fetch(url, init);
     const txt = await res.text();
-    let json; try{ json = JSON.parse(txt); }catch{ json = {raw: txt}; }
+    let j; try{ j = JSON.parse(txt); }catch{ j = {raw: txt}; }
     if(!res.ok){
-      const msg = (json?.data?.message || json?.message || json?.error || json?.raw || ('HTTP '+res.status));
-      const err = new Error(msg); err.status=res.status; err.url=url; err.payload=json; throw err;
+      const msg = (j?.message || j?.error || j?.raw || ('HTTP '+res.status));
+      const err = new Error(msg); err.status=res.status; err.url=url; err.payload=j; throw err;
     }
-    return json;
+    return j;
   }
 
   function setOut(obj){
     const o = JSON.stringify(obj, null, 2);
     $('out').textContent = o;
     $('debugOut').textContent = o;
-    const build = obj?.build || obj?.data?.build || state.snapshot?.build || "–";
+    const build = obj?.build || obj?.data?.build || "–";
     $('pillBuild').textContent = 'build: ' + build;
   }
   function setAuth(ok){ $('pillAuth').textContent = 'auth: ' + (ok ? 'ok' : '–'); }
   function setRole(){ $('pillRole').textContent = 'role: ' + (state.me?.user?.role || '–'); }
 
-  // Tabs
   function setTab(tab){
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
-    ['users','rbac','room','config','transfer','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
+    ['users','rbac','config','transfer','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
   }
-  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', async ()=>{ setTab(t.dataset.tab); if(t.dataset.tab==='transfer'){ if((state.users||[]).length===0) await loadUsers(); fillTransferUserSelect(); await loadTransferList(); } }));
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>setTab(t.dataset.tab)));
 
-  function normalizeCatalog(snap){
-    const c = snap.catalog || snap.permCatalog || snap.permsCatalog || [];
-    return c.map(p=>({
-      permKey: p.permKey || p.key || p.name || p.id,
-      title: p.title || p.label || p.description || '',
-      permGroup: p.permGroup || p.group || 'Sonstiges',
-      sort: (p.sort===0 || p.sort) ? p.sort : 999
-    })).filter(p=>!!p.permKey);
+  function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+  function fmtTs(ms){
+    if(!ms) return "";
+    try{ return new Date(Number(ms)).toLocaleString('de-DE'); }catch{ return String(ms); }
   }
-  function normalizeRolePerms(snap){
-    if(snap.rolePerms && !Array.isArray(snap.rolePerms)) return snap.rolePerms;
-    const rows = snap.rolePermsRows || [];
-    const m = {};
-    for(const r of rows){
-      if(!m[r.role]) m[r.role] = {};
-      m[r.role][r.permKey] = !!r.allowed;
-    }
-    return m;
-  }
-  function buildDraftForRole(roleKey){
-    const perms = state.rolePerms[roleKey] || {};
-    const d = {};
-    for(const p of state.catalog) d[p.permKey] = !!perms[p.permKey];
-    state.roleDraft = d;
-  }
-
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-
-  function renderPerms(){
-    const filter = ($('permSearch').value||'').trim().toLowerCase();
-    const list = $('permList'); list.innerHTML='';
-    $('permEmpty').style.display='none';
-
-    const groups = new Map();
-    for(const p of state.catalog){
-      if(filter){
-        const hay = (p.permKey+' '+p.title+' '+p.permGroup).toLowerCase();
-        if(!hay.includes(filter)) continue;
-      }
-      if(!groups.has(p.permGroup)) groups.set(p.permGroup, []);
-      groups.get(p.permGroup).push(p);
-    }
-    const names = Array.from(groups.keys()).sort((a,b)=>a.localeCompare(b,'de'));
-    let rendered=0;
-    for(const g of names){
-      const items = groups.get(g).sort((a,b)=>(a.sort-b.sort) || a.permKey.localeCompare(b.permKey));
-      const box = document.createElement('div'); box.className='group';
-      box.innerHTML = `<b style="font-size:12px">${escapeHtml(g)}</b>`;
-      for(const p of items){
-        const checked = !!state.roleDraft[p.permKey];
-        const row = document.createElement('div'); row.className='permRow';
-        row.innerHTML = `
-          <div><input type="checkbox" data-perm="${escapeHtml(p.permKey)}" ${checked?'checked':''}></div>
-          <div>
-            <div class="permKey">${escapeHtml(p.permKey)}</div>
-            <div class="permTitle">${escapeHtml(p.title||'')}</div>
-          </div>`;
-        box.appendChild(row);
-        rendered++;
-      }
-      list.appendChild(box);
-    }
-    if(rendered===0) $('permEmpty').style.display='block';
-    list.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
-      cb.addEventListener('change', ()=>{
-        const k = cb.getAttribute('data-perm'); state.roleDraft[k] = cb.checked;
-      });
-    });
-    $('rbacMeta').textContent = `Rolle: ${state.currentRole} • Permissions: ${state.catalog.length} • angezeigt: ${rendered}`;
-  }
-
-  function roleOption(current){
-    const roles = [
-      ['user','User'],
-      ['ps','PS'],
-      ['ps_deputy','SV'],
-      ['admin','Admin'],
-      ['super_admin','SA'],
-      ['superadmin','SA']
-    ];
-    return roles.map(([v,label])=>`<option value="${v}" ${v===current?'selected':''}>${label}</option>`).join('');
+  function roleLabel(u){
+    if(u.roleLabel) return u.roleLabel;
+    const r = String(u.role||'').toLowerCase();
+    if(r==='ps_deputy' || r==='vs' || r==='sv') return 'SV';
+    if(r==='ps') return 'PS';
+    if(r==='admin') return 'Admin';
+    if(r==='super_admin' || r==='sa') return 'SA';
+    return (u.role||'User');
   }
 
   function renderUsers(){
     const host = $('usersList'); host.innerHTML='';
-    for(const u of state.users){
+    const empty = $('usersEmpty');
+    const statusFilter = $('userStatusFilter').value;
+    const q = String($('userSearch').value||'').trim().toLowerCase();
+
+    const filtered = (state.users||[]).filter(u=>{
+      if(statusFilter!=='all' && String(u.status||'').toLowerCase()!==statusFilter) return false;
+      if(q){
+        const hay = (String(u.firstName||'')+' '+String(u.lastName||'')+' '+String(u.email||'')).toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    if(empty) empty.style.display = filtered.length ? 'none' : '';
+
+    for(const u of filtered){
       const card=document.createElement('div'); card.className='group';
+      const st = String(u.status||'');
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
           <div>
             <div style="font-weight:800">${escapeHtml(u.firstName||'')} ${escapeHtml(u.lastName||'')}</div>
             <div class="small">${escapeHtml(u.email||'')}</div>
-            <div class="small">Status: ${escapeHtml(u.status||'')}</div>
+            <div class="small">Status: <b>${escapeHtml(st||'-')}</b> • Rolle: <b>${escapeHtml(roleLabel(u))}</b></div>
+            <div class="small" style="opacity:.7">id: ${escapeHtml(u.id||'')} • erstellt: ${escapeHtml(fmtTs(u.createdAt))}</div>
           </div>
-          <div style="min-width:210px;display:grid;gap:6px">
-            <select data-user="${escapeHtml(u.id)}" class="rolePick">${roleOption(u.role)}</select>
+          <div style="min-width:240px;display:grid;gap:6px">
+            <select data-user="${escapeHtml(u.id)}" class="rolePick">
+              <option value="user" ${String(u.role).toLowerCase()==='user'?'selected':''}>User</option>
+              <option value="ps" ${String(u.role).toLowerCase()==='ps'?'selected':''}>PS</option>
+              <option value="ps_deputy" ${String(u.role).toLowerCase()==='ps_deputy'?'selected':''}>SV</option>
+              <option value="admin" ${String(u.role).toLowerCase()==='admin'?'selected':''}>Admin</option>
+            </select>
             <button data-user="${escapeHtml(u.id)}" class="saveRoleBtn">Rolle speichern</button>
-            ${u.status==="pending" ? `<button data-user="${escapeHtml(u.id)}" class="approveBtn" style="border-color:rgba(120,255,160,.35)">Freischalten</button>` : ``}
+            ${st==='pending' ? `<button data-user="${escapeHtml(u.id)}" class="approveBtn" style="border-color:rgba(120,255,160,.35)">Freischalten</button>` : ``}
           </div>
         </div>`;
       host.appendChild(card);
     }
+
     host.querySelectorAll('.saveRoleBtn').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         const userId = btn.getAttribute('data-user');
         const sel = host.querySelector(`select.rolePick[data-user="${CSS.escape(userId)}"]`);
-        const role = sel.value;
+        const role = sel ? sel.value : 'user';
         try{
           const j = await api('/api/auth/admin/users/set-role', {body:{userId, role}});
-          setOut(j);
-          toast('Rolle gespeichert');
+          setOut(j); toast('Rolle gespeichert');
           await loadUsers();
-        }catch(e){ toast(`Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
+        }catch(e){ toast(`Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
       });
+    });
+
     host.querySelectorAll('.approveBtn').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         const userId = btn.getAttribute('data-user');
         try{
-          const j = await api('/api/auth/admin/users/approve', {body:{userId, status:'active'}});
-          setOut(j);
-          toast('User freigeschaltet');
+          const j = await api('/api/auth/admin/users/approve', {body:{userId}});
+          setOut(j); toast('User freigeschaltet');
           await loadUsers();
-        }catch(e){
-          toast(`Freischalten Fehler (${e.status||'?'}) ${e.message}`);
-          setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-        }
+        }catch(e){ toast(`Freischalten Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
       });
     });
-
-    });
-  }
-
-  function fmtTs(ms){
-    if(!ms) return "";
-    try{
-      const d=new Date(Number(ms));
-      return d.toLocaleString('de-DE');
-    }catch{ return String(ms); }
-  }
-
-  function renderRoomTable(){
-    const tb = $('rcTable'); tb.innerHTML='';
-    for(const r of state.rooms){
-      const tr=document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(r.room||'')}</td>
-        <td>${r.blocked ? '🔒 gesperrt' : '✅ frei'}</td>
-        <td style="white-space:pre-wrap">${escapeHtml(r.message||'')}</td>
-        <td>${escapeHtml(fmtTs(r.updatedAt))}</td>
-        <td>${escapeHtml((r.updatedByEmail||'')+' ('+(r.updatedByRole||'')+')')}</td>
-      `;
-      tb.appendChild(tr);
-    }
   }
 
   async function loadStatus(){
     try{ const j=await api('/api/_status', {method:'GET'}); setOut(j); toast('Status ok'); }
-    catch(e){ toast(`Status Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+    catch(e){ toast(`Status Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
-
+  async function loadRoutes(){
+    try{ const j=await api('/api/_routes', {method:'GET'}); setOut(j); toast('Routes ok'); }
+    catch(e){ toast(`Routes Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+  }
   async function loadMe(){
     try{ const j=await api('/api/auth/me', {method:'GET'}); state.me=j; setOut(j); setAuth(true); setRole(); toast('auth ok'); }
-    catch(e){ setAuth(false); toast(`auth Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+    catch(e){ setAuth(false); toast(`auth Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
-
   async function loadUsers(){
-    try{ const j=await api('/api/auth/admin/users/list', {body:{}}); state.users=j.users||j.data?.users||[]; setOut(j); toast(`Benutzer: ${state.users.length}`); renderUsers();
-      fillTransferUserSelect(); }
-    catch(e){ toast(`Users Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+    try{
+      const j=await api('/api/auth/admin/users/list', {body:{}});
+      const users = j.users || j.data?.users || j.data?.data?.users || [];
+      state.users = Array.isArray(users) ? users : [];
+      setOut(j);
+      toast(`Benutzer: ${state.users.length}`);
+      renderUsers();
+    }catch(e){
+      toast(`Users Fehler (${e.status||'?‘}) ${e.message}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+      state.users=[];
+      renderUsers();
+    }
   }
 
   async function loadSnapshot(){
     try{
       const j=await api('/api/auth/admin/rbac/snapshot', {body:{}});
-      state.snapshot=j; state.catalog=normalizeCatalog(j); state.rolePerms=normalizeRolePerms(j);
-      setOut(j); toast(`${state.catalog.length} Rechte geladen`);
-      buildDraftForRole(state.currentRole); renderPerms();
-    }catch(e){ toast(`RBAC Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-
-  async function saveRolePerms(){
-    try{
-      const role = state.currentRole;
-      const permKeys = Object.entries(state.roleDraft).filter(([,v])=>!!v).map(([k])=>k);
-      const j = await api('/api/auth/admin/rbac/role/set', {method:'POST', body:{role, permKeys}});
-      setOut(j); toast('Rechte gespeichert');
-      await loadSnapshot();
-    }catch(e){ toast(`Speichern Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-
-  async function roomList(){
-    try{
-      const j = await api('/api/auth/room/control/list', {body:{}});
-      state.rooms = j.rooms || [];
-      setOut(j); toast(`Zimmer: ${state.rooms.length}`);
-      renderRoomTable();
-    }catch(e){ toast(`Zimmer Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-
-  async function roomSet(){
-    try{
-      const room = String($('rcRoom').value||'').trim();
-      const blocked = $('rcBlocked').value === '1';
-      const message = String($('rcMsg').value||'');
-      const j = await api('/api/auth/room/control', {body:{room, blocked, message}});
-      setOut(j); toast('Zimmer gespeichert');
-      await roomList();
-    }catch(e){ toast(`Speichern Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+      setOut(j); $('rbacOut').textContent = JSON.stringify(j,null,2);
+      toast('RBAC geladen');
+    }catch(e){
+      toast(`RBAC Fehler (${e.status||'?‘}) ${e.message}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
   }
 
   async function cfgLoad(){
     try{
       const j = await api('/api/auth/admin/config/get', {body:{}});
-      state.cfg = j.config || j.data?.config || j;
-      setOut(j); toast('Konfig geladen');
-      const c = state.cfg || {};
-      $('cfgDaysPast').value = c.daysPast ?? '';
-      $('cfgDaysFuture').value = c.daysFuture ?? '';
-      $('cfgDryerMinutes').value = c.dryerMinutes ?? '';
-      $('cfgWasherHours').value = Array.isArray(c.washerHours) ? c.washerHours.join(',') : '';
-      $('cfgNewsEnabled').value = String(!!c.newsEnabled);
-      $('cfgNewsText').value = c.newsText ?? '';
-    }catch(e){ toast(`Konfig Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+      setOut(j);
+      const c = j.config || j.data?.config || {};
+      $('cfgRaw').value = JSON.stringify(c, null, 2);
+      toast('Konfig geladen');
+    }catch(e){
+      toast(`Konfig Fehler (${e.status||'?‘}) ${e.message}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
   }
-
   async function cfgSave(){
     try{
-      const washerHours = String($('cfgWasherHours').value||'').split(',').map(s=>Number(String(s).trim())).filter(n=>Number.isFinite(n));
-      const cfg = {
-        daysPast: Number($('cfgDaysPast').value||0),
-        daysFuture: Number($('cfgDaysFuture').value||0),
-        dryerMinutes: Number($('cfgDryerMinutes').value||120),
-        washerHours,
-        newsEnabled: $('cfgNewsEnabled').value === 'true',
-        newsText: String($('cfgNewsText').value||''),
-        newsVersion: Number((state.cfg && state.cfg.newsVersion) || 0) + 1
-      };
+      let cfg={};
+      try{ cfg = JSON.parse(String($('cfgRaw').value||'{}')||'{}'); }catch(_e){ toast('JSON ungültig'); return; }
       const j = await api('/api/auth/admin/config/set', {body:{config: cfg}});
       setOut(j); toast('Konfig gespeichert');
       await cfgLoad();
-    }catch(e){ toast(`Konfig speichern Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-
-  // permission gating (simple)
-  function hasPerm(key){
-    const p = state.me?.perms || {};
-    return !!p[key] || state.me?.user?.role === 'super_admin' || state.me?.user?.role === 'superadmin';
-  }
-  function applyTabGates(){
-    // RBAC is SA-only for saving; view allowed for admins via snapshot? keep visible if can load
-    // room tab requires admin.roomcontrol.manage or ps.rooms.manage
-    document.querySelector('button.tab[data-tab="room"]').style.display = (hasPerm('admin.roomcontrol.manage') || hasPerm('ps.rooms.manage') || hasPerm('sa.all')) ? '' : 'none';
-    document.querySelector('button.tab[data-tab="config"]').style.display = (hasPerm('admin.config.view') || hasPerm('ps.config.view') || hasPerm('sa.all')) ? '' : 'none';
-    // users tab requires admin.users.view typically
-    // keep visible always (SA can do everything), but if not allowed, load will fail anyway.
-  }
-
-  
-  function fillTransferUserSelect(){
-    const sel = $('trUserSel');
-    if(!sel) return;
-    const users = state.users || [];
-    sel.innerHTML = '';
-    if(users.length===0){
-      const opt=document.createElement('option');
-      opt.value=''; opt.textContent='(keine Benutzer geladen) – tippe oben auf „Benutzer“';
-      sel.appendChild(opt);
-      return;
-    }
-    // include pending + active
-    for(const u of users){
-      const opt=document.createElement('option');
-      opt.value = u.id;
-      const role = u.role || '';
-      opt.textContent = `${u.firstName||''} ${u.lastName||''} • ${u.email||''} • ${u.status||''} • ${role}`.trim();
-      sel.appendChild(opt);
+    }catch(e){
+      toast(`Konfig speichern Fehler (${e.status||'?‘}) ${e.message}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
 
-  function renderTransferList(items){
+  function renderTransfer(items){
     const host = $('trList'); host.innerHTML='';
     const empty = $('trEmpty'); if(empty) empty.style.display = (items && items.length) ? 'none' : '';
-    if(!items || items.length===0) return;
-
-    for(const it of items){
+    for(const it of (items||[])){
       const card = document.createElement('div'); card.className='group';
-      const target = it.targetRole || it.role || '';
-      const st = it.status || 'open';
-      const created = fmtTs(it.createdAt);
-      const applicant = it.applicantEmail || it.userEmail || it.email || '';
-      const applicantName = ((it.applicantFirstName||'')+' '+(it.applicantLastName||'')).trim();
-      const id = it.id || it.requestId || '';
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
           <div>
-            <div style="font-weight:800">${escapeHtml(applicantName||applicant||'(User)')}</div>
-            <div class="small">Zielrolle: <b>${escapeHtml(target)}</b> • Status: ${escapeHtml(st)} • ${escapeHtml(created)}</div>
-            <div class="small" style="opacity:.75">ID: ${escapeHtml(id)}</div>
+            <div style="font-weight:800">${escapeHtml(it.applicantFirstName||'')} ${escapeHtml(it.applicantLastName||'')}</div>
+            <div class="small">${escapeHtml(it.applicantEmail||'')}</div>
+            <div class="small">Zielrolle: <b>${escapeHtml(it.targetRole||'')}</b> • ${escapeHtml(fmtTs(it.createdAt))}</div>
+            <div class="small" style="opacity:.7">id: ${escapeHtml(it.id||'')}</div>
           </div>
-          <div style="min-width:220px;display:grid;gap:6px">
-            <label style="margin:0"><input type="checkbox" class="trDel" data-id="${escapeHtml(id)}" style="vertical-align:middle;margin-right:8px"/> Daten vom alten Inhaber löschen</label>
-            <div style="display:flex;gap:8px">
-              <button class="trAccept" data-id="${escapeHtml(id)}" style="flex:1">Annehmen</button>
-              <button class="trReject" data-id="${escapeHtml(id)}" style="flex:1">Ablehnen</button>
-            </div>
+          <div style="min-width:220px;display:flex;gap:8px">
+            <button class="trAccept" data-id="${escapeHtml(it.id||'')}" style="flex:1">Annehmen</button>
+            <button class="trReject" data-id="${escapeHtml(it.id||'')}" style="flex:1">Ablehnen</button>
           </div>
-        </div>
-      `;
+        </div>`;
       host.appendChild(card);
     }
-
     host.querySelectorAll('.trAccept').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
         const id = btn.getAttribute('data-id');
-        const del = host.querySelector(`.trDel[data-id="${CSS.escape(id)}"]`);
-        const deleteOld = !!(del && del.checked);
         try{
-          const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'accept', deleteOld}});
-          setOut(j); toast('Übergabe durchgeführt');
+          const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'accept'}});
+          setOut(j); toast('Übergabe angenommen');
           await loadUsers();
-          await loadTransferList();
-        }catch(e){ toast(`Übergabe Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+          await loadTransfer();
+        }catch(e){ toast(`Übergabe Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
       });
     });
     host.querySelectorAll('.trReject').forEach(btn=>{
@@ -674,71 +421,68 @@
         try{
           const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'reject'}});
           setOut(j); toast('Bewerbung abgelehnt');
-          await loadTransferList();
-        }catch(e){ toast(`Reject Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+          await loadTransfer();
+        }catch(e){ toast(`Reject Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
       });
     });
   }
 
-  async function loadTransferList(){
+  async function loadTransfer(){
     try{
       const j = await api('/api/auth/roles/transfer/list', {body:{}});
-      const items = j.requests || j.items || j.data?.requests || [];
       setOut(j);
-      toast(`Bewerbungen: ${items.length}`);
-      renderTransferList(items);
+      const items = j.requests || j.items || j.data?.requests || [];
+      state.transfer = Array.isArray(items) ? items : [];
+      toast(`Bewerbungen: ${state.transfer.length}`);
+      renderTransfer(state.transfer);
     }catch(e){
-      toast(`Transfer List Fehler (${e.status||'?'}) ${e.message}`);
+      toast(`Transfer Fehler (${e.status||'?‘}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+      state.transfer=[];
+      renderTransfer([]);
     }
   }
 
-  async function createTransferRequest(){
-    const userId = String($('trUserSel')?.value||'').trim();
-    const targetRole = String($('trTarget')?.value||'').trim();
-    if(!userId){ toast('Bitte Benutzer laden/auswählen'); return; }
+  async function doLogin(){
+    const email = String($('loginEmail').value||'').trim();
+    const password = String($('loginPw').value||'').trim();
+    if(!email || !password){ toast('Email + Passwort eingeben'); return; }
     try{
-      const j = await api('/api/auth/roles/transfer/request', {body:{userId, targetRole}});
-      setOut(j); toast('Bewerbung erstellt');
-      await loadTransferList();
+      const j = await api('/api/ps/login', {body:{email, password}, noAuth:true});
+      $('token').value = j.token || '';
+      localStorage.setItem('wp_admin_token', $('token').value);
+      toast(`Eingeloggt als ${j.role||''}`);
+      setOut(j);
+      await loadMe();
     }catch(e){
-      toast(`Bewerbung Fehler (${e.status||'?'}) ${e.message}`);
+      toast(`Login Fehler (${e.status||'?‘}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
+  function doLogout(){
+    $('token').value='';
+    localStorage.removeItem('wp_admin_token');
+    toast('Ausgeloggt');
+  }
 
-// wires
   $('btnStatus').addEventListener('click', loadStatus);
+  $('btnRoutes').addEventListener('click', loadRoutes);
   $('btnMe').addEventListener('click', loadMe);
-  $('btnSa').addEventListener('click', async ()=>{ await loadMe(); applyTabGates(); });
-  $('btnUsers').addEventListener('click', async ()=>{ setTab('users'); await loadUsers(); });
-  $('btnSnap').addEventListener('click', async ()=>{ setTab('rbac'); await loadSnapshot(); });
-  $('btnSnap2').addEventListener('click', loadSnapshot);
-  $('btnSaveRole').addEventListener('click', saveRolePerms);
-
-  $('roleSel').addEventListener('change', ()=>{
-    state.currentRole = $('roleSel').value;
-    buildDraftForRole(state.currentRole);
-    renderPerms();
-  });
-  $('permSearch').addEventListener('input', renderPerms);
-
-  $('btnRoomList').addEventListener('click', async ()=>{ setTab('room'); await roomList(); });
-  $('btnRoomReload').addEventListener('click', roomList);
-  $('btnRoomSet').addEventListener('click', roomSet);
-
-  $('btnCfg').addEventListener('click', async ()=>{ setTab('config'); await cfgLoad(); });
+  $('btnUsers').addEventListener('click', ()=>{ setTab('users'); loadUsers(); });
+  $('btnSnap').addEventListener('click', ()=>{ setTab('rbac'); loadSnapshot(); });
+  $('btnCfg').addEventListener('click', ()=>{ setTab('config'); cfgLoad(); });
   $('btnCfgLoad').addEventListener('click', cfgLoad);
   $('btnCfgSave').addEventListener('click', cfgSave);
+  $('btnTrList').addEventListener('click', ()=>{ setTab('transfer'); loadTransfer(); });
+  $('btnTrList2').addEventListener('click', loadTransfer);
 
-  // transfer
-  const btnTrList=$('btnTrList'); if(btnTrList) btnTrList.addEventListener('click', loadTransferList);
-  const btnTrReq=$('btnTrRequest'); if(btnTrReq) btnTrReq.addEventListener('click', createTransferRequest);
+  $('btnLogin').addEventListener('click', doLogin);
+  $('btnLogout').addEventListener('click', doLogout);
 
-  $('sa').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ $('btnSa').click(); }});
+  $('userStatusFilter').addEventListener('change', renderUsers);
+  $('userSearch').addEventListener('input', renderUsers);
 
-  // init
-  state.currentRole = $('roleSel').value;
+  loadStatus();
 })();
 </script>
 </body>
