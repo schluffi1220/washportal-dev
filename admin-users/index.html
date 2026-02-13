@@ -304,7 +304,7 @@
           const j = await api('/api/auth/admin/users/set-role', {body:{userId, role}});
           setOut(j); toast('Rolle gespeichert');
           await loadUsers();
-        }catch(e){ toast(`Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
+        }catch(e){ toast(`Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
       });
     });
 
@@ -315,22 +315,22 @@
           const j = await api('/api/auth/admin/users/approve', {body:{userId}});
           setOut(j); toast('User freigeschaltet');
           await loadUsers();
-        }catch(e){ toast(`Freischalten Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
+        }catch(e){ toast(`Freischalten Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
       });
     });
   }
 
   async function loadStatus(){
     try{ const j=await api('/api/_status', {method:'GET'}); setOut(j); toast('Status ok'); }
-    catch(e){ toast(`Status Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+    catch(e){ toast(`Status Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
   async function loadRoutes(){
     try{ const j=await api('/api/_routes', {method:'GET'}); setOut(j); toast('Routes ok'); }
-    catch(e){ toast(`Routes Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+    catch(e){ toast(`Routes Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
   async function loadMe(){
     try{ const j=await api('/api/auth/me', {method:'GET'}); state.me=j; setOut(j); setAuth(true); setRole(); toast('auth ok'); }
-    catch(e){ setAuth(false); toast(`auth Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+    catch(e){ setAuth(false); toast(`auth Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
   async function loadUsers(){
     try{
@@ -341,7 +341,7 @@
       toast(`Benutzer: ${state.users.length}`);
       renderUsers();
     }catch(e){
-      toast(`Users Fehler (${e.status||'?‘}) ${e.message}`);
+      toast(`Users Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
       state.users=[];
       renderUsers();
@@ -354,7 +354,7 @@
       setOut(j); $('rbacOut').textContent = JSON.stringify(j,null,2);
       toast('RBAC geladen');
     }catch(e){
-      toast(`RBAC Fehler (${e.status||'?‘}) ${e.message}`);
+      toast(`RBAC Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
@@ -367,7 +367,7 @@
       $('cfgRaw').value = JSON.stringify(c, null, 2);
       toast('Konfig geladen');
     }catch(e){
-      toast(`Konfig Fehler (${e.status||'?‘}) ${e.message}`);
+      toast(`Konfig Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
@@ -379,7 +379,7 @@
       setOut(j); toast('Konfig gespeichert');
       await cfgLoad();
     }catch(e){
-      toast(`Konfig speichern Fehler (${e.status||'?‘}) ${e.message}`);
+      toast(`Konfig speichern Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
@@ -412,7 +412,7 @@
           setOut(j); toast('Übergabe angenommen');
           await loadUsers();
           await loadTransfer();
-        }catch(e){ toast(`Übergabe Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+        }catch(e){ toast(`Übergabe Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
       });
     });
     host.querySelectorAll('.trReject').forEach(btn=>{
@@ -422,7 +422,7 @@
           const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'reject'}});
           setOut(j); toast('Bewerbung abgelehnt');
           await loadTransfer();
-        }catch(e){ toast(`Reject Fehler (${e.status||'?‘}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
+        }catch(e){ toast(`Reject Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
       });
     });
   }
@@ -436,7 +436,7 @@
       toast(`Bewerbungen: ${state.transfer.length}`);
       renderTransfer(state.transfer);
     }catch(e){
-      toast(`Transfer Fehler (${e.status||'?‘}) ${e.message}`);
+      toast(`Transfer Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
       state.transfer=[];
       renderTransfer([]);
@@ -455,7 +455,7 @@
       setOut(j);
       await loadMe();
     }catch(e){
-      toast(`Login Fehler (${e.status||'?‘}) ${e.message}`);
+      toast(`Login Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
