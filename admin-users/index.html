@@ -147,7 +147,7 @@ async function loadSnapshot(){
   $("saveOut").textContent="";
   $("debug").textContent="Lade RBAC Snapshot…";
   try{
-    SNAP = await jpost("/api/admin/auth/rbac/snapshot", { saPassword: $("sa").value||"" });
+    SNAP = await jpost("/api/auth/admin/rbac/snapshot", { saPassword: $("sa").value||"" });
     CATALOG = SNAP.permsCatalog || SNAP.perms || [];
     ROLE_PERMS = SNAP.rolePerms || [];
     buildRoleList();
@@ -166,7 +166,7 @@ async function saveRole(){
   }));
   $("saveOut").textContent="Speichere…";
   try{
-    const out = await jpost("/api/admin/auth/rbac/role/bulk", { saPassword: $("sa").value||"", role, perms });
+    const out = await jpost("/api/auth/admin/rbac/role/bulk", { saPassword: $("sa").value||"", role, perms });
     $("saveOut").innerHTML = `<span class="ok">OK</span> • ${perms.length} perms • build ${out.build||""}`;
     // refresh rolePerms local from response if included
     if(out.rolePerms) ROLE_PERMS = out.rolePerms;
