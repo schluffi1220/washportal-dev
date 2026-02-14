@@ -80,6 +80,8 @@
     <button class="tab" data-tab="config">Konfig</button>
     <button class="tab" data-tab="transfer">Übergabe</button>
     <button class="tab" data-tab="rooms">Zimmer</button>
+    <button class="tab" data-tab="bookings">Buchungen</button>
+    <button class="tab" data-tab="logs">Logs</button>
     <button class="tab" data-tab="debug">Debug</button>
   </div>
 
@@ -442,6 +444,85 @@
       <div id="roomEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Einträge.</div>
     </div>
   </div>
+<!-- BOOKINGS -->
+  <div class="card section" id="sec-bookings" style="margin-top:10px">
+    <b>Buchungen</b>
+    <div class="small" style="margin-top:6px">Alle Buchungen (inkl. storniert/freigegeben). Rechte steuern Sichtbarkeit & Aktionen.</div>
+
+    <div class="group" style="margin-top:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;justify-content:space-between">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+          <div>
+            <label>Maschine</label>
+            <select id="bkMachine">
+              <option value="">alle</option>
+              <option value="M1">M1</option><option value="M2">M2</option><option value="M3">M3</option>
+              <option value="M4">M4</option><option value="M5">M5</option><option value="M6">M6</option>
+            </select>
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="bkStatus">
+              <option value="">alle</option>
+              <option value="active">active</option>
+              <option value="reserved">reserved</option>
+              <option value="released">released</option>
+              <option value="canceled">canceled</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button id="btnBkReload">Aktualisieren</button>
+          <button id="btnBkCsv" class="secondary">CSV Download</button>
+        </div>
+      </div>
+      <div id="bkList" style="margin-top:10px"></div>
+      <div id="bkEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Buchungen.</div>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div class="card section" id="sec-logs" style="margin-top:10px">
+    <b>Logs</b>
+    <div class="small" style="margin-top:6px">Änderungen, Buchungen, Sperren, Konfig, RBAC usw.</div>
+
+    <div class="group" style="margin-top:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;justify-content:space-between">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+          <div>
+            <label>Zimmer</label>
+            <input id="lgRoom" placeholder="z.B. 316" style="max-width:140px"/>
+          </div>
+          <div>
+            <label>Actor</label>
+            <input id="lgActor" placeholder="email / id" style="max-width:220px"/>
+          </div>
+          <div>
+            <label>Action</label>
+            <input id="lgAction" placeholder="z.B. booking_admin_cancel" style="max-width:240px"/>
+          </div>
+          <div>
+            <label>Limit</label>
+            <select id="lgLimit">
+              <option value="200">200</option>
+              <option value="500" selected>500</option>
+              <option value="1000">1000</option>
+              <option value="2000">2000</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button id="btnLgReload">Aktualisieren</button>
+          <button id="btnLgCsv" class="secondary">CSV Download</button>
+        </div>
+      </div>
+      <div id="lgList" style="margin-top:10px"></div>
+      <div id="lgEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Logs.</div>
+    </div>
+  </div>
+
   <!-- DEBUG -->
   <div class="card section" id="sec-debug" style="margin-top:10px">
     <b>Debug</b>
@@ -453,7 +534,7 @@
 <script>
 (function(){
   const $ = (id)=>document.getElementById(id);
-  const state = { me:null, users:[], snapshot:null, transfer:[], rooms:[] };
+  const state = { me:null, users:[], snapshot:null, transfer:[], rooms:[], bookings:[], logs:[] };
 
   function can(key){
     const p = state.me?.perms || {};
@@ -478,6 +559,8 @@
     if(t==='config') return loadConfig();
     if(t==='transfer') return loadTransfer();
     if(t==='rooms') return loadRooms();
+    if(t==='bookings') return loadBookings();
+    if(t==='logs') return loadLogs();
     if(t==='debug') return; // nothing
   }
 
@@ -489,6 +572,8 @@
       config: "admin.config.view",
       transfer: "role.cross.transfer",
       rooms: "rooms.view",
+      bookings: "bookings.view",
+      logs: "logs.view",
       debug: "sa.all",
     };
     document.querySelectorAll('.tab').forEach(btn=>{
@@ -572,7 +657,7 @@
 
   function setTab(tab){
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
-    ['users','rbac','config','transfer','rooms','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
+    ['users','rbac','config','transfer','rooms','bookings','logs','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
   }
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>setTab(t.dataset.tab)));
 
@@ -1224,6 +1309,186 @@ function cfgFromForm(){
   }
 
 
+
+  // ----------------------------
+  // Bookings
+  // ----------------------------
+  async function loadBookings(){
+    try{
+      const machine = String($('bkMachine')?.value||'').trim();
+      const status = String($('bkStatus')?.value||'').trim();
+      const j = await api('/api/auth/admin/bookings/list', { body:{ machine, status } });
+      setOut(j);
+      state.bookings = j.bookings || [];
+      renderBookings();
+      toast(`Buchungen: ${state.bookings.length}`);
+    }catch(e){
+      toast(`Buchungen Fehler (${e.status||'?'}) ${e.message||''}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+      state.bookings = [];
+      renderBookings();
+    }
+  }
+
+  function fmtMs(ms){
+    const n = Number(ms||0);
+    if(!n) return '-';
+    return new Date(n).toLocaleString();
+  }
+
+  function renderBookings(){
+    const host=$('bkList'); if(!host) return;
+    const empty=$('bkEmpty');
+    const items = Array.isArray(state.bookings) ? state.bookings : [];
+    if(empty) empty.style.display = items.length ? 'none' : '';
+    host.innerHTML='';
+
+    const canCancel = can('bookings.delete') || (state.me?.perms?.['sa.all']);
+    const canExport = can('bookings.export') || (state.me?.perms?.['sa.all']);
+    if($('btnBkCsv')) $('btnBkCsv').disabled = !canExport;
+
+    for(const b of items){
+      const card=document.createElement('div'); card.className='group';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
+          <div>
+            <div style="font-weight:900">#${escapeHtml(b.id||'')} • ${escapeHtml(b.machine||'-')} • Zimmer ${escapeHtml(b.room||'-')}</div>
+            <div class="small muted">Status: <b>${escapeHtml(b.status||'')}</b></div>
+            <div class="small">Von: <b>${escapeHtml(fmtMs(b.startAt))}</b> bis <b>${escapeHtml(fmtMs(b.endAt))}</b></div>
+            <div class="small muted">UserId: ${escapeHtml(b.userId||'')}</div>
+          </div>
+          <div class="btnrow">
+            <button class="bkCancelBtn" data-id="${escapeHtml(b.id||'')}" ${canCancel ? '' : 'disabled'}>
+              Stornieren
+            </button>
+          </div>
+        </div>
+      `;
+      host.appendChild(card);
+    }
+
+    host.querySelectorAll('.bkCancelBtn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.dataset.id;
+        const reason = prompt("Storno-Grund (optional):","") || "";
+        try{
+          const j = await api('/api/auth/admin/bookings/cancel', { body:{ bookingId:id, reason } });
+          setOut(j);
+          toast("Storniert");
+          await loadBookings();
+        }catch(e){
+          toast(`Storno Fehler (${e.status||'?'}) ${e.message||''}`);
+          setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+        }
+      });
+    });
+  }
+
+  async function downloadBookingsCsv(){
+    const canExport = can('bookings.export') || (state.me?.perms?.['sa.all']);
+    if(!canExport) return toast('Keine Berechtigung: CSV');
+    const machine = String($('bkMachine')?.value||'').trim();
+    try{
+      const res = await fetch(API_BASE + '/api/auth/admin/bookings/export', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ machine })
+      });
+      if(!res.ok){
+        const j = await res.json().catch(()=>({}));
+        throw {status:res.status, data:j};
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download = `bookings_${machine||'all'}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast('CSV geladen');
+    }catch(e){
+      toast(`CSV Fehler (${e.status||'?'}) ${(e?.data?.message||e?.data?.error||e?.message||'')}`);
+    }
+  }
+
+  // ----------------------------
+  // Logs
+  // ----------------------------
+  async function loadLogs(){
+    try{
+      const room = String($('lgRoom')?.value||'').trim();
+      const actor = String($('lgActor')?.value||'').trim();
+      const action = String($('lgAction')?.value||'').trim();
+      const limit = Number($('lgLimit')?.value||500) || 500;
+      const j = await api('/api/auth/admin/logs/list', { body:{ room, actor, action, limit } });
+      setOut(j);
+      state.logs = j.logs || [];
+      renderLogs();
+      toast(`Logs: ${state.logs.length}`);
+    }catch(e){
+      toast(`Logs Fehler (${e.status||'?'}) ${e.message||''}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+      state.logs = [];
+      renderLogs();
+    }
+  }
+
+  function renderLogs(){
+    const host=$('lgList'); if(!host) return;
+    const empty=$('lgEmpty');
+    const items = Array.isArray(state.logs) ? state.logs : [];
+    if(empty) empty.style.display = items.length ? 'none' : '';
+    host.innerHTML='';
+
+    const canExport = can('logs.export') || (state.me?.perms?.['sa.all']);
+    if($('btnLgCsv')) $('btnLgCsv').disabled = !canExport;
+
+    for(const l of items){
+      const card=document.createElement('div'); card.className='group';
+      const meta = (()=>{
+        try{ return JSON.stringify(JSON.parse(l.meta||'{}')); }catch{ return String(l.meta||''); }
+      })();
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:900">${escapeHtml(l.action||'')}</div>
+            <div class="small muted">Zeit: ${escapeHtml(fmtMs(l.ts))} • Room: ${escapeHtml(l.room||'')} • Actor: ${escapeHtml(l.actor||'')}</div>
+            <div class="small" style="margin-top:6px;white-space:pre-wrap;opacity:.9">${escapeHtml(meta)}</div>
+          </div>
+        </div>
+      `;
+      host.appendChild(card);
+    }
+  }
+
+  async function downloadLogsCsv(){
+    const canExport = can('logs.export') || (state.me?.perms?.['sa.all']);
+    if(!canExport) return toast('Keine Berechtigung: CSV');
+    const limit = Number($('lgLimit')?.value||2000) || 2000;
+    try{
+      const res = await fetch(API_BASE + '/api/auth/admin/logs/export', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ limit })
+      });
+      if(!res.ok){
+        const j = await res.json().catch(()=>({}));
+        throw {status:res.status, data:j};
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download = `logs_last_${limit}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast('CSV geladen');
+    }catch(e){
+      toast(`CSV Fehler (${e.status||'?'}) ${(e?.data?.message||e?.data?.error||e?.message||'')}`);
+    }
+  }
+
+
 async function doLogin(){
     const email = String($('loginEmail').value||'').trim();
     const password = String($('loginPw').value||'').trim();
@@ -1300,6 +1565,14 @@ async function doLogin(){
   const bam=$('btnRoomApply'); if(bam) bam.addEventListener('click', applyRoomControl);
   const rqs=$('roomSearch'); if(rqs) rqs.addEventListener('input', renderRooms);
   const rfl=$('roomFilter'); if(rfl) rfl.addEventListener('change', renderRooms);
+
+  const bkr=$('btnBkReload'); if(bkr) bkr.addEventListener('click', loadBookings);
+  const bkc=$('btnBkCsv'); if(bkc) bkc.addEventListener('click', downloadBookingsCsv);
+  const bkm=$('bkMachine'); if(bkm) bkm.addEventListener('change', loadBookings);
+  const bks=$('bkStatus'); if(bks) bks.addEventListener('change', loadBookings);
+
+  const lgr=$('btnLgReload'); if(lgr) lgr.addEventListener('click', loadLogs);
+  const lgc=$('btnLgCsv'); if(lgc) lgc.addEventListener('click', downloadLogsCsv);
 
 
   $('userStatusFilter').addEventListener('change', renderUsers);
