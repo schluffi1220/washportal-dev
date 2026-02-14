@@ -1495,6 +1495,8 @@ async function refreshAll(){
 
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
+    // Debug Box nur wenn in Konfig aktiviert
+    dbgSetVisible(!!(r?.config?.portalDebugEnabled));
 
     // Falls Backend Sperre signalisiert
     if(r && (r.blocked || r.roomBlocked)){
@@ -1539,6 +1541,8 @@ async function refreshAll(){
 // ---------- events ----------
 $("btnRefresh").onclick = refreshAll;
 $("btnLockClose").onclick = hideLockPopup;
+$("btnDbgClear").onclick = dbgClear;
+$("btnDbgCopy").onclick = dbgCopy;
 
 // Enter triggers
 $("pin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
@@ -1853,8 +1857,44 @@ if ($("btnLoadLogs")) {
   </div>
 </div>
 
+
+<div id="dbgBox" style="position:fixed;left:10px;right:10px;bottom:10px;z-index:999998;display:none">
+  <details open style="border:1px solid rgba(255,255,255,.18);border-radius:18px;background:rgba(10,12,20,.88);backdrop-filter:blur(10px);padding:10px">
+    <summary style="cursor:pointer;font-weight:900">🛠️ Debug</summary>
+    <div class="small" style="margin-top:6px;opacity:.85">Letzte API Calls (nur wenn in Konfig aktiviert).</div>
+    <pre id="dbgOut" style="margin-top:10px;max-height:38vh;overflow:auto;white-space:pre-wrap;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)"></pre>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button id="btnDbgClear" class="btn secondary">Leeren</button>
+      <button id="btnDbgCopy" class="btn">Kopieren</button>
+    </div>
+  </details>
+</div>
+
 </body>
 </html
+
+
+let DBG = [];
+function dbgAdd(entry){
+  try{
+    DBG.unshift({ t: new Date().toISOString(), ...entry });
+    DBG = DBG.slice(0, 12);
+    const el = $("dbgOut");
+    if(el) el.textContent = JSON.stringify(DBG, null, 2);
+  }catch(_e){}
+}
+function dbgSetVisible(on){
+  const box = $("dbgBox");
+  if(box) box.style.display = on ? "" : "none";
+}
+function dbgCopy(){
+  const txt = $("dbgOut")?.textContent || "";
+  try{ navigator.clipboard.writeText(txt); toast("📋 Kopiert"); }catch(_e){ alert(txt); }
+}
+function dbgClear(){
+  DBG = [];
+  const el = $("dbgOut"); if(el) el.textContent = "";
+}
 
 let LOCKED = false;
 let LOCK_INFO = { message:"", updatedAt:0 };
