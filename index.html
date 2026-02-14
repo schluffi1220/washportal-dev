@@ -419,14 +419,21 @@ function confirm2(step1, step2){
   return true;
 }
 async function jpost(path, body){
-  const r = await fetch(API_BASE + path, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(body||{})
-  });
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw {status:r.status, data};
-  return data;
+  const url = API_BASE + path;
+  try{
+    const r = await fetch(url, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(body||{})
+    });
+    const data = await r.json().catch(()=> ({}));
+    dbgAdd({ api:path, status:r.status, ok:!!data?.ok, resp:data });
+    if (!r.ok) throw {status:r.status, data};
+    return data;
+  }catch(e){
+    dbgAdd({ api:path, status:e?.status||0, ok:false, error:e?.data||String(e) });
+    throw e;
+  }
 }
 async function jget(path){
   const r = await fetch(API_BASE + path);
@@ -1483,7 +1490,10 @@ async function refreshAll(){
   $("btnRefresh").textContent = "Lade…";
 
   try{
-    // Zimmer-Sperre ist PIN-unabhängig: wir prüfen immer nach Zimmernummer
+    // Debug-Box Sichtbarkeit: lokale Einstellung + ggf. config überschreibt
+    dbgSetVisible(dbgFlag());
+
+    // Zimmer-Sperre (PIN-unabhängig)
     try{
       const chk = await jpost("/api/room/control/check", { room: c.room });
       if(chk && chk.blocked){
@@ -1495,8 +1505,11 @@ async function refreshAll(){
 
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
-    // Debug Box nur wenn in Konfig aktiviert
-    dbgSetFlag(!!(r?.config?.portalDebugEnabled));
+
+    // Config kann Debug aktivieren/deaktivieren
+    if (r?.config && typeof r.config.portalDebugEnabled !== "undefined"){
+      dbgSetFlag(!!r.config.portalDebugEnabled);
+    }
     dbgSetVisible(dbgFlag());
 
     // Falls Backend Sperre signalisiert
@@ -1510,29 +1523,18 @@ async function refreshAll(){
       renderTiles();
       renderMyBookings();
     } else {
-      // In Sperrmodus nur Feedback nutzbar
       renderNewsBox();
     }
 
-    // feedback popup if new
-    if (r.feedback && r.feedback.userUnread) {
-      alert("💬 Neues Feedback vom Admin vorhanden.");
-    }
-
-    toast("✅ Bereit");
-    renderSlotDropdown();
-    renderTiles();
-    renderMyBookings();
-
-    // feedback popup if new
     if (r.feedback && r.feedback.userUnread) {
       alert("💬 Neues Feedback vom Admin vorhanden.");
     }
 
     toast("✅ Bereit");
   }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast("⛔ " + msg);
+    dbgSetVisible(dbgFlag());
+    const msg = e?.data?.message || e?.data?.error || e?.message || "Fehler";
+    alert("Fehler: " + msg);
   }finally{
     $("btnRefresh").disabled = false;
     $("btnRefresh").textContent = "Aktualisieren";
@@ -1544,6 +1546,7 @@ $("btnRefresh").onclick = refreshAll;
 $("btnLockClose").onclick = hideLockPopup;
 $("btnDbgClear").onclick = dbgClear;
 $("btnDbgCopy").onclick = dbgCopy;
+$("btnDbgToggle").onclick = ()=>{ const on=!dbgFlag(); dbgSetFlag(on); dbgSetVisible(on); toast(on? "Debug an":"Debug aus"); };
 
 // Enter triggers
 $("pin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
@@ -1859,10 +1862,12 @@ if ($("btnLoadLogs")) {
 </div>
 
 
-<div id="dbgBox" style="position:fixed;left:10px;right:10px;bottom:10px;z-index:999998;display:none">
+<button id="btnDbgToggle" style="position:fixed;right:12px;bottom:12px;z-index:999999;border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:10px 12px;background:rgba(10,12,20,.85);backdrop-filter:blur(10px);color:#fff;font-weight:900;cursor:pointer">🐞</button>
+
+<div id="dbgBox" style="position:fixed;left:10px;right:10px;bottom:60px;z-index:999998;display:none">
   <details open style="border:1px solid rgba(255,255,255,.18);border-radius:18px;background:rgba(10,12,20,.88);backdrop-filter:blur(10px);padding:10px">
     <summary style="cursor:pointer;font-weight:900">🛠️ Debug</summary>
-    <div class="small" style="margin-top:6px;opacity:.85">Letzte API Calls (nur wenn in Konfig aktiviert).</div>
+    <div class="small" style="margin-top:6px;opacity:.85">Letzte API Calls</div>
     <pre id="dbgOut" style="margin-top:10px;max-height:38vh;overflow:auto;white-space:pre-wrap;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)"></pre>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
       <button id="btnDbgClear" class="btn secondary">Leeren</button>
@@ -1873,39 +1878,6 @@ if ($("btnLoadLogs")) {
 
 </body>
 </html
-
-
-let DBG = [];
-// Debug Box beim Laden nach gespeichertem Flag
-try{ dbgSetVisible(dbgFlag()); }catch(_e){}
-function dbgAdd(entry){
-  try{
-    DBG.unshift({ t: new Date().toISOString(), ...entry });
-    DBG = DBG.slice(0, 12);
-    const el = $("dbgOut");
-    if(el) el.textContent = JSON.stringify(DBG, null, 2);
-  }catch(_e){}
-}
-function dbgSetVisible(on){
-  const box = $("dbgBox");
-  if(box) box.style.display = on ? "" : "none";
-}
-
-
-function dbgFlag(){
-  try{ return localStorage.getItem('portalDebugEnabled') === '1'; }catch(_e){ return false; }
-}
-function dbgSetFlag(on){
-  try{ localStorage.setItem('portalDebugEnabled', on?'1':'0'); }catch(_e){}
-}
-function dbgCopy(){
-  const txt = $("dbgOut")?.textContent || "";
-  try{ navigator.clipboard.writeText(txt); toast("📋 Kopiert"); }catch(_e){ alert(txt); }
-}
-function dbgClear(){
-  DBG = [];
-  const el = $("dbgOut"); if(el) el.textContent = "";
-}
 
 let LOCKED = false;
 let LOCK_INFO = { message:"", updatedAt:0 };
@@ -1940,6 +1912,36 @@ function applyLockMode(on, message, updatedAt){
   if($("slotSelect")) $("slotSelect").disabled = LOCKED;
   // If locked, show popup once
   if(LOCKED) showLockPopup(LOCK_INFO.message, LOCK_INFO.updatedAt);
+}
+
+
+// ---------- debug ----------
+let DBG = [];
+function dbgFlag(){
+  try{ return localStorage.getItem('portalDebugEnabled') === '1'; }catch(_e){ return false; }
+}
+function dbgSetFlag(on){
+  try{ localStorage.setItem('portalDebugEnabled', on?'1':'0'); }catch(_e){}
+}
+function dbgSetVisible(on){
+  const box = $("dbgBox");
+  if(box) box.style.display = on ? "" : "none";
+}
+function dbgAdd(entry){
+  try{
+    DBG.unshift({ t: new Date().toISOString(), ...entry });
+    DBG = DBG.slice(0, 12);
+    const el = $("dbgOut");
+    if(el) el.textContent = JSON.stringify(DBG, null, 2);
+  }catch(_e){}
+}
+function dbgCopy(){
+  const txt = $("dbgOut")?.textContent || "";
+  try{ navigator.clipboard.writeText(txt); toast("📋 Kopiert"); }catch(_e){ alert(txt); }
+}
+function dbgClear(){
+  DBG = [];
+  const el = $("dbgOut"); if(el) el.textContent = "";
 }
 
 >
