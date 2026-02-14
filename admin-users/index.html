@@ -63,6 +63,11 @@
   .switch input:checked + .slider{background:rgba(120,255,180,.22);border-color:rgba(120,255,180,.45)}
   .switch input:checked + .slider:before{transform:translateX(20px)}
 
+
+  .chiprow{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);cursor:pointer;font-weight:900;font-size:12px}
+  .chip:hover{background:rgba(255,255,255,.06)}
+
 </style>
 </head>
 <body>
@@ -927,7 +932,11 @@ async function cfgLoad(){
       $('cfgDryerMinutes').value = String(c.dryerMinutes ?? 120);
       $('cfgNewsEnabled').checked = !!(c.newsEnabled ?? false);
       $('cfgNewsText').value = String(c.newsText ?? '');
-      buildSlotGrid(c.washerHours || []);
+      buildSlotGrid(Array.isArray(c.washerHours) ? c.washerHours : []);
+      if(Array.isArray(c.washerHours) && c.washerHours.length===0){
+        // Nur UI-Default, Speichern erfolgt erst über Button
+        buildSlotGrid([6,8,10,12,14,16,18,20,22]);
+      }
 
       // hint station pin state
       const hasStation = !!c.stationPinHash;
