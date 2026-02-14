@@ -3,153 +3,79 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Washportal</title>
+  <title>Washportal – BUILD 2026-02-14 FINAL</title>
   <style>
-    :root{
-      --bg:#07111f; --panel:#0b1a2d; --text:#eaf2ff; --muted:#9fb2d1; --line:rgba(255,255,255,.08);
-      --ok:#17c964; --bad:#f31260; --info:#2f7dff; --warn:#f5a524;
-      --shadow: 0 10px 30px rgba(0,0,0,.35); --radius:16px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; color:var(--text);
-      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      background: radial-gradient(1200px 700px at 20% 0%, rgba(49,180,255,.15), transparent 55%),
-                  radial-gradient(900px 600px at 80% 10%, rgba(48,210,138,.12), transparent 55%),
-                  var(--bg);
-    }
-    .wrap{max-width:1100px;margin:0 auto;padding:22px}
-    .title{display:flex;align-items:flex-end;gap:12px;margin-bottom:14px;flex-wrap:wrap}
-    .title h1{margin:0;font-size:26px}
-    .badge{font-size:12px;color:var(--muted);padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03)}
-    .pill{padding:4px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted);background:rgba(255,255,255,.03)}
-    .grid{display:grid;gap:14px}
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:16px;
-      backdrop-filter: blur(6px);
-    }
-    .card h2{margin:0 0 10px;font-size:16px}
+    body{margin:0;font-family:system-ui;background:#07111f;color:#eaf2ff}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    .badge{padding:6px 10px;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(255,255,255,.06);font-size:12px}
+    .card{border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.05);padding:14px;margin:12px 0}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
-    label{font-size:12px;color:var(--muted)}
-    input,select{
-      background:rgba(255,255,255,.04);
-      border:1px solid var(--line);
-      color:var(--text);
-      border-radius:12px;
-      padding:10px 12px;
-      outline:none;
-    }
-    .btn{
-      border:none; cursor:pointer; border-radius:14px;
-      padding:10px 14px; font-weight:900;
-      background: linear-gradient(90deg, #6bdcff, #30d28a);
-      color:#00121f;
-    }
-    .btn2{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--line)}
-    .err{
-      display:none; margin-bottom:12px; padding:10px 12px; border-radius:14px;
-      border:1px solid rgba(243,18,96,.35); background: rgba(243,18,96,.10); color: #ffd6e2; white-space:pre-wrap;
-    }
-    .okBox{border-color:rgba(23,201,100,.3);background:rgba(23,201,100,.10);color:#d9ffe9}
-    .lockOverlay{
-      display:none; margin-top:10px; padding:12px; border-radius:16px;
-      border:1px solid rgba(245,165,36,.35); background: rgba(245,165,36,.10); color:#ffe9c7;
-    }
-    .machines{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    @media(max-width:980px){.machines{grid-template-columns:repeat(2,1fr)}}
+    label{font-size:12px;opacity:.8}
+    input,select{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#eaf2ff}
+    button{padding:10px 14px;border-radius:14px;border:0;cursor:pointer;font-weight:900}
+    .btn{background:linear-gradient(90deg,#6bdcff,#30d28a);color:#00121f}
+    .btn2{background:rgba(255,255,255,.08);color:#eaf2ff;border:1px solid rgba(255,255,255,.15)}
+    .err{display:none;white-space:pre-wrap;margin:10px 0;padding:10px 12px;border-radius:14px;border:1px solid rgba(243,18,96,.35);background:rgba(243,18,96,.12)}
+    .ok{border-color:rgba(23,201,100,.3);background:rgba(23,201,100,.12)}
+    .machines{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    @media(max-width:950px){.machines{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:520px){.machines{grid-template-columns:1fr}}
-    .m{
-      border-radius:18px; border:1px solid var(--line); padding:14px;
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      min-height:140px;
-    }
-    .mHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-    .mTitle{font-weight:900}
-    .tag{font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted)}
-    .tag.ok{background:rgba(23,201,100,.10);color:#d9ffe9;border-color:rgba(23,201,100,.25)}
-    .tag.bad{background:rgba(243,18,96,.10);color:#ffd6e2;border-color:rgba(243,18,96,.25)}
-    .tag.info{background:rgba(47,125,255,.10);color:#dce9ff;border-color:rgba(47,125,255,.25)}
-    .mSmall{font-size:12px;color:var(--muted);line-height:1.35}
-    .mActions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-    .mini{
-      padding:8px 10px;border-radius:12px;border:1px solid var(--line);
-      background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;font-weight:900;
-    }
-    .mini.red{background:rgba(243,18,96,.10);border-color:rgba(243,18,96,.25)}
-    .mini.green{background:rgba(23,201,100,.10);border-color:rgba(23,201,100,.25)}
+    .m{border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.05);padding:12px;min-height:120px}
+    .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .tag{font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.15);opacity:.9}
+    .tag.ok{border-color:rgba(23,201,100,.35);background:rgba(23,201,100,.14)}
+    .tag.info{border-color:rgba(47,125,255,.35);background:rgba(47,125,255,.14)}
+    .tag.bad{border-color:rgba(243,18,96,.35);background:rgba(243,18,96,.14)}
+    .small{opacity:.8;font-size:12px;line-height:1.35}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .mini{padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#eaf2ff;font-weight:900;cursor:pointer}
     .mini:disabled{opacity:.45;cursor:not-allowed}
-    .bookings{display:grid;gap:10px}
-    .b{
-      border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,.03);
-      padding:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center;
-    }
-    .bTitle{font-weight:900}
-    .bMeta{font-size:12px;color:var(--muted)}
+    .mini.green{border-color:rgba(23,201,100,.35);background:rgba(23,201,100,.14)}
+    .lock{display:none;margin-top:10px;padding:10px 12px;border-radius:14px;border:1px solid rgba(245,165,36,.35);background:rgba(245,165,36,.14)}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="title">
-    <h1>Washportal</h1>
-    <span class="badge" id="buildBadge">DEV</span>
-    <span class="pill" id="roomPill">Zimmer: -</span>
+  <div class="top">
+    <div class="badge">✅ PORTAL BUILD: 2026-02-14 FINAL (OHNE duration)</div>
+    <div class="badge" id="buildBadge">Worker: -</div>
+    <div class="badge" id="roomBadge">Zimmer: -</div>
   </div>
 
   <div id="err" class="err"></div>
 
-  <div class="grid">
-    <div class="card">
-      <h2>Login</h2>
-      <div class="row">
-        <div>
-          <label>Zimmer</label><br/>
-          <input id="room" placeholder="z.B. 316" inputmode="numeric" />
-        </div>
-        <div>
-          <label>Persönlicher PIN</label><br/>
-          <input id="pin" placeholder="PIN" inputmode="numeric" />
-        </div>
-        <div>
-          <label>Stations-PIN</label><br/>
-          <input id="stationPin" placeholder="Stations-PIN" inputmode="numeric" />
-        </div>
-        <div>
-          <button class="btn" id="btnSave">Speichern</button>
-          <button class="btn btn2" id="btnRefresh" style="margin-left:8px">Aktualisieren</button>
-        </div>
+  <div class="card">
+    <h3 style="margin:0 0 10px">Login</h3>
+    <div class="row">
+      <div><label>Zimmer</label><br><input id="room" placeholder="316" inputmode="numeric"></div>
+      <div><label>Persönlicher PIN</label><br><input id="pin" placeholder="PIN" inputmode="numeric"></div>
+      <div><label>Stations-PIN</label><br><input id="stationPin" placeholder="Stations-PIN" inputmode="numeric"></div>
+      <div>
+        <button class="btn" id="save">Speichern</button>
+        <button class="btn2" id="refresh" style="margin-left:8px">Aktualisieren</button>
       </div>
-      <div id="lockOverlay" class="lockOverlay"></div>
     </div>
+    <div id="lock" class="lock"></div>
+  </div>
 
-    <div class="card">
-      <h2>Maschinen</h2>
-      <div class="machines" id="machines"></div>
-    </div>
+  <div class="card">
+    <h3 style="margin:0 0 10px">Maschinen</h3>
+    <div class="machines" id="machines"></div>
+  </div>
 
-    <div class="card">
-      <h2>Meine Buchungen</h2>
-      <div class="bookings" id="myBookings"></div>
-    </div>
-
-    <div class="card">
-      <h2>Defekt melden</h2>
-      <div class="row">
-        <div style="min-width:240px">
-          <label>Maschine (optional)</label><br/>
-          <select id="defMachine"></select>
-        </div>
-        <div style="flex:1;min-width:260px">
-          <label>Beschreibung</label><br/>
-          <input id="defText" placeholder="Was ist defekt?" />
-        </div>
-        <div>
-          <button class="btn" id="btnDef">Senden</button>
-        </div>
+  <div class="card">
+    <h3 style="margin:0 0 10px">Defekt melden</h3>
+    <div class="row">
+      <div style="min-width:220px">
+        <label>Maschine (optional)</label><br>
+        <select id="defMachine"></select>
       </div>
+      <div style="flex:1;min-width:260px">
+        <label>Beschreibung</label><br>
+        <input id="defText" placeholder="Was ist defekt?">
+      </div>
+      <div><button class="btn" id="defSend">Senden</button></div>
     </div>
   </div>
 </div>
@@ -158,31 +84,21 @@
   const API = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const $ = (id)=>document.getElementById(id);
 
-  let STATE = { config:{}, machines:[], bookings:[], myBookings:[], blocked:false, lockMessage:"" };
+  let STATE = { config:{}, machines:[], bookings:[], myBookings:[], blocked:false, message:"" };
 
-  function showErr(msg, ok=false){
+  function show(msg, ok=false){
     const el = $("err");
     el.style.display = msg ? "block" : "none";
     el.textContent = msg || "";
-    el.classList.toggle("okBox", !!ok);
+    el.classList.toggle("ok", !!ok);
   }
-  function now(){ return Date.now(); }
   function fmt(ts){
     const n = Number(ts||0);
     if(!n) return "-";
     const d = new Date(n);
     if(isNaN(d)) return "-";
-    return d.toLocaleString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+    return d.toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
   }
-  function kindLabel(k){ return String(k).toLowerCase().includes("dry") ? "Trockner" : "Waschmaschine"; }
-  function statusLabel(s){
-    s = String(s||"");
-    if(s==="booked") return "Gebucht";
-    if(s==="released") return "Freigegeben";
-    if(s==="cancelled") return "Storniert";
-    return s || "-";
-  }
-
   function creds(){
     return {
       room: String($("room").value||"").trim(),
@@ -190,8 +106,7 @@
       stationPin: String($("stationPin").value||"").trim()
     };
   }
-
-  function storeCreds(){
+  function saveCreds(){
     localStorage.setItem("wp_room", $("room").value||"");
     localStorage.setItem("wp_pin", $("pin").value||"");
     localStorage.setItem("wp_stationPin", $("stationPin").value||"");
@@ -203,275 +118,160 @@
   }
 
   async function jpost(path, body){
-    const res = await fetch(API + path, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body||{})
-    });
-    let data=null;
-    try{ data = await res.json(); }catch{ data = { ok:false, message:"bad_json" }; }
-    if(!res.ok || !data.ok){
-      const msg = data?.message || data?.error || ("HTTP_"+res.status);
-      throw new Error(msg);
-    }
+    const res = await fetch(API + path, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});
+    let data={}; try{ data = await res.json(); }catch{}
+    if(!res.ok || !data.ok) throw new Error(data.message || data.error || ("HTTP_"+res.status));
     return data;
   }
 
-  function normalizeBooking(b){
-    return {
-      id: String(b.id||""),
-      room: String(b.room||""),
-      kind: String(b.kind||""),
-      machineId: String(b.machineId||""),
-      startAt: Number(b.startAt||0),
-      endAt: Number(b.endAt||0),
-      status: String(b.status||""),
-    };
-  }
-
-  function buildWasherSlots(){
-    const cfg = STATE.config || {};
-    const hours = Array.isArray(cfg.washerHours) && cfg.washerHours.length ? cfg.washerHours : [6,8,10,12,14,16,18,20];
+  function washerSlots(){
+    const cfg = STATE.config||{};
+    const hours = Array.isArray(cfg.washerHours)&&cfg.washerHours.length ? cfg.washerHours : [6,8,10,12,14,16,18,20];
     const daysFuture = Number(cfg.daysFuture ?? 6);
-
     const out = [];
     const base = new Date(); base.setMinutes(0,0,0);
-
     for(let d=0; d<=daysFuture; d++){
-      const day = new Date(base.getTime() + d*86400000);
+      const day = new Date(base.getTime()+d*86400000);
       for(const h of hours){
         const dt = new Date(day.getTime());
         dt.setHours(Number(h),0,0,0);
-        out.push({
-          label: dt.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"}) + " " + String(h).padStart(2,"0") + ":00",
-          ts: dt.getTime()
-        });
+        if(dt.getTime() >= Date.now()-60000){
+          out.push({ ts: dt.getTime(), label: dt.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"})+" "+String(h).padStart(2,"0")+":00" });
+        }
       }
     }
-    const t = now() - 60000;
-    return out.filter(x=>x.ts>=t);
+    return out;
   }
 
-  function renderLock(){
-    const lo = $("lockOverlay");
+  function render(){
+    $("buildBadge").textContent = "Worker: " + (STATE.build || "-");
+    $("roomBadge").textContent = "Zimmer: " + (STATE.room || "-");
+
+    const lock = $("lock");
     if(STATE.blocked){
-      lo.style.display="block";
-      lo.textContent = "⚠️ Zimmer gesperrt: " + (STATE.lockMessage||"") + " — Nur Defekt melden ist möglich.";
+      lock.style.display="block";
+      lock.textContent = "⚠️ Zimmer gesperrt: " + (STATE.message||"") + " — Buchungen gesperrt, Defekt melden geht.";
     } else {
-      lo.style.display="none";
-      lo.textContent = "";
+      lock.style.display="none";
+      lock.textContent="";
     }
-  }
 
-  function computeMachineState(mid, kind){
-    const t = now();
-    const rel = (STATE.bookings||[]).filter(b => b.machineId===String(mid) && String(b.kind||"").toLowerCase().includes(kind));
-    const active = rel.find(b => b.status==="booked" && b.startAt <= t && t <= b.endAt);
-    if(active) return { mode:"running", booking:active };
-    const upcoming = rel.find(b => b.status==="booked" && b.startAt > t);
-    if(upcoming) return { mode:"upcoming", booking:upcoming };
-    return { mode:"free", booking:null };
-  }
+    // Defekt dropdown
+    const dm = $("defMachine");
+    dm.innerHTML = `<option value="">(optional) keine Auswahl</option>` + (STATE.machines||[]).map(m=>{
+      const k = String(m.kind||"washer").toLowerCase().includes("dry") ? "Trockner":"Waschmaschine";
+      return `<option value="${m.machineId}">${k} ${m.label||m.machineId}</option>`;
+    }).join("");
 
-  function renderMachines(){
+    // Maschinen
     const el = $("machines");
     el.innerHTML = "";
-
-    const cfg = STATE.config || {};
-    const dryerMinutes = Number(cfg.dryerMinutes ?? 150);
-    const washerSlots = buildWasherSlots();
+    const slots = washerSlots();
+    const dryerMinutes = Number((STATE.config||{}).dryerMinutes ?? 150);
 
     for(const m of (STATE.machines||[])){
-      const mid = String(m.machineId||"");
-      const kind = String(m.kind||"washer").toLowerCase().includes("dry") ? "dryer" : "washer";
-      const label = String(m.label||mid);
+      const kind = String(m.kind||"washer").toLowerCase().includes("dry") ? "dryer":"washer";
       const enabled = !!m.enabled;
-
-      const ms = computeMachineState(mid, kind);
-      let tag="FREI", tagClass="ok", infoLine="Frei";
-      if(!enabled){ tag="GESPERRT"; tagClass="bad"; infoLine="Maschine gesperrt"; }
-      else if(ms.mode==="running"){ tag="LÄUFT"; tagClass="info"; infoLine=`Zimmer ${ms.booking.room} bis ${fmt(ms.booking.endAt)}`; }
-      else if(ms.mode==="upcoming"){ tag="GEBUCHT"; tagClass="info"; infoLine=`Zimmer ${ms.booking.room} ab ${fmt(ms.booking.startAt)}`; }
+      const mid = String(m.machineId||"");
+      const label = String(m.label||mid);
 
       const box = document.createElement("div");
-      box.className = "m";
+      box.className="m";
+
+      const title = kind==="dryer" ? "Trockner" : "Waschmaschine";
       box.innerHTML = `
-        <div class="mHeader">
-          <div class="mTitle">${kindLabel(kind)} ${label}</div>
-          <div class="tag ${tagClass}">${tag}</div>
+        <div class="mh">
+          <div style="font-weight:900">${title} ${label}</div>
+          <div class="tag ${enabled ? "ok":"bad"}">${enabled ? "AKTIV":"GESPERRT"}</div>
         </div>
-        <div class="mSmall">${infoLine}</div>
+        <div class="small">ID: ${mid}</div>
       `;
 
       const actions = document.createElement("div");
-      actions.className = "mActions";
+      actions.className="actions";
 
       if(kind==="washer"){
         const sel = document.createElement("select");
+        sel.innerHTML = `<option value="">Slot wählen…</option>` + slots.map(s=>`<option value="${s.ts}">${s.label}</option>`).join("");
         sel.style.minWidth="160px";
-        sel.innerHTML = `<option value="">Slot wählen…</option>` + washerSlots.map(s=>`<option value="${s.ts}">${s.label}</option>`).join("");
 
         const btn = document.createElement("button");
         btn.className="mini";
         btn.textContent="Buchen";
-        btn.disabled = STATE.blocked || !enabled;
+        btn.disabled = !enabled || STATE.blocked;
         btn.onclick = async ()=>{
           try{
-            showErr("");
+            show("");
             const c = creds();
             if(!c.room || !c.pin || !c.stationPin) throw new Error("Bitte Zimmer, PIN und Stations-PIN eingeben.");
             if(!sel.value) throw new Error("Bitte Slot auswählen.");
             await jpost("/api/washer/book", { ...c, machineId: mid, minutes: 60, startAt: Number(sel.value) });
             await refreshAll();
-          }catch(e){ showErr("⛔ " + e.message); }
+          }catch(e){ show("⛔ "+e.message); }
         };
 
         actions.appendChild(sel);
         actions.appendChild(btn);
-      }
-
-      if(kind==="dryer"){
+      } else {
         const btn = document.createElement("button");
         btn.className="mini";
         btn.textContent="Jetzt buchen";
-        btn.disabled = STATE.blocked || !enabled;
+        btn.disabled = !enabled || STATE.blocked;
         btn.onclick = async ()=>{
           try{
-            showErr("");
+            show("");
             const c = creds();
             if(!c.room || !c.pin || !c.stationPin) throw new Error("Bitte Zimmer, PIN und Stations-PIN eingeben.");
             await jpost("/api/dryer/book", { ...c, machineId: mid, minutes: dryerMinutes });
             await refreshAll();
-          }catch(e){ showErr("⛔ " + e.message); }
+          }catch(e){ show("⛔ "+e.message); }
         };
         actions.appendChild(btn);
       }
 
-      const my = (STATE.myBookings||[]).find(b => b.machineId===mid && String(b.kind||"").toLowerCase().includes(kind) && b.status==="booked");
-      if(my){
-        const btnRel = document.createElement("button");
-        btnRel.className="mini green";
-        btnRel.textContent="Freigeben";
-        btnRel.disabled = STATE.blocked;
-        btnRel.onclick = async ()=>{
-          try{
-            showErr("");
-            const c = creds();
-            await jpost("/api/booking/release", { ...c, bookingId: my.id });
-            await refreshAll();
-          }catch(e){ showErr("⛔ " + e.message); }
-        };
-        actions.appendChild(btnRel);
-      }
-
       box.appendChild(actions);
       el.appendChild(box);
-      }
-  }
-
-  function renderMyBookings(){
-    const el = $("myBookings");
-    el.innerHTML = "";
-
-    const list = (STATE.myBookings||[]);
-    if(!list.length){
-      el.innerHTML = `<div class="b"><div><div class="bTitle">Keine aktiven Buchungen</div><div class="bMeta">Du kannst oben eine Maschine buchen.</div></div></div>`;
-      return;
     }
-
-    for(const b of list){
-      const wrap = document.createElement("div");
-      wrap.className="b";
-
-      const left = document.createElement("div");
-      left.innerHTML = `
-        <div class="bTitle">${kindLabel(b.kind)} ${b.machineId}</div>
-        <div class="bMeta">Von: ${fmt(b.startAt)} • Bis: ${fmt(b.endAt)}</div>
-        <div class="bMeta">Status: ${statusLabel(b.status)}</div>
-      `;
-      wrap.appendChild(left);
-
-      if(b.status==="booked" && !STATE.blocked){
-        const btn = document.createElement("button");
-        btn.className="mini green";
-        btn.textContent="Freigeben";
-        btn.onclick = async ()=>{
-          try{
-            showErr("");
-            const c = creds();
-            await jpost("/api/booking/release", { ...c, bookingId: b.id });
-            await refreshAll();
-          }catch(e){ showErr("⛔ " + e.message); }
-        };
-        wrap.appendChild(btn);
-      }
-
-      el.appendChild(wrap);
-    }
-  }
-
-  function renderDefectMachines(){
-    const sel = $("defMachine");
-    const ms = (STATE.machines||[]);
-    sel.innerHTML = `<option value="">(optional) keine Auswahl</option>` + ms.map(m=>{
-      const kind = String(m.kind||"washer").toLowerCase().includes("dry") ? "dryer":"washer";
-      return `<option value="${m.machineId}">${kindLabel(kind)} ${m.label||m.machineId}</option>`;
-    }).join("");
   }
 
   async function refreshAll(){
     try{
-      showErr("");
+      show("");
       const c = creds();
       if(!c.room || !c.pin || !c.stationPin) return;
-
       const data = await jpost("/api/user/refresh", c);
-
-      $("buildBadge").textContent = data.build ? ("Build: " + data.build) : "DEV";
-      $("roomPill").textContent = "Zimmer: " + (data.room || c.room || "-");
-
-      STATE.config = data.config || {};
-      STATE.machines = (data.machines || []).map(x=>({
-        machineId:String(x.machineId||""),
-        kind:String(x.kind||"washer"),
-        label:String(x.label||x.machineId||""),
-        enabled: !!x.enabled
-      }));
-      STATE.bookings = (data.bookings || []).map(normalizeBooking);
-      STATE.myBookings = (data.myBookings || []).map(normalizeBooking);
-
-      STATE.blocked = !!data.blocked;
-      STATE.lockMessage = String(data.message || "");
-
-      renderLock();
-      renderMachines();
-      renderMyBookings();
-      renderDefectMachines();
+      STATE = {
+        ...STATE,
+        build: data.build || "",
+        room: data.room || c.room,
+        blocked: !!data.blocked,
+        message: String(data.message || ""),
+        config: data.config || {},
+        machines: data.machines || [],
+        bookings: data.bookings || [],
+        myBookings: data.myBookings || []
+      };
+      render();
     }catch(e){
-      showErr("⛔ " + e.message);
+      show("⛔ " + e.message);
     }
   }
 
-  $("btnSave").onclick = ()=>{
-    storeCreds();
-    showErr("Gespeichert ✅", true);
-    refreshAll();
-  };
-  $("btnRefresh").onclick = ()=>refreshAll();
+  $("save").onclick = ()=>{ saveCreds(); show("Gespeichert ✅", true); refreshAll(); };
+  $("refresh").onclick = ()=>refreshAll();
 
-  $("btnDef").onclick = async ()=>{
+  $("defSend").onclick = async ()=>{
     try{
-      showErr("");
+      show("");
       const c = creds();
       if(!c.room || !c.pin || !c.stationPin) throw new Error("Bitte zuerst Zimmer, PIN und Stations-PIN eingeben.");
       const text = String($("defText").value||"").trim();
-      if(!text) throw new Error("Bitte eine Beschreibung eingeben.");
+      if(!text) throw new Error("Bitte Beschreibung eingeben.");
       const machineId = String($("defMachine").value||"").trim();
       await jpost("/api/defect/report", { ...c, machineId, text });
-      $("defText").value = "";
-      showErr("Defektmeldung gesendet ✅", true);
-      refreshAll();
-    }catch(e){ showErr("⛔ " + e.message); }
+      $("defText").value="";
+      show("Defektmeldung gesendet ✅", true);
+    }catch(e){ show("⛔ "+e.message); }
   };
 
   loadCreds();
