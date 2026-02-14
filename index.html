@@ -168,6 +168,8 @@
 </style>
 </head>
 <body>
+<div id="errBanner" style="display:none;position:sticky;top:0;z-index:9999;background:#ff3b30;color:#fff;padding:10px 12px;font-weight:900">JS Fehler</div>
+
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
@@ -1899,7 +1901,7 @@ function normalizeState(s){
         const kind = m.type || m.kind || '';
         const type = String(kind||'').toLowerCase().includes('dry') ? 'dryer' : 'washer';
         const machine = Number(m.machine ?? m.machineId ?? m.id ?? 0) || 0;
-        return { ...m, type, machine, kind: m.kind ?? m.type, machineId: String(m.machineId ?? m.machine ?? m.id ?? machine) };
+        return { ...m, type, machine, enabled: (m.enabled===false||m.enabled===0) ? 0 : 1, defect: (m.defect===1||m.defect===true) ? 1 : 0, locked: (m.locked===1||m.locked===true) ? 1 : 0, kind: m.kind ?? m.type, machineId: String(m.machineId ?? m.machine ?? m.id ?? machine) };
       });
     }
     if(Array.isArray(s.bookings)){
@@ -1915,5 +1917,19 @@ function normalizeState(s){
   }catch(_e){}
   return s;
 }
+
+function showErr(msg){
+  const b = $("errBanner");
+  if(!b) return;
+  b.textContent = "⚠️ " + String(msg||"Fehler");
+  b.style.display = "";
+}
+window.addEventListener("error", (ev)=>{
+  showErr(ev?.message || "JS Fehler");
+});
+window.addEventListener("unhandledrejection", (ev)=>{
+  const m = ev?.reason?.data?.message || ev?.reason?.data?.error || ev?.reason?.message || String(ev?.reason||"Promise Fehler");
+  showErr(m);
+});
 
 >
