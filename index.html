@@ -639,6 +639,46 @@ function renderSlotDropdown(){
   $("slotHint").textContent = `Freie Wasch-Slots: ${freeCount} (grau = belegt/defekt/gesperrt/vergangen)`;
 }
 
+function normalizeState(r){
+  if(!r) return r;
+  // Normalize machines to {type, machine, enabled, defect, locked, label}
+  if(Array.isArray(r.machines)){
+    r.machines = r.machines.map(m=>{
+      const type = String(m.type || m.kind || "").toLowerCase();
+      const machine = Number(m.machine ?? m.machineId ?? m.id ?? 0);
+      return {
+        type: type || "washer",
+        machine: machine || 0,
+        enabled: (m.enabled===false || m.enabled===0) ? 0 : 1,
+        defect: (m.defect===true || m.defect===1) ? 1 : 0,
+        locked: (m.locked===true || m.locked===1) ? 1 : 0,
+        label: String(m.label || "")
+      };
+    }).filter(x=>x.machine>0);
+  } else {
+    r.machines = [];
+  }
+
+  // Normalize bookings to {type, machine, status, start, end}
+  if(Array.isArray(r.bookings)){
+    r.bookings = r.bookings.map(b=>{
+      const type = String(b.type || b.kind || "").toLowerCase();
+      const machine = Number(b.machine ?? b.machineId ?? 0);
+      return {
+        type: type || "washer",
+        machine: machine || 0,
+        status: String(b.status || ""),
+        start: Number(b.start ?? b.startAt ?? 0),
+        end: Number(b.end ?? b.endAt ?? 0),
+        id: String(b.id || "")
+      };
+    }).filter(x=>x.machine>0);
+  } else {
+    r.bookings = [];
+  }
+  return r;
+}
+
 function tileStatus(type, machine){
   const m = STATE.machines.find(x=>x.type===type && x.machine===machine);
   if (!m) return {cls:"bad", tag:"FEHLT", text:"Nicht vorhanden"};
@@ -1494,7 +1534,7 @@ async function refreshAll(){
     }catch(_e){ /* ignore */ }
 
     const r = await jpost("/api/user/refresh", c);
-    STATE = r;
+    STATE = normalizeState(r);
 
     // Falls Backend Sperre signalisiert
     if(r && (r.blocked || r.roomBlocked)){
