@@ -384,16 +384,7 @@ const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-
 
 // ---------- UI helpers ----------
 const $ = (id)=>document.getElementById(id);
-// Safety polyfills (in case of cached/partial portal assets)
-window.hideLockPopup = window.hideLockPopup || function(){
-  const el = document.getElementById('lockPopup');
-  if(el) el.style.display = 'none';
-};
-window.dbgSetVisible = window.dbgSetVisible || function(on){
-  const box = document.getElementById('dbgBox');
-  if(box) box.style.display = on ? '' : 'none';
-};
-
+function bindClick(id, fn){ const el = $(id); if(el) el.onclick = fn; }
 function toast(msg){
   const t = $("toast");
   t.textContent = msg;
@@ -1551,18 +1542,21 @@ async function refreshAll(){
 }
 
 // ---------- events ----------
-if($("btnRefresh")) $("\1").onclick = refreshAll;
-if($("btnLockClose")) $("\1").onclick = hideLockPopup;
-if($("btnDbgClear")) $("\1").onclick = dbgClear;
-if($("btnDbgCopy")) $("\1").onclick = dbgCopy;
-if($("btnDbgToggle")) $("\1").onclick = ()=>{ const on=!dbgFlag(); dbgSetFlag(on); dbgSetVisible(on); if(on && $("dbgOut") && !$("dbgOut").textContent.trim()){ $("dbgOut").textContent = "Debug aktiv. Klicke auf Aktualisieren…"; } toast(on? "Debug an":"Debug aus"); };
+bindClick("btnRefresh", refreshAll);
+bindClick("btnLockClose", hideLockPopup);
+bindClick("btnDbgClear", dbgClear);
+bindClick("btnDbgCopy", dbgCopy);
+bindClick("btnDbgToggle", ()=>{ const on=!dbgFlag(); dbgSetFlag(on); dbgSetVisible(on); if(on && $("dbgOut") && !$("dbgOut").textContent.trim()){ $("dbgOut").textContent = "Debug aktiv. Klicke auf Aktualisieren…"; } toast(on? "Debug an":"Debug aus"); });
+$("btnDbgClear").onclick = dbgClear;
+$("btnDbgCopy").onclick = dbgCopy;
+$("btnDbgToggle").onclick = ()=>{ const on=!dbgFlag(); dbgSetFlag(on); dbgSetVisible(on); if(on && $("dbgOut") && !$("dbgOut").textContent.trim()){ $("dbgOut").textContent = "Debug aktiv. Klicke auf Aktualisieren…"; } toast(on? "Debug an":"Debug aus"); };
 
 // Enter triggers
 $("pin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
 $("stationPin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
 
 // Book washer from dropdown
-if($("btnBookWasher")) $("\1").onclick = async ()=>{
+$("btnBookWasher").onclick = async ()=>{
   const c = getCreds();
   const v = $("slotSelect").value;
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
@@ -1586,8 +1580,8 @@ if($("btnBookWasher")) $("\1").onclick = async ()=>{
 };
 
 // Feedback
-if($("btnLoadFeedback")) $("\1").onclick = ()=> loadFeedback(false);
-if($("btnSendFeedback")) $("\1").onclick = async ()=>{
+$("btnLoadFeedback").onclick = ()=> loadFeedback(false);
+$("btnSendFeedback").onclick = async ()=>{
   const c = getCreds();
   const msg = $("feedbackText").value.trim();
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
@@ -1605,26 +1599,26 @@ if($("btnSendFeedback")) $("\1").onclick = async ()=>{
 };
 
 // Admin
-if($("btnAdminLogin")) $("\1").onclick = adminLogin;
+$("btnAdminLogin").onclick = adminLogin;
 $("adminPw").addEventListener("keydown", (e)=>{ if (e.key==="Enter") adminLogin(); });
 
-if($("btnAdminLogout")) $("\1").onclick = ()=>{
+$("btnAdminLogout").onclick = ()=>{
   clearAdminSession();
   $("adminBox").style.display = "none";
   $("adminLoginBox").style.display = "block";
   toast("✅ Logout");
 };
 
-if($("btnAdminReload")) $("\1").onclick = adminReload;
+$("btnAdminReload").onclick = adminReload;
 
-if($("btnAdminLoadLogs")) $("\1").onclick = adminLoadLogs;
-if($("btnAdminLoadBookings")) $("\1").onclick = adminLoadBookings;
+$("btnAdminLoadLogs").onclick = adminLoadLogs;
+$("btnAdminLoadBookings").onclick = adminLoadBookings;
 
 // Admin: Filter + CSV
 if ($("adminLogsFilter")) $("adminLogsFilter").addEventListener("input", renderAdminLogs);
 if ($("adminBookingsFilter")) $("adminBookingsFilter").addEventListener("input", renderAdminBookings);
 
-if ($("btnAdminExportLogsCSV")) if($("btnAdminExportLogsCSV")) $("\1").onclick = ()=>{
+if ($("btnAdminExportLogsCSV")) $("btnAdminExportLogsCSV").onclick = ()=>{
   const rows = (__ADMIN_LOGS_CACHE||[]).map(l=>({
     Zeit: fmtBerlin(l.ts),
     Actor: l.actor||"",
@@ -1637,7 +1631,7 @@ if ($("btnAdminExportLogsCSV")) if($("btnAdminExportLogsCSV")) $("\1").onclick =
   downloadCSV("logs.csv", rows);
 };
 
-if ($("btnAdminExportBookingsCSV")) if($("btnAdminExportBookingsCSV")) $("\1").onclick = ()=>{
+if ($("btnAdminExportBookingsCSV")) $("btnAdminExportBookingsCSV").onclick = ()=>{
   const rows = (__ADMIN_BOOKINGS_CACHE||[]).map(b=>({
     Type: b.type||"",
     Machine: b.machine||"",
@@ -1650,7 +1644,7 @@ if ($("btnAdminExportBookingsCSV")) if($("btnAdminExportBookingsCSV")) $("\1").o
   downloadCSV("bookings.csv", rows);
 };
 
-if($("btnSetStationPin")) $("\1").onclick = async ()=>{
+$("btnSetStationPin").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   const sp = $("adminStationPin").value.trim();
   try{
@@ -1663,7 +1657,7 @@ if($("btnSetStationPin")) $("\1").onclick = async ()=>{
   }
 };
 
-if($("btnChangeAdminPw")) $("\1").onclick = async ()=>{
+$("btnChangeAdminPw").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   const npw = $("adminNewPw").value.trim();
   if (!npw) return toast("Neues Passwort fehlt");
@@ -1679,7 +1673,7 @@ if($("btnChangeAdminPw")) $("\1").onclick = async ()=>{
   }
 };
 
-if($("btnSaveWasherHours")) $("\1").onclick = async ()=>{
+$("btnSaveWasherHours").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   try{
     const ok = confirm2("Waschzeiten speichern?", "Gespeichert.");
@@ -1699,7 +1693,7 @@ if($("btnSaveWasherHours")) $("\1").onclick = async ()=>{
   }
 };
 
-if($("btnSaveDryerMinutes")) $("\1").onclick = async ()=>{
+$("btnSaveDryerMinutes").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   try{
     const ok = confirm2("Trockner-Dauer speichern?", "Gespeichert.");
@@ -1713,7 +1707,7 @@ if($("btnSaveDryerMinutes")) $("\1").onclick = async ()=>{
   }
 };
 
-if($("btnSaveDaysWindow")) $("\1").onclick = async ()=>{
+$("btnSaveDaysWindow").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   try{
     const ok = confirm2("Tage-Fenster speichern?", "Gespeichert.");
@@ -1731,7 +1725,7 @@ if($("btnSaveDaysWindow")) $("\1").onclick = async ()=>{
   }
 };
 
-if($("btnSaveNews")) $("\1").onclick = async ()=>{
+$("btnSaveNews").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   try{
     const ok = confirm2("News speichern?", "Gespeichert.");
@@ -1750,7 +1744,7 @@ if($("btnSaveNews")) $("\1").onclick = async ()=>{
   }
 };
 
-if($("btnSaveMachines")) $("\1").onclick = async ()=>{
+$("btnSaveMachines").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   try{
     const ok = confirm2("Maschinen speichern?", "Gespeichert.");
@@ -1773,7 +1767,7 @@ if($("btnSaveMachines")) $("\1").onclick = async ()=>{
   }
 };
 
-if($("btnSaveDefectRules")) $("\1").onclick = async ()=>{
+$("btnSaveDefectRules").onclick = async ()=>{
   const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
   try{
     const ok = confirm2("Defekt-Regeln speichern?", "Gespeichert.");
@@ -1801,7 +1795,7 @@ if($("btnSaveDefectRules")) $("\1").onclick = async ()=>{
 };
 
 if ($("btnLoadLogs")) {
-  if($("btnLoadLogs")) $("\1").onclick = async ()=>{
+  $("btnLoadLogs").onclick = async ()=>{
     const s = getAdminSession(); if (!s) return toast("Admin Session abgelaufen");
     const box = $("logsBox");
     box.innerHTML = `<div class="small mono">Lade…</div>`;
