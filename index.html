@@ -202,7 +202,7 @@
     </div>
 
     <!-- 2) Slots buchen -->
-    <div class="card">
+    <div class="card" id="cardBook">
       <h2>2) Slots buchen</h2>
       <label>Wasch-Slot auswählen</label>
       <select id="slotSelect">
@@ -213,7 +213,7 @@
     </div>
 
     <!-- 3) Maschinenübersicht -->
-    <div class="card">
+    <div class="card" id="cardTiles">
       <h2>3) Maschinenübersicht</h2>
       <div class="small" style="margin-bottom:10px">
         Grün = frei · Blau = läuft/gebucht · Rot = defekt/gesperrt
@@ -222,13 +222,13 @@
     </div>
 
     <!-- 4) Meine Buchungen -->
-    <div class="card">
+    <div class="card" id="cardMyBookings">
       <h2>4) Meine Buchungen</h2>
       <div id="myBookings"></div>
     </div>
 
     <!-- 5) Feedback / Antworten -->
-    <div class="card">
+    <div class="card" id="cardFeedback">
       <h2>5) Feedback / Antworten</h2>
 
       <div class="small" style="margin-bottom:10px">
@@ -245,7 +245,7 @@
     </div>
 
     <!-- 6) Admin -->
-    <div class="card">
+    <div class="card" id="cardAdmin">
       <h2>6) Admin</h2>
 
       <div id="adminLoginBox">
@@ -1483,10 +1483,40 @@ async function refreshAll(){
   $("btnRefresh").textContent = "Lade…";
 
   try{
+    // Zimmer-Sperre ist PIN-unabhängig: wir prüfen immer nach Zimmernummer
+    try{
+      const chk = await jpost("/api/room/control/check", { room: c.room });
+      if(chk && chk.blocked){
+        applyLockMode(true, chk.message || chk.lockMessage || "", chk.updatedAt || 0);
+      } else {
+        applyLockMode(false);
+      }
+    }catch(_e){ /* ignore */ }
+
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
 
-    renderNewsBox();
+    // Falls Backend Sperre signalisiert
+    if(r && (r.blocked || r.roomBlocked)){
+      applyLockMode(true, r.lockMessage || r.message || "", r.lockUpdatedAt || 0);
+    }
+
+    if(!LOCKED){
+      renderNewsBox();
+      renderSlotDropdown();
+      renderTiles();
+      renderMyBookings();
+    } else {
+      // In Sperrmodus nur Feedback nutzbar
+      renderNewsBox();
+    }
+
+    // feedback popup if new
+    if (r.feedback && r.feedback.userUnread) {
+      alert("💬 Neues Feedback vom Admin vorhanden.");
+    }
+
+    toast("✅ Bereit");
     renderSlotDropdown();
     renderTiles();
     renderMyBookings();
@@ -1508,6 +1538,7 @@ async function refreshAll(){
 
 // ---------- events ----------
 $("btnRefresh").onclick = refreshAll;
+$("btnLockClose").onclick = hideLockPopup;
 
 // Enter triggers
 $("pin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
@@ -1518,6 +1549,7 @@ $("btnBookWasher").onclick = async ()=>{
   const c = getCreds();
   const v = $("slotSelect").value;
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
+  if (LOCKED) return alert("🚫 Zimmer gesperrt – nur Feedback möglich.");
   if (!v) return toast("Bitte Slot auswählen");
 
   const slot = JSON.parse(v);
@@ -1542,6 +1574,7 @@ $("btnSendFeedback").onclick = async ()=>{
   const c = getCreds();
   const msg = $("feedbackText").value.trim();
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
+  if (LOCKED) return alert("🚫 Zimmer gesperrt – nur Feedback möglich.");
   if (!msg) return toast("Nachricht fehlt");
   try{
     await jpost("/api/feedback/send", { ...c, message: msg });
@@ -1805,5 +1838,57 @@ if ($("btnLoadLogs")) {
   }
 })();
 </script>
+
+<div id="lockOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:999999">
+  <div style="max-width:520px;width:100%;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(20,24,34,.98);padding:14px 14px 12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-weight:900;font-size:16px">🚫 Zimmer gesperrt</div>
+      <button id="btnLockClose" class="btn secondary" style="padding:8px 10px">OK</button>
+    </div>
+    <div class="small" style="margin-top:8px;opacity:.85">
+      Du kannst aktuell nur <b>Feedback</b> senden. Buchungen/Änderungen sind deaktiviert.
+    </div>
+    <div id="lockMsg" style="margin-top:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,120,120,.07)"></div>
+    <div class="small" style="margin-top:10px;opacity:.7" id="lockMeta"></div>
+  </div>
+</div>
+
 </body>
-</html>
+</html
+
+let LOCKED = false;
+let LOCK_INFO = { message:"", updatedAt:0 };
+
+function showLockPopup(message, updatedAt){
+  const ov = $("lockOverlay");
+  if(!ov) return alert("Zimmer gesperrt: " + (message||""));
+  $("lockMsg").textContent = message || "Es liegt eine Sperre für dieses Zimmer vor.";
+  $("lockMeta").textContent = updatedAt ? ("Zeitstempel: " + new Date(updatedAt).toLocaleString()) : "";
+  ov.style.display = "flex";
+}
+function hideLockPopup(){
+  const ov = $("lockOverlay"); if(ov) ov.style.display = "none";
+}
+
+function applyLockMode(on, message, updatedAt){
+  LOCKED = !!on;
+  LOCK_INFO = { message: message||"", updatedAt: updatedAt||0 };
+  // Only feedback stays usable
+  const idsToHide = ["cardBook","cardTiles","cardMyBookings","cardAdmin"];
+  for(const id of idsToHide){
+    const el = $(id); if(!el) continue;
+    el.style.display = LOCKED ? "none" : "";
+  }
+  // Feedback stays, but show a hint at top
+  const fb = $("cardFeedback");
+  if(fb){
+    fb.style.borderColor = LOCKED ? "rgba(255,120,120,.45)" : "";
+  }
+  // Disable book button (extra safety)
+  if($("btnBookWasher")) $("btnBookWasher").disabled = LOCKED;
+  if($("slotSelect")) $("slotSelect").disabled = LOCKED;
+  // If locked, show popup once
+  if(LOCKED) showLockPopup(LOCK_INFO.message, LOCK_INFO.updatedAt);
+}
+
+>
