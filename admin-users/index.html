@@ -314,9 +314,18 @@
           <div>
             <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
               <input type="checkbox" id="cfgWhitecardEnabled"/>
+
               <span><b>Whitecard aktiv</b><span class="small muted"> (Überbuchen erlauben)</span></span>
             </label>
             <div class="small muted" style="margin-top:6px">Maschine wird weiß markiert + Überbuchung nach Zustimmung.</div>
+          </div>
+
+          <div>
+            <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfgPortalDebug"/>
+              <span><b>Portal Debug-Box</b><span class="small muted"> (API-Ausgaben unten anzeigen)</span></span>
+            </label>
+            <div class="small muted" style="margin-top:6px">Nur für Fehlersuche. Im Normalbetrieb aus.</div>
           </div>
 
           <div>
@@ -891,6 +900,7 @@ async function cfgLoad(){
       $('cfgDaysFuture').value = (c.daysFuture ?? 6);
       $('cfgChatEnabled').checked = !!(c.chatEnabled ?? true);
       $('cfgWhitecardEnabled').checked = !!(c.whitecardEnabled ?? true);
+      $('cfgPortalDebug').checked = !!(c.portalDebugEnabled ?? false);
       $('cfgWasherPopup').checked = !!(c.washerPopup ?? false);
       $('cfgDryerPopup').checked = !!(c.dryerPopup ?? false);
       $('cfgDryerMinutes').value = String(c.dryerMinutes ?? 120);
@@ -950,6 +960,7 @@ function cfgFromForm(){
     base.daysFuture = Number($('cfgDaysFuture').value||6) || 6;
     base.chatEnabled = !!$('cfgChatEnabled').checked;
     base.whitecardEnabled = !!$('cfgWhitecardEnabled').checked;
+    base.portalDebugEnabled = !!$('cfgPortalDebug').checked;
     base.washerPopup = !!$('cfgWasherPopup').checked;
     base.dryerPopup = !!$('cfgDryerPopup').checked;
     base.dryerMinutes = Number($('cfgDryerMinutes').value||120) || 120;
