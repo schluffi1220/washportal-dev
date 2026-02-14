@@ -403,7 +403,7 @@
 
   function setTab(tab){
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
-    ['users','rbac','config','transfer','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
+    ['users','rbac','config','transfer','rooms','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
   }
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>setTab(t.dataset.tab)));
 
