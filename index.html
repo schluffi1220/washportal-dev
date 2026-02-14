@@ -1546,7 +1546,8 @@ $("btnRefresh").onclick = refreshAll;
 $("btnLockClose").onclick = hideLockPopup;
 $("btnDbgClear").onclick = dbgClear;
 $("btnDbgCopy").onclick = dbgCopy;
-$("btnDbgToggle").onclick = ()=>{ const on=!dbgFlag(); dbgSetFlag(on); dbgSetVisible(on); toast(on? "Debug an":"Debug aus"); };
+$("btnDbgToggle").onclick = ()=>{ const on=!dbgFlag(); dbgSetFlag(on); dbgSetVisible(on); if(on && $("dbgOut") && !$("dbgOut").textContent.trim()){ $("dbgOut").textContent = "Debug aktiv. Klicke auf Aktualisieren…"; }
+  toast(on? "Debug an":"Debug aus"); };
 
 // Enter triggers
 $("pin").addEventListener("keydown", (e)=>{ if (e.key==="Enter") refreshAll(); });
