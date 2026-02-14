@@ -168,8 +168,7 @@
 </style>
 </head>
 <body>
-<div id="errBanner" style="display:none;position:sticky;top:0;z-index:9999;background:#ff3b30;color:#fff;padding:10px 12px;font-weight:900">JS Fehler</div>
-
+<div id="errBanner" style="display:none;position:sticky;top:0;z-index:999999;background:#b00020;color:#fff;padding:10px 12px;font-weight:900"></div>
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
@@ -1518,6 +1517,7 @@ async function refreshAll(){
       alert("💬 Neues Feedback vom Admin vorhanden.");
     }
 
+    showErrBanner("");
     toast("✅ Bereit");
     renderSlotDropdown();
     renderTiles();
@@ -1528,6 +1528,7 @@ async function refreshAll(){
       alert("💬 Neues Feedback vom Admin vorhanden.");
     }
 
+    showErrBanner("");
     toast("✅ Bereit");
   }catch(e){
     const msg = e?.data?.message || e?.data?.error || "Fehler";
@@ -1901,7 +1902,7 @@ function normalizeState(s){
         const kind = m.type || m.kind || '';
         const type = String(kind||'').toLowerCase().includes('dry') ? 'dryer' : 'washer';
         const machine = Number(m.machine ?? m.machineId ?? m.id ?? 0) || 0;
-        return { ...m, type, machine, enabled: (m.enabled===false||m.enabled===0) ? 0 : 1, defect: (m.defect===1||m.defect===true) ? 1 : 0, locked: (m.locked===1||m.locked===true) ? 1 : 0, kind: m.kind ?? m.type, machineId: String(m.machineId ?? m.machine ?? m.id ?? machine) };
+        return { ...m, type, machine, kind: m.kind ?? m.type, machineId: String(m.machineId ?? m.machine ?? m.id ?? machine) };
       });
     }
     if(Array.isArray(s.bookings)){
@@ -1918,18 +1919,17 @@ function normalizeState(s){
   return s;
 }
 
-function showErr(msg){
-  const b = $("errBanner");
+function showErrBanner(msg){
+  const b = document.getElementById('errBanner');
   if(!b) return;
-  b.textContent = "⚠️ " + String(msg||"Fehler");
-  b.style.display = "";
+  b.style.display = msg ? '' : 'none';
+  b.textContent = msg ? ('⚠️ ' + msg) : '';
 }
-window.addEventListener("error", (ev)=>{
-  showErr(ev?.message || "JS Fehler");
+window.addEventListener('error', (ev)=>{
+  try{ showErrBanner(ev.message || 'JS Error'); }catch(_e){}
 });
-window.addEventListener("unhandledrejection", (ev)=>{
-  const m = ev?.reason?.data?.message || ev?.reason?.data?.error || ev?.reason?.message || String(ev?.reason||"Promise Fehler");
-  showErr(m);
+window.addEventListener('unhandledrejection', (ev)=>{
+  try{ showErrBanner(String(ev.reason?.message || ev.reason || 'Promise Error')); }catch(_e){}
 });
 
 >
