@@ -380,6 +380,44 @@
   <div id="toast" class="toast"></div>
 
 <script>
+// Global polyfills (must exist before any handler runs)
+window.showErrBanner = window.showErrBanner || function(msg){
+  const b = document.getElementById('errBanner');
+  if(!b) return;
+  b.style.display = msg ? '' : 'none';
+  b.textContent = msg ? ('⚠️ ' + msg) : '';
+};
+window.normalizeState = window.normalizeState || function(s){
+  try{
+    if(!s || typeof s !== 'object') return s;
+    if(Array.isArray(s.machines)){
+      s.machines = s.machines.map(m=>{
+        const kind = m.type || m.kind || '';
+        const type = String(kind||'').toLowerCase().includes('dry') ? 'dryer' : 'washer';
+        const machine = Number(m.machine ?? m.machineId ?? m.id ?? 0) || 0;
+        const enabled = (m.enabled === false || m.enabled === 0) ? 0 : 1;
+        const defect = (m.defect === true || m.defect === 1) ? 1 : 0;
+        const locked = (m.locked === true || m.locked === 1) ? 1 : 0;
+        return { ...m, type, machine, enabled, defect, locked, kind: m.kind ?? m.type, machineId: String(m.machineId ?? m.machine ?? m.id ?? machine) };
+      });
+    }
+    if(Array.isArray(s.bookings)){
+      s.bookings = s.bookings.map(b=>{
+        const kind = b.type || b.kind || '';
+        const type = String(kind||'').toLowerCase().includes('dry') ? 'dryer' : 'washer';
+        const machine = Number(b.machine ?? b.machineId ?? 0) || 0;
+        const start = Number(b.start ?? b.startAt ?? 0) || 0;
+        const end = Number(b.end ?? b.endAt ?? 0) || 0;
+        return { ...b, type, machine, start, end, kind: b.kind ?? b.type, machineId: String(b.machineId ?? b.machine ?? machine) };
+      });
+    }
+  }catch(_e){}
+  return s;
+};
+window.addEventListener('error', (ev)=>{ try{ window.window.showErrBanner(ev.message || 'JS Error'); }catch(_e){} });
+window.addEventListener('unhandledrejection', (ev)=>{ try{ window.window.showErrBanner(String(ev.reason?.message || ev.reason || 'Promise Error')); }catch(_e){} });
+
+
 /*** SET THIS ***/
 const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-- DEV Worker URL
 
@@ -1495,7 +1533,7 @@ async function refreshAll(){
     }catch(_e){ /* ignore */ }
 
     const r = await jpost("/api/user/refresh", c);
-    STATE = normalizeState(r);
+    STATE = window.normalizeState(r);
 
     // Falls Backend Sperre signalisiert
     if(r && (r.blocked || r.roomBlocked)){
@@ -1517,7 +1555,7 @@ async function refreshAll(){
       alert("💬 Neues Feedback vom Admin vorhanden.");
     }
 
-    showErrBanner("");
+    window.showErrBanner("");
     toast("✅ Bereit");
     renderSlotDropdown();
     renderTiles();
@@ -1528,7 +1566,7 @@ async function refreshAll(){
       alert("💬 Neues Feedback vom Admin vorhanden.");
     }
 
-    showErrBanner("");
+    window.showErrBanner("");
     toast("✅ Bereit");
   }catch(e){
     console.error("refreshAll failed:", e);
@@ -1538,7 +1576,7 @@ async function refreshAll(){
       else if(e?.message) msg = e.message;
       else msg = String(e);
     }catch(_x){ msg = String(e); }
-    showErrBanner(msg || "Unbekannter Fehler");
+    window.showErrBanner(msg || "Unbekannter Fehler");
     toast("Fehler");
     try{ alert("Fehler: " + (msg||"unbekannt")); }catch(_e){}
 }finally{
@@ -1928,17 +1966,17 @@ function normalizeState(s){
   return s;
 }
 
-function showErrBanner(msg){
+function window.showErrBanner(msg){
   const b = document.getElementById('errBanner');
   if(!b) return;
   b.style.display = msg ? '' : 'none';
   b.textContent = msg ? ('⚠️ ' + msg) : '';
 }
 window.addEventListener('error', (ev)=>{
-  try{ showErrBanner(ev.message || 'JS Error'); }catch(_e){}
+  try{ window.showErrBanner(ev.message || 'JS Error'); }catch(_e){}
 });
 window.addEventListener('unhandledrejection', (ev)=>{
-  try{ showErrBanner(String(ev.reason?.message || ev.reason || 'Promise Error')); }catch(_e){}
+  try{ window.showErrBanner(String(ev.reason?.message || ev.reason || 'Promise Error')); }catch(_e){}
 });
 
 >
