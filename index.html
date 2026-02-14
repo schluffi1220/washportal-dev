@@ -384,6 +384,10 @@ const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-
 
 // ---------- UI helpers ----------
 const $ = (id)=>document.getElementById(id);
+// Safety: expose functions globally
+window.hideLockPopup = hideLockPopup;
+window.dbgSetVisible = dbgSetVisible;
+
 function bindClick(id, fn){ const el = $(id); if(el) el.onclick = fn; }
 function toast(msg){
   const t = $("toast");
