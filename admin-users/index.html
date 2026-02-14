@@ -169,9 +169,31 @@
 
   <!-- RBAC -->
   <div class="card section" id="sec-rbac" style="margin-top:10px">
-    <b>Rollen &amp; Rechte (RBAC)</b>
-    <div class="small" style="margin-top:6px">Nur anzeigen.</div>
-    <div class="mono" id="rbacOut" style="margin-top:10px">{}</div>
+    <b>Rollen &amp; Rechte</b>
+    <div class="small" style="margin-top:6px">
+      Setze Berechtigungen per Haken. <b>Ändern geht nur als SA</b> (SA Passwort eintragen &amp; „SA → me“).
+    </div>
+
+    <div class="group" style="margin-top:10px;display:grid;gap:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label>Rolle</label>
+          <select id="rbacRole"></select>
+        </div>
+        <div>
+          <label>Suche</label>
+          <input id="rbacSearch" placeholder="z.B. booking oder users oder room"/>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button id="btnRbacReload">Aktualisieren</button>
+        <button id="btnRbacSave">Speichern</button>
+      </div>
+      <div class="small muted">Tipp: Änderungen werden gesammelt – erst „Speichern“ schreibt in die DB.</div>
+    </div>
+
+    <div id="rbacEditor" style="margin-top:10px;display:grid;gap:10px"></div>
+    <div class="mono" id="rbacOut" style="margin-top:10px;display:none">{}</div>
   </div>
 
   <!-- CONFIG -->
@@ -438,16 +460,212 @@
     }
   }
 
+  
+  // ----------------------------
+  // RBAC Editor (Checkbox UI)
+  // ----------------------------
+  const rbacState = { role:null, catalog:[], rolePermsRows:[], currentPermSet:new Set(), dirty:false };
+
+  function normKey(k){ return String(k||"").trim(); }
+  function roleListFromSnapshot(){
+    const roles = new Set(["user","ps","ps_deputy","admin","super_admin"]);
+    for(const row of (rbacState.rolePermsRows||[])){
+      if(row?.role) roles.add(String(row.role));
+    }
+    return Array.from(roles).sort();
+  }
+
+  function permTitleFor(key){
+    const it = (rbacState.catalog||[]).find(x=>String(x.permKey)===String(key));
+    return it?.title || "";
+  }
+  function permGroupFor(key){
+    const it = (rbacState.catalog||[]).find(x=>String(x.permKey)===String(key));
+    return it?.permGroup || "Sonstiges";
+  }
+
   async function loadSnapshot(){
     try{
       const j=await api('/api/auth/admin/rbac/snapshot', {body:{}});
-      setOut(j); $('rbacOut').textContent = JSON.stringify(j,null,2);
+      setOut(j);
+      rbacState.catalog = j.catalog || [];
+      rbacState.rolePermsRows = j.rolePermsRows || [];
+      // init role select
+      const sel = $('rbacRole');
+      if(sel){
+        const roles = roleListFromSnapshot();
+        const prev = sel.value || rbacState.role || roles[0];
+        sel.innerHTML = roles.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(roleLabel({role:r}))}</option>`).join('');
+        sel.value = roles.includes(prev) ? prev : roles[0];
+        rbacState.role = sel.value;
+      }
+      await loadRolePerms(rbacState.role);
       toast('RBAC geladen');
     }catch(e){
       toast(`RBAC Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
+
+  async function loadRolePerms(role){
+    role = String(role||"").trim();
+    if(!role) return;
+    rbacState.role = role;
+    try{
+      const j=await api('/api/auth/admin/rbac/role/get', {body:{role}});
+      setOut(j);
+      const rows = j.perms || [];
+      rbacState.currentPermSet = new Set(rows.filter(x=>x.allowed).map(x=>String(x.permKey)));
+      rbacState.dirty = false;
+      renderRbacEditor();
+    }catch(e){
+      toast(`Role laden Fehler (${e.status||'?'}) ${e.message}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
+  }
+
+  function baseKey(k){
+    const s = String(k||"");
+    const m = s.match(/^(.*)\.(view|manage|delete)$/);
+    return m ? m[1] : s;
+  }
+  function suffixKey(k){
+    const s = String(k||"");
+    const m = s.match(/\.(view|manage|delete)$/);
+    return m ? m[1] : "";
+  }
+
+  function allPermKeys(){
+    const keys = new Set();
+    for(const c of (rbacState.catalog||[])) keys.add(String(c.permKey));
+    // include existing role perms that might not be in catalog
+    for(const r of (rbacState.rolePermsRows||[])) keys.add(String(r.permKey));
+    return Array.from(keys).sort();
+  }
+
+  function renderRbacEditor(){
+    const host = $('rbacEditor'); if(!host) return;
+    const q = String($('rbacSearch')?.value||"").trim().toLowerCase();
+    const canEdit = !!String($('sa')?.value||"").trim(); // SA required server-side; UI hints only
+    $('btnRbacSave').disabled = !(canEdit && rbacState.dirty);
+
+    // Build groups of permissions by baseKey
+    const keys = allPermKeys().filter(k=>{
+      if(!q) return true;
+      const t = (permTitleFor(k)||"").toLowerCase();
+      const g = (permGroupFor(k)||"").toLowerCase();
+      return k.toLowerCase().includes(q) || t.includes(q) || g.includes(q);
+    });
+
+    const byGroup = new Map();
+    const seenBases = new Set();
+
+    for(const k of keys){
+      const b = baseKey(k);
+      if(seenBases.has(b) && suffixKey(k)) continue; // we'll render triad per base
+      seenBases.add(b);
+
+      const groupName = permGroupFor(k);
+      if(!byGroup.has(groupName)) byGroup.set(groupName, []);
+      byGroup.get(groupName).push(b);
+    }
+
+    // helper checkbox
+    const chk = (permKey, label, checked, disabled=false)=>{
+      const id = "p_"+btoa(unescape(encodeURIComponent(permKey))).replace(/=+$/,'');
+      return `
+        <label style="display:flex;gap:8px;align-items:center;cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?.7:1}">
+          <input type="checkbox" data-perm="${escapeHtml(permKey)}" ${checked?'checked':''} ${disabled?'disabled':''}/>
+          <span class="small">${escapeHtml(label)}</span>
+        </label>
+      `;
+    };
+
+    // render
+    host.innerHTML = '';
+    const groupNames = Array.from(byGroup.keys()).sort((a,b)=>a.localeCompare(b));
+    for(const g of groupNames){
+      const card = document.createElement('div');
+      card.className = 'group';
+      const bases = (byGroup.get(g)||[]).sort();
+
+      let rowsHtml = '';
+      for(const b of bases){
+        // determine triad existence
+        const viewK = b + '.view';
+        const manK  = b + '.manage';
+        const delK  = b + '.delete';
+        const hasTriad = allPermKeys().includes(viewK) || allPermKeys().includes(manK) || allPermKeys().includes(delK);
+
+        const title = permTitleFor(viewK) || permTitleFor(manK) || permTitleFor(delK) || permTitleFor(b) || '';
+        const left = `<div><div style="font-weight:900">${escapeHtml(b)}</div>${title?`<div class="small muted">${escapeHtml(title)}</div>`:''}</div>`;
+
+        let right = '';
+        if(hasTriad){
+          right = `
+            <div style="display:grid;gap:6px">
+              ${chk(viewK, 'Sichtbar', rbacState.currentPermSet.has(viewK), !canEdit)}
+              ${chk(manK,  'Änderbar', rbacState.currentPermSet.has(manK), !canEdit)}
+              ${chk(delK,  'Delete',   rbacState.currentPermSet.has(delK), !canEdit)}
+            </div>
+          `;
+        }else{
+          right = `
+            <div style="display:grid;gap:6px">
+              ${chk(b, 'Erlaubt', rbacState.currentPermSet.has(b), !canEdit)}
+            </div>
+          `;
+        }
+
+        rowsHtml += `
+          <div style="display:grid;grid-template-columns:1fr 220px;gap:10px;align-items:start;padding:10px;border-top:1px solid rgba(255,255,255,.08)">
+            ${left}
+            ${right}
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+          <div style="font-weight:900">${escapeHtml(g)}</div>
+          <div class="small muted">${bases.length} Einträge</div>
+        </div>
+        <div style="margin-top:8px;border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden">
+          ${rowsHtml}
+        </div>
+      `;
+      host.appendChild(card);
+    }
+
+    // listeners
+    host.querySelectorAll('input[type="checkbox"][data-perm]').forEach(inp=>{
+      inp.addEventListener('change', ()=>{
+        const k = inp.dataset.perm;
+        if(inp.checked) rbacState.currentPermSet.add(k);
+        else rbacState.currentPermSet.delete(k);
+        rbacState.dirty = true;
+        $('btnRbacSave').disabled = !(canEdit && rbacState.dirty);
+      });
+    });
+  }
+
+  async function saveRolePerms(){
+    const sa = String($('sa')?.value||"").trim();
+    if(!sa){ toast('Speichern geht nur mit SA Passwort'); return; }
+    if(!rbacState.role){ toast('Rolle fehlt'); return; }
+    try{
+      const permKeys = Array.from(rbacState.currentPermSet.values()).sort();
+      const j=await api('/api/auth/admin/rbac/role/set', {body:{role: rbacState.role, permKeys}});
+      setOut(j);
+      rbacState.dirty = false;
+      toast('Gespeichert');
+      await loadSnapshot();
+    }catch(e){
+      toast(`Speichern Fehler (${e.status||'?'}) ${e.message||''}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
+  }
+
 
   async function cfgLoad(){
     try{
@@ -587,6 +805,12 @@
   $('btnLogin').addEventListener('click', doLogin);
   $('btnLogout').addEventListener('click', doLogout);
   const bsa=$('btnSaLogin'); if(bsa) bsa.addEventListener('click', doSaLogin);
+
+  const br=$('btnRbacReload'); if(br) br.addEventListener('click', loadSnapshot);
+  const bs=$('btnRbacSave'); if(bs) bs.addEventListener('click', saveRolePerms);
+  const rs=$('rbacRole'); if(rs) rs.addEventListener('change', ()=>loadRolePerms(rs.value));
+  const rq=$('rbacSearch'); if(rq) rq.addEventListener('input', renderRbacEditor);
+
 
   $('userStatusFilter').addEventListener('change', renderUsers);
   $('userSearch').addEventListener('input', renderUsers);
