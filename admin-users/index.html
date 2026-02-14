@@ -1034,7 +1034,7 @@ function setVal(id, v){
       buildSlotGrid(wh.length ? wh : [6,8,10,12,14,16,18,20]);
 
       // hint station pin state
-      const hasStation = !!c.stationPinHash;
+      const hasStation = (typeof j.stationPinSet !== 'undefined') ? !!j.stationPinSet : !!c.stationPinHash;
       if($('cfgStationPinHint')) $('cfgStationPinHint').textContent = hasStation ? '✅ Stations-PIN ist gesetzt.' : '⚠️ Stations-PIN ist NICHT gesetzt – Portal-Refresh wird blockiert.';
       applyConfigPerms();
       toast('Konfig geladen');
