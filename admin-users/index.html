@@ -68,24 +68,48 @@
     <div class="card">
   <details open>
     <summary>Verbindung & Login</summary>
-<div style="display:grid;gap:8px">
+
+    <div style="display:grid;gap:8px;margin-top:10px">
+      <div>
+        <label>Worker BASE</label>
+        <input id="base" placeholder="https://…workers.dev"/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
-          <label>Worker BASE</label>
-          <input id="base" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
+          <label>Bearer Token (optional)</label>
+          <input id="token" placeholder="optional (Admin/PS/SV Token)"/>
         </div>
-<div class="group" style="margin-top:10px">
-        <b style="font-size:12px">Login (Email + Passwort)</b>
-        <div class="small" style="margin-top:6px">Für Admin/PS/SV. Speichert danach automatisch den Bearer Token.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-          <div>
-            <label>Email</label>
-            <input id="loginEmail" placeholder="name@domain.de"/>
-          </div>
-          <div>
-            <label>Passwort</label>
-            <input id="loginPw" type="password" placeholder="••••••••"/>
-          </div>
+        <div>
+          <label>SA Passwort</label>
+          <input id="sa" type="password" placeholder="••••••••"/>
         </div>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:10px">
+      <b style="font-size:12px">Login (Email + Passwort)</b>
+      <div class="small" style="margin-top:6px">Für Admin/PS/SV. Speichert danach automatisch den Bearer Token.</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div>
+          <label>Email</label>
+          <input id="loginEmail" placeholder="name@domain.de"/>
+        </div>
+        <div>
+          <label>Passwort</label>
+          <input id="loginPw" type="password" placeholder="••••••••"/>
+        </div>
+      </div>
+
+      <div class="btnrow" style="margin-top:10px">
+        <button id="btnLogin">Login</button>
+        <button id="btnLogout">Logout</button>
+        <button id="btnSaLogin" title="Nutze nur SA Passwort → lädt /api/auth/me">SA → me</button>
+      </div>
+      <div class="small muted" style="margin-top:8px">Tip: SA-Login ist kein Email-Login — SA setzt nur das SA Passwort (oben) und nutzt dann die Admin-Aktionen.</div>
+    </div>
+
     <div class="actions">
       <button id="btnMe">me</button>
       <button id="btnUsers">Benutzer</button>
@@ -240,6 +264,13 @@
   try{
     const savedTok = localStorage.getItem('wp_admin_token');
     if(savedTok && !String($('token').value||'').trim()) $('token').value = savedTok;
+  }catch(_e){}
+
+  // Default BASE falls leer
+  try{
+    if(!String($('base').value||'').trim()){
+      $('base').value = 'https://washportal-dev-worker.schluffi1220.workers.dev';
+    }
   }catch(_e){}
 
   function toast(msg){
@@ -524,6 +555,24 @@
     toast('Ausgeloggt');
   }
 
+  async function doSaLogin(){
+    const sa = String($('sa').value||'').trim();
+    if(!sa){ toast('SA Passwort eintragen'); return; }
+    try{
+      // SA ist kein Email-Login: wir laden direkt /api/auth/me mit x-sa-password
+      const j = await api('/api/auth/me', { method:'GET' });
+      toast('SA aktiv');
+      setOut(j);
+      setMe(j);
+      await loadUsers().catch(()=>{});
+      await loadSnapshot().catch(()=>{});
+    }catch(e){
+      toast(`SA Fehler (${e.status||'?'}) ${e.message||''}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
+  }
+
+
   $('btnStatus').addEventListener('click', loadStatus);
   $('btnRoutes').addEventListener('click', loadRoutes);
   $('btnMe').addEventListener('click', loadMe);
@@ -537,6 +586,7 @@
 
   $('btnLogin').addEventListener('click', doLogin);
   $('btnLogout').addEventListener('click', doLogout);
+  const bsa=$('btnSaLogin'); if(bsa) bsa.addEventListener('click', doSaLogin);
 
   $('userStatusFilter').addEventListener('change', renderUsers);
   $('userSearch').addEventListener('input', renderUsers);
