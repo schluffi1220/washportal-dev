@@ -61,6 +61,7 @@
     <button class="tab" data-tab="rbac">Rollen &amp; Rechte</button>
     <button class="tab" data-tab="config">Konfig</button>
     <button class="tab" data-tab="transfer">Übergabe</button>
+    <button class="tab" data-tab="rooms">Zimmer</button>
     <button class="tab" data-tab="debug">Debug</button>
   </div>
 
@@ -221,6 +222,57 @@
     <div id="trEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine offenen Bewerbungen.</div>
   </div>
 
+<!-- ROOMS -->
+  <div class="card section" id="sec-rooms" style="margin-top:10px">
+    <b>Zimmer sperren / freigeben</b>
+    <div class="small" style="margin-top:6px">
+      Sperre ist <b>PIN-unabhängig</b> und wirkt immer auf die Zimmernummer. Du kannst optional eine Nachricht hinterlegen,
+      die dem Zimmer als Popup angezeigt wird.
+    </div>
+
+    <div class="group" style="margin-top:10px;display:grid;gap:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label>Zimmernummer</label>
+          <input id="roomRoom" inputmode="numeric" placeholder="z.B. 316"/>
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="roomAction">
+            <option value="block">Sperren</option>
+            <option value="unblock">Freigeben</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Nachricht (Popup für das Zimmer)</label>
+        <textarea id="roomMessage" placeholder="z.B. Bitte melde dich beim Patientensprecher."></textarea>
+      </div>
+      <div class="btnrow">
+        <button id="btnRoomApply">Übernehmen</button>
+        <button id="btnRoomReload">Liste aktualisieren</button>
+      </div>
+    </div>
+
+    <div class="group" style="margin-top:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:900">Verlauf</div>
+          <div class="small muted">Sichtbar bleibt gesperrt/freigegeben + Zeit + wer.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="roomSearch" placeholder="Suche Zimmer…" style="max-width:220px"/>
+          <select id="roomFilter">
+            <option value="all">alle</option>
+            <option value="blocked">nur gesperrt</option>
+            <option value="unblocked">nur freigegeben</option>
+          </select>
+        </div>
+      </div>
+      <div id="roomList" style="margin-top:10px"></div>
+      <div id="roomEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Einträge.</div>
+    </div>
+  </div>
   <!-- DEBUG -->
   <div class="card section" id="sec-debug" style="margin-top:10px">
     <b>Debug</b>
@@ -232,12 +284,18 @@
 <script>
 (function(){
   const $ = (id)=>document.getElementById(id);
-  const state = { me:null, users:[], snapshot:null, transfer:[] };
+  const state = { me:null, users:[], snapshot:null, transfer:[], rooms:[] };
 
   function can(key){
     const p = state.me?.perms || {};
     if(p["sa.all"]) return true;
-    return !!p[key];
+    if(!!p[key]) return true;
+    // manage/delete imply view
+    if(key.endsWith(".view")){
+      const b = key.slice(0,-5);
+      if(p[b+".manage"] || p[b+".delete"]) return true;
+    }
+    return false;
   }
   
   function activeTab(){
@@ -250,6 +308,7 @@
     if(t==='rbac') return loadSnapshot();
     if(t==='config') return loadConfig();
     if(t==='transfer') return loadTransfer();
+    if(t==='rooms') return loadRooms();
     if(t==='debug') return; // nothing
   }
 
@@ -260,6 +319,7 @@
       rbac: "admin.rbac.view",
       config: "admin.config.view",
       transfer: "role.cross.transfer",
+      rooms: "rooms.view",
       debug: "sa.all",
     };
     document.querySelectorAll('.tab').forEach(btn=>{
@@ -751,7 +811,123 @@
     }
   }
 
-  async function doLogin(){
+  
+  // ----------------------------
+  // Rooms (lock/unlock)
+  // ----------------------------
+  async function loadRooms(){
+    try{
+      const j = await api('/api/auth/room/control/list', { body:{} });
+      setOut(j);
+      state.rooms = j.rooms || [];
+      renderRooms();
+      toast(`Zimmer: ${state.rooms.length}`);
+    }catch(e){
+      toast(`Zimmer Fehler (${e.status||'?'}) ${e.message||''}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+      state.rooms = [];
+      renderRooms();
+    }
+  }
+
+  async function applyRoomControl(){
+    const room = String($('roomRoom').value||'').trim();
+    const action = String($('roomAction').value||'block');
+    const message = String($('roomMessage').value||'');
+    if(!room){ toast('Zimmernummer fehlt'); return; }
+
+    const canDo = can('rooms.manage') || can('admin.users.manage') || (state.me?.perms?.['sa.all']);
+    if(!canDo){ toast('Keine Berechtigung: Zimmer sperren'); return; }
+
+    try{
+      const blocked = action === 'block';
+      const j = await api('/api/auth/room/control', { body:{ room, blocked, message } });
+      setOut(j);
+      toast(blocked ? 'Gesperrt' : 'Freigegeben');
+      $('roomMessage').value = '';
+      await loadRooms();
+    }catch(e){
+      toast(`Übernehmen Fehler (${e.status||'?'}) ${e.message||''}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
+  }
+
+  function renderRooms(){
+    const host = $('roomList'); if(!host) return;
+    const empty = $('roomEmpty');
+    const q = String($('roomSearch')?.value||'').trim().toLowerCase();
+    const f = String($('roomFilter')?.value||'all');
+
+    let items = Array.isArray(state.rooms) ? state.rooms.slice() : [];
+    items = items.filter(r=>{
+      const room = String(r.room||'');
+      if(q && !room.toLowerCase().includes(q)) return false;
+      if(f==='blocked' && !r.blocked) return false;
+      if(f==='unblocked' && r.blocked) return false;
+      return true;
+    });
+
+    if(empty) empty.style.display = items.length ? 'none' : '';
+    host.innerHTML = '';
+
+    const canDo = can('rooms.manage') || can('admin.users.manage') || (state.me?.perms?.['sa.all']);
+
+    // nice list
+    for(const r of items){
+      const card=document.createElement('div'); card.className='group';
+      const st = r.blocked ? 'GESPERRT' : 'FREI';
+      const ts = r.updatedAt ? fmtTs(r.updatedAt) : '-';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:900;font-size:14px">Zimmer ${escapeHtml(r.room||'')}</div>
+            <div class="small">Status: <b style="color:${r.blocked?'#ffb0b0':'#b8ffcf'}">${st}</b></div>
+            <div class="small muted">Zeit: ${escapeHtml(ts)} • von: ${escapeHtml(r.updatedByEmail||r.updatedBy||'')}</div>
+          </div>
+          <div style="min-width:220px;display:grid;gap:8px">
+            <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
+              <div class="small muted">Nachricht</div>
+              <div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(r.message||'')}</div>
+            </div>
+            <div class="btnrow">
+              <button class="roomToggleBtn" data-room="${escapeHtml(r.room||'')}" data-next="${r.blocked?'0':'1'}" ${canDo?'':'disabled'}>
+                ${r.blocked?'Freigeben':'Sperren'}
+              </button>
+              <button class="roomPrefillBtn secondary" data-room="${escapeHtml(r.room||'')}" data-blocked="${r.blocked?'1':'0'}">In Formular</button>
+            </div>
+          </div>
+        </div>
+      `;
+      host.appendChild(card);
+    }
+
+    host.querySelectorAll('.roomPrefillBtn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        $('roomRoom').value = b.dataset.room || '';
+        $('roomAction').value = (b.dataset.blocked==='1') ? 'unblock' : 'block';
+        $('roomMessage').focus();
+      });
+    });
+
+    host.querySelectorAll('.roomToggleBtn').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        const room = b.dataset.room;
+        const next = b.dataset.next === '1';
+        const msg = next ? prompt("Nachricht fürs Popup (optional):","") : "";
+        try{
+          const j = await api('/api/auth/room/control', { body:{ room, blocked: next, message: msg||"" } });
+          setOut(j);
+          toast(next ? 'Gesperrt' : 'Freigegeben');
+          await loadRooms();
+        }catch(e){
+          toast(`Fehler (${e.status||'?'}) ${e.message||''}`);
+        }
+      });
+    });
+  }
+
+
+async function doLogin(){
     const email = String($('loginEmail').value||'').trim();
     const password = String($('loginPw').value||'').trim();
     if(!email || !password){ toast('Email + Passwort eingeben'); return; }
@@ -810,6 +986,11 @@
   const bs=$('btnRbacSave'); if(bs) bs.addEventListener('click', saveRolePerms);
   const rs=$('rbacRole'); if(rs) rs.addEventListener('change', ()=>loadRolePerms(rs.value));
   const rq=$('rbacSearch'); if(rq) rq.addEventListener('input', renderRbacEditor);
+
+  const brm=$('btnRoomReload'); if(brm) brm.addEventListener('click', loadRooms);
+  const bam=$('btnRoomApply'); if(bam) bam.addEventListener('click', applyRoomControl);
+  const rqs=$('roomSearch'); if(rqs) rqs.addEventListener('input', renderRooms);
+  const rfl=$('roomFilter'); if(rfl) rfl.addEventListener('change', renderRooms);
 
 
   $('userStatusFilter').addEventListener('change', renderUsers);
