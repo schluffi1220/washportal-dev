@@ -307,7 +307,7 @@
               <div class="small muted">Haken setzen = Slot verfügbar. Speichert als Array <span class="mono">washerHours</span>.</div>
             </div>
             <div class="chiprow">
-              <span class="chip on" id="btnSlotsPresetDay">Standard (6–22)</span>
+              <span class="chip on" id="btnSlotsPresetDay">Standard (6–20)</span>
               <span class="chip" id="btnSlotsPresetAll">Alle</span>
               <span class="chip" id="btnSlotsPresetNone">Keine</span>
             </div>
@@ -914,33 +914,44 @@
     }
   }
 
-async function cfgLoad(){
+function setVal(id, v){
+    const el = $(id);
+    if(!el) return;
+    el.value = (v ?? "");
+  }
+  function setChk(id, v){
+    const el = $(id);
+    if(!el) return;
+    el.checked = !!v;
+  }
+
+  async function cfgLoad(){
     try{
       const j = await api('/api/auth/admin/config/get', {body:{}});
       setOut(j);
       const c = j.config || j.data?.config || {};
       // raw
-      $('cfgRaw').value = JSON.stringify(c, null, 2);
+      if($('cfgRaw')) $('cfgRaw').value = JSON.stringify(c, null, 2);
       // form fields
-      $('cfgDaysPast').value = (c.daysPast ?? 1);
-      $('cfgDaysFuture').value = (c.daysFuture ?? 6);
-      $('cfgChatEnabled').checked = !!(c.chatEnabled ?? true);
-      $('cfgWhitecardEnabled').checked = !!(c.whitecardEnabled ?? true);
-      $('cfgPortalDebug').checked = !!(c.portalDebugEnabled ?? false);
-      $('cfgWasherPopup').checked = !!(c.washerPopup ?? false);
-      $('cfgDryerPopup').checked = !!(c.dryerPopup ?? false);
-      $('cfgDryerMinutes').value = String(c.dryerMinutes ?? 120);
-      $('cfgNewsEnabled').checked = !!(c.newsEnabled ?? false);
-      $('cfgNewsText').value = String(c.newsText ?? '');
-      buildSlotGrid(Array.isArray(c.washerHours) ? c.washerHours : []);
-      if(Array.isArray(c.washerHours) && c.washerHours.length===0){
-        // Nur UI-Default, Speichern erfolgt erst über Button
-        buildSlotGrid([6,8,10,12,14,16,18,20,22]);
-      }
+      setVal('cfgDaysPast', (c.daysPast ?? 1));
+      setVal('cfgDaysFuture', (c.daysFuture ?? 6));
+      setChk('cfgChatEnabled', (c.chatEnabled ?? true));
+      setChk('cfgWhitecardEnabled', (c.whitecardEnabled ?? true));
+      setChk('cfgPortalDebug', (c.portalDebugEnabled ?? false));
+      setChk('cfgWasherPopup', (c.washerPopup ?? false));
+      setChk('cfgDryerPopup', (c.dryerPopup ?? false));
+      setVal('cfgDryerMinutes', String(c.dryerMinutes ?? 120));
+      setChk('cfgNewsEnabled', (c.newsEnabled ?? false));
+      setVal('cfgNewsText', String(c.newsText ?? ''));
+
+      // slots: always render grid; if empty -> show standard default (6–20) but do NOT auto-save
+      const wh = Array.isArray(c.washerHours) ? c.washerHours : [];
+      buildSlotGrid(wh.length ? wh : [6,8,10,12,14,16,18,20]);
 
       // hint station pin state
       const hasStation = !!c.stationPinHash;
-      $('cfgStationPinHint').textContent = hasStation ? '✅ Stations-PIN ist gesetzt.' : '⚠️ Stations-PIN ist NICHT gesetzt – Portal-Refresh wird blockiert.';
+      if($('cfgStationPinHint')) $('cfgStationPinHint').textContent = hasStation ? '✅ Stations-PIN ist gesetzt.' : '⚠️ Stations-PIN ist NICHT gesetzt – Portal-Refresh wird blockiert.';
+      applyConfigPerms();
       toast('Konfig geladen');
     }catch(e){
       toast(`Konfig Fehler (${e.status||'?'}) ${e.message}`);
@@ -982,10 +993,35 @@ async function cfgLoad(){
     return out;
   }
 
+
+  function applyConfigPerms(){
+    const canManage = can('admin.config.manage') || (state.me?.perms?.['sa.all']);
+    const ids = [
+      'cfgDaysPast','cfgDaysFuture','cfgChatEnabled','cfgWhitecardEnabled','cfgPortalDebug',
+      'cfgWasherPopup','cfgDryerPopup','cfgDryerMinutes','cfgNewsEnabled','cfgNewsText',
+      'btnCfgSave','btnSetStationPin'
+    ];
+    for(const id of ids){
+      const el = $(id);
+      if(!el) continue;
+      el.disabled = !canManage;
+    }
+    // slot grid checkboxes
+    const host = $('slotGrid');
+    if(host){
+      host.querySelectorAll('input[type="checkbox"][data-hour]').forEach(cb=>cb.disabled = !canManage);
+    }
+    // presets
+    for(const id of ['btnSlotsPresetDay','btnSlotsPresetAll','btnSlotsPresetNone']){
+      const el=$(id); if(el) el.style.pointerEvents = canManage ? 'auto' : 'none';
+      if(el) el.style.opacity = canManage ? '1' : '.5';
+    }
+  }
+
 function cfgFromForm(){
     // start from raw (so we keep unknown keys)
     let base={};
-    try{ base = JSON.parse(String($('cfgRaw').value||'{}')||'{}'); }catch(_e){ base = {}; }
+    try{ base = JSON.parse(String($('cfgRaw')?.value||'{}')||'{}'); }catch(_e){ base = {}; }
     base.daysPast = Number($('cfgDaysPast').value||1) || 1;
     base.daysFuture = Number($('cfgDaysFuture').value||6) || 6;
     base.chatEnabled = !!$('cfgChatEnabled').checked;
@@ -1005,6 +1041,7 @@ function cfgFromForm(){
       const cfg = cfgFromForm();
       const j = await api('/api/auth/admin/config/set', {body:{config: cfg}});
       setOut(j); toast('Konfig gespeichert');
+      // Reload to reflect persisted config
       await cfgLoad();
     }catch(e){
       toast(`Konfig speichern Fehler (${e.status||'?'}) ${e.message}`);
@@ -1252,7 +1289,7 @@ async function doLogin(){
   const bcl=$('btnClearStationPin'); if(bcl) bcl.addEventListener('click', ()=>{ $('cfgStationPin').value=''; $('cfgStationPin2').value=''; });
 
   const pDay=$('btnSlotsPresetDay'); if(pDay) pDay.addEventListener('click', ()=>{
-    buildSlotGrid([6,8,10,12,14,16,18,20,22]);
+    buildSlotGrid([6,8,10,12,14,16,18,20]);
   });
   const pAll=$('btnSlotsPresetAll'); if(pAll) pAll.addEventListener('click', ()=>{
     buildSlotGrid(Array.from({length:24},(_,i)=>i));
