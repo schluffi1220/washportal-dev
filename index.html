@@ -612,49 +612,51 @@ function bookingForMachineRunning(type, machine){
 // ---------- render ----------
 function renderNewsBox(){
   const wrap = $("newsBoxWrap");
-  const n = STATE.news;
-  if (!n.enabled || !n.text){
+  if(!wrap) return;
+
+  // Support both legacy STATE.news and config-based flags
+  const cfg = STATE?.config || {};
+  const n = (STATE && STATE.news) ? STATE.news : {
+    enabled: !!cfg.newsEnabled,
+    text: String(cfg.newsText||""),
+    version: Number(cfg.newsVersion||0) || 0
+  };
+
+  const enabled = !!n.enabled;
+  const text = String(n.text||"").trim();
+
+  if (!enabled || !text){
     wrap.style.display="none";
     wrap.innerHTML="";
     return;
   }
   wrap.style.display="block";
 
+  // seen-state stored by version+room
+  const key = "newsSeen:" + String(STATE?.room||STATE?.user?.room||"") + ":" + String(n.version||0);
+  let seen = false;
+  try{ seen = localStorage.getItem(key)==="1"; }catch(_e){}
+
   const details = document.createElement("details");
-  details.open = !n.seen; // open only when unseen
+  details.open = !seen;
   const sum = document.createElement("summary");
   sum.textContent = "Was ist neu?";
-  const txt = document.createElement("div");
-  txt.className="small";
-  txt.style.marginTop="8px";
-  txt.style.whiteSpace="pre-wrap";
-  txt.textContent = n.text;
-
-  const btn = document.createElement("button");
-  btn.className="btn secondary";
-  btn.style.marginTop="10px";
-  btn.textContent = "Gelesen";
-  btn.onclick = async ()=>{
-    try{
-      const c = getCreds();
-      await jpost("/api/news/seen", c);
-      STATE.news.seen = true;
-      details.open = false;
-      toast("✅ Als gelesen markiert");
-    }catch(e){
-      toast("⛔ Konnte nicht speichern");
-    }
-  };
+  const body = document.createElement("div");
+  body.className = "small";
+  body.style.marginTop = "8px";
+  body.textContent = text;
 
   details.appendChild(sum);
-  details.appendChild(txt);
-  details.appendChild(btn);
+  details.appendChild(body);
   wrap.innerHTML="";
   wrap.appendChild(details);
 
-  if (!n.seen){
-    alert("📢 Neue Info:\n\n" + n.text);
-  }
+  // mark as seen when opened
+  details.addEventListener("toggle", ()=>{
+    if(details.open){
+      try{ localStorage.setItem(key,"1"); }catch(_e){}
+    }
+  });
 }
 
 function renderSlotDropdown(){
