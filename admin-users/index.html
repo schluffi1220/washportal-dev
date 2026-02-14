@@ -200,15 +200,103 @@
   <!-- CONFIG -->
   <div class="card section" id="sec-config" style="margin-top:10px">
     <b>Konfiguration</b>
-    <div class="btnrow" style="margin-top:10px">
-      <button id="btnCfgLoad">Konfig laden</button>
-      <button id="btnCfgSave">Konfig speichern</button>
-    </div>
+    <div class="small" style="margin-top:6px">Alles hier ist so gebaut, dass du im Alltag nur klicken musst. „Raw JSON“ bleibt als Expertenmodus.</div>
+
     <div class="group" style="margin-top:10px;display:grid;gap:10px">
-      <div>
-        <label>Raw JSON</label>
-        <textarea id="cfgRaw" placeholder='{"daysPast":1,"daysFuture":6}'></textarea>
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:900">Setup</div>
+          <div class="small muted">Wichtig: Stations-PIN muss gesetzt sein, sonst ist das Portal gesperrt.</div>
+        </div>
+        <div class="btnrow" style="min-width:260px">
+          <button id="btnCfgLoad">Aktualisieren</button>
+          <button id="btnCfgSave">Speichern</button>
+        </div>
       </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
+          <div style="font-weight:900">Stations-PIN</div>
+          <div class="small muted" style="margin-top:6px">Der PIN, den das Portal zusätzlich zum Zimmer-PIN verlangt.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <div>
+              <label>Neuer Stations-PIN</label>
+              <input id="cfgStationPin" type="password" placeholder="mind. 4 Stellen"/>
+            </div>
+            <div>
+              <label>Bestätigen</label>
+              <input id="cfgStationPin2" type="password" placeholder="wiederholen"/>
+            </div>
+          </div>
+          <div class="btnrow" style="margin-top:10px">
+            <button id="btnSetStationPin">Stations-PIN setzen</button>
+            <button id="btnClearStationPin" class="secondary" title="Löscht nicht den Hash — leert nur die Eingabefelder">Felder leeren</button>
+          </div>
+          <div class="small" id="cfgStationPinHint" style="margin-top:8px;opacity:.8"></div>
+        </div>
+
+        <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
+          <div style="font-weight:900">Datenfenster (Privacy/Logs)</div>
+          <div class="small muted" style="margin-top:6px">Wie weit zurück/voraus Daten im System sichtbar bleiben.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <div>
+              <label>Tage zurück</label>
+              <input id="cfgDaysPast" inputmode="numeric" placeholder="z.B. 1"/>
+            </div>
+            <div>
+              <label>Tage voraus</label>
+              <input id="cfgDaysFuture" inputmode="numeric" placeholder="z.B. 6"/>
+            </div>
+          </div>
+          <div class="small muted" style="margin-top:10px">Tipp: Wenn du hier speicherst, wird Privacy später automatisch „Löschdatum“ berechnen.</div>
+        </div>
+      </div>
+
+      <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
+        <div style="font-weight:900">Funktionen</div>
+        <div class="small muted" style="margin-top:6px">Schalte Features per Haken an/aus. Admin kann Locks erzwingen.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div>
+            <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfgChatEnabled"/>
+              <span><b>Chat aktiv</b><span class="small muted"> (Zimmer ↔ Zimmer)</span></span>
+            </label>
+            <div class="small muted" style="margin-top:6px">Wenn Admin deaktiviert, darf PS/SV später nicht reaktivieren.</div>
+          </div>
+
+          <div>
+            <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfgWhitecardEnabled"/>
+              <span><b>Whitecard aktiv</b><span class="small muted"> (Überbuchen erlauben)</span></span>
+            </label>
+            <div class="small muted" style="margin-top:6px">Maschine wird weiß markiert + Überbuchung nach Zustimmung.</div>
+          </div>
+
+          <div>
+            <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfgWasherPopup"/>
+              <span><b>Waschmaschinen-Popup</b><span class="small muted"> (Bild/Info bestätigen)</span></span>
+            </label>
+          </div>
+
+          <div>
+            <label style="display:flex;gap:10px;align-items:center;cursor:pointer">
+              <input type="checkbox" id="cfgDryerPopup"/>
+              <span><b>Trockner-Popup</b><span class="small muted"> (Bild/Info bestätigen)</span></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Expertenmodus: Raw JSON</summary>
+        <div style="margin-top:10px">
+          <label>Raw JSON</label>
+          <textarea id="cfgRaw" placeholder='{"daysPast":1,"daysFuture":6}'></textarea>
+          <div class="small muted" style="margin-top:8px">Wenn du hier änderst, überschreibt das die Felder oben beim nächsten Laden.</div>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -727,22 +815,65 @@
   }
 
 
-  async function cfgLoad(){
+  
+  async function setStationPin(){
+    const p1 = String($('cfgStationPin').value||'').trim();
+    const p2 = String($('cfgStationPin2').value||'').trim();
+    if(!p1 || p1.length < 4) return toast('Stations-PIN zu kurz');
+    if(p1 !== p2) return toast('Stations-PIN stimmt nicht überein');
+    try{
+      const j = await api('/api/admin/set-station-pin', {body:{pin: p1}});
+      setOut(j);
+      toast('Stations-PIN gesetzt');
+      $('cfgStationPin').value=''; $('cfgStationPin2').value='';
+      await cfgLoad();
+    }catch(e){
+      toast(`Stations-PIN Fehler (${e.status||'?'}) ${e.message||''}`);
+      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+    }
+  }
+
+async function cfgLoad(){
     try{
       const j = await api('/api/auth/admin/config/get', {body:{}});
       setOut(j);
       const c = j.config || j.data?.config || {};
+      // raw
       $('cfgRaw').value = JSON.stringify(c, null, 2);
+      // form fields
+      $('cfgDaysPast').value = (c.daysPast ?? 1);
+      $('cfgDaysFuture').value = (c.daysFuture ?? 6);
+      $('cfgChatEnabled').checked = !!(c.chatEnabled ?? true);
+      $('cfgWhitecardEnabled').checked = !!(c.whitecardEnabled ?? true);
+      $('cfgWasherPopup').checked = !!(c.washerPopup ?? false);
+      $('cfgDryerPopup').checked = !!(c.dryerPopup ?? false);
+
+      // hint station pin state
+      const hasStation = !!c.stationPinHash;
+      $('cfgStationPinHint').textContent = hasStation ? '✅ Stations-PIN ist gesetzt.' : '⚠️ Stations-PIN ist NICHT gesetzt – Portal-Refresh wird blockiert.';
       toast('Konfig geladen');
     }catch(e){
       toast(`Konfig Fehler (${e.status||'?'}) ${e.message}`);
       setOut({error:true,status:e.status,url:e.url,payload:e.payload});
     }
   }
+
+  function cfgFromForm(){
+    // start from raw (so we keep unknown keys)
+    let base={};
+    try{ base = JSON.parse(String($('cfgRaw').value||'{}')||'{}'); }catch(_e){ base = {}; }
+    base.daysPast = Number($('cfgDaysPast').value||1) || 1;
+    base.daysFuture = Number($('cfgDaysFuture').value||6) || 6;
+    base.chatEnabled = !!$('cfgChatEnabled').checked;
+    base.whitecardEnabled = !!$('cfgWhitecardEnabled').checked;
+    base.washerPopup = !!$('cfgWasherPopup').checked;
+    base.dryerPopup = !!$('cfgDryerPopup').checked;
+    return base;
+  }
+
   async function cfgSave(){
     try{
-      let cfg={};
-      try{ cfg = JSON.parse(String($('cfgRaw').value||'{}')||'{}'); }catch(_e){ toast('JSON ungültig'); return; }
+      const cfg = cfgFromForm();
       const j = await api('/api/auth/admin/config/set', {body:{config: cfg}});
       setOut(j); toast('Konfig gespeichert');
       await cfgLoad();
@@ -988,6 +1119,8 @@ async function doLogin(){
   const rq=$('rbacSearch'); if(rq) rq.addEventListener('input', renderRbacEditor);
 
   const brm=$('btnRoomReload'); if(brm) brm.addEventListener('click', loadRooms);
+  const bsp=$('btnSetStationPin'); if(bsp) bsp.addEventListener('click', setStationPin);
+  const bcl=$('btnClearStationPin'); if(bcl) bcl.addEventListener('click', ()=>{ $('cfgStationPin').value=''; $('cfgStationPin2').value=''; });
   const bam=$('btnRoomApply'); if(bam) bam.addEventListener('click', applyRoomControl);
   const rqs=$('roomSearch'); if(rqs) rqs.addEventListener('input', renderRooms);
   const rfl=$('roomFilter'); if(rfl) rfl.addEventListener('change', renderRooms);
