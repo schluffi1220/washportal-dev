@@ -384,6 +384,16 @@ const API_BASE = "https://washportal-dev-worker.schluffi1220.workers.dev"; // <-
 
 // ---------- UI helpers ----------
 const $ = (id)=>document.getElementById(id);
+// Safety polyfills (in case of cached/partial portal assets)
+window.hideLockPopup = window.hideLockPopup || function(){
+  const el = document.getElementById('lockPopup');
+  if(el) el.style.display = 'none';
+};
+window.dbgSetVisible = window.dbgSetVisible || function(on){
+  const box = document.getElementById('dbgBox');
+  if(box) box.style.display = on ? '' : 'none';
+};
+
 function toast(msg){
   const t = $("toast");
   t.textContent = msg;
