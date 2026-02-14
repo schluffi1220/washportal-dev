@@ -168,7 +168,7 @@
 </style>
 </head>
 <body>
-<div id="errBanner" style="display:none;position:sticky;top:0;z-index:999999;background:#b00020;color:#fff;padding:10px 12px;font-weight:900"></div>
+<div id="errBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1000000;background:#b00020;color:#fff;padding:12px 14px;font-weight:900;white-space:pre-wrap"></div>
   <header>
     <div class="wrap">
       <h1>Washportal</h1>
@@ -1503,11 +1503,11 @@ async function refreshAll(){
     }
 
     if(!LOCKED){
-      renderNewsBox();
-      renderSlotDropdown();
-      renderTiles();
-      renderMyBookings();
-    } else {
+      try{ renderNewsBox(); }catch(e){ throw new Error("renderNewsBox: " + (e?.message||e)); }
+    try{ renderSlotDropdown(); }catch(e){ throw new Error("renderSlotDropdown: " + (e?.message||e)); }
+    try{ renderTiles(); }catch(e){ throw new Error("renderTiles: " + (e?.message||e)); }
+    try{ renderMyBookings(); }catch(e){ throw new Error("renderMyBookings: " + (e?.message||e)); }
+} else {
       // In Sperrmodus nur Feedback nutzbar
       renderNewsBox();
     }
@@ -1540,7 +1540,8 @@ async function refreshAll(){
     }catch(_x){ msg = String(e); }
     showErrBanner(msg || "Unbekannter Fehler");
     toast("Fehler");
-  }finally{
+    try{ alert("Fehler: " + (msg||"unbekannt")); }catch(_e){}
+}finally{
     $("btnRefresh").disabled = false;
     $("btnRefresh").textContent = "Aktualisieren";
   }
