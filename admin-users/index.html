@@ -183,6 +183,41 @@
   const $ = (id)=>document.getElementById(id);
   const state = { me:null, users:[], snapshot:null, transfer:[] };
 
+  function can(key){
+    const p = state.me?.perms || {};
+    if(p["sa.all"]) return true;
+    return !!p[key];
+  }
+  function applyRbacUI(){
+    // Tabs
+    const tabReq = {
+      users: "admin.users.view",
+      rbac: "admin.rbac.view",
+      config: "admin.config.view",
+      transfer: "role.cross.transfer",
+      debug: "sa.all",
+    };
+    document.querySelectorAll('.tab').forEach(btn=>{
+      const t = btn.dataset.tab;
+      const need = tabReq[t];
+      const ok = !need || can(need) || (t==="transfer" && (can("role.ps.transfer")||can("role.vs.transfer")||can("role.cross.transfer")));
+      btn.style.display = ok ? "" : "none";
+    });
+    // ensure active tab is visible
+    const active = document.querySelector('.tab.active');
+    if(active && active.style.display==='none'){
+      const first = Array.from(document.querySelectorAll('.tab')).find(b=>b.style.display!=='none');
+      if(first) setTab(first.dataset.tab);
+    }
+    // Disable manage actions if missing perms
+    const dis = (id, ok)=>{ const el=$(id); if(!el) return; el.disabled = !ok; el.classList.toggle('disabled', !ok); };
+    dis('btnUsers', can("admin.users.view"));
+    dis('btnSnap', can("admin.rbac.view"));
+    dis('btnCfg', can("admin.config.view"));
+    dis('btnCfgSave', can("admin.config.manage"));
+    // In user cards, role change buttons are rendered dynamically; handled in renderUsers()
+  }
+
   try{
     const savedTok = localStorage.getItem('wp_admin_token');
     if(savedTok && !String($('token').value||'').trim()) $('token').value = savedTok;
@@ -254,6 +289,9 @@
   }
 
   function renderUsers(){
+    const canManageUsers = can('admin.users.manage');
+    const canApproveUsers = can('admin.users.approve') || canManageUsers;
+    const canDeleteUsers = can('admin.users.delete') || canManageUsers;
     const host = $('usersList'); host.innerHTML='';
     const empty = $('usersEmpty');
     const statusFilter = $('userStatusFilter').value;
@@ -329,7 +367,7 @@
     catch(e){ toast(`Routes Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
   async function loadMe(){
-    try{ const j=await api('/api/auth/me', {method:'GET'}); state.me=j; setOut(j); setAuth(true); setRole(); toast('auth ok'); }
+    try{ const j=await api('/api/auth/me', {method:'GET'}); state.me=j; setOut(j); setAuth(true); setRole(); applyRbacUI(); toast('auth ok'); }
     catch(e){ setAuth(false); toast(`auth Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
   }
   async function loadUsers(){
