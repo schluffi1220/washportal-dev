@@ -403,12 +403,30 @@ window.normalizeState = window.normalizeState || function(s){
     }
     if(Array.isArray(s.bookings)){
       s.bookings = s.bookings.map(b=>{
-        const kind = b.type || b.kind || '';
-        const type = String(kind||'').toLowerCase().includes('dry') ? 'dryer' : 'washer';
-        const machine = Number(b.machine ?? b.machineId ?? 0) || 0;
-        const start = Number(b.start ?? b.startAt ?? 0) || 0;
-        const end = Number(b.end ?? b.endAt ?? 0) || 0;
-        return { ...b, type, machine, start, end, kind: b.kind ?? b.type, machineId: String(b.machineId ?? b.machine ?? machine) };
+        const kindRaw = b.type ?? b.kind ?? "";
+        const kind = String(kindRaw||"");
+        const type = kind.toLowerCase().includes("dry") ? "dryer" : "washer";
+
+        const machineNum = Number(b.machine ?? b.machineId ?? 0) || 0;
+        const startNum = Number(b.start ?? b.startAt ?? 0) || 0;
+        const endNum   = Number(b.end   ?? b.endAt   ?? 0) || 0;
+
+        const statusRaw = String(b.status ?? b.state ?? "").toLowerCase();
+        const status = (statusRaw === "active") ? "booked" : (statusRaw || "booked");
+
+        return {
+          ...b,
+          // canonical fields used by UI
+          type,
+          kind: b.kind ?? b.type ?? type,
+          machine: machineNum,
+          machineId: String(b.machineId ?? b.machine ?? machineNum),
+          start: startNum,
+          end: endNum,
+          startAt: startNum,
+          endAt: endNum,
+          status
+        };
       });
     }
   }catch(_e){}
@@ -738,7 +756,7 @@ function renderTiles(){
           b.textContent = "Freigeben";
           b.onclick = async ()=>{
             try{
-              await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+              await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, bookingId: running.id});
               toast("✅ Freigegeben");
               await refreshAll();
             }catch(e){
@@ -829,7 +847,7 @@ function renderTiles(){
             b.textContent = "Fertig (Freigeben)";
             b.onclick = async ()=>{
               try{
-                await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, id: running.id});
+                await jpost("/api/booking/release", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, bookingId: running.id});
                 toast("✅ Freigegeben");
                 await refreshAll();
               }catch(e){
@@ -866,7 +884,9 @@ function renderTiles(){
         b.textContent = isDef ? "Defekt freigeben" : "Defekt melden";
         b.onclick = async ()=>{
           try{
-            await jpost("/api/defect/report", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, type:group.type, machine:m, defect: !isDef});
+            const msg = prompt("Bitte beschreibe den Defekt (kurz):","");
+            if(!msg) return;
+            await jpost("/api/defect/report", {room:creds.room, pin:creds.pin, stationPin:creds.stationPin, machineId: String(m), text: msg});
             toast("✅ Gespeichert");
             await refreshAll();
           }catch(e){
