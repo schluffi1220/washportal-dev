@@ -1496,7 +1496,8 @@ async function refreshAll(){
     const r = await jpost("/api/user/refresh", c);
     STATE = r;
     // Debug Box nur wenn in Konfig aktiviert
-    dbgSetVisible(!!(r?.config?.portalDebugEnabled));
+    dbgSetFlag(!!(r?.config?.portalDebugEnabled));
+    dbgSetVisible(dbgFlag());
 
     // Falls Backend Sperre signalisiert
     if(r && (r.blocked || r.roomBlocked)){
@@ -1875,6 +1876,8 @@ if ($("btnLoadLogs")) {
 
 
 let DBG = [];
+// Debug Box beim Laden nach gespeichertem Flag
+try{ dbgSetVisible(dbgFlag()); }catch(_e){}
 function dbgAdd(entry){
   try{
     DBG.unshift({ t: new Date().toISOString(), ...entry });
@@ -1886,6 +1889,14 @@ function dbgAdd(entry){
 function dbgSetVisible(on){
   const box = $("dbgBox");
   if(box) box.style.display = on ? "" : "none";
+}
+
+
+function dbgFlag(){
+  try{ return localStorage.getItem('portalDebugEnabled') === '1'; }catch(_e){ return false; }
+}
+function dbgSetFlag(on){
+  try{ localStorage.setItem('portalDebugEnabled', on?'1':'0'); }catch(_e){}
 }
 function dbgCopy(){
   const txt = $("dbgOut")?.textContent || "";
