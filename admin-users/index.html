@@ -253,6 +253,52 @@
       </div>
 
       <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
+        <div style="font-weight:900">Buchungs-Slots</div>
+        <div class="small muted" style="margin-top:6px">Lege fest, zu welchen Uhrzeiten Wasch-Slots starten und wie lange ein Trockner läuft.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div>
+            <label>Trockner-Dauer (Minuten)</label>
+            <select id="cfgDryerMinutes">
+              <option value="60">60</option>
+              <option value="90">90</option>
+              <option value="120">120</option>
+              <option value="150">150</option>
+              <option value="180">180</option>
+            </select>
+          </div>
+          <div>
+            <label>News im Portal</label>
+            <label style="display:flex;gap:10px;align-items:center;cursor:pointer;margin-top:6px">
+              <input type="checkbox" id="cfgNewsEnabled"/>
+              <span><b>News aktiv</b></span>
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label>News Text</label>
+          <textarea id="cfgNewsText" placeholder="Kurze Info für alle im Portal…"></textarea>
+          <div class="small muted" style="margin-top:6px">Wird im Portal oben angezeigt, wenn aktiviert.</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+            <div>
+              <div style="font-weight:900">Wasch-Slot Startzeiten</div>
+              <div class="small muted">Haken setzen = Slot verfügbar. Speichert als Array <span class="mono">washerHours</span>.</div>
+            </div>
+            <div class="chiprow">
+              <span class="chip on" id="btnSlotsPresetDay">Standard (6–22)</span>
+              <span class="chip" id="btnSlotsPresetAll">Alle</span>
+              <span class="chip" id="btnSlotsPresetNone">Keine</span>
+            </div>
+          </div>
+          <div id="slotGrid" style="margin-top:10px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px"></div>
+        </div>
+      </div>
+
+<div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
         <div style="font-weight:900">Funktionen</div>
         <div class="small muted" style="margin-top:6px">Schalte Features per Haken an/aus. Admin kann Locks erzwingen.</div>
 
@@ -847,6 +893,10 @@ async function cfgLoad(){
       $('cfgWhitecardEnabled').checked = !!(c.whitecardEnabled ?? true);
       $('cfgWasherPopup').checked = !!(c.washerPopup ?? false);
       $('cfgDryerPopup').checked = !!(c.dryerPopup ?? false);
+      $('cfgDryerMinutes').value = String(c.dryerMinutes ?? 120);
+      $('cfgNewsEnabled').checked = !!(c.newsEnabled ?? false);
+      $('cfgNewsText').value = String(c.newsText ?? '');
+      buildSlotGrid(c.washerHours || []);
 
       // hint station pin state
       const hasStation = !!c.stationPinHash;
@@ -858,7 +908,41 @@ async function cfgLoad(){
     }
   }
 
-  function cfgFromForm(){
+  
+  function buildSlotGrid(selected){
+    const host = $('slotGrid'); if(!host) return;
+    host.innerHTML = '';
+    const sel = new Set((selected||[]).map(x=>Number(x)));
+    for(let h=0; h<24; h++){
+      const lab = String(h).padStart(2,'0') + ':00';
+      const wrap = document.createElement('label');
+      wrap.style.display='flex';
+      wrap.style.gap='8px';
+      wrap.style.alignItems='center';
+      wrap.style.border='1px solid rgba(255,255,255,.10)';
+      wrap.style.borderRadius='14px';
+      wrap.style.padding='8px 10px';
+      wrap.style.background='rgba(255,255,255,.02)';
+      wrap.style.cursor='pointer';
+      wrap.innerHTML = `<input type="checkbox" data-hour="${h}" ${sel.has(h)?'checked':''}/> <span class="small"><b>${lab}</b></span>`;
+      host.appendChild(wrap);
+    }
+    host.querySelectorAll('input[type="checkbox"][data-hour]').forEach(cb=>{
+      cb.addEventListener('change', ()=>{ /* just mark dirty via raw cfg */ });
+    });
+  }
+
+  function getSelectedSlots(){
+    const host = $('slotGrid'); if(!host) return [];
+    const out=[];
+    host.querySelectorAll('input[type="checkbox"][data-hour]').forEach(cb=>{
+      if(cb.checked) out.push(Number(cb.dataset.hour));
+    });
+    out.sort((a,b)=>a-b);
+    return out;
+  }
+
+function cfgFromForm(){
     // start from raw (so we keep unknown keys)
     let base={};
     try{ base = JSON.parse(String($('cfgRaw').value||'{}')||'{}'); }catch(_e){ base = {}; }
@@ -868,6 +952,10 @@ async function cfgLoad(){
     base.whitecardEnabled = !!$('cfgWhitecardEnabled').checked;
     base.washerPopup = !!$('cfgWasherPopup').checked;
     base.dryerPopup = !!$('cfgDryerPopup').checked;
+    base.dryerMinutes = Number($('cfgDryerMinutes').value||120) || 120;
+    base.newsEnabled = !!$('cfgNewsEnabled').checked;
+    base.newsText = String($('cfgNewsText').value||'');
+    base.washerHours = getSelectedSlots();
     return base;
   }
 
@@ -1121,6 +1209,16 @@ async function doLogin(){
   const brm=$('btnRoomReload'); if(brm) brm.addEventListener('click', loadRooms);
   const bsp=$('btnSetStationPin'); if(bsp) bsp.addEventListener('click', setStationPin);
   const bcl=$('btnClearStationPin'); if(bcl) bcl.addEventListener('click', ()=>{ $('cfgStationPin').value=''; $('cfgStationPin2').value=''; });
+
+  const pDay=$('btnSlotsPresetDay'); if(pDay) pDay.addEventListener('click', ()=>{
+    buildSlotGrid([6,8,10,12,14,16,18,20,22]);
+  });
+  const pAll=$('btnSlotsPresetAll'); if(pAll) pAll.addEventListener('click', ()=>{
+    buildSlotGrid(Array.from({length:24},(_,i)=>i));
+  });
+  const pNone=$('btnSlotsPresetNone'); if(pNone) pNone.addEventListener('click', ()=>{
+    buildSlotGrid([]);
+  });
   const bam=$('btnRoomApply'); if(bam) bam.addEventListener('click', applyRoomControl);
   const rqs=$('roomSearch'); if(rqs) rqs.addEventListener('input', renderRooms);
   const rfl=$('roomFilter'); if(rfl) rfl.addEventListener('change', renderRooms);
