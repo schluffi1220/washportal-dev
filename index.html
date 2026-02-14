@@ -1540,7 +1540,7 @@ async function refreshAll(){
       applyLockMode(true, r.lockMessage || r.message || "", r.lockUpdatedAt || 0);
     }
 
-    if(!LOCKED){
+    if(!window.LOCKED){
       try{ renderNewsBox(); }catch(e){ throw new Error("renderNewsBox: " + (e?.message||e)); }
     try{ renderSlotDropdown(); }catch(e){ throw new Error("renderSlotDropdown: " + (e?.message||e)); }
     try{ renderTiles(); }catch(e){ throw new Error("renderTiles: " + (e?.message||e)); }
@@ -1598,7 +1598,7 @@ $("btnBookWasher").onclick = async ()=>{
   const c = getCreds();
   const v = $("slotSelect").value;
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
-  if (LOCKED) return alert("🚫 Zimmer gesperrt – nur Feedback möglich.");
+  if (window.LOCKED) return alert("🚫 Zimmer gesperrt – nur Feedback möglich.");
   if (!v) return toast("Bitte Slot auswählen");
 
   const slot = JSON.parse(v);
@@ -1623,7 +1623,7 @@ $("btnSendFeedback").onclick = async ()=>{
   const c = getCreds();
   const msg = $("feedbackText").value.trim();
   if (!c.room || !c.pin || !c.stationPin) return toast("Bitte Zugang eingeben");
-  if (LOCKED) return alert("🚫 Zimmer gesperrt – nur Feedback möglich.");
+  if (window.LOCKED) return alert("🚫 Zimmer gesperrt – nur Feedback möglich.");
   if (!msg) return toast("Nachricht fehlt");
   try{
     await jpost("/api/feedback/send", { ...c, message: msg });
@@ -1906,7 +1906,7 @@ if ($("btnLoadLogs")) {
 </body>
 </html
 
-let LOCKED = false;
+let window.LOCKED = false;
 let LOCK_INFO = { message:"", updatedAt:0 };
 
 function showLockPopup(message, updatedAt){
@@ -1921,24 +1921,24 @@ function hideLockPopup(){
 }
 
 function applyLockMode(on, message, updatedAt){
-  LOCKED = !!on;
+  window.LOCKED = !!on;
   LOCK_INFO = { message: message||"", updatedAt: updatedAt||0 };
   // Only feedback stays usable
   const idsToHide = ["cardBook","cardTiles","cardMyBookings","cardAdmin"];
   for(const id of idsToHide){
     const el = $(id); if(!el) continue;
-    el.style.display = LOCKED ? "none" : "";
+    el.style.display = window.LOCKED ? "none" : "";
   }
   // Feedback stays, but show a hint at top
   const fb = $("cardFeedback");
   if(fb){
-    fb.style.borderColor = LOCKED ? "rgba(255,120,120,.45)" : "";
+    fb.style.borderColor = window.LOCKED ? "rgba(255,120,120,.45)" : "";
   }
   // Disable book button (extra safety)
-  if($("btnBookWasher")) $("btnBookWasher").disabled = LOCKED;
-  if($("slotSelect")) $("slotSelect").disabled = LOCKED;
+  if($("btnBookWasher")) $("btnBookWasher").disabled = window.LOCKED;
+  if($("slotSelect")) $("slotSelect").disabled = window.LOCKED;
   // If locked, show popup once
-  if(LOCKED) showLockPopup(LOCK_INFO.message, LOCK_INFO.updatedAt);
+  if(window.LOCKED) showLockPopup(LOCK_INFO.message, LOCK_INFO.updatedAt);
 }
 
 function normalizeState(s){
