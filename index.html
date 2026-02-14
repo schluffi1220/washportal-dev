@@ -1531,8 +1531,15 @@ async function refreshAll(){
     showErrBanner("");
     toast("✅ Bereit");
   }catch(e){
-    const msg = e?.data?.message || e?.data?.error || "Fehler";
-    toast("⛔ " + msg);
+    console.error("refreshAll failed:", e);
+    let msg = "";
+    try{
+      if(e?.data) msg = (typeof e.data === "string") ? e.data : JSON.stringify(e.data,null,2);
+      else if(e?.message) msg = e.message;
+      else msg = String(e);
+    }catch(_x){ msg = String(e); }
+    showErrBanner(msg || "Unbekannter Fehler");
+    toast("Fehler");
   }finally{
     $("btnRefresh").disabled = false;
     $("btnRefresh").textContent = "Aktualisieren";
