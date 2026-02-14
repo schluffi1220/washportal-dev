@@ -28,16 +28,35 @@
   .section.active{display:block}
   .small{font-size:11px;opacity:.8;line-height:1.35}
   .group{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
+
+  .topbar{position:sticky;top:0;z-index:9999;background:rgba(7,11,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.10);padding:10px 12px}
+  .topbar h1{margin:0;font-size:18px}
+  .subbar{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .subbar .left{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  details{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
+  details>summary{cursor:pointer;font-weight:800}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .actions button{flex:1 1 140px}
+  table{width:100%;border-collapse:separate;border-spacing:0 8px}
+  th{font-size:11px;text-align:left;opacity:.7;font-weight:800;padding:0 10px}
+  td{padding:10px;border-top:1px solid rgba(255,255,255,.10);border-bottom:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.02)}
+  tr td:first-child{border-left:1px solid rgba(255,255,255,.10);border-top-left-radius:14px;border-bottom-left-radius:14px}
+  tr td:last-child{border-right:1px solid rgba(255,255,255,.10);border-top-right-radius:14px;border-bottom-right-radius:14px}
+  .chiprow{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);font-size:11px;cursor:pointer;user-select:none}
+  .chip.on{background:rgba(120,255,160,.12);border-color:rgba(120,255,160,.35)}
+  .chip.off{opacity:.55}
+  .muted{opacity:.7}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.20);border-top-color:rgba(255,255,255,.80);border-radius:999px;animation:spin 1s linear infinite;vertical-align:-2px;margin-left:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
 </style>
 </head>
 <body>
 <div style="position:sticky;top:0;z-index:99999;background:rgba(255,190,120,.10);border-bottom:1px solid rgba(255,190,120,.25);padding:6px 10px;font-size:12px;font-weight:800">
-  UI-Version: v71-dev-full-fixed • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
+  UI-Version: v72-ui-clean • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
 
-<div class="wrap">
-  <h1>Admin-User (mobile-first)</h1>
-
-  <div class="tabs" id="tabs">
+<div class="topbar"><h1>Admin-User</h1><div class="subbar"><div class="left"><span class="pill" id="pillUser">nicht eingeloggt</span><span class="pill" id="pillRole">-</span></div><div class="left"><button id="btnReloadActive" class="tab">Aktualisieren</button></div></div></div><div class="wrap"><div class="tabs" id="tabs">
     <button class="tab active" data-tab="users">Benutzer</button>
     <button class="tab" data-tab="rbac">Rollen &amp; Rechte</button>
     <button class="tab" data-tab="config">Konfig</button>
@@ -47,24 +66,14 @@
 
   <div class="grid">
     <div class="card">
-      <div style="display:grid;gap:8px">
+  <details open>
+    <summary>Verbindung & Login</summary>
+<div style="display:grid;gap:8px">
         <div>
           <label>Worker BASE</label>
           <input id="base" value="https://washportal-dev-worker.schluffi1220.workers.dev"/>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div>
-            <label>Bearer Token (optional)</label>
-            <input id="token" placeholder="optional (Admin/PS/SV Token)"/>
-          </div>
-          <div>
-            <label>SA Passwort</label>
-            <input id="sa" type="password" placeholder="••••••••"/>
-          </div>
-        </div>
-      </div>
-
-      <div class="group" style="margin-top:10px">
+<div class="group" style="margin-top:10px">
         <b style="font-size:12px">Login (Email + Passwort)</b>
         <div class="small" style="margin-top:6px">Für Admin/PS/SV. Speichert danach automatisch den Bearer Token.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
@@ -77,23 +86,19 @@
             <input id="loginPw" type="password" placeholder="••••••••"/>
           </div>
         </div>
-        <div class="btnrow">
-          <button id="btnLogin">Login</button>
-          <button id="btnLogout">Logout</button>
-        </div>
-      </div>
+    <div class="actions">
+      <button id="btnMe">me</button>
+      <button id="btnUsers">Benutzer</button>
+      <button id="btnSnap">Rechte</button>
+      <button id="btnCfg">Konfig</button>
+      <button id="btnTrList">Übergabe</button>
+      <button id="btnStatus">_status</button>
+      <button id="btnRoutes">_routes</button>
+    </div>
+  </details>
+</div>
 
-      <div class="btnrow">
-        <button id="btnStatus">_status</button>
-        <button id="btnRoutes">_routes</button>
-        <button id="btnMe">me</button>
-        <button id="btnUsers">Benutzer laden</button>
-        <button id="btnSnap">RBAC laden</button>
-        <button id="btnCfg">Konfig laden</button>
-        <button id="btnTrList">Übergabe laden</button>
-      </div>
-
-      <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span class="pill" id="pillBuild">build: –</span>
         <span class="pill" id="pillAuth">auth: –</span>
         <span class="pill" id="pillRole">role: –</span>
@@ -188,6 +193,20 @@
     if(p["sa.all"]) return true;
     return !!p[key];
   }
+  
+  function activeTab(){
+    const a = document.querySelector('.tab.active');
+    return a ? a.dataset.tab : 'users';
+  }
+  async function reloadActive(){
+    const t = activeTab();
+    if(t==='users') return loadUsers();
+    if(t==='rbac') return loadSnapshot();
+    if(t==='config') return loadConfig();
+    if(t==='transfer') return loadTransfer();
+    if(t==='debug') return; // nothing
+  }
+
   function applyRbacUI(){
     // Tabs
     const tabReq = {
@@ -262,6 +281,8 @@
     $('out').textContent = o;
     $('debugOut').textContent = o;
     const build = obj?.build || obj?.data?.build || "–";
+    $('pillUser').textContent = state.me?.user?.email || 'eingeloggt';
+    $('pillRole').textContent = state.me?.user?.roleLabel || state.me?.user?.role || '-';
     $('pillBuild').textContent = 'build: ' + build;
   }
   function setAuth(ok){ $('pillAuth').textContent = 'auth: ' + (ok ? 'ok' : '–'); }
