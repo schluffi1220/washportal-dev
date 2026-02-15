@@ -66,6 +66,12 @@
 
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+
+    .hoursgrid{display:grid;grid-template-columns:repeat(12, minmax(0,1fr));gap:8px}
+    .hourbox{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(0,0,0,.12)}
+    .hourbox input{width:16px;height:16px}
+    .check2{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(0,0,0,.12);cursor:pointer}
+    .check2 input{width:18px;height:18px}
 </style>
 </head>
 <body>
@@ -213,57 +219,64 @@
             <button class="tiny" id="btnCfgSave">Speichern</button>
           </div>
 
+          
           <div class="card" style="margin-bottom:10px">
-            <h2 style="margin:0 0 10px 0">Config Builder</h2>
+            <h2 style="margin:0 0 10px 0">Config (grafisch)</h2>
+
             <div class="grid2">
               <div>
-                <label>daysPast</label>
-                <input id="cfgDaysPast" type="number" min="0" step="1" placeholder="z.B. 2"/>
+                <label>daysPast <span class="muted">(Vergangenheit in Tagen)</span></label>
+                <input id="cfgDaysPast" type="number" min="0" step="1" placeholder="z.B. 7"/>
               </div>
               <div>
-                <label>daysFuture</label>
-                <input id="cfgDaysFuture" type="number" min="0" step="1" placeholder="z.B. 14"/>
+                <label>daysFuture <span class="muted">(Zukunft in Tagen)</span></label>
+                <input id="cfgDaysFuture" type="number" min="0" step="1" placeholder="z.B. 6"/>
               </div>
 
               <div>
-                <label>washerHours</label>
-                <input id="cfgWasherHours" type="number" min="0" step="1" placeholder="z.B. 2"/>
+                <label>dryerMinutes <span class="muted">(Trockner Dauer)</span></label>
+                <input id="cfgDryerMinutes" type="number" min="1" step="1" placeholder="z.B. 150"/>
               </div>
               <div>
-                <label>dryerHours</label>
-                <input id="cfgDryerHours" type="number" min="0" step="1" placeholder="z.B. 1"/>
+                <label>Wasch-Slots (washerHours)</label>
+                <input id="cfgWasherHoursText" type="text" placeholder="z.B. 6,8,10,12,14,16,18,20"/>
+                <div class="muted" style="font-size:11px;margin-top:6px">Komma-separierte Stunden (0–23). Haken unten werden automatisch synchronisiert.</div>
               </div>
 
-              <div class="row" style="gap:10px;align-items:center">
-                <input id="cfgWhitecardEnabled" type="checkbox" style="width:18px;height:18px"/>
-                <label for="cfgWhitecardEnabled" style="margin:0">whitecardEnabled</label>
-              </div>
-              <div class="row" style="gap:10px;align-items:center">
-                <input id="cfgPortalRequirePin" type="checkbox" style="width:18px;height:18px"/>
-                <label for="cfgPortalRequirePin" style="margin:0">portalRequirePin</label>
+              <div class="card" style="grid-column:1 / -1; padding:12px; background:rgba(255,255,255,.04)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <div style="font-weight:700">Wasch-Slots auswählen</div>
+                  <div class="row" style="gap:8px">
+                    <button class="secondary tiny" id="cfgHoursStd">Standard</button>
+                    <button class="secondary tiny" id="cfgHoursClear">Alle aus</button>
+                  </div>
+                </div>
+                <div id="cfgWasherHoursGrid" class="hoursgrid"></div>
               </div>
 
-              <div class="row" style="gap:10px;align-items:center">
-                <input id="cfgEnableWasher" type="checkbox" style="width:18px;height:18px"/>
-                <label for="cfgEnableWasher" style="margin:0">enableWasher</label>
-              </div>
-              <div class="row" style="gap:10px;align-items:center">
-                <input id="cfgEnableDryer" type="checkbox" style="width:18px;height:18px"/>
-                <label for="cfgEnableDryer" style="margin:0">enableDryer</label>
+              <div class="card" style="grid-column:1 / -1; padding:12px; background:rgba(255,255,255,.04)">
+                <div style="font-weight:700;margin-bottom:8px">Features</div>
+                <div class="grid2" style="gap:10px">
+                  <label class="check2"><input id="cfgWhitecardEnabled" type="checkbox"/><span>Weißkarte aktiv</span></label>
+                  <label class="check2"><input id="cfgPortalDebugEnabled" type="checkbox"/><span>Portal Debug</span></label>
+                  <label class="check2"><input id="cfgNewsEnabled" type="checkbox"/><span>News/Info Banner</span></label>
+                  <label class="check2"><input id="cfgChatEnabled" type="checkbox"/><span>Chat aktiv</span></label>
+                  <label class="check2"><input id="cfgWasherPopup" type="checkbox"/><span>Washer Popup</span></label>
+                  <label class="check2"><input id="cfgDryerPopup" type="checkbox"/><span>Dryer Popup</span></label>
+                </div>
               </div>
 
               <div style="grid-column:1 / -1">
-                <label>uiNotice (optional)</label>
-                <input id="cfgUiNotice" placeholder="Hinweistext im Portal (optional)"/>
+                <label>newsText <span class="muted">(nur wenn News aktiv)</span></label>
+                <textarea id="cfgNewsText" style="min-height:84px" placeholder="Kurzer Hinweis…"></textarea>
               </div>
             </div>
 
-            <div class="muted" style="font-size:11px;margin-top:8px">
-              Tipp: Änderungen hier aktualisieren automatisch das JSON unten. Für Spezialfelder kannst du das JSON direkt editieren.
+            <div class="muted" style="font-size:11px;margin-top:10px">
+              Tipp: Du kannst unten jederzeit auch das Raw-JSON bearbeiten – Form &amp; JSON synchronisieren sich.
             </div>
           </div>
-
-          <label>Config JSON (Raw)</label>
+<label>Config JSON (Raw)</label>
           <textarea id="cfgRaw" spellcheck="false"></textarea>
           <div class="muted" style="font-size:11px;margin-top:6px">Wird gespeichert nach <code>/api/auth/admin/config/set</code>.</div>
         </div>
@@ -588,15 +601,22 @@ async function saveRbacRole(){
 
   function cfgSetForm(cfg){
     const get=(k,def)=> (cfg && typeof cfg[k] !== "undefined") ? cfg[k] : def;
-    $("#cfgDaysPast").value = String(get("daysPast", 2));
-    $("#cfgDaysFuture").value = String(get("daysFuture", 14));
-    $("#cfgWasherHours").value = String(get("washerHours", 2));
-    $("#cfgDryerHours").value = String(get("dryerHours", 1));
-    $("#cfgWhitecardEnabled").checked = !!get("whitecardEnabled", true);
-    $("#cfgPortalRequirePin").checked = !!get("portalRequirePin", true);
-    $("#cfgEnableWasher").checked = !!get("enableWasher", true);
-    $("#cfgEnableDryer").checked = !!get("enableDryer", true);
-    $("#cfgUiNotice").value = String(get("uiNotice",""));
+    $("#cfgDaysPast").value = String(get("daysPast", 7));
+    $("#cfgDaysFuture").value = String(get("daysFuture", 6));
+    $("#cfgDryerMinutes").value = String(get("dryerMinutes", 150));
+
+    const hours = Array.isArray(get("washerHours", [6,8,10,12,14,16,18,20])) ? get("washerHours", []) : [];
+    setHoursUI(hours);
+
+    $("#cfgWhitecardEnabled").checked = !!get("whitecardEnabled", false);
+    $("#cfgPortalDebugEnabled").checked = !!get("portalDebugEnabled", false);
+    $("#cfgNewsEnabled").checked = !!get("newsEnabled", false);
+    $("#cfgChatEnabled").checked = !!get("chatEnabled", false);
+    $("#cfgWasherPopup").checked = !!get("washerPopup", false);
+    $("#cfgDryerPopup").checked = !!get("dryerPopup", false);
+
+    $("#cfgNewsText").value = String(get("newsText",""));
+    syncFormToRaw();
   }
   function cfgGetForm(){
     const n=(id,def)=> {
@@ -604,15 +624,19 @@ async function saveRbacRole(){
       return Number.isFinite(v) ? v : def;
     };
     return {
-      daysPast: n("cfgDaysPast", 2),
-      daysFuture: n("cfgDaysFuture", 14),
-      washerHours: n("cfgWasherHours", 2),
-      dryerHours: n("cfgDryerHours", 1),
+      daysPast: n("cfgDaysPast", 7),
+      daysFuture: n("cfgDaysFuture", 6),
+      dryerMinutes: n("cfgDryerMinutes", 150),
+      washerHours: getHoursFromUI(),
+
+      newsEnabled: $("#cfgNewsEnabled").checked,
+      newsText: String($("#cfgNewsText").value||""),
+      chatEnabled: $("#cfgChatEnabled").checked,
+
       whitecardEnabled: $("#cfgWhitecardEnabled").checked,
-      portalRequirePin: $("#cfgPortalRequirePin").checked,
-      enableWasher: $("#cfgEnableWasher").checked,
-      enableDryer: $("#cfgEnableDryer").checked,
-      uiNotice: String($("#cfgUiNotice").value||"")
+      portalDebugEnabled: $("#cfgPortalDebugEnabled").checked,
+      washerPopup: $("#cfgWasherPopup").checked,
+      dryerPopup: $("#cfgDryerPopup").checked
     };
   }
   function cfgMergeRawWithForm(){
@@ -623,16 +647,91 @@ async function saveRbacRole(){
     $("#cfgRaw").value = JSON.stringify(merged, null, 2);
     return merged;
   }
+  function initHoursGrid(){
+    const host = $("#cfgWasherHoursGrid");
+    if(!host || host.dataset.ready==="1") return;
+    host.dataset.ready="1";
+    host.innerHTML="";
+    for(let h=0; h<=23; h++){
+      const box=document.createElement("label");
+      box.className="hourbox";
+      box.innerHTML = `<input type="checkbox" data-hour="${h}"><span>${String(h).padStart(2,"0")}:00</span>`;
+      host.appendChild(box);
+    }
+    $("#cfgHoursStd")?.addEventListener("click", (e)=>{ e.preventDefault(); setHoursUI([6,8,10,12,14,16,18,20]); });
+    $("#cfgHoursClear")?.addEventListener("click", (e)=>{ e.preventDefault(); setHoursUI([]); });
+    host.addEventListener("change", ()=>{ syncHoursToText(); syncFormToRaw(); });
+    $("#cfgWasherHoursText")?.addEventListener("input", ()=>{ syncTextToHours(); syncFormToRaw(); });
+  }
+
+  function parseHoursText(){
+    const txt = String($("#cfgWasherHoursText")?.value||"").trim();
+    if(!txt) return [];
+    const parts = txt.split(/[,;\s]+/).map(s=>s.trim()).filter(Boolean);
+    const out=[];
+    for(const p of parts){
+      const n=Number(p);
+      if(Number.isFinite(n) && n>=0 && n<=23) out.push(Math.trunc(n));
+    }
+    return Array.from(new Set(out)).sort((a,b)=>a-b);
+  }
+  function setHoursUI(hours){
+    initHoursGrid();
+    const set = new Set((hours||[]).map(n=>Number(n)));
+    // checkboxes
+    $("#cfgWasherHoursGrid")?.querySelectorAll("input[data-hour]")?.forEach(cb=>{
+      const h=Number(cb.dataset.hour);
+      cb.checked = set.has(h);
+    });
+    // text
+    $("#cfgWasherHoursText").value = (Array.from(set).sort((a,b)=>a-b)).join(",");
+    syncFormToRaw();
+  }
+  function getHoursFromUI(){
+    initHoursGrid();
+    const set=[];
+    $("#cfgWasherHoursGrid")?.querySelectorAll("input[data-hour]")?.forEach(cb=>{
+      if(cb.checked) set.push(Number(cb.dataset.hour));
+    });
+    return set.sort((a,b)=>a-b);
+  }
+  function syncHoursToText(){
+    $("#cfgWasherHoursText").value = getHoursFromUI().join(",");
+  }
+  function syncTextToHours(){
+    const hours = parseHoursText();
+    const set = new Set(hours);
+    $("#cfgWasherHoursGrid")?.querySelectorAll("input[data-hour]")?.forEach(cb=>{
+      cb.checked = set.has(Number(cb.dataset.hour));
+    });
+  }
+
+  function syncFormToRaw(){
+    // merge form over raw
+    cfgMergeRawWithForm();
+    // disable newsText when news disabled (UX)
+    const en=$("#cfgNewsEnabled")?.checked;
+    const nt=$("#cfgNewsText");
+    if(nt){ nt.disabled = !en; nt.style.opacity = en ? "1" : ".6"; }
+  }
+
   function cfgFormBind(){
-    const ids=["cfgDaysPast","cfgDaysFuture","cfgWasherHours","cfgDryerHours","cfgWhitecardEnabled","cfgPortalRequirePin","cfgEnableWasher","cfgEnableDryer","cfgUiNotice"];
+    initHoursGrid();
+    const ids=[
+      "cfgDaysPast","cfgDaysFuture","cfgDryerMinutes",
+      "cfgWhitecardEnabled","cfgPortalDebugEnabled","cfgNewsEnabled","cfgChatEnabled","cfgWasherPopup","cfgDryerPopup",
+      "cfgNewsText"
+    ];
     for (const id of ids){
       const el=$("#"+id);
-      el.addEventListener("input", ()=>cfgMergeRawWithForm());
-      el.addEventListener("change", ()=>cfgMergeRawWithForm());
+      if(!el) continue;
+      el.addEventListener("input", ()=>syncFormToRaw());
+      el.addEventListener("change", ()=>syncFormToRaw());
     }
     $("#cfgRaw").addEventListener("input", ()=>{
       try{ const cfg=JSON.parse($("#cfgRaw").value||"{}"); cfgSetForm(cfg); } catch {}
     });
+    syncFormToRaw();
   }
 
 async function cfgLoad(){
