@@ -76,13 +76,13 @@
 
 <div class="topbar"><h1>Admin-User</h1><div class="subbar"><div class="left"><span class="pill" id="pillUser">nicht eingeloggt</span><span class="pill" id="pillRole">-</span></div><div class="left"><button id="btnReloadActive" class="tab">Aktualisieren</button></div></div></div><div class="wrap"><div class="tabs" id="tabs">
     <button class="tab active" data-tab="users">Benutzer</button>
-    <button class="tab" data-tab="rbac" onclick="setTab('rbac')">Rollen &amp; Rechte</button>
-    <button class="tab" data-tab="config" onclick="setTab('config')">Konfig</button>
-    <button class="tab" data-tab="transfer" onclick="setTab('transfer')">Übergabe</button>
-    <button class="tab" data-tab="rooms" onclick="setTab('rooms')">Zimmer</button>
-    <button class="tab" data-tab="bookings" onclick="setTab('bookings')">Buchungen</button>
-    <button class="tab" data-tab="logs" onclick="setTab('logs')">Logs</button>
-    <button class="tab" data-tab="debug" onclick="setTab('debug')">Debug</button>
+    <button class="tab" data-tab="rbac">Rollen &amp; Rechte</button>
+    <button class="tab" data-tab="config">Konfig</button>
+    <button class="tab" data-tab="transfer">Übergabe</button>
+    <button class="tab" data-tab="rooms">Zimmer</button>
+    <button class="tab" data-tab="bookings">Buchungen</button>
+    <button class="tab" data-tab="logs">Logs</button>
+    <button class="tab" data-tab="debug">Debug</button>
   </div>
 
   <div class="grid">
@@ -659,8 +659,6 @@
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
     ['users','rbac','config','transfer','rooms','bookings','logs','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
   }
-window.setTab = setTab;
-
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>setTab(t.dataset.tab)));
 
   function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
