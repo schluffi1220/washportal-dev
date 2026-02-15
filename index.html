@@ -205,20 +205,23 @@
   const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours.slice() : [];
   const out = [];
   const daysFuture = Number(cfg?.daysFuture ?? 6);
-  const daysPast = Number(cfg?.daysPast ?? 7);
-  const startDay = startOfDay(Date.now() - daysPast*86400000);
-  const endDay = startOfDay(Date.now() + daysFuture*86400000);
+  const now = Date.now();
+  const today0 = startOfDay(now);
+  const endDay = today0 + daysFuture*86400000;
 
-  for(let day=startDay; day<=endDay; day+=86400000){
+  for(let day=today0; day<=endDay; day+=86400000){
     for(const h of hours){
       const ts = day + Number(h)*3600000;
       const endTs = ts + 3600000;
+      // Nur laufende oder zukünftige Slots anzeigen
+      if(endTs <= now) continue;
       const label = `${fmtDate(day)} ${fmtHM(ts)}–${fmtHM(endTs)}`;
-      out.push({ ts, label });
+      out.push({ ts, endTs, label });
     }
   }
   return out;
 }
+
 
 
   function activeBookingFor(machine, bookings){
@@ -511,6 +514,7 @@ async function refreshAll(){
 
   loadCreds();
   refreshAll();
+function startOfDay(ts){const d=new Date(Number(ts||Date.now()));d.setHours(0,0,0,0);return d.getTime();}
 </script>
 </body>
 </html>
