@@ -248,7 +248,7 @@ function startOfDay(ts){
         // anzeigen: läuft noch oder Zukunft
         if(endAt <= now) continue;
         const running = startAt <= now && endAt > now;
-        const disabled = startAt < (now - 5*60000); // Worker-Regel
+        const disabled = false; // laufende Slots sind buchbar, solange sie noch nicht beendet sind
         const label = `${fmtDate(startAt)} ${fmtHM(startAt)}–${fmtHM(endAt)}` + (running ? " (läuft)" : "");
         slots.push({ startAt, endAt, label, running, disabled });
       }
