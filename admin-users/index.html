@@ -711,7 +711,9 @@ async function saveRbacRole(){
     const set=[];
     $("#cfgWasherHoursGrid")?.querySelectorAll("input[data-hour]")?.forEach(cb=>{
       if(cb.checked) set.push(Number(cb.dataset.hour));
-    }
+    });
+    return set.sort((a,b)=>a-b);
+  }
 
   function updateHoursPretty(){
     const hours = getHoursFromUI();
@@ -720,10 +722,7 @@ async function saveRbacRole(){
     if(!hours.length){ el.textContent = "Aktiv: –"; return; }
     el.textContent = "Aktiv: " + hours.map(h=>String(h).padStart(2,"0")+":00").join(", ");
   }
-);
-    return set.sort((a,b)=>a-b);
-  }
-  function syncHoursToText(){
+function syncHoursToText(){
     $("#cfgWasherHoursText").value = getHoursFromUI().join(",");
     updateHoursPretty();
   }
