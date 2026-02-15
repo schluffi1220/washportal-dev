@@ -138,23 +138,6 @@
         <h2>Meine Buchungen</h2>
         <div class="list" id="myBookings"></div>
       </div>
-
-      <div class="card">
-        <h2>Defekt melden</h2>
-        <div class="row">
-          <div class="field">
-            <label>Maschine (optional)</label>
-            <select id="defectMachine">
-              <option value="">(optional) keine Auswahl</option>
-            </select>
-          </div>
-          <div class="field" style="min-width:300px; flex:2">
-            <label>Beschreibung</label>
-            <input id="defectText" placeholder="Was ist defekt?">
-          </div>
-          <button class="btn" id="defectBtn">Senden</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -602,37 +585,13 @@ async function refreshAll(){
       showErr("⛔ " + e.message);
     }
   }
-
-  async function sendDefect(){
-    showErr("");
-    saveCreds();
-    const room = $("room").value.trim();
-    const pin = $("pin").value.trim();
-    const stationPin = $("stationPin").value.trim();
-    const sel = $("defectMachine").value;
-    const text = $("defectText").value.trim();
-    if(!text) return showErr("Bitte Beschreibung eingeben.");
-    let machineId = "";
-    if(sel){
-      const parts = sel.split(":");
-      machineId = parts[1] || "";
-    }
-    machineId = String(machineId || "");
-    try{
-      await jpost("/api/defect/report",{ room, pin, stationPin, machineId, text });
-      $("defectText").value = "";
-      showOk("✅ Defektmeldung gesendet.");
-      await refreshAll();
-    }catch(e){ showErr("⛔ " + e.message); }
   }
 
-  $("saveBtn").onclick = ()=>{ saveCreds(); showErr(""); };
-  $("refreshBtn").onclick = refreshAll;
-  $("defectBtn").onclick = sendDefect;
+    const _sb = $("saveBtn"); if(_sb) _sb.onclick = ()=>{ saveCreds(); showErr(""); };
+  const _rb = $("refreshBtn"); if(_rb) _rb.onclick = refreshAll;
 
   loadCreds();
   refreshAll();
-function startOfDay(ts){const d=new Date(Number(ts||Date.now()));d.setHours(0,0,0,0);return d.getTime();}
-</script>
+>
 </body>
 </html>
