@@ -263,6 +263,15 @@
                   <label class="check2"><input id="cfgChatEnabled" type="checkbox"/><span>Chat aktiv</span></label>
                   <label class="check2"><input id="cfgWasherPopup" type="checkbox"/><span>Washer Popup</span></label>
                   <label class="check2"><input id="cfgDryerPopup" type="checkbox"/><span>Dryer Popup</span></label>
+                  <div style="grid-column:1 / -1; height:1px; background:rgba(255,255,255,.06); margin:6px 0"></div>
+                  <div class="muted" style="grid-column:1 / -1; font-size:11px; margin-top:-2px">Zielgruppen (optional): wer sieht Feedback/News</div>
+                  <label class="check2"><input id="cfgFeedbackPsEnabled" type="checkbox"/><span>Feedback für PS</span></label>
+                  <label class="check2"><input id="cfgFeedbackSvEnabled" type="checkbox"/><span>Feedback für SV</span></label>
+                  <label class="check2"><input id="cfgFeedbackAdminEnabled" type="checkbox"/><span>Feedback für Admin</span></label>
+                  <label class="check2"><input id="cfgNewsPsEnabled" type="checkbox"/><span>News für PS</span></label>
+                  <label class="check2"><input id="cfgNewsSvEnabled" type="checkbox"/><span>News für SV</span></label>
+                  <label class="check2"><input id="cfgNewsAdminEnabled" type="checkbox"/><span>News für Admin</span></label>
+
                 </div>
               </div>
 
@@ -503,7 +512,7 @@ function renderUsers(users){
           setOut(j); toast('disabled'); await loadUsers();
         }
         if(act==='role'){
-          const role = prompt('Neue Rolle (admin/staff/viewer/user):','admin');
+          const role = prompt('Neue Rolle (Admin/PS/SV/User):','admin');
           if(!role) return;
           const j = await api('/api/auth/admin/users/set-role', {body:{userId:id, role}});
           setOut(j); toast('role gesetzt'); await loadUsers();
@@ -522,7 +531,7 @@ async function loadRbacSnapshot(){
     setOut(j);
     state.rbac.catalog = j.catalog || [];
     // roles from snapshot fallback
-    const roles = (j.roles && j.roles.length) ? j.roles : ['admin','staff','viewer','user'];
+    const roles = (j.roles && j.roles.length) ? j.roles : ['Admin','PS','SV','User'];
     const sel=$('rbacRole');
     sel.innerHTML = roles.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
     sel.value = roles.includes(sel.value)?sel.value:roles[0];
@@ -614,6 +623,12 @@ async function saveRbacRole(){
     $("#cfgChatEnabled").checked = !!get("chatEnabled", false);
     $("#cfgWasherPopup").checked = !!get("washerPopup", false);
     $("#cfgDryerPopup").checked = !!get("dryerPopup", false);
+    $("#cfgFeedbackPsEnabled").checked = !!get("feedbackPsEnabled", false);
+    $("#cfgFeedbackSvEnabled").checked = !!get("feedbackSvEnabled", false);
+    $("#cfgFeedbackAdminEnabled").checked = !!get("feedbackAdminEnabled", false);
+    $("#cfgNewsPsEnabled").checked = !!get("newsPsEnabled", false);
+    $("#cfgNewsSvEnabled").checked = !!get("newsSvEnabled", false);
+    $("#cfgNewsAdminEnabled").checked = !!get("newsAdminEnabled", false);
 
     $("#cfgNewsText").value = String(get("newsText",""));
     syncFormToRaw();
@@ -719,7 +734,7 @@ async function saveRbacRole(){
     initHoursGrid();
     const ids=[
       "cfgDaysPast","cfgDaysFuture","cfgDryerMinutes",
-      "cfgWhitecardEnabled","cfgPortalDebugEnabled","cfgNewsEnabled","cfgChatEnabled","cfgWasherPopup","cfgDryerPopup",
+      "cfgWhitecardEnabled","cfgPortalDebugEnabled","cfgNewsEnabled","cfgChatEnabled","cfgWasherPopup","cfgDryerPopup","cfgFeedbackPsEnabled","cfgFeedbackSvEnabled","cfgFeedbackAdminEnabled","cfgNewsPsEnabled","cfgNewsSvEnabled","cfgNewsAdminEnabled",
       "cfgNewsText"
     ];
     for (const id of ids){
