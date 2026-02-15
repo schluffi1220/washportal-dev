@@ -3,10 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Washportal</title>
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <title>Washportal (DEV)</title>
   <style>
     :root{
       --bg:#08111f; --panel:#0f1c2f; --panel2:#10243b; --line:rgba(255,255,255,.08);
@@ -15,12 +12,6 @@
       --btn:#1f2d44; --btn2:#263a59;
       --shadow: 0 18px 50px rgba(0,0,0,.45);
       --radius:18px;
-
-      /* pastel tiles (intensiver) */
-      --tile-free: rgba(45,212,191,.22);
-      --tile-busy: rgba(96,165,250,.18);
-      --tile-defect: rgba(239,68,68,.22);
-      --tile-locked: rgba(148,163,184,.18);
     }
     *{box-sizing:border-box}
     body{
@@ -30,621 +21,612 @@
                   linear-gradient(180deg, #061022, var(--bg));
       color:var(--text);
     }
-    .wrap{max-width:760px; margin:14px auto 90px; padding:0 12px;}
-    .topbar{position:sticky; top:0; z-index:10; padding:10px 0 8px; background:linear-gradient(180deg, rgba(8,17,31,.94), rgba(8,17,31,.72)); backdrop-filter: blur(10px);}
-    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .brand{display:flex; gap:10px; align-items:center; margin-bottom:8px}
-    .dot{width:10px; height:10px; border-radius:99px; background:var(--ok); box-shadow:0 0 0 4px rgba(45,212,191,.14)}
-    .title{font-weight:900; letter-spacing:.2px}
-    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.04); font-size:12px; color:var(--muted)}
-    .pill strong{color:var(--text)}
-    .err{display:none; margin:10px 0 12px; padding:10px 12px; border-radius:14px; border:1px solid rgba(239,68,68,.35); background:rgba(239,68,68,.10); color:#ffd5d5}
-
-    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px;}
-    h2{margin:0 0 10px; font-size:16px}
-    .muted{color:var(--muted); font-size:12px; line-height:1.35}
-
-    input, select, button, textarea{
-      width:100%; box-sizing:border-box; border-radius:14px; border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.04); color:var(--text); padding:11px 12px; font-size:14px;
+    .wrap{max-width:1180px; margin:24px auto 80px; padding:0 16px;}
+    .topbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px;}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px;
+      border:1px solid var(--line); background:rgba(255,255,255,.04); font-size:13px; color:var(--muted)}
+    .pill strong{color:var(--text); font-weight:700}
+    .pill .dot{width:8px; height:8px; border-radius:99px; background:var(--ok); box-shadow:0 0 0 3px rgba(45,212,191,.15)}
+    .err{display:none; margin:10px 0 16px; padding:12px 14px; border-radius:14px; border:1px solid rgba(239,68,68,.35);
+      background:rgba(239,68,68,.10); color:#ffd5d5}
+    .grid{display:grid; grid-template-columns: 1fr; gap:16px;}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:16px;
     }
-    textarea{min-height:72px; resize:vertical}
-    button{cursor:pointer; font-weight:800; background:linear-gradient(90deg, rgba(96,165,250,.75), rgba(45,212,191,.75)); border:0}
-    button.secondary{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); font-weight:700}
-    button.danger{background:rgba(239,68,68,.18); border:1px solid rgba(239,68,68,.40)}
-    button:disabled{opacity:.55; cursor:not-allowed}
+    h1{margin:0 0 4px; font-size:20px}
+    h2{margin:0 0 12px; font-size:18px}
+    .muted{color:var(--muted); font-size:13px}
+    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end}
+    .field{min-width:180px; flex:1}
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    input, select, textarea{
+      width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.20); color:var(--text); outline:none;
+    }
+    textarea{min-height:44px; resize:vertical}
+    .btn{
+      padding:10px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(90deg, rgba(96,165,250,.25), rgba(45,212,191,.25));
+      color:var(--text); font-weight:700; cursor:pointer;
+      transition:transform .05s ease, filter .15s ease;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.secondary{background:rgba(255,255,255,.05); font-weight:600}
+    .btn.danger{background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.35)}
+    .btn.small{padding:8px 10px; border-radius:12px; font-size:13px}
+    .machines{
+      display:grid; gap:12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    @media (max-width: 980px){ .machines{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+    @media (max-width: 520px){ .machines{grid-template-columns: 1fr;} }
+    .mcard{
+      background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:16px; padding:14px;
+      display:flex; flex-direction:column; gap:10px; min-height:150px;
+    }
+    .mcard.state-free{border-color: rgba(45,212,191,.28); background: rgba(45,212,191,.14); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
+    .mcard.state-busy{border-color: rgba(96,165,250,.30); background: rgba(96,165,250,.14); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
+    .mcard.state-whitecard{border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.20);}
+    .mcard.state-defect{border-color: rgba(248,113,113,.55); background: rgba(248,113,113,.22);}
 
-    .grid2{display:grid; grid-template-columns:1fr; gap:10px}
-    @media(min-width:680px){ .grid2{grid-template-columns:1fr 1fr;} }
 
-    .tiles{display:grid; grid-template-columns:1fr; gap:10px}
-    @media(min-width:620px){ .tiles{grid-template-columns:1fr 1fr;} }
+    .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+    .mtitle{font-weight:800}
+    .badge{font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:rgba(0,0,0,.15)}
+    .badge.ok{color:#c7fffb; border-color:rgba(45,212,191,.35); background:rgba(45,212,191,.10)}
+    .badge.busy{color:#dbeafe; border-color:rgba(96,165,250,.35); background:rgba(96,165,250,.10)}
+    .badge.bad{color:#ffd5d5; border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.10)}
+    .mp{font-size:13px; color:var(--muted); line-height:1.3}
+    .mcontrols{margin-top:auto; display:flex; flex-direction:column; gap:10px}
+    .inline{display:flex; gap:10px; align-items:center}
+    .inline select{flex:1}
+    .list{display:flex; flex-direction:column; gap:10px}
+    .item{border:1px solid var(--line); background:rgba(255,255,255,.03); border-radius:14px; padding:12px}
+    .itemtop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .item h3{margin:0; font-size:14px}
+    .item .meta{margin-top:6px; font-size:13px; color:var(--muted)}
+    .divider{height:1px; background:var(--line); margin:10px 0}
+    .footer-note{margin-top:14px; font-size:12px; color:rgba(234,241,255,.55)}
+  
+  .card.machine{position:relative;}
+  .card.machine.locked{background:rgba(160,160,160,.22); border-color: rgba(120,120,120,.35);}
+  .card.machine.defect{background:rgba(255,80,80,.18); border-color: rgba(255,80,80,.40);}
+  .card.machine .mhead{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .card.machine .mmeta{margin-top:8px; display:flex; flex-direction:column; gap:4px;}
+  .card.machine .mcontrols{margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .badge.bad{background:rgba(255,60,60,.22); border:1px solid rgba(255,60,60,.45);}
+  .badge.locked{background:rgba(120,120,120,.22); border:1px solid rgba(120,120,120,.45);}
+  .check{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.55);}
+  .check .cb{width:18px; height:18px;}
 
-    .tile{border-radius:18px; border:1px solid rgba(255,255,255,.10); padding:12px; background:rgba(255,255,255,.03)}
-    .tile.free{background:linear-gradient(180deg, var(--tile-free), rgba(255,255,255,.02));}
-    .tile.busy{background:linear-gradient(180deg, var(--tile-busy), rgba(255,255,255,.02));}
-    .tile.defect{background:linear-gradient(180deg, var(--tile-defect), rgba(255,255,255,.02));}
-    .tile.locked{background:linear-gradient(180deg, var(--tile-locked), rgba(255,255,255,.02));}
-
-    .tileHead{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
-    .tileHead .name{font-weight:900}
-    .badge{font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); color:var(--muted)}
-    .badge.ok{border-color:rgba(45,212,191,.35); color:#bff7ef}
-    .badge.bad{border-color:rgba(239,68,68,.40); color:#ffd5d5}
-    .badge.lock{border-color:rgba(148,163,184,.35); color:#e2e8f0}
-    .tile .line{height:1px; background:rgba(255,255,255,.08); margin:10px 0}
-
-    .tileActions{display:grid; grid-template-columns: 1fr; gap:8px}
-    .tileActions .row2{display:flex; gap:8px}
-    .tileActions .row2 > *{flex:1}
-
-    .small{font-size:12px; color:var(--muted)}
-
-    .toggle{display:flex; gap:10px; align-items:center; user-select:none}
-    .toggle input{width:auto}
-
-    .footerSpace{height:14px}
-  </style>
+</style>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
-      <div class="brand">
-        <span class="dot"></span>
-        <div class="title">Washportal</div>
-        <div class="pill"><strong id="buildPill">BUILD:</strong>&nbsp;<span id="buildTxt">—</span></div>
-        <div class="pill"><strong>Zimmer:</strong>&nbsp;<span id="roomPill">—</span></div>
-      </div>
+      <div class="pill"><span class="dot"></span><strong>Washportal</strong></div>
+      <div class="pill">PORTAL BUILD: <strong id="portalBuild">2026-02-15 PORTAL</strong></div>
+      <div class="pill">Worker: <strong id="workerBuild">-</strong></div>
+      <div class="pill">Zimmer: <strong id="roomPill">-</strong></div>
+    </div>
 
-      <div id="err" class="err"></div>
+    <div id="err" class="err"></div>
 
+    <div class="grid">
       <div class="card">
         <h2>Login</h2>
-        <div class="grid2">
-          <div>
-            <div class="muted">Zimmer</div>
-            <input id="room" inputmode="numeric" placeholder="z.B. 316" />
-          </div>
-          <div>
-            <div class="muted">Persönlicher PIN</div>
-            <input id="pin" inputmode="numeric" placeholder="z.B. 1711" />
-          </div>
-          <div>
-            <div class="muted">Stations‑PIN</div>
-            <input id="stationPin" inputmode="numeric" placeholder="z.B. 1111" />
-          </div>
-          <div class="row" style="align-items:end">
-            <button id="saveBtn" class="secondary">Speichern</button>
-            <button id="refreshBtn">Aktualisieren</button>
-          </div>
+        <div class="row">
+          <div class="field"><label>Zimmer</label><input id="room" inputmode="numeric" placeholder="z.B. 316"></div>
+          <div class="field"><label>Persönlicher PIN</label><input id="pin" inputmode="numeric" placeholder="PIN"></div>
+          <div class="field"><label>Stations-PIN</label><input id="stationPin" inputmode="numeric" placeholder="Stations-PIN"></div>
+          <button class="btn" id="saveBtn">Speichern</button>
+          <button class="btn secondary" id="refreshBtn">Aktualisieren</button>
         </div>
-        <div class="muted" style="margin-top:8px">Hinweis: Es werden nur Slots angezeigt, die noch laufen oder in der Zukunft liegen. Vergangene Slots können nicht storniert werden.</div>
-      </div>
-    </div>
-
-    <div style="height:12px"></div>
-
-    <div id="slotsAll" class="card">
-      <h2>Slots buchen (Waschmaschinen)</h2>
-      <div class="muted" style="margin-bottom:10px">Hier kannst du jeden sichtbaren Slot direkt buchen (auch wenn er schon läuft). Start‑ und Endzeit werden angezeigt.</div>
-      <div class="grid2">
-        <div>
-          <div class="muted">Maschine</div>
-          <select id="allMachine"></select>
-        </div>
-        <div>
-          <div class="muted">Slot</div>
-          <select id="allSlot"></select>
-        </div>
-        <div class="row" style="align-items:end">
-          <button id="allBookBtn">Buchen</button>
-        </div>
-      </div>
-    </div>
-
-    <div style="height:12px"></div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between; gap:12px">
-        <div>
-          <h2 style="margin-bottom:6px">Maschinenübersicht</h2>
-          <div class="muted">Waschmaschinen oben, Trockner unten. <span style="color:#ffd5d5">Rot = defekt</span>, <span style="color:#e2e8f0">Grau = admin‑gesperrt</span>.</div>
-        </div>
-        <label id="whitecardWrap" class="toggle" style="display:none">
-          <input id="whitecard" type="checkbox" />
-          <span class="muted" style="font-size:12px">Whitecard (Wäsche darf raus)</span>
-        </label>
+        <div class="footer-note">Hinweis: Slot-Buchung nutzt deinen persönlichen PIN (Storno/Freigabe nur für dich). Stations-PIN wird zusätzlich geprüft.</div>
       </div>
 
-      <div class="footerSpace"></div>
+      <div class="card">
+        <h2>Maschinen</h2>
+        <div class="muted" id="legend">Grün = frei · Blau = läuft/gebucht · Rot = gesperrt/defekt</div>
+        <div class="divider"></div>
+        <div class="machines" id="machines"></div>
+      </div>
 
-      <h2>Waschmaschinen</h2>
-      <div id="washTiles" class="tiles"></div>
-
-      <div style="height:14px"></div>
-
-      <h2>Trockner</h2>
-      <div id="dryTiles" class="tiles"></div>
+      <div class="card">
+        <h2>Meine Buchungen</h2>
+        <div class="list" id="myBookings"></div>
+      </div>
     </div>
-
-    <div style="height:12px"></div>
-
-    <div id="myBookingsCard" class="card">
-      <h2>Meine Buchungen</h2>
-      <div class="muted" style="margin-bottom:10px">Freigeben ist nur für Buchungen mit deinem PIN möglich.</div>
-      <div id="myBookings"></div>
-    </div>
-
   </div>
 
 <script>
-(() => {
-  const API = 'https://washportal-dev-worker.schluffi1220.workers.dev';
+// ---- Zeit/Format-Helpers (global) ----
+function pad2(n){ return String(n).padStart(2,"0"); }
+function fmtHM(ts){
+  const d=new Date(Number(ts));
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function fmtDate(dayTs){
+  const d=new Date(Number(dayTs));
+  return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}`;
+}
+function fmtDow(ts){
+  const d=new Date(Number(ts));
+  const wd=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  return wd[d.getDay()]||'';
+}
+function fmtDateTime(ts){
+  const d=new Date(Number(ts));
+  return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function startOfDay(ts){
+  const d = new Date(Number(ts||Date.now()));
+  d.setHours(0,0,0,0);
+  return d.getTime();
+}
+
+
+  const API = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const $ = (id) => document.getElementById(id);
 
-  const state = {
-    config: null,
-    machines: [],
-    bookings: [],
-    myBookings: [],
-  };
-
-  function showErr(msg){
-    const el = $('err');
-    el.style.display = msg ? 'block' : 'none';
-    el.textContent = msg || '';
+  function showOk(msg){
+    const el = $("err");
+    el.style.display = msg ? "block" : "none";
+    el.style.borderColor = "rgba(45,212,191,.35)";
+    el.style.background = "rgba(45,212,191,.10)";
+    el.style.color = "#c7fffb";
+    el.textContent = msg || "";
   }
 
-  function pad2(n){ return String(n).padStart(2,'0'); }
-  function fmtDate(ts){
-    const d = new Date(Number(ts||0));
-    if (Number.isNaN(d.getTime())) return 'Invalid Date';
-    return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  function showErr(msg){
+    const el = $("err");
+    el.style.display = msg ? "block" : "none";
+    el.style.borderColor = "rgba(239,68,68,.35)";
+    el.style.background = "rgba(239,68,68,.10)";
+    el.style.color = "#ffd5d5";
+    el.textContent = msg || "";
+  }
+
+
+function showToast(msg){
+  try{
+    const el = document.getElementById("toast");
+    if(!el) return;
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+    if(msg){
+      clearTimeout(window.__toastT);
+      window.__toastT = setTimeout(()=>{ el.style.display="none"; }, 1800);
+    }
+  }catch{}
+}
+
+
+  function fmtDT(ts){
+    const d = new Date(Number(ts));
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleString("de-DE", { weekday:"short", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
   }
 
   function loadCreds(){
-    try{
-      const v = JSON.parse(localStorage.getItem('wp_creds')||'{}');
-      $('room').value = v.room || '316';
-      $('pin').value = v.pin || '1711';
-      $('stationPin').value = v.stationPin || '1111';
-    }catch{}
+    $("room").value = localStorage.getItem("wp_room") || "";
+    $("pin").value = localStorage.getItem("wp_pin") || "";
+    $("stationPin").value = localStorage.getItem("wp_stationPin") || "";
   }
-
   function saveCreds(){
-    const v = { room: $('room').value.trim(), pin: $('pin').value.trim(), stationPin: $('stationPin').value.trim() };
-    localStorage.setItem('wp_creds', JSON.stringify(v));
-    $('roomPill').textContent = v.room || '—';
-    return v;
+    localStorage.setItem("wp_room", $("room").value.trim());
+    localStorage.setItem("wp_pin", $("pin").value.trim());
+    localStorage.setItem("wp_stationPin", $("stationPin").value.trim());
   }
 
   async function jpost(path, body){
-    const res = await fetch(API+path, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body||{})
+    const r = await fetch(API + path, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(body || {})
     });
-    const txt = await res.text();
+    const t = await r.text();
     let data = {};
-    try{ data = JSON.parse(txt || '{}'); }catch{ data = { ok:false, error:'bad_json', message:txt }; }
-    if(!res.ok || data.ok === false){
-      const m = data?.message || data?.error || `HTTP_${res.status}`;
-      throw new Error(m);
+    try{ data = JSON.parse(t); }catch{ data = { ok:false, error:"bad_json", message:t }; }
+    if(!r.ok || data.ok === false){
+      const msg = data?.message || data?.error || ("HTTP " + r.status);
+      throw new Error(msg);
     }
     return data;
   }
 
-  function machineName(kind, label){
-    return (kind === 'washer' ? 'Waschmaschine ' : 'Trockner ') + label;
-  }
-
-  function getActiveBookingsFor(kind, machineId){
-    const now = Date.now();
-    return state.bookings.filter(b => String(b.kind)===kind && String(b.machineId)===String(machineId) && (b.status==='booked' || b.status==='active') && Number(b.endAt) > now);
-  }
-
-  function pickPrevNext(kind, machineId){
-    const now = Date.now();
-    const all = state.bookings
-      .filter(b => String(b.kind)===kind && String(b.machineId)===String(machineId))
-      .sort((a,b)=>Number(a.startAt)-Number(b.startAt));
-
-    const prev = [...all].reverse().find(b => Number(b.endAt) <= now);
-    const next = all.find(b => Number(b.startAt) >= now && (b.status==='booked' || b.status==='active'));
-    return { prev, next };
-  }
-
-  function tileClass(m){
-    if (!m.enabled) return 'tile locked';
-    if (m.defective) return 'tile defect';
-    const busy = getActiveBookingsFor(m.kind, m.machineId).length > 0;
-    return busy ? 'tile busy' : 'tile free';
-  }
-
-  function tileBadge(m){
-    if (!m.enabled) return `<span class="badge lock">ADMIN‑GESPERRT</span>`;
-    if (m.defective) return `<span class="badge bad">DEFEKT</span>`;
-    const busy = getActiveBookingsFor(m.kind, m.machineId).length > 0;
-    return busy ? `<span class="badge">BELEGT</span>` : `<span class="badge ok">FREI</span>`;
-  }
-
-  function buildWasherSlots(){
-    const cfg = state.config;
-    const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours : [6,8,10,12,14,16,18,20];
-
-    const now = Date.now();
+  function buildWasherSlots(cfg){
+    const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours : [];
     const daysFuture = Number(cfg?.daysFuture ?? 6);
-    const daysPast = Number(cfg?.daysPast ?? 7);
-    const startDay = startOfDay(now - daysPast*86400000);
-    const endDay = startOfDay(now + daysFuture*86400000);
-
-    const slots = [];
-    for (let t = startDay; t <= endDay; t += 86400000){
-      for (const h of hours){
-        const s = t + Number(h)*3600000;
-        const e = s + 60*60000; // default 60 min
-        // show running or future
-        if (e > now) slots.push({ startAt: s, endAt: e });
-      }
-    }
-    // unique
-    const seen = new Set();
-    const out = [];
-    for (const s of slots){
-      const k = `${s.startAt}`;
-      if(seen.has(k)) continue;
-      seen.add(k);
-      out.push(s);
-    }
-    out.sort((a,b)=>a.startAt-b.startAt);
-    return out;
-  }
-
-  function startOfDay(ts){
-    const d = new Date(ts);
-    d.setHours(0,0,0,0);
-    return d.getTime();
-  }
-
-  function renderAllSlotsBooking(){
-    const washers = state.machines.filter(m => m.kind==='washer');
-    const allMachine = $('allMachine');
-    const allSlot = $('allSlot');
-    allMachine.innerHTML = '';
-
-    if (washers.length === 0){
-      allMachine.innerHTML = `<option value="">Keine Waschmaschinen aktiv.</option>`;
-      allSlot.innerHTML = `<option value="">—</option>`;
-      $('allBookBtn').disabled = true;
-      return;
-    }
-
-    for (const m of washers){
-      const dis = (!m.enabled || m.defective) ? 'disabled' : '';
-      const tag = m.defective ? ' (defekt)' : (!m.enabled ? ' (gesperrt)' : '');
-      allMachine.innerHTML += `<option value="${m.machineId}" ${dis}>Waschmaschine ${m.label}${tag}</option>`;
-    }
-
-    const slots = buildWasherSlots();
-    function refreshSlots(){
-      const machineId = allMachine.value;
-      const m = washers.find(x => String(x.machineId)===String(machineId));
-      const locked = !m || !m.enabled || m.defective;
-      allSlot.innerHTML = '';
-
-      for (const s of slots){
-        const taken = state.bookings.some(b => b.kind==='washer' && String(b.machineId)===String(machineId) && (b.status==='booked' || b.status==='active') && Number(b.startAt)===Number(s.startAt));
-        const label = `${fmtDate(s.startAt)} – ${pad2(new Date(s.endAt).getHours())}:${pad2(new Date(s.endAt).getMinutes())}`;
-        const suffix = taken ? ' (belegt)' : '';
-        allSlot.innerHTML += `<option value="${s.startAt}" ${taken?'disabled':''}>${label}${suffix}</option>`;
-      }
-
-      $('allBookBtn').disabled = locked;
-    }
-
-    allMachine.onchange = refreshSlots;
-    refreshSlots();
-  }
-
-  function renderTiles(){
-    const wash = state.machines.filter(m => m.kind==='washer');
-    const dry = state.machines.filter(m => m.kind==='dryer');
-
-    const washWrap = $('washTiles');
-    const dryWrap = $('dryTiles');
-    washWrap.innerHTML = '';
-    dryWrap.innerHTML = '';
-
-    for (const m of wash){ washWrap.appendChild(renderTile(m)); }
-    for (const m of dry){ dryWrap.appendChild(renderTile(m)); }
-
-    // Whitecard visible only if enabled in config
-    $('whitecardWrap').style.display = state.config?.whitecardEnabled ? 'flex' : 'none';
-  }
-
-  function renderTile(m){
-    const el = document.createElement('div');
-    el.className = tileClass(m);
-
-    const { prev, next } = pickPrevNext(m.kind, m.machineId);
-    const prevTxt = prev ? `${prev.room} bis ${fmtDate(prev.endAt).split(' ')[1]}` : '—';
-    const nextTxt = next ? `${next.room} ab ${fmtDate(next.startAt).split(' ')[1]}` : '—';
-
-    const canDefect = Boolean(state.config?.defectReportEnabled);
-
-    el.innerHTML = `
-      <div class="tileHead">
-        <div>
-          <div class="name">${machineName(m.kind, m.label)}</div>
-          <div class="small">Zuletzt: ${prevTxt}</div>
-          <div class="small">Nächster: ${nextTxt}</div>
-        </div>
-        ${tileBadge(m)}
-      </div>
-      <div class="line"></div>
-      <div class="tileActions"></div>
-    `;
-
-    const actions = el.querySelector('.tileActions');
-
-    if (m.kind === 'washer') {
-      const sel = document.createElement('select');
-      sel.innerHTML = `<option value="">Slot wählen…</option>`;
-      const slots = buildWasherSlots();
-      for (const s of slots){
-        const taken = state.bookings.some(b => b.kind==='washer' && String(b.machineId)===String(m.machineId) && (b.status==='booked' || b.status==='active') && Number(b.startAt)===Number(s.startAt));
-        const label = `${fmtDate(s.startAt)} – ${pad2(new Date(s.endAt).getHours())}:${pad2(new Date(s.endAt).getMinutes())}`;
-        const suffix = taken ? ' (belegt)' : '';
-        sel.innerHTML += `<option value="${s.startAt}" ${taken?'disabled':''}>${label}${suffix}</option>`;
-      }
-
-      const bookBtn = document.createElement('button');
-      bookBtn.textContent = 'Buchen';
-
-      const relBtn = document.createElement('button');
-      relBtn.textContent = 'Freigeben';
-      relBtn.className = 'secondary';
-
-      const defectBtn = document.createElement('button');
-      defectBtn.textContent = 'Defekt';
-      defectBtn.className = 'danger';
-      defectBtn.style.display = canDefect ? 'block' : 'none';
-
-      const row2 = document.createElement('div');
-      row2.className = 'row2';
-      row2.appendChild(bookBtn);
-      row2.appendChild(relBtn);
-      row2.appendChild(defectBtn);
-
-      actions.appendChild(sel);
-      actions.appendChild(row2);
-
-      // Disable logic
-      const disabled = (!m.enabled || m.defective);
-      sel.disabled = disabled;
-      bookBtn.disabled = disabled;
-      relBtn.disabled = disabled;
-      defectBtn.disabled = disabled;
-
-      bookBtn.onclick = async () => {
-        try{
-          showErr('');
-          const startAt = Number(sel.value || 0);
-          if(!startAt) return showErr('Bitte Slot auswählen.');
-          const creds = saveCreds();
-          const slot = buildWasherSlots().find(s=>Number(s.startAt)===startAt);
-          const minutes = slot ? Math.round((slot.endAt-slot.startAt)/60000) : 60;
-          await jpost('/api/washer/book', { ...creds, machineId: m.machineId, startAt, minutes, whitecard: $('whitecard').checked });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-
-      relBtn.onclick = async () => {
-        try{
-          showErr('');
-          // release the next future booking of mine for this machine
-          const now = Date.now();
-          const mine = state.myBookings
-            .filter(b => b.kind==='washer' && String(b.machineId)===String(m.machineId) && (b.status==='booked' || b.status==='active'))
-            .sort((a,b)=>a.startAt-b.startAt);
-          const b = mine.find(x=>Number(x.endAt)>now);
-          if(!b) return showErr('Keine aktive/gebuchte Buchung für diese Maschine (mit deinem PIN).');
-          const creds = saveCreds();
-          await jpost('/api/booking/release', { ...creds, bookingId: b.id });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-
-      defectBtn.onclick = async () => {
-        try{
-          showErr('');
-          const ok = confirm(`${machineName(m.kind, m.label)} als defekt markieren? Die Maschine wird sofort gesperrt (bestehende Buchungen bleiben).`);
-          if(!ok) return;
-          const creds = saveCreds();
-          await jpost('/api/defect/report', { ...creds, kind: m.kind, machineId: m.machineId, text: '' });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-
-    } else {
-      const bookBtn = document.createElement('button');
-      bookBtn.textContent = 'Jetzt buchen';
-
-      const relBtn = document.createElement('button');
-      relBtn.textContent = 'Freigeben';
-      relBtn.className = 'secondary';
-
-      const defectBtn = document.createElement('button');
-      defectBtn.textContent = 'Defekt';
-      defectBtn.className = 'danger';
-      defectBtn.style.display = canDefect ? 'block' : 'none';
-
-      const row2 = document.createElement('div');
-      row2.className = 'row2';
-      row2.appendChild(bookBtn);
-      row2.appendChild(relBtn);
-      row2.appendChild(defectBtn);
-      actions.appendChild(row2);
-
-      const disabled = (!m.enabled || m.defective);
-      bookBtn.disabled = disabled;
-      relBtn.disabled = disabled;
-      defectBtn.disabled = disabled;
-
-      bookBtn.onclick = async () => {
-        try{
-          showErr('');
-          const creds = saveCreds();
-          await jpost('/api/dryer/book', { ...creds, machineId: m.machineId, minutes: state.config?.dryerMinutes, whitecard: $('whitecard').checked });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-
-      relBtn.onclick = async () => {
-        try{
-          showErr('');
-          const now = Date.now();
-          const mine = state.myBookings
-            .filter(b => b.kind==='dryer' && String(b.machineId)===String(m.machineId) && (b.status==='booked' || b.status==='active'))
-            .sort((a,b)=>a.startAt-b.startAt);
-          const b = mine.find(x=>Number(x.endAt)>now);
-          if(!b) return showErr('Keine aktive/gebuchte Buchung für diesen Trockner (mit deinem PIN).');
-          const creds = saveCreds();
-          await jpost('/api/booking/release', { ...creds, bookingId: b.id });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-
-      defectBtn.onclick = async () => {
-        try{
-          showErr('');
-          const ok = confirm(`${machineName(m.kind, m.label)} als defekt markieren? Die Maschine wird sofort gesperrt (bestehende Buchungen bleiben).`);
-          if(!ok) return;
-          const creds = saveCreds();
-          await jpost('/api/defect/report', { ...creds, kind: m.kind, machineId: m.machineId, text: '' });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-    }
-
-    return el;
-  }
-
-  function renderMyBookings(){
-    const wrap = $('myBookings');
-    wrap.innerHTML = '';
     const now = Date.now();
+    const today0 = startOfDay(now);
+    const slots = [];
+    for(let day=0; day<=daysFuture; day++){
+      const day0 = today0 + day*86400000;
+      for(const h of hours){
+        const startAt = day0 + Number(h)*3600000;
+        const endAt = startAt + 60*60000;
+        // anzeigen: läuft noch oder Zukunft
+        if(endAt <= now) continue;
+        const running = startAt <= now && endAt > now;
+        const disabled = false; // laufende Slots sind buchbar, solange sie noch nicht beendet sind
+        const label = `${fmtDow(startAt)} ${fmtDate(startAt)} ${fmtHM(startAt)}–${fmtHM(endAt)}` + (running ? " (läuft)" : "");
+        slots.push({ ts:startAt, startAt, endAt, label, running, disabled });
+      }
+    }
+    // nach Zeit sortieren
+    slots.sort((a,b)=>a.startAt-b.startAt);
+    return slots;
+  }
 
-    const list = (state.myBookings || []).slice().sort((a,b)=>a.startAt-b.startAt);
-    if (list.length === 0){
-      wrap.innerHTML = `<div class="muted">Keine Buchungen.</div>`;
+
+
+  function activeBookingFor(machine, bookings){
+    // bookings: global list im Zeitraum; finde aktiv/gebucht für Maschine
+    const kind = machine.kind;
+    const mid = String(machine.machineId);
+    const now = Date.now();
+    const rel = (bookings||[]).filter(b => String(b.kind)===kind && String(b.machineId)===mid);
+    // Priorität: active/booked, dann released
+    const act = rel.find(b => (b.status==="active" || b.status==="booked") && now < Number(b.endAt||0));
+    if(act) return act;
+    const last = rel.slice().sort((a,b)=>Number(b.endAt||0)-Number(a.endAt||0))[0];
+    return last || null;
+  }
+
+  function isSlotTaken(bookings, kind, machineId, startAt){
+    const s = Number(startAt);
+    const e = s + 60*60*1000; // 60 min standard (Portal)
+    return (bookings||[]).some(b => String(b.kind)===kind && String(b.machineId)===String(machineId) &&
+      (b.status==="booked" || b.status==="active") &&
+      Number(b.startAt) === s
+    );
+  }
+
+
+  function findSlotBooking(bookings, kind, machineId, startAt){
+    const s = Number(startAt);
+    return (bookings||[]).find(b => String(b.kind)===String(kind) && String(b.machineId)===String(machineId) &&
+      (b.status==="booked" || b.status==="active") &&
+      Number(b.startAt) === s
+    ) || null;
+  }
+
+  function renderMachines(state){
+    const box = $("machines");
+    box.innerHTML = "";
+    const cfg = state?.config || {};
+    const machines = Array.isArray(state?.machines) ? state.machines : [];
+    const bookings = Array.isArray(state?.bookings) ? state.bookings : [];
+    const roomNow = String(state?.room || $("room").value || "");
+
+    const washers = machines.filter(m=>m.kind==="washer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    const dryers  = machines.filter(m=>m.kind==="dryer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    const ordered = [...washers, ...dryers];
+
+    const slots = buildWasherSlots(cfg);
+
+    for(const m of ordered){
+      const kindLabel = m.kind==="washer" ? "Waschmaschine" : "Trockner";
+      const card = document.createElement("div");
+      card.className = "card machine";
+
+      // Status flags
+      const isAdminLocked = Number(m.adminLocked||0)===1;
+      const isDefect = Number(m.defect||0)===1;
+      if(isAdminLocked) card.classList.add("locked");
+      if(isDefect) card.classList.add("defect");
+      if(Number(m.enabled||0)===0) card.classList.add("disabled");
+
+      const head = document.createElement("div");
+      head.className = "mhead";
+      head.innerHTML = `<h3>${kindLabel} ${m.label}</h3>`;
+
+      const { current, last, next } = findLastNext(bookings, m.kind, m.machineId);
+
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      if(isDefect) { badge.classList.add("bad"); badge.textContent = "DEFEKT"; }
+      else if(isAdminLocked) { badge.classList.add("locked"); badge.textContent = "GESPERRT"; }
+      else if(current) { badge.classList.add("busy"); badge.textContent = (current.kind==="dryer"?"LÄUFT":"BELEGT"); }
+      else { badge.classList.add("ok"); badge.textContent = "FREI"; }
+      head.appendChild(badge);
+
+      const meta = document.createElement("div");
+      meta.className = "mmeta";
+
+      const curLine = document.createElement("div");
+      curLine.className = "line";
+      if(current){
+        const until = fmtDateTime(current.endAt);
+        const wc = Number(current.whitecard||0)===1 ? " • WEISSKARTE" : "";
+        curLine.textContent = `Aktuell: Zimmer ${current.room} bis ${until}${wc}`;
+      }else{
+        curLine.textContent = "Aktuell: frei";
+      }
+
+      const lastLine = document.createElement("div");
+      lastLine.className = "line muted";
+      lastLine.textContent = last ? `Zuletzt: Zimmer ${last.room} bis ${fmtDateTime(last.endAt)}` : "Zuletzt: —";
+
+      const nextLine = document.createElement("div");
+      nextLine.className = "line muted";
+      nextLine.textContent = next ? `Als nächstes: Zimmer ${next.room} ab ${fmtDateTime(next.startAt)}` : "Als nächstes: —";
+
+      meta.appendChild(curLine);
+      meta.appendChild(lastLine);
+      meta.appendChild(nextLine);
+
+      const controls = document.createElement("div");
+      controls.className = "mcontrols";
+
+      const disabled = isAdminLocked || isDefect;
+
+      // Slot/Booking UI
+      if(m.kind==="washer"){
+        const sel = document.createElement("select");
+        sel.className = "sel";
+        for(const s of slots){
+          const opt = document.createElement("option");
+          opt.value = String(s.startAt);
+          opt.textContent = s.label;
+          // disable if started (worker would reject) OR collision without overbook
+          const endAt = s.endAt;
+          const overlaps = bookings.filter(b => b.kind==="washer" && String(b.machineId)===String(m.machineId) && (b.status==="booked"||b.status==="active") && !(Number(b.endAt)<=s.startAt || Number(b.startAt)>=endAt));
+          const allWhite = overlaps.length>0 && overlaps.every(b=>Number(b.whitecard||0)===1);
+          const collides = overlaps.length>0;
+          if(s.disabled) opt.disabled = true;
+          if(collides && !allWhite) opt.disabled = true;
+          if(collides && allWhite) opt.textContent = opt.textContent + " • WEISSKARTE";
+          sel.appendChild(opt);
+        }
+
+        const wcEnabled = !!cfg.whitecardEnabled;
+        const wcWrap = document.createElement("label");
+        wcWrap.className = "check";
+        wcWrap.style.display = wcEnabled ? "flex" : "none";
+        wcWrap.innerHTML = `<input type="checkbox" class="cb"><span>Weißkarte</span>`;
+        const wcCb = wcWrap.querySelector("input");
+
+        const btn = document.createElement("button");
+        btn.className = "btn small";
+        btn.textContent = "Buchen";
+        btn.disabled = disabled;
+        btn.onclick = async ()=>{
+          showErr("");
+          const room = $("room").value.trim();
+          const pin = $("pin").value.trim();
+          const stationPin = $("stationPin").value.trim();
+          const startAt = Number(sel.value||0);
+          if(!startAt) return showErr("Bitte Slot auswählen.");
+          const endAt = startAt + 60*60000;
+
+          const overlaps = bookings.filter(b => b.kind==="washer" && String(b.machineId)===String(m.machineId) && (b.status==="booked"||b.status==="active") && !(Number(b.endAt)<=startAt || Number(b.startAt)>=endAt));
+          const allWhite = overlaps.length>0 && overlaps.every(b=>Number(b.whitecard||0)===1);
+          const overbook = overlaps.length>0 && allWhite && wcEnabled ? confirm("Diese Maschine ist belegt, aber mit Weißkarte freigegeben. Überbuchen?") : false;
+
+          try{
+            await jpost("/api/washer/book",{ room, pin, stationPin, machineId:m.machineId, minutes:60, startAt, whitecard: wcCb?.checked?1:0, overbook });
+            await refreshAll();
+          }catch(e){ showErr("⛔ " + e.message); }
+        };
+
+        controls.appendChild(sel);
+        controls.appendChild(wcWrap);
+        controls.appendChild(btn);
+      }else{
+        const wcEnabled = !!cfg.whitecardEnabled;
+        const wcWrap = document.createElement("label");
+        wcWrap.className = "check";
+        wcWrap.style.display = wcEnabled ? "flex" : "none";
+        wcWrap.innerHTML = `<input type="checkbox" class="cb"><span>Weißkarte</span>`;
+        const wcCb = wcWrap.querySelector("input");
+
+        const btn = document.createElement("button");
+        btn.className = "btn small";
+        btn.textContent = "Jetzt buchen";
+        btn.disabled = disabled;
+        btn.onclick = async ()=>{
+          showErr("");
+          const room = $("room").value.trim();
+          const pin = $("pin").value.trim();
+          const stationPin = $("stationPin").value.trim();
+          try{
+            await jpost("/api/dryer/book",{ room, pin, stationPin, machineId:m.machineId, minutes: Number(cfg.dryerMinutes||150), whitecard: wcCb?.checked?1:0 });
+            await refreshAll();
+          }catch(e){ showErr("⛔ " + e.message); }
+        };
+        controls.appendChild(wcWrap);
+        controls.appendChild(btn);
+      }
+
+      // Freigeben: nur eigene aktuelle Buchung
+      if(current && String(current.room)===roomNow){
+        const rel = document.createElement("button");
+        rel.className = "btn small secondary";
+        rel.textContent = "Freigeben";
+        rel.disabled = disabled;
+        rel.onclick = async ()=>{
+          showErr("");
+          const room = $("room").value.trim();
+          const pin = $("pin").value.trim();
+          const stationPin = $("stationPin").value.trim();
+          try{
+            await jpost("/api/booking/release",{ room, pin, stationPin, bookingId: current.id });
+            await refreshAll();
+          }catch(e){ showErr("⛔ " + e.message); }
+        };
+        controls.appendChild(rel);
+      }
+
+      // Defekt melden (Beschreibung optional)
+      const def = document.createElement("button");
+      def.className = "btn small danger";
+      def.textContent = "Defekt";
+      def.onclick = async ()=>{
+        showErr("");
+        const room = $("room").value.trim();
+        const pin = $("pin").value.trim();
+        const stationPin = $("stationPin").value.trim();
+        const text = prompt("Defekt melden (optional Beschreibung):") ?? "";
+        try{
+          await jpost("/api/defect/report",{ room, pin, stationPin, machineId: m.machineId, kind: m.kind, text });
+          await refreshAll();
+        }catch(e){ showErr("⛔ " + e.message); }
+      };
+      controls.appendChild(def);
+
+      card.appendChild(head);
+      card.appendChild(meta);
+      card.appendChild(controls);
+      box.appendChild(card);
+    }
+  }
+
+function fmtHM(ts){
+  const d = new Date(Number(ts||0));
+  if(!Number.isFinite(d.getTime())) return "–";
+  return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+}
+
+function updateGlobalBookPanel(state){
+  const panel = document.getElementById("globalBookPanel");
+  if(!panel) return;
+
+  const cfg = state?.config || {};
+  const kindSel = document.getElementById("gbKind");
+  const machSel = document.getElementById("gbMachine");
+  const slotSel = document.getElementById("gbSlot");
+  const minSel = document.getElementById("gbMinutes");
+  const wc = document.getElementById("gbWhitecard");
+  const btn = document.getElementById("gbBookBtn");
+
+  // Weißkarte nur wenn enabled
+  const wcEnabled = !!cfg.whitecardEnabled;
+  wc.disabled = !wcEnabled;
+  if(!wcEnabled) wc.checked = false;
+
+  const kind = kindSel.value;
+
+  // Machines list
+  machSel.innerHTML = "";
+  const machines = (state?.machines||[]).filter(x => String(x.kind)===String(kind));
+  for(const m of machines){
+    const o=document.createElement("option");
+    o.value = String(m.machineId);
+    o.textContent = `${kind==="dryer"?"T":"W"}${m.label||m.machineId}`;
+    if(!m.enabled) o.textContent += " (defekt)";
+    machSel.appendChild(o);
+  }
+
+  // Slots
+  slotSel.innerHTML = "";
+  if(kind === "dryer"){
+    // Trockner: Start sofort
+    const o=document.createElement("option");
+    o.value = String(Date.now());
+    o.textContent = `Sofort (${fmtDateTime(Date.now())})`;
+    slotSel.appendChild(o);
+    minSel.value = String(cfg.dryerMinutes || 150);
+  } else {
+    const slots = buildWasherSlots(cfg);
+    const bookings = Array.isArray(state?.bookings) ? state.bookings : [];
+    for(const s of slots){
+      const o=document.createElement("option");
+      const ts = Number(s.ts ?? s.startAt ?? 0);
+      o.value = String(ts);
+      let label = String(s.label || "");
+      const b = findSlotBooking(bookings, "washer", machSel.value, ts);
+      if(b){
+        // belegt: nur wählbar, wenn Weißkarte am bestehenden Slot aktiv ist
+        const wcActive = !!Number(b.whitecard||0);
+        if(wcActive && wcEnabled){
+          o.dataset.whitecard = "1";
+          label += " • Weißkarte";
+          // bleibt wählbar -> Überbuchung bestätigen wir später
+        } else {
+          o.disabled = true;
+          label += " • belegt";
+        }
+      }
+      o.textContent = label;
+      slotSel.appendChild(o);
+    }
+    if(!slotSel.value && slots.length) slotSel.value = String(slots[0].ts);
+  }
+
+  // Hook change to rebuild
+  if(!kindSel._hooked){
+    kindSel._hooked = true;
+    kindSel.addEventListener("change", ()=>updateGlobalBookPanel(window.__STATE__));
+    machSel.addEventListener("change", ()=>updateGlobalBookPanel(window.__STATE__));
+  }
+
+  if(!btn._hooked){
+    btn._hooked = true;
+    btn.addEventListener("click", async ()=>{
+      const kind = kindSel.value;
+      const machineId = machSel.value;
+      const startAt = Number(slotSel.value||0);
+      const minutes = Number(minSel.value||60);
+      const whitecard = !!wc.checked;
+
+      if(!machineId) return toast("⛔ Maschine fehlt");
+      if(kind==="washer" && !startAt) return toast("⛔ Slot fehlt");
+
+      const payload = { room, pin, stationPin, machineId, minutes, whitecard };
+      if(kind==="washer") payload.startAt = startAt;
+      if(kind==="dryer") payload.startAt = startAt;
+
+      // überbuchen nur wenn Slot opt. WEISSKARTE markiert (Portal markiert das in Slot-Auswahl)
+      const selOpt = slotSel?.options?.[slotSel.selectedIndex];
+      if(selOpt && selOpt.dataset && selOpt.dataset.whitecard==="1"){
+        const ok = confirm("Dieser Slot ist mit Weißkarte freigegeben. Überbuchen?");
+        if(!ok) return;
+        payload.overbook = true;
+      }
+
+      const url = kind==="dryer" ? "/api/dryer/book" : "/api/washer/book";
+      await jpost(url, payload);
+      toast("✅ Gebucht", 1200);
+      await refreshAll();
+    });
+  }
+}
+
+async function refreshAll(){
+
+    showErr("");
+    saveCreds();
+    const room = $("room").value.trim();
+    const pin = $("pin").value.trim();
+    const stationPin = $("stationPin").value.trim();
+    $("roomPill").textContent = room || "-";
+
+    if(!room || !pin || !stationPin){
+      showErr("Bitte Zimmer, persönlichen PIN und Stations-PIN eintragen.");
       return;
     }
-
-    for (const b of list){
-      const past = Number(b.endAt) <= now;
-      const card = document.createElement('div');
-      card.className = 'tile ' + (past ? '' : '');
-      card.style.background = 'rgba(255,255,255,.03)';
-
-      const name = (b.kind==='washer'?'Waschmaschine ':'Trockner ') + b.machineId;
-      const line1 = `${fmtDate(b.startAt)} – ${pad2(new Date(b.endAt).getHours())}:${pad2(new Date(b.endAt).getMinutes())} (${b.durationMinutes||b.duration||'?'} min)`;
-
-      card.innerHTML = `
-        <div class="tileHead">
-          <div>
-            <div class="name">${name}</div>
-            <div class="small">${line1}</div>
-          </div>
-          <span class="badge">${b.status}</span>
-        </div>
-        <div class="line"></div>
-        <div class="row" style="justify-content:space-between; gap:10px">
-          <div class="small">${past ? 'Vergangen — keine Aktion möglich' : 'Aktionen: Freigeben möglich'}</div>
-          <button class="secondary" ${past?'disabled':''}>Freigeben</button>
-        </div>
-      `;
-
-      const btn = card.querySelector('button');
-      btn.onclick = async () => {
-        try{
-          showErr('');
-          const creds = saveCreds();
-          await jpost('/api/booking/release', { ...creds, bookingId: b.id });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-
-      wrap.appendChild(card);
-    }
-  }
-
-  async function refreshAll(){
-    const creds = saveCreds();
-    if(!creds.room || !creds.pin || !creds.stationPin) return showErr('Bitte Zimmer, PIN und Stations‑PIN eingeben.');
-
     try{
-      showErr('');
+      const state = await jpost("/api/user/refresh",{ room, pin, stationPin });
+      $("workerBuild").textContent = state.build || "-";
+      renderMachines(state);
+      updateGlobalBookPanel(state);
 
-      // check lock (optional)
-      try{
-        const lock = await jpost('/api/room/control/check', { room: creds.room });
-        if (lock.blocked) showErr(`⛔ ${lock.message || 'Zimmer ist gesperrt.'}`);
-      } catch { /* ignore */ }
-
-      const data = await jpost('/api/user/refresh', creds);
-
-      $('buildTxt').textContent = data.build || '—';
-      $('roomPill').textContent = creds.room;
-
-      state.config = data.config || {};
-      state.machines = (data.machines || []).map(m => ({
-        machineId: String(m.machineId),
-        kind: String(m.kind),
-        label: String(m.label ?? m.machineId),
-        enabled: !!m.enabled,
-        minutes: Number(m.minutes||0),
-        defective: !!m.defective,
-      }));
-      state.bookings = data.bookings || [];
-      state.myBookings = data.myBookings || data.bookings?.filter(b=>String(b.room)===String(creds.room)) || [];
-
-      // Keep washers on top, dryers bottom
-      state.machines.sort((a,b)=> (a.kind===b.kind ? Number(a.machineId)-Number(b.machineId) : (a.kind==='washer'?-1:1)));
-
-      renderAllSlotsBooking();
-      renderTiles();
-      renderMyBookings();
-
-      // global slots booking button
-      $('allBookBtn').onclick = async () => {
-        try{
-          showErr('');
-          const machineId = $('allMachine').value;
-          const startAt = Number($('allSlot').value || 0);
-          if(!machineId || !startAt) return showErr('Bitte Maschine und Slot auswählen.');
-          const slot = buildWasherSlots().find(s=>Number(s.startAt)===startAt);
-          const minutes = slot ? Math.round((slot.endAt-slot.startAt)/60000) : 60;
-          await jpost('/api/washer/book', { ...creds, machineId, startAt, minutes, whitecard: $('whitecard').checked });
-          await refreshAll();
-        }catch(e){ showErr(`⛔ ${e.message}`); }
-      };
-
-    } catch(e){
-      showErr(`⛔ ${e.message}`);
+      renderMyBookings(state);
+    }catch(e){
+      showErr("⛔ " + e.message);
     }
   }
 
-  // Wire buttons
-  $('saveBtn').onclick = () => { saveCreds(); showErr('Gespeichert.'); setTimeout(()=>showErr(''), 900); };
-  $('refreshBtn').onclick = refreshAll;
+    const _sb = $("saveBtn"); if(_sb) _sb.onclick = ()=>{ saveCreds(); showErr(""); };
+  const _rb = $("refreshBtn"); if(_rb) _rb.onclick = refreshAll;
 
   loadCreds();
-  saveCreds();
-
-  // Auto boot
   refreshAll();
-})();
 </script>
+<div id="toast" style="display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,.18);font-weight:700;z-index:9999"></div>
 </body>
 </html>
