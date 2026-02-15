@@ -104,7 +104,17 @@
 
     .mbox{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px}
     .pill{font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10)}
-</style>
+
+    /* bessere Lesbarkeit in Dropdowns */
+    select.select, select.sel{
+      background:#f8fafc;
+      color:#0b1220;
+      font-weight:600;
+    }
+    select.select option, select.sel option{ color:#0b1220; }
+    select.select option:disabled, select.sel option:disabled{ color:#64748b; }
+
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -199,6 +209,19 @@ function fmtDateTime(ts){
   const d=new Date(Number(ts));
   return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
+
+function fmtTime(ts){
+  const d=new Date(Number(ts));
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 function startOfDay(ts){
   const d = new Date(Number(ts||Date.now()));
   d.setHours(0,0,0,0);
@@ -249,14 +272,13 @@ function showToast(msg){
   }
 
   function loadCreds(){
-    $("room").value = localStorage.getItem("wp_room") || "";
-    $("pin").value = localStorage.getItem("wp_pin") || "";
-    $("stationPin").value = localStorage.getItem("wp_stationPin") || "";
+    // bewusst keine Persistenz von Zimmer/PIN/Stations-PIN
+    if($("room")) $("room").value = "";
+    if($("pin")) $("pin").value = "";
+    if($("stationPin")) $("stationPin").value = "";
   }
   function saveCreds(){
-    localStorage.setItem("wp_room", $("room").value.trim());
-    localStorage.setItem("wp_pin", $("pin").value.trim());
-    localStorage.setItem("wp_stationPin", $("stationPin").value.trim());
+    // bewusst keine Persistenz von Zimmer/PIN/Stations-PIN
   }
 
   async function jpost(path, body){
@@ -276,25 +298,33 @@ function showToast(msg){
   }
 
   function buildWasherSlots(cfg){
-    const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours : [];
+    const raw = Array.isArray(cfg?.washerHours) ? cfg.washerHours : [];
+    const hours = [...new Set(raw.map(x=>Number(x)).filter(x=>Number.isFinite(x) && x>=0 && x<=23))].sort((a,b)=>a-b);
     const daysFuture = Number(cfg?.daysFuture ?? 6);
     const now = Date.now();
     const today0 = startOfDay(now);
     const slots = [];
+    if(!hours.length) return slots;
+
+    const firstHour = hours[0];
     for(let day=0; day<=daysFuture; day++){
       const day0 = today0 + day*86400000;
-      for(const h of hours){
-        const startAt = day0 + Number(h)*3600000;
-        const endAt = startAt + 60*60000;
-        // anzeigen: läuft noch oder Zukunft
+      for(let i=0;i<hours.length;i++){
+        const h = hours[i];
+        const startAt = day0 + h*3600000;
+        let endAt;
+        if(i < hours.length-1){
+          endAt = day0 + hours[i+1]*3600000;
+        }else{
+          // letzter Slot des Tages endet am nächsten Tag beim ersten Slot
+          endAt = (day0 + 86400000) + firstHour*3600000;
+        }
         if(endAt <= now) continue;
         const running = startAt <= now && endAt > now;
-        const disabled = false; // laufende Slots sind buchbar, solange sie noch nicht beendet sind
         const label = `${fmtDow(startAt)} ${fmtDate(startAt)} ${fmtHM(startAt)}–${fmtHM(endAt)}` + (running ? " (läuft)" : "");
-        slots.push({ ts:startAt, startAt, endAt, label, running, disabled });
+        slots.push({ ts:startAt, startAt, endAt, label, running, disabled:false });
       }
     }
-    // nach Zeit sortieren
     slots.sort((a,b)=>a.startAt-b.startAt);
     return slots;
   }
@@ -365,7 +395,7 @@ function showToast(msg){
   function renderNews(cfg){
     const card = $("newsCard");
     if(!card) return;
-    const enabled = !!cfg?.newsEnabled;
+    const enabled = !!(cfg?.newsEnabled || cfg?.newsPsEnabled || cfg?.newsSvEnabled || cfg?.newsAdminEnabled);
     const txt = String(cfg?.newsText||"").trim();
     if(enabled && txt){
       card.style.display = "";
@@ -384,57 +414,77 @@ function showToast(msg){
     const bookings = Array.isArray(state?.bookings)?state.bookings:[];
     const washers = machines.filter(m=>m.kind==="washer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
     const slots = buildWasherSlots(cfg);
+
     if(!washers.length){
       box.innerHTML = '<div class="muted">Keine Waschmaschinen gefunden.</div>';
       return;
     }
-    for(const m of washers){
-      const row = document.createElement("div");
-      row.className = "row";
-      row.style.marginBottom = "10px";
-      row.style.alignItems = "center";
-      const sel = document.createElement("select");
-      sel.className = "select";
-      sel.style.flex = "1";
-      sel.id = `qb_w_${m.machineId}`;
-      // build options: all future + current running slots
-      const {current} = findLastNext(bookings, "washer", m.machineId);
-      for(const s of slots){
-        // include only future or currently running
-        const isFuture = Number(s.ts) >= Date.now()-60000;
-        const isRunning = current && Number(current.startAt)===Number(s.ts);
-        if(!isFuture && !isRunning) continue;
-        const opt = document.createElement("option");
-        opt.value = String(s.ts);
-        opt.textContent = s.label;
-        sel.appendChild(opt);
-      }
-      const btn = document.createElement("button");
-      btn.className="btn";
-      btn.textContent="Buchen";
-      btn.onclick = async ()=>{
-        const room = $("room").value.trim();
-        const pin = $("pin").value.trim();
-        const stationPin = $("stationPin").value.trim();
-        const ts = Number(sel.value||0);
-        if(!room || !pin){ return showErr("Zimmer & PIN fehlen."); }
-        try{
-          await jpost("/api/washer/book",{ room, pin, stationPin, machineId:m.machineId, startAt: ts });
-          await refreshAll();
-        }catch(e){ showErr(String(e?.message||e)); }
-      };
-      const label = document.createElement("div");
-      label.className="muted";
-      label.style.minWidth="150px";
-      label.textContent = `Waschmaschine ${m.label}`;
-      row.appendChild(label);
-      row.appendChild(sel);
-      row.appendChild(btn);
-      box.appendChild(row);
+    if(!slots.length){
+      box.innerHTML = '<div class="muted">Keine Wasch-Slots konfiguriert. (Config → washerHours)</div>';
+      return;
     }
-  }
 
-  function renderFeedback(cfg){
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.alignItems = "center";
+    row.style.gap = "10px";
+
+    const sel = document.createElement("select");
+    sel.className = "select";
+    sel.style.flex = "1";
+    sel.id = "qb_all";
+
+    const now = Date.now();
+    for(const m of washers){
+      const og = document.createElement("optgroup");
+      og.label = `Waschmaschine ${m.label}`;
+      // für diese Maschine: Slotliste (laufend + Zukunft)
+      for(const s of slots){
+        if(Number(s.endAt) <= now) continue;
+        const opt = document.createElement("option");
+        const overlaps = bookings.filter(b =>
+          String(b.kind)==="washer" &&
+          String(b.machineId)===String(m.machineId) &&
+          Number(b.startAt)===Number(s.startAt) &&
+          (b.status==="active" || b.status==="booked") &&
+          Number(b.endAt||0) > now
+        );
+        const occ = overlaps[0] || null;
+        opt.value = JSON.stringify({ kind:"washer", machineId:m.machineId, startAt:s.startAt });
+        opt.textContent = s.label + (occ ? `  — BELEGT (Zimmer ${occ.room})` : "");
+        if(occ) opt.disabled = true;
+        og.appendChild(opt);
+      }
+      sel.appendChild(og);
+    }
+
+    const btn = document.createElement("button");
+    btn.className="btn";
+    btn.textContent="Buchen";
+    btn.onclick = async ()=>{
+      const room = $("room").value.trim();
+      const pin = $("pin").value.trim();
+      const stationPin = $("stationPin").value.trim();
+      if(!room || !pin){ return showErr("Zimmer & PIN fehlen."); }
+      const v = sel.value;
+      if(!v) return;
+      const data = JSON.parse(v);
+      try{
+        await jpost("/api/washer/book",{ room, pin, stationPin, machineId:data.machineId, startAt: Number(data.startAt) });
+        await refreshAll();
+      }catch(e){ showErr(String(e?.message||e)); }
+    };
+
+    const hint = document.createElement("div");
+    hint.className="muted";
+    hint.style.minWidth="190px";
+    hint.textContent="Waschmaschine + Slot auswählen";
+
+    row.appendChild(hint);
+    row.appendChild(sel);
+    row.appendChild(btn);
+    box.appendChild(row);
+  }(cfg){
     const card = $("feedbackCard");
     if(!card) return;
     const targets = [];
