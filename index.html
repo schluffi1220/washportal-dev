@@ -3,530 +3,66 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Washportal</title>
+<title>Datenschutz</title>
 <style>
-  :root{--bg:#070b14;--card:#121a2b;--muted:#93a4c7;--text:#e8eefc;--acc:#6aa7ff;--bad:#ff5c7a;--good:#25d08a;}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#050912,#0b1220);color:var(--text)}
-  header{position:sticky;top:0;background:rgba(5,9,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08);padding:12px 14px;z-index:5}
-  .wrap{max-width:1100px;margin:0 auto;padding:14px;display:grid;gap:12px}
-  .card{background:rgba(18,26,43,.78);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
-  h2{margin:0 0 8px 0;font-size:16px}
-  .muted{color:var(--muted)}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  input,select,textarea{background:#0c1426;color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px;font-size:14px;outline:none}
-  select option{color:#111}
-  button{background:linear-gradient(180deg,#2c6bff,#1b4dff);color:white;border:0;border-radius:12px;padding:10px 12px;font-weight:650;cursor:pointer}
-  button.secondary{background:#0c1426;border:1px solid rgba(255,255,255,.12)}
-  button.danger{background:linear-gradient(180deg,#ff5c7a,#ff2c55)}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  a{color:var(--acc);text-decoration:none}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-  @media (max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}}
-  @media (max-width:560px){.grid{grid-template-columns:1fr}}
-  .tile{background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px;display:grid;gap:8px}
-  .kpi{display:flex;justify-content:space-between;gap:8px}
-  .tag{font-size:12px;padding:4px 8px;border-radius:999px;background:rgba(106,167,255,.12);border:1px solid rgba(106,167,255,.22)}
-  .tag.bad{background:rgba(255,92,122,.12);border-color:rgba(255,92,122,.22)}
-  .tag.good{background:rgba(37,208,138,.12);border-color:rgba(37,208,138,.22)}
-  .sep{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
-  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0c1426;border:1px solid rgba(255,255,255,.12);padding:10px 12px;border-radius:12px;display:none;max-width:90vw;z-index:10}
-  .toast.show{display:block}
-  .small{font-size:12px}
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:20}
-  .modal .box{width:min(520px,92vw);background:#0c1426;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px}
-  .modal.show{display:flex}
-  img.popup{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+:root{--bg:#070b14;--card:#121a2b;--muted:#93a4c7;--text:#e8eefc;--acc:#6aa7ff;}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#050912,#0b1220);color:var(--text)}
+header{position:sticky;top:0;background:rgba(5,9,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
+.wrap{max-width:1100px;margin:0 auto;padding:14px 16px}
+h1{margin:0;font-size:18px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}
+pre{white-space:pre-wrap;word-break:break-word;color:var(--text);margin:0;font-size:14px;line-height:1.55}
+.small{color:var(--muted);font-size:12px}
+a{color:var(--acc)}
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap" style="padding:0;gap:6px">
-    <div class="small muted">
-      Mit der Benutzung dieser Seite erklärst du dich mit der aktuellen
-      <a href="https://schluffi1220.github.io/washportal-dev/privacy/" target="_blank" rel="noopener">Datenschutzvereinbarung</a>
-      einverstanden.
-    </div>
-  </div>
-</header>
-
-<div class="wrap">
-  <!-- 0. News -->
-  <div class="card" id="newsCard" style="display:none">
-    <h2>News</h2>
-    <div id="newsText" class="muted"></div>
-  </div>
-
-  <!-- 1. Login -->
+<header><div class="wrap"><h1>Datenschutz</h1><div class="small">Worker: <span id="w">https://washportal-dev-worker.schluffi1220.workers.dev</span></div></div></header>
+<main class="wrap" style="display:grid;gap:12px">
   <div class="card">
-    <h2>Login</h2>
-    <div class="row">
-      <label class="muted">Worker</label>
-      <input id="workerUrl" style="min-width:320px" placeholder="https://...workers.dev"/>
-      <button id="saveWorker" class="secondary">Speichern</button>
-      <span id="buildOut" class="muted"></span>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <label class="muted">Zimmer</label><input id="room" inputmode="numeric" placeholder="z.B. 203"/>
-      <label class="muted">PIN</label><input id="pin" type="password" placeholder="••••"/>
-      <label class="muted">Stations-PIN</label><input id="stationPin" type="password" placeholder="••••"/>
-      <button id="refreshBtn">Refresh</button>
-      <span id="loginOut" class="muted"></span>
-    </div>
+    <div class="small">Diese Seite lädt die Meta-Infos live aus dem Worker (fest verdrahtet).</div>
   </div>
-
-  <!-- 2. Slots buchen -->
   <div class="card">
-    <h2>Waschmaschine + Slot auswählen</h2>
-    <div class="row">
-      <select id="quickSelect" style="min-width:520px"></select>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button id="quickBookBtn">Buchen</button>
-      <span id="quickOut" class="muted"></span>
-    </div>
+    <h2 style="margin:0 0 10px 0;font-size:16px">Datenschutzerklärung</h2>
+    <pre id="doc">Lade…</pre>
   </div>
-
-  <!-- 3. Maschinenübersicht -->
   <div class="card">
-    <h2>Maschinenübersicht</h2>
-    <div class="muted small">Waschmaschinen</div>
-    <div class="grid" id="washerGrid" style="margin-top:8px"></div>
-    <div class="sep"></div>
-    <div class="muted small">Trockner</div>
-    <div class="grid" id="dryerGrid" style="margin-top:8px"></div>
+    <h2 style="margin:0 0 10px 0;font-size:16px">Meta (Debug)</h2>
+    <pre id="meta">—</pre>
   </div>
-
-  <!-- 4. Meine Buchungen -->
-  <div class="card">
-    <h2>Meine Buchungen</h2>
-    <div id="myBookings" class="grid" style="grid-template-columns:repeat(3,1fr)"></div>
-  </div>
-
-  <!-- 5. Feedback -->
-  <div class="card" id="feedbackCard" style="display:none">
-    <h2>Feedback</h2>
-    <div class="row">
-      <select id="fbTarget">
-        <option value="PS">PS</option>
-        <option value="SV">SV</option>
-        <option value="Admin">Admin</option>
-      </select>
-    </div>
-    <div style="margin-top:8px">
-      <textarea id="fbText" rows="4" style="width:100%" placeholder="Dein Feedback..."></textarea>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button id="fbSend">Senden</button>
-      <span id="fbOut" class="muted"></span>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<div class="modal" id="modal">
-  <div class="box">
-    <div class="row" style="justify-content:space-between;align-items:flex-start">
-      <div>
-        <div id="modalTitle" style="font-weight:700"></div>
-        <div id="modalBody" class="muted small" style="margin-top:6px"></div>
-      </div>
-      <button id="modalClose" class="secondary">Schließen</button>
-    </div>
-    <div id="modalImgWrap" style="margin-top:12px;display:none">
-      <img id="modalImg" class="popup" alt=""/>
-    </div>
-  </div>
-</div>
-
+</main>
 <script>
-  const $ = (id)=>document.getElementById(id);
-  const toast = (msg)=>{ const t=$("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); };
-
-  const LS = {
-    get(k,d=""){ try{return localStorage.getItem(k) ?? d}catch{return d} },
-    set(k,v){ try{localStorage.setItem(k,v)}catch{} }
-  };
-
-  const state = {
-    cfg:null,
-    machines:[],
-    bookings:[],
-    room:"",
-    hidden:new Set(),
-  };
-
-  function escapeHtml(s){
-    return String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const WORKER="https://washportal-dev-worker.schluffi1220.workers.dev";
+const TEMPLATE = "Datenschutzerkl\u00e4rung\n\n1. Verantwortlicher\nVerantwortlich f\u00fcr die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:\n\n{{PS_NAME}}\nSalzburgweg 7, 97616 Bad Neustadt an der Saale\n\nKontakt: {{PS_EMAIL}}\n\nDa diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.\n\n2. Zweck der Website\nDiese Website dient ausschlie\u00dflich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur f\u00fcr Patienten der Klinik bestimmt.\n\n3. Welche Daten werden verarbeitet?\n\nBei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:\n\n\u2022 Zimmernummer (als Benutzerkennung)\n\u2022 selbstgew\u00e4hlter PIN-Code\n\u2022 gebuchte Waschmaschinen-Zeiten\n\u2022 technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)\n\nDie Zimmernummer erm\u00f6glicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.\n\n4. Zweck der Datenverarbeitung:\n\nDie Verarbeitung erfolgt ausschlie\u00dflich zum Zweck:\n\n\u2022 der Identifikation der jeweiligen Nutzer bei der Buchung\n\u2022 der Verwaltung der Waschmaschinenbelegung\n\u2022 der technischen Bereitstellung und Sicherheit der Website\n\nEine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.\n\n5. Rechtsgrundlage\nDie Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht m\u00f6glich w\u00e4re und keine \u00fcberwiegenden Interessen der betroffenen Personen entgegenstehen.\n\n6. Speicherung und L\u00f6schung\nBuchungsdaten werden nur so lange gespeichert, wie dies f\u00fcr die Organisation der Waschmaschinenbelegung erforderlich ist.\nServer-Logdaten (z. B. IP-Adressen) werden ausschlie\u00dflich aus technischen Gr\u00fcnden kurzfristig gespeichert und regelm\u00e4\u00dfig gel\u00f6scht.\n\nAktuelle Aufbewahrungsfrist: {{RETENTION_DAYS}} Tage  \nGeplantes L\u00f6schdatum (gerechnet ab heute): {{DELETE_DATE}}\n\n7. Datensicherheit:\nEs werden angemessene technische Ma\u00dfnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu sch\u00fctzen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.\n\n8. Rechte der betroffenen Personen:\nNutzer haben jederzeit das Recht auf:\n\n\u2022 Auskunft \u00fcber ihre gespeicherten Daten (Art. 15 DSGVO)\n\u2022 Berichtigung unrichtiger Daten (Art. 16 DSGVO)\n\u2022 L\u00f6schung ihrer Daten (Art. 17 DSGVO)\n\u2022 Einschr\u00e4nkung der Verarbeitung (Art. 18 DSGVO)\n\u2022 Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)\n\nAnfragen k\u00f6nnen an den oben genannten Verantwortlichen gerichtet werden.\n\n9. Beschwerderecht:\nEs besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbeh\u00f6rde, hier das Bayerisches Landesamt f\u00fcr Datenschutzaufsicht.\n\n10. \u00c4nderungen dieser Datenschutzerkl\u00e4rung:\nDiese Datenschutzerkl\u00e4rung kann angepasst werden, falls sich technische oder rechtliche \u00c4nderungen ergeben.\n\nStand: {{TODAY}}\n";
+function fmtDate(ts){
+  const d=new Date(ts);
+  const dd=String(d.getDate()).padStart(2,"0");
+  const mm=String(d.getMonth()+1).padStart(2,"0");
+  const yy=d.getFullYear();
+  return `${dd}.${mm}.${yy}`;
+}
+(async()=>{
+  let meta={};
+  try{
+    const res=await fetch(WORKER+"/api/privacy/meta");
+    meta=await res.json();
+    document.getElementById("meta").textContent=JSON.stringify(meta,null,2);
+  }catch(e){
+    document.getElementById("meta").textContent=String(e);
   }
-  function pad2(n){ return String(n).padStart(2,"0"); }
-  function fmtTime(ts){
-    const d=new Date(ts);
-    return pad2(d.getHours())+":"+pad2(d.getMinutes());
-  }
-  function fmtDay(ts){
-    const d=new Date(ts);
-    const wd=["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
-    return wd+", "+pad2(d.getDate())+"."+pad2(d.getMonth()+1);
-  }
-  function apiBase(){
-    return ($("workerUrl").value||"").trim().replace(/\/+$/,"");
-  }
-  async function api(path, body){
-    const base = apiBase();
-    if(!base){ toast("Worker URL fehlt"); throw new Error("no_worker"); }
-    const res = await fetch(base+path, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body||{}),
-    });
-    const j = await res.json().catch(()=>({ok:false,error:"bad_json"}));
-    if(!res.ok || j.ok===false) throw new Error(j.message||j.error||("HTTP "+res.status));
-    return j;
-  }
-
-  function currentAuth(){
-    return {
-      room: ($("room").value||"").trim(),
-      pin: ($("pin").value||"").trim(),
-      stationPin: ($("stationPin").value||"").trim(),
-    };
-  }
-
-  function loadHidden(){
-    try{
-      const arr = JSON.parse(LS.get("hidden_bookings","[]"));
-      state.hidden = new Set(Array.isArray(arr)?arr:[]);
-    }catch{ state.hidden = new Set(); }
-  }
-  function saveHidden(){
-    LS.set("hidden_bookings", JSON.stringify(Array.from(state.hidden)));
-  }
-
-  function computeWasherSlots(cfg){
-    const hours = cfg.washerHours || [];
-    const daysFuture = Number(cfg.daysFuture||14);
-    const daysPast = Number(cfg.daysPast||2);
-    const now = Date.now();
-
-    const startDay = new Date(); startDay.setHours(0,0,0,0);
-    startDay.setDate(startDay.getDate() - daysPast);
-
-    const out=[];
-    for(let d=0; d<=daysFuture+daysPast; d++){
-      const day = new Date(startDay);
-      day.setDate(startDay.getDate()+d);
-      for(let i=0;i<hours.length-1;i++){
-        const st = new Date(day); st.setHours(hours[i],0,0,0);
-        const en = new Date(day); en.setHours(hours[i+1],0,0,0);
-        const stTs=st.getTime(), enTs=en.getTime();
-        // include future + currently running
-        if(enTs < now) continue;
-        out.push({ start: stTs, end: enTs });
-      }
-    }
-    return out;
-  }
-
-  function bookingOverlap(machineId, start, end){
-    return state.bookings.find(b=>b.machine===machineId && b.status==="active" && !(b.end<=start || b.start>=end));
-  }
-
-  function renderNews(){
-    const cfg = state.cfg;
-    const show = cfg && cfg.newsEnabled && (cfg.newsText||"").trim();
-    $("newsCard").style.display = show ? "" : "none";
-    if(show) $("newsText").innerHTML = escapeHtml(cfg.newsText).replace(/\n/g,"<br/>");
-  }
-
-  function buildQuickDropdown(){
-    const sel = $("quickSelect");
-    sel.innerHTML="";
-    const cfg = state.cfg;
-    if(!cfg){ const o=document.createElement("option"); o.textContent="Bitte zuerst Refresh"; sel.appendChild(o); return; }
-
-    const slots = computeWasherSlots(cfg);
-    const washers = state.machines.filter(m=>m.type==="washer").sort((a,b)=>a.idx-b.idx);
-
-    // optgroups per day for readability
-    const groups = new Map();
-    for(const slot of slots){
-      const key = fmtDay(slot.start);
-      if(!groups.has(key)) groups.set(key, []);
-      for(const w of washers){
-        const occ = bookingOverlap(w.id, slot.start, slot.end);
-        groups.get(key).push({ machine:w, slot, occ });
-      }
-    }
-
-    for(const [day, items] of groups.entries()){
-      const og = document.createElement("optgroup");
-      og.label = day;
-      for(const it of items){
-        const o=document.createElement("option");
-        const label = `${fmtTime(it.slot.start)}–${fmtTime(it.slot.end)} WM ${it.machine.idx}`;
-        if(it.occ){
-          o.textContent = `${label}  —  BELEGT (Zimmer ${it.occ.room})`;
-          o.disabled = true;
-        }else{
-          o.textContent = label;
-        }
-        o.value = JSON.stringify({ machineId: it.machine.id, start: it.slot.start });
-        og.appendChild(o);
-      }
-      sel.appendChild(og);
-    }
-  }
-
-  function statusForMachine(m){
-    const now = Date.now();
-    const bs = state.bookings.filter(b=>b.machine===m.id && b.status==="active").sort((a,b)=>a.start-b.start);
-    let last=null, current=null, next=null;
-    for(const b of bs){
-      if(b.end <= now){ last = b; continue; }
-      if(b.start <= now && b.end > now){ current = b; continue; }
-      if(b.start > now && !next) next = b;
-    }
-    // if no "current" and last is the latest past booking, ok
-    return { last, current, next };
-  }
-
-  function openModal(title, body, imgUrl){
-    $("modalTitle").textContent = title;
-    $("modalBody").innerHTML = body;
-    if(imgUrl){
-      $("modalImgWrap").style.display="";
-      $("modalImg").src = imgUrl;
-    }else{
-      $("modalImgWrap").style.display="none";
-      $("modalImg").src = "";
-    }
-    $("modal").classList.add("show");
-  }
-
-  function renderMachineTiles(){
-    const cfg = state.cfg || {};
-    const washers = state.machines.filter(m=>m.type==="washer").sort((a,b)=>a.idx-b.idx);
-    const dryers = state.machines.filter(m=>m.type==="dryer").sort((a,b)=>a.idx-b.idx);
-
-    const renderOne = (m)=>{
-      const s = statusForMachine(m);
-      const wrap = document.createElement("div");
-      wrap.className="tile";
-      const title = m.label;
-      const tags = [];
-      if(s.current) tags.push(`<span class="tag good">Aktuell: Zimmer ${escapeHtml(s.current.room)} bis ${fmtTime(s.current.end)}</span>`);
-      if(!s.current && s.next) tags.push(`<span class="tag">Nächste: Zimmer ${escapeHtml(s.next.room)} ab ${fmtTime(s.next.start)}</span>`);
-      if(s.last) tags.push(`<span class="tag">Zuletzt: Zimmer ${escapeHtml(s.last.room)} bis ${fmtTime(s.last.end)}</span>`);
-      if(!s.last && !s.current && !s.next) tags.push(`<span class="tag">frei</span>`);
-
-      wrap.innerHTML = `
-        <div class="kpi">
-          <div style="font-weight:750">${escapeHtml(title)}</div>
-          <div class="muted small">${m.type==="dryer" ? "Trockner" : "Waschmaschine"}</div>
-        </div>
-        <div>${tags.join(" ")}</div>
-        <div class="row">
-          <button class="secondary" data-info="${m.id}">Info</button>
-          <button data-book="${m.id}">Buchen</button>
-          <button class="secondary" data-over="${m.id}">Überbuchen</button>
-          <button class="danger" data-def="${m.id}">Defekt</button>
-        </div>
-      `;
-      // Hook actions
-      wrap.querySelector(`[data-info="${m.id}"]`).addEventListener("click", ()=>{
-        const s2 = statusForMachine(m);
-        const lines = [
-          s2.last ? `Zuletzt: Zimmer ${escapeHtml(s2.last.room)} (${fmtTime(s2.last.start)}–${fmtTime(s2.last.end)})` : "Zuletzt: —",
-          s2.current ? `Aktuell: Zimmer ${escapeHtml(s2.current.room)} (bis ${fmtTime(s2.current.end)})` : "Aktuell: —",
-          s2.next ? `Nächste: Zimmer ${escapeHtml(s2.next.room)} (${fmtTime(s2.next.start)}–${fmtTime(s2.next.end)})` : "Nächste: —",
-        ].join("<br/>");
-        const img = (m.type==="washer" && cfg.showWasherPopup && cfg.washerPopupImageUrl) ? cfg.washerPopupImageUrl
-                 : (m.type==="dryer" && cfg.showDryerPopup && cfg.dryerPopupImageUrl) ? cfg.dryerPopupImageUrl
-                 : "";
-        openModal(title, lines, img);
-      });
-
-      wrap.querySelector(`[data-book="${m.id}"]`).addEventListener("click", async ()=>{
-        try{
-          // For washers: pick from quick dropdown filtered to that machine. For dryers: start now rounded to next 5 min
-          if(m.type==="washer"){
-            $("quickOut").textContent="Wähle Slot oben im Dropdown";
-            toast("Slot oben auswählen");
-            window.scrollTo({ top: 0, behavior:"smooth" });
-          }else{
-            const mins = Number(cfg.dryerSlotMinutes||60);
-            const now = Date.now();
-            const start = Math.ceil(now / (5*60*1000)) * (5*60*1000);
-            await createBooking(m.id, start, false);
-          }
-        }catch(e){ toast(e.message); }
-      });
-
-      wrap.querySelector(`[data-over="${m.id}"]`).addEventListener("click", async ()=>{
-        try{
-          // overbook uses same create endpoint; config allowOverbook must be true
-          if(m.type==="washer"){
-            toast("Overbook: Slot oben auswählen");
-            window.scrollTo({ top: 0, behavior:"smooth" });
-          }else{
-            const now = Date.now();
-            const start = Math.ceil(now / (5*60*1000)) * (5*60*1000);
-            await createBooking(m.id, start, true);
-          }
-        }catch(e){ toast(e.message); }
-      });
-
-      wrap.querySelector(`[data-def="${m.id}"]`).addEventListener("click", async ()=>{
-        try{
-          if(!(state.cfg && state.cfg.userCanReportDefect)){ toast("Defekt melden deaktiviert"); return; }
-          const text = prompt("Defekt melden (kurz beschreiben):");
-          if(!text) return;
-          const a = currentAuth();
-          await api("/api/defect/report", { ...a, machineId: m.id, text });
-          toast("Defekt gemeldet");
-        }catch(e){ toast(e.message); }
-      });
-
-      return wrap;
-    };
-
-    const wGrid = $("washerGrid"); wGrid.innerHTML="";
-    washers.forEach(m=>wGrid.appendChild(renderOne(m)));
-
-    const dGrid = $("dryerGrid"); dGrid.innerHTML="";
-    dryers.forEach(m=>dGrid.appendChild(renderOne(m)));
-
-    if(!dryers.length){
-      const div=document.createElement("div"); div.className="muted small"; div.textContent="(keine Trockner im Worker vorhanden)";
-      dGrid.appendChild(div);
-    }
-  }
-
-  function renderMyBookings(){
-    const wrap = $("myBookings");
-    wrap.innerHTML="";
-    const a = currentAuth();
-    const my = state.bookings.filter(b=>b.room===a.room).sort((x,y)=>y.start-x.start);
-    const now = Date.now();
-    const machinesById = new Map(state.machines.map(m=>[m.id,m]));
-    const shown = my.filter(b=>!state.hidden.has(b.id));
-    if(!shown.length){
-      wrap.innerHTML = `<div class="muted">Keine Buchungen.</div>`;
-      return;
-    }
-    for(const b of shown){
-      const m = machinesById.get(b.machine);
-      const expired = b.end < now;
-      const tile=document.createElement("div");
-      tile.className="tile";
-      const title = m ? m.label : b.machine;
-      const status = expired ? `<span class="tag bad">abgelaufen</span>` : `<span class="tag good">${escapeHtml(b.status||"active")}</span>`;
-      tile.innerHTML = `
-        <div class="kpi">
-          <div style="font-weight:750">${escapeHtml(title)}</div>
-          <div>${status}</div>
-        </div>
-        <div class="muted small">${fmtDay(b.start)} ${fmtTime(b.start)}–${fmtTime(b.end)}</div>
-        <div class="row">
-          ${expired ? `` : `<button class="secondary" data-release="${b.id}">Freigeben</button>`}
-          ${expired ? `` : `<button class="danger" data-cancel="${b.id}">Stornieren</button>`}
-          <button class="secondary" data-hide="${b.id}">Ausblenden</button>
-        </div>
-      `;
-      // actions
-      const hideBtn = tile.querySelector(`[data-hide="${b.id}"]`);
-      hideBtn.addEventListener("click", ()=>{
-        state.hidden.add(b.id); saveHidden(); renderMyBookings();
-      });
-      const rel = tile.querySelector(`[data-release="${b.id}"]`);
-      if(rel) rel.addEventListener("click", async ()=>{
-        try{
-          await api("/api/booking/release", { ...a, id: b.id });
-          await refresh();
-        }catch(e){ toast(e.message); }
-      });
-      const can = tile.querySelector(`[data-cancel="${b.id}"]`);
-      if(can) can.addEventListener("click", async ()=>{
-        try{
-          await api("/api/booking/cancel", { ...a, id: b.id });
-          await refresh();
-        }catch(e){ toast(e.message); }
-      });
-
-      wrap.appendChild(tile);
-    }
-  }
-
-  async function createBooking(machineId, start, over){
-    const a = currentAuth();
-    const j = await api("/api/booking/create", { ...a, machineId, start, over });
-    toast(j.overbooked ? "Überbucht" : "Gebucht");
-    await refresh();
-  }
-
-  async function refresh(){
-    $("loginOut").textContent="Lade...";
-    const a = currentAuth();
-    if(!a.room || !a.pin){ toast("Zimmer + PIN eingeben"); return; }
-    const j = await api("/api/user/refresh", a);
-    state.cfg = j.config;
-    state.machines = j.machines || [];
-    state.bookings = (j.bookings || []).filter(b=>b.status==="active" || b.status==="released" || b.status==="cancelled");
-    $("buildOut").textContent = j.build ? ("Build: "+j.build) : "";
-    $("loginOut").textContent="OK";
-    renderNews();
-    $("feedbackCard").style.display = (state.cfg && state.cfg.feedbackEnabled) ? "" : "none";
-    buildQuickDropdown();
-    renderMachineTiles();
-    renderMyBookings();
-  }
-
-  async function quickBook(){
-    try{
-      const sel = $("quickSelect");
-      const v = sel.value;
-      if(!v){ toast("Slot wählen"); return; }
-      const parsed = JSON.parse(v);
-      await createBooking(parsed.machineId, parsed.start, false);
-    }catch(e){ toast(e.message); }
-  }
-
-  async function sendFeedback(){
-    try{
-      const a = currentAuth();
-      const target = $("fbTarget").value;
-      const text = ($("fbText").value||"").trim();
-      if(!text){ toast("Text fehlt"); return; }
-      await api("/api/feedback/submit", { ...a, target, text });
-      $("fbText").value="";
-      toast("Gesendet");
-    }catch(e){ toast(e.message); }
-  }
-
-  function loadWorker(){
-    $("workerUrl").value = LS.get("portal_worker_url","");
-  }
-  function saveWorker(){
-    LS.set("portal_worker_url", ($("workerUrl").value||"").trim());
-    toast("Gespeichert");
-  }
-
-  $("modalClose").addEventListener("click", ()=> $("modal").classList.remove("show"));
-  $("modal").addEventListener("click", (e)=>{ if(e.target.id==="modal") $("modal").classList.remove("show"); });
-
-  $("saveWorker").addEventListener("click", saveWorker);
-  $("refreshBtn").addEventListener("click", ()=>refresh().catch(e=>toast(e.message)));
-  $("quickBookBtn").addEventListener("click", ()=>quickBook().catch(e=>toast(e.message)));
-  $("fbSend").addEventListener("click", ()=>sendFeedback().catch(e=>toast(e.message)));
-
-  // Important: do NOT persist room/pin/stationPin
-  $("room").value = "";
-  $("pin").value = "";
-  $("stationPin").value = "";
-
-  loadHidden();
-  loadWorker();
+  const today=fmtDate(Date.now());
+  const psName=(meta.psName||"—");
+  const psEmail=(meta.psEmail||"—");
+  const retention=String(meta.retentionDays||30);
+  const deleteDate=fmtDate(meta.deleteAt|| (Date.now()+Number(retention)*86400000));
+  let out=TEMPLATE
+    .replaceAll("{PS_NAME}", psName)
+    .replaceAll("{PS_EMAIL}", psEmail)
+    .replaceAll("{RETENTION_DAYS}", retention)
+    .replaceAll("{DELETE_DATE}", deleteDate)
+    .replaceAll("{TODAY}", today);
+  document.getElementById("doc").textContent=out;
+})();
 </script>
 </body>
 </html>
