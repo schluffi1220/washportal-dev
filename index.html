@@ -66,8 +66,10 @@
       background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:16px; padding:14px;
       display:flex; flex-direction:column; gap:10px; min-height:150px;
     }
-    .mcard.state-free{border-color: rgba(45,212,191,.28); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
-    .mcard.state-busy{border-color: rgba(96,165,250,.30); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
+    .mcard.state-free{border-color: rgba(45,212,191,.28); background: rgba(45,212,191,.08); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
+    .mcard.state-busy{border-color: rgba(96,165,250,.30); background: rgba(96,165,250,.08); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
+    .mcard.state-whitecard{border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.12);}
+
 
     .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
     .mtitle{font-weight:800}
@@ -259,10 +261,10 @@
     const bookings = Array.isArray(state?.bookings) ? state.bookings : [];
     const slots = buildWasherSlots(cfg);
 
-    // Sort: Trockner zuerst (wie vorher)
+    // Sort: Waschmaschinen zuerst (wie gewünscht)
     const ordered = machines.slice().sort((a,b)=>{
-      const ak = a.kind === "dryer" ? 0 : 1;
-      const bk = b.kind === "dryer" ? 0 : 1;
+      const ak = a.kind === "washer" ? 0 : 1;
+      const bk = b.kind === "washer" ? 0 : 1;
       if(ak!==bk) return ak-bk;
       return Number(a.machineId)-Number(b.machineId);
     });
@@ -286,7 +288,7 @@
       const free = !cur || (cur.status!=="booked" && cur.status!=="active") || Date.now() >= Number(cur.endAt||0);
 
       const card = document.createElement("div");
-      card.className = "mcard " + (free ? "state-free" : "state-busy");
+      card.className = "mcard " + (free ? "state-free" : "state-busy") + ((active && (active.whitecard || active.whiteCard)) ? " state-whitecard" : "");
 
       const head = document.createElement("div");
       head.className = "mhead";
@@ -442,7 +444,24 @@
     }
   }
 
-  async function refreshAll(){
+  async function sendDefectForMachine(machineId, text){
+  const room = $("room").value.trim();
+  const pin = $("pin").value.trim();
+  const stationPin = $("stationPin").value.trim();
+  // Beschreibung optional -> wir senden Default-Text, damit Worker-API (falls Pflicht) nicht scheitert
+  const msg = (text||"").trim() || "Defekt gemeldet";
+  await jpost("/api/defect/report", { room, pin, stationPin, machineId: String(machineId||""), text: msg });
+  showOk("✅ Defektmeldung gesendet.");
+}
+
+function fmtHM(ts){
+  const d = new Date(Number(ts||0));
+  if(!Number.isFinite(d.getTime())) return "–";
+  return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+}
+
+async function refreshAll(){
+
     showErr("");
     saveCreds();
     const room = $("room").value.trim();
