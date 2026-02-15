@@ -1,1585 +1,842 @@
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Admin-User – Washportal (ALPHA)</title>
-<style>
-  :root{color-scheme:dark; --bg:#070b12; --card:rgba(255,255,255,.03); --line:rgba(255,255,255,.10); --txt:#e7eefc; --muted:rgba(231,238,252,.72);}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:var(--bg);color:var(--txt)}
-  .wrap{max-width:1100px;margin:0 auto;padding:10px}
-  h1{font-size:14px;margin:0 0 8px 0;font-weight:800}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
-  .grid{display:grid;grid-template-columns:1fr;gap:10px}
-  @media(min-width:980px){.grid{grid-template-columns:1.2fr .8fr}}
-  label{font-size:11px;opacity:.85;display:block;margin-bottom:6px}
-  input,select,button,textarea{width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--txt);border-radius:12px;padding:9px 10px;font-size:13px}
-  textarea{min-height:90px;resize:vertical}
-  button{cursor:pointer}
-  .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .btnrow button{width:auto;padding:6px 8px;font-size:11px;border-radius:10px}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);border-radius:12px;padding:9px;border:1px solid rgba(255,255,255,.08);max-height:260px;overflow:auto}
-  .pill{display:inline-block;padding:3px 7px;border-radius:999px;font-size:10px;border:1px solid rgba(255,255,255,.16);opacity:.95}
-  .toast{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(0,0,0,.78);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);padding:9px 10px;border-radius:12px;max-width:92vw;z-index:9999;font-size:12px}
-  .tabs{display:flex;gap:6px;overflow:auto;padding:6px 0;margin:8px 0 10px 0;position:sticky;top:0;background:linear-gradient(to bottom, rgba(7,11,18,.95), rgba(7,11,18,.6));backdrop-filter:blur(8px);z-index:10}
-  .tab{padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);font-size:11px;white-space:nowrap}
-  .tab.active{background:rgba(255,255,255,.10)}
-  .section{display:none}
-  .section.active{display:block}
-  .small{font-size:11px;opacity:.8;line-height:1.35}
-  .group{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
+// WASHPORTAL Worker (Full) — Portal + Admin endpoints
+// Build: set via env.BUILD
+export default {
+  async fetch(req, env, ctx) {
+    const origin = req.headers.get("Origin") || "*";
 
-  .topbar{position:sticky;top:0;z-index:9999;background:rgba(7,11,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.10);padding:10px 12px}
-  .topbar h1{margin:0;font-size:18px}
-  .subbar{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-  .subbar .left{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  details{border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
-  details>summary{cursor:pointer;font-weight:800}
-  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .actions button{flex:1 1 140px}
-  table{width:100%;border-collapse:separate;border-spacing:0 8px}
-  th{font-size:11px;text-align:left;opacity:.7;font-weight:800;padding:0 10px}
-  td{padding:10px;border-top:1px solid rgba(255,255,255,.10);border-bottom:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.02)}
-  tr td:first-child{border-left:1px solid rgba(255,255,255,.10);border-top-left-radius:14px;border-bottom-left-radius:14px}
-  tr td:last-child{border-right:1px solid rgba(255,255,255,.10);border-top-right-radius:14px;border-bottom-right-radius:14px}
-  .chiprow{display:flex;gap:6px;flex-wrap:wrap}
-  .chip{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);font-size:11px;cursor:pointer;user-select:none}
-  .chip.on{background:rgba(120,255,160,.12);border-color:rgba(120,255,160,.35)}
-  .chip.off{opacity:.55}
-  .muted{opacity:.7}
-  .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.20);border-top-color:rgba(255,255,255,.80);border-radius:999px;animation:spin 1s linear infinite;vertical-align:-2px;margin-left:6px}
-  @keyframes spin{to{transform:rotate(360deg)}}
+    const withCors = (res) => {
+      const h = new Headers(res.headers);
+      h.set("Access-Control-Allow-Origin", origin === "null" ? "*" : origin);
+      h.set("Vary", "Origin");
+      h.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+      h.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-SA-Password");
+      h.set("Access-Control-Max-Age", "86400");
+      return new Response(res.body, { status: res.status, headers: h });
+    };
 
+    const j = (obj, status = 200) =>
+      withCors(
+        new Response(JSON.stringify(obj, null, 2), {
+          status,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        })
+      );
 
-  .togGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  @media (max-width:820px){.togGrid{grid-template-columns:1fr}}
-  .togCard{border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:12px;background:rgba(255,255,255,.02);display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
-  .togCard b{font-size:13px}
-  .togCard .desc{font-size:12px;opacity:.75;margin-top:4px}
-  .switch{position:relative;width:46px;height:26px;flex:0 0 auto}
-  .switch input{opacity:0;width:0;height:0}
-  .slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.14);transition:.15s;border-radius:999px}
-  .slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;top:2px;background:white;border-radius:50%;transition:.15s}
-  .switch input:checked + .slider{background:rgba(120,255,180,.22);border-color:rgba(120,255,180,.45)}
-  .switch input:checked + .slider:before{transform:translateX(20px)}
+    try {
+      if (req.method === "OPTIONS") return withCors(new Response("", { status: 204 }));
 
+      const url = new URL(req.url);
+      const path = url.pathname;
 
-  .chiprow{display:flex;gap:8px;flex-wrap:wrap}
-  .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);cursor:pointer;font-weight:900;font-size:12px}
-  .chip:hover{background:rgba(255,255,255,.06)}
+      if (!env.DB) return j({ ok: false, error: "missing_db_binding", message: "DB binding fehlt (env.DB ist undefined)" }, 500);
 
-</style>
-</head>
-<body>
-<div style="position:sticky;top:0;z-index:99999;background:rgba(255,190,120,.10);border-bottom:1px solid rgba(255,190,120,.25);padding:6px 10px;font-size:12px;font-weight:800">
-  UI-Version: v72-ui-clean • Wenn du das nicht siehst, ist noch eine alte admin-user Datei aktiv.</div>
+      // health check that doesn't depend on any tables
+      if (req.method === "GET" && path === "/api/_status") {
+        return j({ ok: true, now: Date.now(), build: env.BUILD || "" });
+      }
 
-<div class="topbar"><h1>Admin-User</h1><div class="subbar"><div class="left"><span class="pill" id="pillUser">nicht eingeloggt</span><span class="pill" id="pillRole">-</span></div><div class="left"><button id="btnReloadActive" class="tab">Aktualisieren</button></div></div></div><div class="wrap"><div class="tabs" id="tabs">
-    <button class="tab active" data-tab="users">Benutzer</button>
-    <button class="tab" data-tab="rbac">Rollen &amp; Rechte</button>
-    <button class="tab" data-tab="config">Konfig</button>
-    <button class="tab" data-tab="transfer">Übergabe</button>
-    <button class="tab" data-tab="rooms">Zimmer</button>
-    <button class="tab" data-tab="bookings">Buchungen</button>
-    <button class="tab" data-tab="logs">Logs</button>
-    <button class="tab" data-tab="debug">Debug</button>
-  </div>
+      await ensureSchema(env);
 
-  <div class="grid">
-    <div class="card">
-  <details open>
-    <summary>Verbindung & Login</summary>
+      // ----- helpers for auth -----
+      const isSA = await isSuperAdmin(req, env);
 
-    <div style="display:grid;gap:8px;margin-top:10px">
-      <div>
-        <label>Worker BASE</label>
-        <input id="base" placeholder="https://…workers.dev"/>
-      </div>
+// ---------- ADMIN CONFIG (SA only) ----------
+if (req.method === "GET" && path === "/api/auth/admin/config/get") {
+  if (!isSA) return j({ ok: false, error: "forbidden", message: "forbidden", build: env.BUILD || "" }, 403);
+  const config = await getConfig(env);
+  return j({ ok: true, build: env.BUILD || "", config });
+}
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <label>Bearer Token (optional)</label>
-          <input id="token" placeholder="optional (Admin/PS/SV Token)"/>
-        </div>
-        <div>
-          <label>SA Passwort</label>
-          <input id="sa" type="password" placeholder="••••••••"/>
-        </div>
-      </div>
-    </div>
+if (req.method === "POST" && path === "/api/auth/admin/config/set") {
+  if (!isSA) return j({ ok: false, error: "forbidden", message: "forbidden", build: env.BUILD || "" }, 403);
+  const body = await readJson(req);
+  const incoming = body?.config && typeof body.config === "object" ? body.config : (body || {});
+  const allowed = [
+    "daysPast","daysFuture","dryerMinutes","washerHours",
+    "newsEnabled","newsText",
+    "chatEnabled","whitecardEnabled","portalDebugEnabled",
+    "washerPopup","dryerPopup"
+  ];
 
-    <div class="group" style="margin-top:10px">
-      <b style="font-size:12px">Login (Email + Passwort)</b>
-      <div class="small" style="margin-top:6px">Für Admin/PS/SV. Speichert danach automatisch den Bearer Token.</div>
+  for (const k of allowed) {
+    if (!(k in incoming)) continue;
+    let v = incoming[k];
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-        <div>
-          <label>Email</label>
-          <input id="loginEmail" placeholder="name@domain.de"/>
-        </div>
-        <div>
-          <label>Passwort</label>
-          <input id="loginPw" type="password" placeholder="••••••••"/>
-        </div>
-      </div>
-
-      <div class="btnrow" style="margin-top:10px">
-        <button id="btnLogin">Login</button>
-        <button id="btnLogout">Logout</button>
-        <button id="btnSaLogin" title="Nutze nur SA Passwort → lädt /api/auth/me">SA → me</button>
-      </div>
-      <div class="small muted" style="margin-top:8px">Tip: SA-Login ist kein Email-Login — SA setzt nur das SA Passwort (oben) und nutzt dann die Admin-Aktionen.</div>
-    </div>
-
-    <div class="actions">
-      <button id="btnMe">me</button>
-      <button id="btnUsers">Benutzer</button>
-      <button id="btnSnap">Rechte</button>
-      <button id="btnCfg">Konfig</button>
-      <button id="btnTrList">Übergabe</button>
-      <button id="btnStatus">_status</button>
-      <button id="btnRoutes">_routes</button>
-    </div>
-  </details>
-</div>
-
-<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <span class="pill" id="pillBuild">build: –</span>
-        <span class="pill" id="pillAuth">auth: –</span>
-        <span class="pill" id="pillRole">role: –</span>
-      </div>
-
-      <div class="mono" id="out" style="margin-top:8px">{}</div>
-    </div>
-
-    <div class="card">
-      <b style="font-size:12px">Fix in dieser Version</b>
-      <div class="small" style="margin-top:6px">
-        <div>• liest <b>users</b> aus <code>res.users</code> ODER <code>res.data.users</code></div>
-        <div>• zeigt <b>pending</b> + <b>active</b></div>
-        <div>• approve Button, wenn <code>/api/auth/admin/users/approve</code> existiert</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- USERS -->
-  <div class="card section active" id="sec-users" style="margin-top:10px">
-    <b>Benutzer</b>
-    <div class="small" style="margin-top:6px">Zeigt active + pending. Rolle ändern / Freischalten ist serverseitig.</div>
-
-    <div class="group" style="margin-top:10px;display:grid;gap:8px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <label>Filter Status</label>
-          <select id="userStatusFilter">
-            <option value="all">alle</option>
-            <option value="active">nur active</option>
-            <option value="pending">nur pending</option>
-          </select>
-        </div>
-        <div>
-          <label>Suche (Name/Email)</label>
-          <input id="userSearch" placeholder="z.B. steve oder @googlemail"/>
-        </div>
-      </div>
-    </div>
-
-    <div id="usersList" style="margin-top:10px;display:grid;gap:10px"></div>
-    <div id="usersEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Benutzer (Filter?)</div>
-  </div>
-
-  <!-- RBAC -->
-  <div class="card section" id="sec-rbac" style="margin-top:10px">
-    <b>Rollen &amp; Rechte</b>
-    <div class="small" style="margin-top:6px">
-      Setze Berechtigungen per Haken. <b>Ändern geht nur als SA</b> (SA Passwort eintragen &amp; „SA → me“).
-    </div>
-
-    <div class="group" style="margin-top:10px;display:grid;gap:10px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <label>Rolle</label>
-          <select id="rbacRole"></select>
-        </div>
-        <div>
-          <label>Suche</label>
-          <input id="rbacSearch" placeholder="z.B. booking oder users oder room"/>
-        </div>
-      </div>
-      <div class="btnrow">
-        <button id="btnRbacReload">Aktualisieren</button>
-        <button id="btnRbacSave">Speichern</button>
-      </div>
-      <div class="small muted">Tipp: Änderungen werden gesammelt – erst „Speichern“ schreibt in die DB.</div>
-    </div>
-
-    <div id="rbacEditor" style="margin-top:10px;display:grid;gap:10px"></div>
-    <div class="mono" id="rbacOut" style="margin-top:10px;display:none">{}</div>
-  </div>
-
-  <!-- CONFIG -->
-  <div class="card section" id="sec-config" style="margin-top:10px">
-    <b>Konfiguration</b>
-    <div class="small" style="margin-top:6px">Alles hier ist so gebaut, dass du im Alltag nur klicken musst. „Raw JSON“ bleibt als Expertenmodus.</div>
-
-    <div class="group" style="margin-top:10px;display:grid;gap:10px">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:900">Setup</div>
-          <div class="small muted">Wichtig: Stations-PIN muss gesetzt sein, sonst ist das Portal gesperrt.</div>
-        </div>
-        <div class="btnrow" style="min-width:260px">
-          <button id="btnCfgLoad">Aktualisieren</button>
-          <button id="btnCfgSave">Speichern</button>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
-          <div style="font-weight:900">Stations-PIN</div>
-          <div class="small muted" style="margin-top:6px">Der PIN, den das Portal zusätzlich zum Zimmer-PIN verlangt.</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-            <div>
-              <label>Neuer Stations-PIN</label>
-              <input id="cfgStationPin" type="password" placeholder="mind. 4 Stellen"/>
-            </div>
-            <div>
-              <label>Bestätigen</label>
-              <input id="cfgStationPin2" type="password" placeholder="wiederholen"/>
-            </div>
-          </div>
-          <div class="btnrow" style="margin-top:10px">
-            <button id="btnSetStationPin">Stations-PIN setzen</button>
-            <button id="btnClearStationPin" class="secondary" title="Löscht nicht den Hash — leert nur die Eingabefelder">Felder leeren</button>
-          </div>
-          <div class="small" id="cfgStationPinHint" style="margin-top:8px;opacity:.8"></div>
-        </div>
-
-        <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
-          <div style="font-weight:900">Datenfenster (Privacy/Logs)</div>
-          <div class="small muted" style="margin-top:6px">Wie weit zurück/voraus Daten im System sichtbar bleiben.</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-            <div>
-              <label>Tage zurück</label>
-              <input id="cfgDaysPast" inputmode="numeric" placeholder="z.B. 1"/>
-            </div>
-            <div>
-              <label>Tage voraus</label>
-              <input id="cfgDaysFuture" inputmode="numeric" placeholder="z.B. 6"/>
-            </div>
-          </div>
-          <div class="small muted" style="margin-top:10px">Tipp: Wenn du hier speicherst, wird Privacy später automatisch „Löschdatum“ berechnen.</div>
-        </div>
-      </div>
-
-      <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
-        <div style="font-weight:900">Buchungs-Slots</div>
-        <div class="small muted" style="margin-top:6px">Lege fest, zu welchen Uhrzeiten Wasch-Slots starten und wie lange ein Trockner läuft.</div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-          <div>
-            <label>Trockner-Dauer (Minuten)</label>
-            <select id="cfgDryerMinutes">
-              <option value="60">60</option>
-              <option value="90">90</option>
-              <option value="120">120</option>
-              <option value="150">150</option>
-              <option value="180">180</option>
-            </select>
-          </div>
-          <div>
-            <label>News im Portal</label>
-            <label style="display:flex;gap:10px;align-items:center;cursor:pointer;margin-top:6px">
-              <input type="checkbox" id="cfgNewsEnabled"/>
-              <span><b>News aktiv</b></span>
-            </label>
-          </div>
-        </div>
-
-        <div style="margin-top:10px">
-          <label>News Text</label>
-          <textarea id="cfgNewsText" placeholder="Kurze Info für alle im Portal…"></textarea>
-          <div class="small muted" style="margin-top:6px">Wird im Portal oben angezeigt, wenn aktiviert.</div>
-        </div>
-
-        <div style="margin-top:12px">
-          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-            <div>
-              <div style="font-weight:900">Wasch-Slot Startzeiten</div>
-              <div class="small muted">Haken setzen = Slot verfügbar. Speichert als Array <span class="mono">washerHours</span>.</div>
-            </div>
-            <div class="chiprow">
-              <span class="chip on" id="btnSlotsPresetDay">Standard (6–20)</span>
-              <span class="chip" id="btnSlotsPresetAll">Alle</span>
-              <span class="chip" id="btnSlotsPresetNone">Keine</span>
-            </div>
-          </div>
-          <div id="slotGrid" style="margin-top:10px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px"></div>
-        </div>
-      </div>
-
-<div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
-        <div style="font-weight:900">Funktionen</div>
-        <div class="small muted" style="margin-top:6px">Schalte Features per Schalter an/aus. Im Normalbetrieb: klick-klick-fertig.</div>
-
-        <div class="togGrid" style="margin-top:10px">
-          <div class="togCard">
-            <div>
-              <b>Chat aktiv</b>
-              <div class="desc">Zimmer ↔ Zimmer Nachrichten. Wenn Admin deaktiviert, darf PS/SV später nicht reaktivieren.</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="cfgChatEnabled"/>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="togCard">
-            <div>
-              <b>Whitecard aktiv</b>
-              <div class="desc">Maschine wird weiß markiert + Überbuchung nach Zustimmung.</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="cfgWhitecardEnabled"/>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="togCard">
-            <div>
-              <b>Portal Debug-Box</b>
-              <div class="desc">Zeigt API-Responses unten im Portal. Nur zur Fehlersuche.</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="cfgPortalDebug"/>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="togCard">
-            <div>
-              <b>Waschmaschinen-Popup</b>
-              <div class="desc">Beim Buchen muss ein Hinweis/Bild bestätigt werden (wenn später hinterlegt).</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="cfgWasherPopup"/>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="togCard">
-            <div>
-              <b>Trockner-Popup</b>
-              <div class="desc">Beim Buchen muss ein Hinweis/Bild bestätigt werden (wenn später hinterlegt).</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="cfgDryerPopup"/>
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-      </div></div>
-      </details>
-    </div>
-  </div>
-
-  <!-- TRANSFER -->
-  <div class="card section" id="sec-transfer" style="margin-top:10px">
-    <b>Übergabe / Bewerbung</b>
-    <div class="btnrow" style="margin-top:10px">
-      <button id="btnTrList2">Aktualisieren</button>
-    </div>
-    <div id="trList" style="margin-top:10px;display:grid;gap:10px"></div>
-    <div id="trEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine offenen Bewerbungen.</div>
-  </div>
-
-<!-- ROOMS -->
-  <div class="card section" id="sec-rooms" style="margin-top:10px">
-    <b>Zimmer sperren / freigeben</b>
-    <div class="small" style="margin-top:6px">
-      Sperre ist <b>PIN-unabhängig</b> und wirkt immer auf die Zimmernummer. Du kannst optional eine Nachricht hinterlegen,
-      die dem Zimmer als Popup angezeigt wird.
-    </div>
-
-    <div class="group" style="margin-top:10px;display:grid;gap:10px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <label>Zimmernummer</label>
-          <input id="roomRoom" inputmode="numeric" placeholder="z.B. 316"/>
-        </div>
-        <div>
-          <label>Status</label>
-          <select id="roomAction">
-            <option value="block">Sperren</option>
-            <option value="unblock">Freigeben</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label>Nachricht (Popup für das Zimmer)</label>
-        <textarea id="roomMessage" placeholder="z.B. Bitte melde dich beim Patientensprecher."></textarea>
-      </div>
-      <div class="btnrow">
-        <button id="btnRoomApply">Übernehmen</button>
-        <button id="btnRoomReload">Liste aktualisieren</button>
-      </div>
-    </div>
-
-    <div class="group" style="margin-top:10px">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-weight:900">Verlauf</div>
-          <div class="small muted">Sichtbar bleibt gesperrt/freigegeben + Zeit + wer.</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="roomSearch" placeholder="Suche Zimmer…" style="max-width:220px"/>
-          <select id="roomFilter">
-            <option value="all">alle</option>
-            <option value="blocked">nur gesperrt</option>
-            <option value="unblocked">nur freigegeben</option>
-          </select>
-        </div>
-      </div>
-      <div id="roomList" style="margin-top:10px"></div>
-      <div id="roomEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Einträge.</div>
-    </div>
-  </div>
-<!-- BOOKINGS -->
-  <div class="card section" id="sec-bookings" style="margin-top:10px">
-    <b>Buchungen</b>
-    <div class="small" style="margin-top:6px">Alle Buchungen (inkl. storniert/freigegeben). Rechte steuern Sichtbarkeit & Aktionen.</div>
-
-    <div class="group" style="margin-top:10px">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;justify-content:space-between">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-          <div>
-            <label>Maschine</label>
-            <select id="bkMachine">
-              <option value="">alle</option>
-              <option value="M1">M1</option><option value="M2">M2</option><option value="M3">M3</option>
-              <option value="M4">M4</option><option value="M5">M5</option><option value="M6">M6</option>
-            </select>
-          </div>
-          <div>
-            <label>Status</label>
-            <select id="bkStatus">
-              <option value="">alle</option>
-              <option value="active">active</option>
-              <option value="reserved">reserved</option>
-              <option value="released">released</option>
-              <option value="canceled">canceled</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="btnrow">
-          <button id="btnBkReload">Aktualisieren</button>
-          <button id="btnBkCsv" class="secondary">CSV Download</button>
-        </div>
-      </div>
-      <div id="bkList" style="margin-top:10px"></div>
-      <div id="bkEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Buchungen.</div>
-    </div>
-  </div>
-
-  <!-- LOGS -->
-  <div class="card section" id="sec-logs" style="margin-top:10px">
-    <b>Logs</b>
-    <div class="small" style="margin-top:6px">Änderungen, Buchungen, Sperren, Konfig, RBAC usw.</div>
-
-    <div class="group" style="margin-top:10px">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;justify-content:space-between">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-          <div>
-            <label>Zimmer</label>
-            <input id="lgRoom" placeholder="z.B. 316" style="max-width:140px"/>
-          </div>
-          <div>
-            <label>Actor</label>
-            <input id="lgActor" placeholder="email / id" style="max-width:220px"/>
-          </div>
-          <div>
-            <label>Action</label>
-            <input id="lgAction" placeholder="z.B. booking_admin_cancel" style="max-width:240px"/>
-          </div>
-          <div>
-            <label>Limit</label>
-            <select id="lgLimit">
-              <option value="200">200</option>
-              <option value="500" selected>500</option>
-              <option value="1000">1000</option>
-              <option value="2000">2000</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="btnrow">
-          <button id="btnLgReload">Aktualisieren</button>
-          <button id="btnLgCsv" class="secondary">CSV Download</button>
-        </div>
-      </div>
-      <div id="lgList" style="margin-top:10px"></div>
-      <div id="lgEmpty" class="small" style="margin-top:8px;opacity:.75;display:none">Keine Logs.</div>
-    </div>
-  </div>
-
-  <!-- DEBUG -->
-  <div class="card section" id="sec-debug" style="margin-top:10px">
-    <b>Debug</b>
-    <div class="mono" id="debugOut" style="margin-top:8px">{}</div>
-  </div>
-
-</div>
-
-<script>
-(function(){
-  const $ = (id)=>document.getElementById(id);
-  const state = { me:null, users:[], snapshot:null, transfer:[], rooms:[], bookings:[], logs:[] };
-
-  function can(key){
-    const p = state.me?.perms || {};
-    if(p["sa.all"]) return true;
-    if(!!p[key]) return true;
-    // manage/delete imply view
-    if(key.endsWith(".view")){
-      const b = key.slice(0,-5);
-      if(p[b+".manage"] || p[b+".delete"]) return true;
+    if (k === "washerHours") {
+      if (!Array.isArray(v)) continue;
+      v = JSON.stringify(v.map(n => Number(n)).filter(n => Number.isFinite(n)));
+    } else if (["daysPast","daysFuture","dryerMinutes"].includes(k)) {
+      v = String(Number(v || 0));
+    } else if (typeof v === "boolean") {
+      v = v ? "true" : "false";
+    } else {
+      v = String(v ?? "");
     }
+
+    await env.DB.prepare(
+      `INSERT INTO wp_config(key,value) VALUES(?,?)
+       ON CONFLICT(key) DO UPDATE SET value=excluded.value`
+    ).bind(k, v).run();
+  }
+
+  const config = await getConfig(env);
+  return j({ ok: true, build: env.BUILD || "", config });
+}
+
+if (req.method === "POST" && path === "/api/admin/set-station-pin") {
+  if (!isSA) return j({ ok: false, error: "forbidden", message: "forbidden", build: env.BUILD || "" }, 403);
+  const body = await readJson(req);
+  const pin = String(body?.pin || body?.stationPin || "").trim();
+  if (!pin) return j({ ok: false, error: "missing_pin", message: "missing_pin", build: env.BUILD || "" }, 400);
+
+  const hash = await hashPbkdf2(pin);
+
+  await env.DB.prepare(
+    `INSERT INTO wp_config(key,value) VALUES('stationPinHash',?)
+     ON CONFLICT(key) DO UPDATE SET value=excluded.value`
+  ).bind(hash).run();
+
+  return j({ ok: true, build: env.BUILD || "", stationPinHash: "set" });
+}
+
+      // ===== PORTAL =====
+      if (req.method === "POST" && path === "/api/user/refresh") {
+        const body = await readJson(req);
+        const auth = await requirePortalAuth(env, body);
+
+        const lock = await getRoomLock(env, auth.room);
+        const config = await getConfig(env);
+        const machines = await getMachines(env);
+        const mstate = await getMachineStateMap(env);
+        const machinesMerged = machines.map(m => ({
+          ...m,
+          adminLocked: !!mstate[`${m.kind}:${m.machineId}`]?.adminLocked,
+          defect: !!mstate[`${m.kind}:${m.machineId}`]?.defect,
+        }));
+
+        const { bookings, myBookings } = await getBookings(env, {
+          room: auth.room,
+          pinHash: auth.pinHash,
+          daysPast: config.daysPast,
+          daysFuture: config.daysFuture,
+        });
+
+        return j({
+          ok: true,
+          build: env.BUILD || "",
+          user: { id: auth.userId, email: "", firstName: "", lastName: "", role: "user", status: "active", room: auth.room },
+          config,
+          machines: machinesMerged,
+          bookings,
+          myBookings,
+          room: auth.room,
+          blocked: lock.blocked,
+          message: lock.message || "",
+          updatedAt: Date.now(),
+        });
+      }
+
+      if (req.method === "POST" && path === "/api/room/control/check") {
+        const body = await readJson(req);
+        const room = String(body.room || "").trim();
+        if (!room) throw httpErr(400, "missing_room");
+        const lock = await getRoomLock(env, room);
+        return j({ ok: true, build: env.BUILD || "", room, blocked: lock.blocked, message: lock.message || "", updatedAt: lock.updatedAt });
+      }
+
+      if (req.method === "POST" && path === "/api/washer/book") {
+        const body = await readJson(req);
+        const auth = await requirePortalAuth(env, body);
+
+        const lock = await getRoomLock(env, auth.room);
+        if (lock.blocked) throw httpErr(403, "room_locked");
+
+        const machineId = String(body.machineId || "").trim();
+        const minutes = toInt(body.minutes, 60);
+        const startAt = toInt(body.startAt, 0);
+
+        if (!machineId) throw httpErr(400, "missing_machineId");
+        if (!startAt) throw httpErr(400, "missing_startAt");
+
+        // Allow booking of running-but-free slots: only block if booking ended in past
+        const endAt = startAt + minutes * 60_000;
+        if (endAt < Date.now() - 60_000) throw httpErr(400, "slot_in_past");
+
+        await assertMachineBookable(env, "washer", machineId);
+
+        const id = crypto.randomUUID();
+        await insertBooking(env, {
+          id,
+          type: "washer",
+          machine: toInt(machineId, 0),
+          start: startAt,
+          end: endAt,
+          room: auth.room,
+          pinHash: auth.pinHash,
+          status: "booked",
+        });
+
+        await logEvent(env, auth.userId, "booking.create", auth.room, { id, type: "washer", machineId, startAt, endAt });
+
+        return j({ ok: true, id, type: "washer", machineId, startAt, endAt });
+      }
+
+      if (req.method === "POST" && path === "/api/dryer/book") {
+        const body = await readJson(req);
+        const auth = await requirePortalAuth(env, body);
+
+        const lock = await getRoomLock(env, auth.room);
+        if (lock.blocked) throw httpErr(403, "room_locked");
+
+        const machineId = String(body.machineId || "").trim();
+        if (!machineId) throw httpErr(400, "missing_machineId");
+
+        await assertMachineBookable(env, "dryer", machineId);
+
+        const config = await getConfig(env);
+        const minutes = toInt(body.minutes, toInt(config.dryerMinutes, 150));
+
+        const id = crypto.randomUUID();
+        const startAt = Date.now();
+        const endAt = startAt + minutes * 60_000;
+
+        await insertBooking(env, {
+          id,
+          type: "dryer",
+          machine: toInt(machineId, 0),
+          start: startAt,
+          end: endAt,
+          room: auth.room,
+          pinHash: auth.pinHash,
+          status: "booked",
+        });
+
+        await logEvent(env, auth.userId, "booking.create", auth.room, { id, type: "dryer", machineId, startAt, endAt });
+
+        return j({ ok: true, id, type: "dryer", machineId, startAt, endAt });
+      }
+
+      if (req.method === "POST" && path === "/api/booking/release") {
+        const body = await readJson(req);
+        const auth = await requirePortalAuth(env, body);
+
+        const lock = await getRoomLock(env, auth.room);
+        if (lock.blocked) throw httpErr(403, "room_locked");
+
+        const bookingId = String(body.bookingId || body.id || "").trim();
+        if (!bookingId) throw httpErr(400, "missing_bookingId");
+
+        const row = await env.DB.prepare(`SELECT id, room, pinHash, status, start, end FROM bookings WHERE id=?`)
+          .bind(bookingId).first();
+
+        if (!row) throw httpErr(404, "not_found");
+        if (String(row.room) !== String(auth.room)) throw httpErr(403, "forbidden_room");
+        if (String(row.pinHash) !== String(auth.pinHash)) throw httpErr(403, "forbidden_pin");
+        if (String(row.status) !== "booked" && String(row.status) !== "active") throw httpErr(400, "not_booked");
+
+        // cannot cancel/release bookings fully in the past
+        if (toInt(row.end, 0) < Date.now()) throw httpErr(400, "slot_in_past");
+
+        await env.DB.prepare(`UPDATE bookings SET status='released', releasedAt=? WHERE id=?`)
+          .bind(Date.now(), bookingId).run();
+
+        await logEvent(env, auth.userId, "booking.release", auth.room, { id: bookingId });
+
+        return j({ ok: true, id: bookingId, status: "released" });
+      }
+
+      // Defekt melden (optional text) + machine defect state set immediately; bookings remain
+      if (req.method === "POST" && (path === "/api/defect/report" || path === "/api/machine/defect")) {
+        const body = await readJson(req);
+        const auth = await requirePortalAuth(env, body);
+
+        const kind = String(body.kind || body.type || "").trim() || null;
+        const machineId = String(body.machineId || "").trim();
+        const text = String(body.text || body.message || "").trim(); // optional
+
+        if (!machineId) throw httpErr(400, "missing_machineId");
+        if (!kind) throw httpErr(400, "missing_kind");
+
+        // if admin disabled user defect reports, block
+        const cfg = await getConfig(env);
+        if (!cfg.userDefectEnabled) throw httpErr(403, "defect_reporting_disabled");
+
+        const id = crypto.randomUUID();
+        await env.DB.prepare(`INSERT INTO defects(id,room,machineId,text,createdAt) VALUES(?,?,?,?,?)`)
+          .bind(id, String(auth.room), `${kind}:${machineId}`, text, Date.now()).run();
+
+        await upsertMachineState(env, kind, machineId, { defect: 1 });
+
+        await logEvent(env, auth.userId, "defect.report", auth.room, { id, kind, machineId, text });
+
+        return j({ ok: true, id });
+      }
+
+      // ===== ADMIN / AUTH =====
+      if (req.method === "POST" && path === "/api/ps/login") {
+        // lightweight: allow SA password login as PS session too
+        const body = await readJson(req);
+        if (isSA) return j({ ok: true, token: "sa", role: "sa", build: env.BUILD || "" });
+        // optional: allow a fixed PS_PASSWORD
+        const pw = String(body.password || "");
+        const psPw = env.PS_PASSWORD || "";
+        if (psPw && pw === psPw) return j({ ok: true, token: "ps", role: "ps", build: env.BUILD || "" });
+        throw httpErr(403, "forbidden");
+      }
+
+if (req.method === "GET" && path === "/api/auth/me") {
+  const ok = await isSuperAdmin(req, env);
+  if (!ok) return j({ ok: false, error: "forbidden", message: "forbidden", build: env.BUILD || "" }, 403);
+
+  // Admin-UI expects a flat "perms" list on the user object.
+  const snap = await getRbacSnapshot(env);
+  const perms = ["sa.all"];
+
+  return j({
+    ok: true,
+    build: env.BUILD || "",
+    user: { id: "sa", email: "", firstName: "", lastName: "", role: "sa", roleLabel: "SA", status: "active", perms },
+    rbac: snap,
+  });
+}
+
+      // config get/set (admin)
+      if (path === "/api/auth/admin/config/get" && req.method === "GET") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const config = await getConfig(env);
+        return j({ ok: true, build: env.BUILD || "", config });
+      }
+
+      if (path === "/api/auth/admin/config/set" && req.method === "POST") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const body = await readJson(req);
+        const patch = body?.config || body || {};
+        const cfg = await getConfig(env);
+        const merged = { ...cfg, ...sanitizeConfigPatch(patch) };
+        await setConfig(env, merged);
+        await logEvent(env, "sa", "config.set", "", { keys: Object.keys(patch || {}) });
+        return j({ ok: true, build: env.BUILD || "", config: merged });
+      }
+
+      // station pin set
+      if (path === "/api/admin/set-station-pin" && req.method === "POST") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const body = await readJson(req);
+        const pin = String(body.pin || body.stationPin || "").trim();
+        if (!pin) throw httpErr(400, "missing_pin");
+        const hash = await hashPbkdf2(pin);
+        const cfg = await getConfig(env);
+        cfg.stationPinHash = hash;
+        await setConfig(env, cfg);
+        await logEvent(env, "sa", "stationPin.set", "", {});
+        return j({ ok: true, build: env.BUILD || "" });
+      }
+
+      // RBAC snapshot endpoints
+      if (path === "/api/auth/admin/rbac/snapshot" && req.method === "GET") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const snap = await getRbacSnapshot(env);
+        return j({ ok: true, build: env.BUILD || "", rbac: snap });
+      }
+
+      // Machines admin get/set state
+      if (path === "/api/auth/admin/machines/get" && req.method === "GET") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const machines = await getMachines(env);
+        const mstate = await getMachineStateMap(env);
+        const merged = machines.map(m => ({
+          ...m,
+          adminLocked: !!mstate[`${m.kind}:${m.machineId}`]?.adminLocked,
+          defect: !!mstate[`${m.kind}:${m.machineId}`]?.defect,
+        }));
+        return j({ ok: true, build: env.BUILD || "", machines: merged });
+      }
+
+      if (path === "/api/auth/admin/machines/set" && req.method === "POST") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const body = await readJson(req);
+        const kind = String(body.kind || "").trim();
+        const machineId = String(body.machineId || "").trim();
+        if (!kind || !machineId) throw httpErr(400, "missing_machine");
+        const patch = {
+          adminLocked: body.adminLocked ? 1 : 0,
+          defect: body.defect ? 1 : 0,
+        };
+        await upsertMachineState(env, kind, machineId, patch);
+        await logEvent(env, "sa", "machine.set", "", { kind, machineId, ...patch });
+        return j({ ok: true, build: env.BUILD || "" });
+      }
+
+      // Room lock set
+      if (path === "/api/auth/admin/room/lock" && req.method === "POST") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const body = await readJson(req);
+        const room = String(body.room || "").trim();
+        const blocked = body.blocked ? 1 : 0;
+        const message = String(body.message || "").trim();
+        if (!room) throw httpErr(400, "missing_room");
+        await env.DB.prepare(`INSERT INTO room_locks(room,blocked,message,updatedAt) VALUES(?,?,?,?)
+          ON CONFLICT(room) DO UPDATE SET blocked=excluded.blocked, message=excluded.message, updatedAt=excluded.updatedAt`)
+          .bind(room, blocked, message, Date.now()).run();
+        await logEvent(env, "sa", "room.lock", room, { blocked: !!blocked, message });
+        return j({ ok: true, build: env.BUILD || "" });
+      }
+
+      // Logs (simple)
+      if (path === "/api/auth/admin/logs" && req.method === "GET") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const rows = await env.DB.prepare(`SELECT id,ts,actor,action,room,meta FROM logs ORDER BY ts DESC LIMIT 500`).all();
+        return j({ ok: true, build: env.BUILD || "", logs: rows.results || [] });
+      }
+
+      // Bookings list (simple)
+      if (path === "/api/auth/admin/bookings" && req.method === "GET") {
+        if (!isSA) throw httpErr(403, "forbidden");
+        const rows = await env.DB.prepare(`SELECT id,type,machine,start,end,room,status,createdAt,cancelledAt,releasedAt FROM bookings ORDER BY start DESC LIMIT 500`).all();
+        return j({ ok: true, build: env.BUILD || "", bookings: (rows.results || []).map(mapBookingRow) });
+      }
+
+      // fallback
+      return j({ ok: false, error: "not_found", message: "not_found", path }, 404);
+
+    } catch (e) {
+      const status = e?.status || 500;
+      return j({
+        ok: false,
+        error: status === 500 ? "internal_error" : "error",
+        message: e?.message || "internal_error",
+        stack: String(e?.stack || ""),
+        build: env.BUILD || ""
+      }, status);
+    }
+  }
+};
+
+/* ================= helpers ================= */
+
+async function readJson(req) {
+  const ct = req.headers.get("content-type") || "";
+  if (!ct.includes("application/json")) return {};
+  return await req.json();
+}
+function httpErr(status, message) { const e = new Error(message); e.status = status; return e; }
+function toInt(v, d=0) { const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : d; }
+
+async function isSuperAdmin(req, env) {
+  const pass = req.headers.get("X-SA-Password") || req.headers.get("x-sa-password") || "";
+  const envPass = env.SA_PASSWORD || env.SA_PASS || "";
+  return !!envPass && pass && pass === envPass;
+}
+
+/* ================= schema ================= */
+
+async function ensureSchema(env) {
+  // NOTE: D1 sometimes errors with internal meta aggregation. Avoid DB.exec; run statements separately.
+  const stmts = [
+    `CREATE TABLE IF NOT EXISTS wp_config ( key TEXT PRIMARY KEY, value TEXT NOT NULL )`,
+    `CREATE TABLE IF NOT EXISTS room_auth ( room TEXT PRIMARY KEY, pinHash TEXT NOT NULL, pinId TEXT NOT NULL, updatedAt INTEGER NOT NULL )`,
+    `CREATE TABLE IF NOT EXISTS room_locks ( room TEXT PRIMARY KEY, blocked INTEGER NOT NULL DEFAULT 0, message TEXT NOT NULL DEFAULT '', updatedAt INTEGER NOT NULL DEFAULT 0 )`,
+    // machines: legacy-safe (we will ALTER to add missing columns below)
+    `CREATE TABLE IF NOT EXISTS machines ( machineId TEXT )`,
+    `CREATE TABLE IF NOT EXISTS machine_state ( kind TEXT NOT NULL, machineId TEXT NOT NULL, adminLocked INTEGER NOT NULL DEFAULT 0, defect INTEGER NOT NULL DEFAULT 0, updatedAt INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(kind, machineId) )`,
+    `CREATE TABLE IF NOT EXISTS defects ( id TEXT PRIMARY KEY, room TEXT NOT NULL, machineId TEXT NOT NULL DEFAULT '', text TEXT NOT NULL DEFAULT '', createdAt INTEGER NOT NULL )`,
+    `CREATE TABLE IF NOT EXISTS logs ( id TEXT PRIMARY KEY, ts INTEGER NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL, room TEXT NOT NULL, meta TEXT NOT NULL )`,
+  ];
+  for (const s of stmts) await env.DB.prepare(s).run();
+
+  await ensureMachinesColumns(env);
+
+  // seed machines if empty (after columns ensured)
+  const c = await env.DB.prepare(`SELECT COUNT(*) as c FROM machines`).first();
+  if (toInt(c?.c, 0) === 0) {
+    const stmt = env.DB.prepare(`INSERT INTO machines(kind,machineId,label,enabled,minutes) VALUES(?,?,?,?,?)`);
+    for (let i = 1; i <= 4; i++) await stmt.bind("washer", String(i), String(i), 1, 0).run();
+    for (let i = 1; i <= 4; i++) await stmt.bind("dryer", String(i), String(i), 1, 0).run();
+  }
+
+  // bookings table (your live schema) — create if missing
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      machine INTEGER NOT NULL,
+      start INTEGER NOT NULL,
+      end INTEGER NOT NULL,
+      room TEXT NOT NULL,
+      pinHash TEXT NOT NULL,
+      status TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      cancelledAt INTEGER NOT NULL DEFAULT 0,
+      releasedAt INTEGER NOT NULL DEFAULT 0
+    )
+  `).run();
+}
+
+/* ================= config ================= */
+
+function defaultConfig() {
+  return {
+    daysPast: 7,
+    daysFuture: 6,
+    dryerMinutes: 150,
+    washerHours: [6, 8, 10, 12, 14, 16, 18, 20],
+    newsEnabled: false,
+    newsText: "",
+    chatEnabled: false,
+    whitecardEnabled: false,
+    portalDebugEnabled: false,
+    washerPopup: false,
+    dryerPopup: false,
+    stationPinHash: "",
+    userDefectEnabled: true,
+  };
+}
+function sanitizeConfigPatch(patch) {
+  const out = {};
+  for (const [k, v] of Object.entries(patch || {})) {
+    if (k === "washerHours") {
+      if (Array.isArray(v)) out.washerHours = v.map(x => toInt(x, 0)).filter(x => x >= 0 && x <= 23);
+    } else if (["daysPast","daysFuture","dryerMinutes"].includes(k)) {
+      out[k] = toInt(v, defaultConfig()[k]);
+    } else if (typeof defaultConfig()[k] === "boolean") {
+      out[k] = !!v;
+    } else if (typeof defaultConfig()[k] === "string") {
+      out[k] = String(v ?? "");
+    }
+  }
+  return out;
+}
+
+async function getConfig(env) {
+  const defaults = defaultConfig();
+  // prefer wp_config
+  try {
+    const rows = await env.DB.prepare(`SELECT key,value FROM wp_config`).all();
+    const cfg = { ...defaults };
+    for (const r of (rows.results || [])) applyKV(cfg, String(r.key), r.value);
+    return cfg;
+  } catch {
+    return { ...defaults };
+  }
+}
+function applyKV(cfg, k, raw) {
+  if (!(k in cfg)) return;
+  if (k === "washerHours") {
+    try { cfg[k] = JSON.parse(String(raw)); } catch { cfg[k] = defaultConfig().washerHours; }
+    return;
+  }
+  if (typeof cfg[k] === "number") cfg[k] = toInt(raw, cfg[k]);
+  else if (typeof cfg[k] === "boolean") cfg[k] = String(raw) === "true";
+  else cfg[k] = String(raw ?? "");
+}
+async function setConfig(env, cfg) {
+  const stmt = env.DB.prepare(`INSERT INTO wp_config(key,value) VALUES(?,?)
+    ON CONFLICT(key) DO UPDATE SET value=excluded.value`);
+  for (const [k, v] of Object.entries(cfg || {})) {
+    const val = k === "washerHours" ? JSON.stringify(v || []) : String(v);
+    await stmt.bind(k, val).run();
+  }
+}
+
+async function tableInfo(env, table) {
+  try {
+    const res = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+    return (res.results || []).map(r => ({ name: String(r.name), type: String(r.type || ""), notnull: toInt(r.notnull, 0) }));
+  } catch {
+    return [];
+  }
+}
+function hasCol(cols, name) { return cols.some(c => c.name === name); }
+
+async function ensureMachinesColumns(env) {
+  const cols = await tableInfo(env, "machines");
+  // desired columns
+  const desired = [
+    ["kind", "TEXT"],
+    ["machineId", "TEXT"],
+    ["label", "TEXT"],
+    ["enabled", "INTEGER"],
+    ["minutes", "INTEGER"],
+  ];
+  for (const [c, t] of desired) {
+    if (!hasCol(cols, c)) {
+      try { await env.DB.prepare(`ALTER TABLE machines ADD COLUMN ${c} ${t}`).run(); } catch {}
+    }
+  }
+
+  // If we only had legacy columns, attempt to backfill
+  const cols2 = await tableInfo(env, "machines");
+
+  // If machineId is NULL but there is a legacy integer column 'machine', copy it
+  if (hasCol(cols2, "machine") && hasCol(cols2, "machineId")) {
+    try { await env.DB.prepare(`UPDATE machines SET machineId=CAST(machine AS TEXT) WHERE (machineId IS NULL OR machineId='')`).run(); } catch {}
+  }
+  // If kind is NULL but there is a legacy column 'type'
+  if (hasCol(cols2, "type") && hasCol(cols2, "kind")) {
+    try { await env.DB.prepare(`UPDATE machines SET kind=type WHERE (kind IS NULL OR kind='')`).run(); } catch {}
+  }
+  // If label missing, default to machineId
+  if (hasCol(cols2, "label") && hasCol(cols2, "machineId")) {
+    try { await env.DB.prepare(`UPDATE machines SET label=machineId WHERE (label IS NULL OR label='')`).run(); } catch {}
+  }
+  // If enabled missing values, default 1
+  if (hasCol(cols2, "enabled")) {
+    try { await env.DB.prepare(`UPDATE machines SET enabled=1 WHERE enabled IS NULL`).run(); } catch {}
+  }
+  // If minutes missing values, default 0
+  if (hasCol(cols2, "minutes")) {
+    try { await env.DB.prepare(`UPDATE machines SET minutes=0 WHERE minutes IS NULL`).run(); } catch {}
+  }
+
+  // If kind is still empty for all rows but we have exactly 8 rows and no kind, assume first half washers and second half dryers (best-effort)
+  try {
+    const k = await env.DB.prepare(`SELECT COUNT(*) as c FROM machines WHERE kind IS NOT NULL AND kind!=''`).first();
+    if (toInt(k?.c,0) === 0) {
+      // no data or unknown -> leave; seeding handles empty case
+    }
+  } catch {}
+}
+
+
+/* ================= machines ================= */
+
+async function getMachines(env) {
+  const cols = await tableInfo(env, "machines");
+  // pick columns with fallbacks
+  const kindCol = hasCol(cols, "kind") ? "kind" : (hasCol(cols, "type") ? "type" : "''");
+  const idCol = hasCol(cols, "machineId") ? "machineId" : (hasCol(cols, "machine") ? "CAST(machine AS TEXT)" : "''");
+  const labelCol = hasCol(cols, "label") ? "label" : idCol;
+  const enabledCol = hasCol(cols, "enabled") ? "enabled" : "1";
+  const minutesCol = hasCol(cols, "minutes") ? "minutes" : "0";
+
+  const sql = `SELECT ${kindCol} as kind, ${idCol} as machineId, ${labelCol} as label, ${enabledCol} as enabled, ${minutesCol} as minutes
+               FROM machines
+               ORDER BY CASE WHEN kind='washer' THEN 0 ELSE 1 END, CAST(machineId as INTEGER)`;
+  const rows = await env.DB.prepare(sql).all();
+  return (rows.results || []).map(r => ({
+    machineId: String(r.machineId),
+    kind: String(r.kind),
+    label: String(r.label ?? r.machineId),
+    enabled: !!toInt(r.enabled, 0),
+    minutes: toInt(r.minutes, 0),
+  }));
+}
+async function getMachineStateMap(env) {
+  const rows = await env.DB.prepare(`SELECT kind,machineId,adminLocked,defect,updatedAt FROM machine_state`).all();
+  const m = {};
+  for (const r of (rows.results || [])) {
+    m[`${r.kind}:${r.machineId}`] = {
+      adminLocked: !!toInt(r.adminLocked, 0),
+      defect: !!toInt(r.defect, 0),
+      updatedAt: toInt(r.updatedAt, 0),
+    };
+  }
+  return m;
+}
+async function upsertMachineState(env, kind, machineId, patch) {
+  const cur = await env.DB.prepare(`SELECT adminLocked,defect FROM machine_state WHERE kind=? AND machineId=?`)
+    .bind(kind, machineId).first();
+  const adminLocked = patch.adminLocked !== undefined ? toInt(patch.adminLocked, 0) : toInt(cur?.adminLocked, 0);
+  const defect = patch.defect !== undefined ? toInt(patch.defect, 0) : toInt(cur?.defect, 0);
+
+  await env.DB.prepare(
+    `INSERT INTO machine_state(kind,machineId,adminLocked,defect,updatedAt) VALUES(?,?,?,?,?)
+     ON CONFLICT(kind,machineId) DO UPDATE SET adminLocked=excluded.adminLocked, defect=excluded.defect, updatedAt=excluded.updatedAt`
+  ).bind(kind, machineId, adminLocked, defect, Date.now()).run();
+}
+async function assertMachineBookable(env, kind, machineId) {
+  const m = await env.DB.prepare(`SELECT enabled FROM machines WHERE kind=? AND machineId=?`).bind(kind, machineId).first();
+  if (m && !toInt(m.enabled, 1)) throw httpErr(403, "machine_disabled");
+  const st = await env.DB.prepare(`SELECT adminLocked,defect FROM machine_state WHERE kind=? AND machineId=?`).bind(kind, machineId).first();
+  if (st && toInt(st.adminLocked, 0)) throw httpErr(403, "machine_locked");
+  if (st && toInt(st.defect, 0)) throw httpErr(403, "machine_defect");
+}
+
+/* ================= room lock ================= */
+
+async function getRoomLock(env, room) {
+  const row = await env.DB.prepare(`SELECT blocked,message,updatedAt FROM room_locks WHERE room=?`)
+    .bind(String(room)).first();
+  if (!row) return { blocked: false, message: "", updatedAt: 0 };
+  return { blocked: !!toInt(row.blocked, 0), message: String(row.message || ""), updatedAt: toInt(row.updatedAt, 0) };
+}
+
+/* ================= auth (portal) ================= */
+
+async function requirePortalAuth(env, body) {
+  const room = String(body.room || "").trim();
+  const pin = String(body.pin || "").trim();
+  const stationPin = String(body.stationPin || "").trim();
+  if (!room || !pin || !stationPin) throw httpErr(403, "forbidden");
+
+  const cfg = await getConfig(env);
+  if (!cfg.stationPinHash) throw httpErr(403, "station_pin_not_set");
+
+  const stationOk = await verifyPbkdf2(stationPin, cfg.stationPinHash);
+  if (!stationOk) throw httpErr(403, "forbidden");
+
+  const ra = await env.DB.prepare(`SELECT room,pinHash,pinId FROM room_auth WHERE room=?`).bind(room).first();
+
+  if (!ra) {
+    const pinHash = await hashPbkdf2(pin);
+    const pinId = crypto.randomUUID();
+    await env.DB.prepare(`INSERT INTO room_auth(room,pinHash,pinId,updatedAt) VALUES(?,?,?,?)`)
+      .bind(room, pinHash, pinId, Date.now()).run();
+    return { room, pinHash, userId: `room:${room}:${pinId}` };
+  }
+
+  const ok = await verifyPbkdf2(pin, String(ra.pinHash));
+  if (ok) return { room, pinHash: String(ra.pinHash), userId: `room:${room}:${String(ra.pinId)}` };
+
+  // mismatch -> new resident; rotate pin (new resident must not see old bookings => new pinHash)
+  const pinHash = await hashPbkdf2(pin);
+  const pinId = crypto.randomUUID();
+  await env.DB.prepare(`UPDATE room_auth SET pinHash=?, pinId=?, updatedAt=? WHERE room=?`)
+    .bind(pinHash, pinId, Date.now(), room).run();
+  await logEvent(env, `room:${room}:${String(ra.pinId)}`, "room.pin.rotate", room, { reason: "pin_mismatch" });
+  return { room, pinHash, userId: `room:${room}:${pinId}` };
+}
+
+/* ================= bookings ================= */
+
+function mapBookingRow(r) {
+  const startAt = toInt(r.start, 0);
+  const endAt = toInt(r.end, 0);
+  const durationMinutes = Math.max(0, Math.round((endAt - startAt) / 60000));
+  let status = String(r.status || "");
+  // optional: derive active if within window and still booked
+  if (status === "booked" && startAt <= Date.now() && endAt > Date.now()) status = "active";
+  return {
+    id: String(r.id),
+    room: String(r.room),
+    machineId: String(r.machine),
+    kind: String(r.type),
+    status,
+    startAt,
+    endAt,
+    durationMinutes,
+    duration: durationMinutes,
+    userId: "",
+  };
+}
+
+async function insertBooking(env, b) {
+  await env.DB.prepare(
+    `INSERT INTO bookings(id,type,machine,start,end,room,pinHash,status,createdAt,cancelledAt,releasedAt)
+     VALUES(?,?,?,?,?,?,?,?,?,?,?)`
+  ).bind(
+    String(b.id),
+    String(b.type),
+    toInt(b.machine, 0),
+    toInt(b.start, 0),
+    toInt(b.end, 0),
+    String(b.room),
+    String(b.pinHash),
+    String(b.status),
+    Date.now(),
+    0,
+    0
+  ).run();
+}
+
+async function getBookings(env, { room, pinHash, daysPast, daysFuture }) {
+  const t0 = Date.now() - toInt(daysPast, 7) * 86400000;
+  const t1 = Date.now() + toInt(daysFuture, 6) * 86400000;
+
+  const rows = await env.DB.prepare(
+    `SELECT id,type,machine,start,end,room,status,createdAt,cancelledAt,releasedAt
+     FROM bookings
+     WHERE start BETWEEN ? AND ?
+     ORDER BY start ASC`
+  ).bind(t0, t1).all();
+
+  const bookings = (rows.results || []).map(mapBookingRow);
+
+  // myBookings MUST be pinHash-filtered => new resident sees nothing old
+  const mineRows = await env.DB.prepare(
+    `SELECT id,type,machine,start,end,room,status,createdAt,cancelledAt,releasedAt
+     FROM bookings
+     WHERE room=? AND pinHash=? AND start BETWEEN ? AND ?
+     ORDER BY start ASC`
+  ).bind(String(room), String(pinHash), t0, t1).all();
+
+  const myBookings = (mineRows.results || []).map(mapBookingRow);
+  return { bookings, myBookings };
+}
+
+/* ================= logs ================= */
+
+async function logEvent(env, actor, action, room, meta) {
+  try {
+    await env.DB.prepare(`INSERT INTO logs(id,ts,actor,action,room,meta) VALUES(?,?,?,?,?,?)`)
+      .bind(
+        crypto.randomUUID(),
+        Date.now(),
+        String(actor || ""),
+        String(action || ""),
+        String(room || ""),
+        JSON.stringify(meta || {})
+      ).run();
+  } catch {}
+}
+
+/* ================= RBAC (minimal snapshot) ================= */
+
+async function getRbacSnapshot(env) {
+  // Minimal placeholder so Admin UI can render "Funktionen"
+  return {
+    roles: ["sa","admin","ps","sv","user"],
+    perms: {
+      sa: ["*"],
+      admin: ["admin.config","admin.machines","admin.rooms","admin.logs","admin.bookings","admin.users"],
+      ps: ["portal.view","portal.book","portal.release","portal.defect"],
+      sv: ["portal.view","portal.book","portal.release","portal.defect"],
+      user: ["portal.view","portal.book","portal.release","portal.defect"]
+    }
+  };
+}
+
+/* ================= PBKDF2 helpers ================= */
+
+function b64uToBytes(s) {
+  s = String(s).replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function bytesToB64u(bytes) {
+  let bin = "";
+  bytes.forEach(b => (bin += String.fromCharCode(b)));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+async function hashPbkdf2(pin) {
+  const iter = 50000;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iter }, key, 256);
+  return `pbkdf2_sha256$${iter}$${bytesToB64u(salt)}$${bytesToB64u(new Uint8Array(bits))}`;
+}
+async function verifyPbkdf2(pin, stored) {
+  try {
+    const parts = String(stored).split("$");
+    if (parts.length !== 4) return false;
+    const iter = toInt(parts[1], 0);
+    const salt = b64uToBytes(parts[2]);
+    const want = String(parts[3]);
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+    const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iter }, key, 256);
+    const got = bytesToB64u(new Uint8Array(bits));
+    return timingSafeEq(got, want);
+  } catch {
     return false;
   }
-  
-  function activeTab(){
-    const a = document.querySelector('.tab.active');
-    return a ? a.dataset.tab : 'users';
-  }
-  async function reloadActive(){
-    const t = activeTab();
-    if(t==='users') return loadUsers();
-    if(t==='rbac') return loadSnapshot();
-    if(t==='config') return loadConfig();
-    if(t==='transfer') return loadTransfer();
-    if(t==='rooms') return loadRooms();
-    if(t==='bookings') return loadBookings();
-    if(t==='logs') return loadLogs();
-    if(t==='debug') return; // nothing
-  }
-
-  function applyRbacUI(){
-    // Tabs
-    const tabReq = {
-      users: "admin.users.view",
-      rbac: "admin.rbac.view",
-      config: "admin.config.view",
-      transfer: "role.cross.transfer",
-      rooms: "rooms.view",
-      bookings: "bookings.view",
-      logs: "logs.view",
-      debug: "sa.all",
-    };
-    document.querySelectorAll('.tab').forEach(btn=>{
-      const t = btn.dataset.tab;
-      const need = tabReq[t];
-      const ok = !need || can(need) || (t==="transfer" && (can("role.ps.transfer")||can("role.vs.transfer")||can("role.cross.transfer")));
-      btn.style.display = ok ? "" : "none";
-    });
-    // ensure active tab is visible
-    const active = document.querySelector('.tab.active');
-    if(active && active.style.display==='none'){
-      const first = Array.from(document.querySelectorAll('.tab')).find(b=>b.style.display!=='none');
-      if(first) setTab(first.dataset.tab);
-    }
-    // Disable manage actions if missing perms
-    const dis = (id, ok)=>{ const el=$(id); if(!el) return; el.disabled = !ok; el.classList.toggle('disabled', !ok); };
-    dis('btnUsers', can("admin.users.view"));
-    dis('btnSnap', can("admin.rbac.view"));
-    dis('btnCfg', can("admin.config.view"));
-    dis('btnCfgSave', can("admin.config.manage"));
-    // In user cards, role change buttons are rendered dynamically; handled in renderUsers()
-  }
-
-  try{
-    const savedTok = localStorage.getItem('wp_admin_token');
-    if(savedTok && !String($('token').value||'').trim()) $('token').value = savedTok;
-  }catch(_e){}
-
-  // Default BASE falls leer
-  try{
-    if(!String($('base').value||'').trim()){
-      $('base').value = 'https://washportal-dev-worker.schluffi1220.workers.dev';
-    }
-  }catch(_e){}
-
-  function toast(msg){
-    const el=document.createElement('div'); el.className='toast'; el.textContent=msg;
-    document.body.appendChild(el); setTimeout(()=>el.remove(), 2400);
-  }
-  function base(){ return String($('base').value||"").trim().replace(/\/+$/,''); }
-
-  function headers(includeAuth=true){
-    const h = {'content-type':'application/json'};
-    const sa = String($('sa').value||'').trim();
-    if(sa) h['x-sa-password'] = sa;
-    if(includeAuth){
-      const t = String($('token').value||"").trim();
-      if(t && (t.includes('.') || t.length>40)) h['authorization'] = 'Bearer ' + t;
-    }
-    return h;
-  }
-
-  async function api(path, opts={}){
-    const url = base()+path;
-    const method = (opts.method || (opts.body===undefined ? 'GET' : 'POST')).toUpperCase();
-    const init = { method, headers: {...headers(opts.noAuth?false:true), ...(opts.headers||{})} };
-    if(method!=='GET' && method!=='HEAD' && opts.body!==undefined){
-      init.body = (typeof opts.body==='string') ? opts.body : JSON.stringify(opts.body);
-    }
-    const res = await fetch(url, init);
-    const txt = await res.text();
-    let j; try{ j = JSON.parse(txt); }catch{ j = {raw: txt}; }
-    if(!res.ok){
-      const msg = (j?.message || j?.error || j?.raw || ('HTTP '+res.status));
-      const err = new Error(msg); err.status=res.status; err.url=url; err.payload=j; throw err;
-    }
-    return j;
-  }
-
-  function setOut(obj){
-    const o = JSON.stringify(obj, null, 2);
-    $('out').textContent = o;
-    $('debugOut').textContent = o;
-    const build = obj?.build || obj?.data?.build || "–";
-    $('pillUser').textContent = state.me?.user?.email || 'eingeloggt';
-    $('pillRole').textContent = state.me?.user?.roleLabel || state.me?.user?.role || '-';
-    $('pillBuild').textContent = 'build: ' + build;
-  }
-  function setAuth(ok){ $('pillAuth').textContent = 'auth: ' + (ok ? 'ok' : '–'); }
-  function setRole(){ $('pillRole').textContent = 'role: ' + (state.me?.user?.role || '–'); }
-
-  function setTab(tab){
-    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
-    ['users','rbac','config','transfer','rooms','bookings','logs','debug'].forEach(k=> $('sec-'+k).classList.toggle('active', k===tab));
-  }
-  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>setTab(t.dataset.tab)));
-
-  function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-  function fmtTs(ms){
-    if(!ms) return "";
-    try{ return new Date(Number(ms)).toLocaleString('de-DE'); }catch{ return String(ms); }
-  }
-  function roleLabel(u){
-    if(u.roleLabel) return u.roleLabel;
-    const r = String(u.role||'').toLowerCase();
-    if(r==='ps_deputy' || r==='vs' || r==='sv') return 'SV';
-    if(r==='ps') return 'PS';
-    if(r==='admin') return 'Admin';
-    if(r==='super_admin' || r==='sa') return 'SA';
-    return (u.role||'User');
-  }
-
-  function renderUsers(){
-    const canManageUsers = can('admin.users.manage');
-    const canApproveUsers = can('admin.users.approve') || canManageUsers;
-    const canDeleteUsers = can('admin.users.delete') || canManageUsers;
-    const host = $('usersList'); host.innerHTML='';
-    const empty = $('usersEmpty');
-    const statusFilter = $('userStatusFilter').value;
-    const q = String($('userSearch').value||'').trim().toLowerCase();
-
-    const filtered = (state.users||[]).filter(u=>{
-      if(statusFilter!=='all' && String(u.status||'').toLowerCase()!==statusFilter) return false;
-      if(q){
-        const hay = (String(u.firstName||'')+' '+String(u.lastName||'')+' '+String(u.email||'')).toLowerCase();
-        if(!hay.includes(q)) return false;
-      }
-      return true;
-    });
-
-    if(empty) empty.style.display = filtered.length ? 'none' : '';
-
-    for(const u of filtered){
-      const card=document.createElement('div'); card.className='group';
-      const st = String(u.status||'');
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-          <div>
-            <div style="font-weight:800">${escapeHtml(u.firstName||'')} ${escapeHtml(u.lastName||'')}</div>
-            <div class="small">${escapeHtml(u.email||'')}</div>
-            <div class="small">Status: <b>${escapeHtml(st||'-')}</b> • Rolle: <b>${escapeHtml(roleLabel(u))}</b></div>
-            <div class="small" style="opacity:.7">id: ${escapeHtml(u.id||'')} • erstellt: ${escapeHtml(fmtTs(u.createdAt))}</div>
-          </div>
-          <div style="min-width:240px;display:grid;gap:6px">
-            <select data-user="${escapeHtml(u.id)}" class="rolePick">
-              <option value="user" ${String(u.role).toLowerCase()==='user'?'selected':''}>User</option>
-              <option value="ps" ${String(u.role).toLowerCase()==='ps'?'selected':''}>PS</option>
-              <option value="ps_deputy" ${String(u.role).toLowerCase()==='ps_deputy'?'selected':''}>SV</option>
-              <option value="admin" ${String(u.role).toLowerCase()==='admin'?'selected':''}>Admin</option>
-            </select>
-            <button data-user="${escapeHtml(u.id)}" class="saveRoleBtn">Rolle speichern</button>
-            ${st==='pending' ? `<button data-user="${escapeHtml(u.id)}" class="approveBtn" style="border-color:rgba(120,255,160,.35)">Freischalten</button>` : ``}
-          </div>
-        </div>`;
-      host.appendChild(card);
-    }
-
-    host.querySelectorAll('.saveRoleBtn').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const userId = btn.getAttribute('data-user');
-        const sel = host.querySelector(`select.rolePick[data-user="${CSS.escape(userId)}"]`);
-        const role = sel ? sel.value : 'user';
-        try{
-          const j = await api('/api/auth/admin/users/set-role', {body:{userId, role}});
-          setOut(j); toast('Rolle gespeichert');
-          await loadUsers();
-        }catch(e){ toast(`Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
-      });
-    });
-
-    host.querySelectorAll('.approveBtn').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const userId = btn.getAttribute('data-user');
-        try{
-          const j = await api('/api/auth/admin/users/approve', {body:{userId}});
-          setOut(j); toast('User freigeschaltet');
-          await loadUsers();
-        }catch(e){ toast(`Freischalten Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true, status:e.status, url:e.url, payload:e.payload}); }
-      });
-    });
-  }
-
-  async function loadStatus(){
-    try{ const j=await api('/api/_status', {method:'GET'}); setOut(j); toast('Status ok'); }
-    catch(e){ toast(`Status Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-  async function loadRoutes(){
-    try{ const j=await api('/api/_routes', {method:'GET'}); setOut(j); toast('Routes ok'); }
-    catch(e){ toast(`Routes Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-  async function loadMe(){
-    try{ const j=await api('/api/auth/me', {method:'GET'}); state.me=j; setOut(j); setAuth(true); setRole(); applyRbacUI(); toast('auth ok'); }
-    catch(e){ setAuth(false); toast(`auth Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-  }
-  async function loadUsers(){
-    try{
-      const j=await api('/api/auth/admin/users/list', {body:{}});
-      const users = j.users || j.data?.users || j.data?.data?.users || [];
-      state.users = Array.isArray(users) ? users : [];
-      setOut(j);
-      toast(`Benutzer: ${state.users.length}`);
-      renderUsers();
-    }catch(e){
-      toast(`Users Fehler (${e.status||'?'}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      state.users=[];
-      renderUsers();
-    }
-  }
-
-  
-  // ----------------------------
-  // RBAC Editor (Checkbox UI)
-  // ----------------------------
-  const rbacState = { role:null, catalog:[], rolePermsRows:[], currentPermSet:new Set(), dirty:false };
-
-  function normKey(k){ return String(k||"").trim(); }
-  function roleListFromSnapshot(){
-    const roles = new Set(["user","ps","ps_deputy","admin","super_admin"]);
-    for(const row of (rbacState.rolePermsRows||[])){
-      if(row?.role) roles.add(String(row.role));
-    }
-    return Array.from(roles).sort();
-  }
-
-  function permTitleFor(key){
-    const it = (rbacState.catalog||[]).find(x=>String(x.permKey)===String(key));
-    return it?.title || "";
-  }
-  function permGroupFor(key){
-    const it = (rbacState.catalog||[]).find(x=>String(x.permKey)===String(key));
-    return it?.permGroup || "Sonstiges";
-  }
-
-  async function loadSnapshot(){
-    try{
-      const j=await api('/api/auth/admin/rbac/snapshot', {body:{}});
-      setOut(j);
-      rbacState.catalog = j.catalog || [];
-      rbacState.rolePermsRows = j.rolePermsRows || [];
-      // init role select
-      const sel = $('rbacRole');
-      if(sel){
-        const roles = roleListFromSnapshot();
-        const prev = sel.value || rbacState.role || roles[0];
-        sel.innerHTML = roles.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(roleLabel({role:r}))}</option>`).join('');
-        sel.value = roles.includes(prev) ? prev : roles[0];
-        rbacState.role = sel.value;
-      }
-      await loadRolePerms(rbacState.role);
-      toast('RBAC geladen');
-    }catch(e){
-      toast(`RBAC Fehler (${e.status||'?'}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-  async function loadRolePerms(role){
-    role = String(role||"").trim();
-    if(!role) return;
-    rbacState.role = role;
-    try{
-      const j=await api('/api/auth/admin/rbac/role/get', {body:{role}});
-      setOut(j);
-      const rows = j.perms || [];
-      rbacState.currentPermSet = new Set(rows.filter(x=>x.allowed).map(x=>String(x.permKey)));
-      rbacState.dirty = false;
-      renderRbacEditor();
-    }catch(e){
-      toast(`Role laden Fehler (${e.status||'?'}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-  function baseKey(k){
-    const s = String(k||"");
-    const m = s.match(/^(.*)\.(view|manage|delete)$/);
-    return m ? m[1] : s;
-  }
-  function suffixKey(k){
-    const s = String(k||"");
-    const m = s.match(/\.(view|manage|delete)$/);
-    return m ? m[1] : "";
-  }
-
-  function allPermKeys(){
-    const keys = new Set();
-    for(const c of (rbacState.catalog||[])) keys.add(String(c.permKey));
-    // include existing role perms that might not be in catalog
-    for(const r of (rbacState.rolePermsRows||[])) keys.add(String(r.permKey));
-    return Array.from(keys).sort();
-  }
-
-  function renderRbacEditor(){
-    const host = $('rbacEditor'); if(!host) return;
-    const q = String($('rbacSearch')?.value||"").trim().toLowerCase();
-    const canEdit = !!String($('sa')?.value||"").trim(); // SA required server-side; UI hints only
-    $('btnRbacSave').disabled = !(canEdit && rbacState.dirty);
-
-    // Build groups of permissions by baseKey
-    const keys = allPermKeys().filter(k=>{
-      if(!q) return true;
-      const t = (permTitleFor(k)||"").toLowerCase();
-      const g = (permGroupFor(k)||"").toLowerCase();
-      return k.toLowerCase().includes(q) || t.includes(q) || g.includes(q);
-    });
-
-    const byGroup = new Map();
-    const seenBases = new Set();
-
-    for(const k of keys){
-      const b = baseKey(k);
-      if(seenBases.has(b) && suffixKey(k)) continue; // we'll render triad per base
-      seenBases.add(b);
-
-      const groupName = permGroupFor(k);
-      if(!byGroup.has(groupName)) byGroup.set(groupName, []);
-      byGroup.get(groupName).push(b);
-    }
-
-    // helper checkbox
-    const chk = (permKey, label, checked, disabled=false)=>{
-      const id = "p_"+btoa(unescape(encodeURIComponent(permKey))).replace(/=+$/,'');
-      return `
-        <label style="display:flex;gap:8px;align-items:center;cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?.7:1}">
-          <input type="checkbox" data-perm="${escapeHtml(permKey)}" ${checked?'checked':''} ${disabled?'disabled':''}/>
-          <span class="small">${escapeHtml(label)}</span>
-        </label>
-      `;
-    };
-
-    // render
-    host.innerHTML = '';
-    const groupNames = Array.from(byGroup.keys()).sort((a,b)=>a.localeCompare(b));
-    for(const g of groupNames){
-      const card = document.createElement('div');
-      card.className = 'group';
-      const bases = (byGroup.get(g)||[]).sort();
-
-      let rowsHtml = '';
-      for(const b of bases){
-        // determine triad existence
-        const viewK = b + '.view';
-        const manK  = b + '.manage';
-        const delK  = b + '.delete';
-        const hasTriad = allPermKeys().includes(viewK) || allPermKeys().includes(manK) || allPermKeys().includes(delK);
-
-        const title = permTitleFor(viewK) || permTitleFor(manK) || permTitleFor(delK) || permTitleFor(b) || '';
-        const left = `<div><div style="font-weight:900">${escapeHtml(b)}</div>${title?`<div class="small muted">${escapeHtml(title)}</div>`:''}</div>`;
-
-        let right = '';
-        if(hasTriad){
-          right = `
-            <div style="display:grid;gap:6px">
-              ${chk(viewK, 'Sichtbar', rbacState.currentPermSet.has(viewK), !canEdit)}
-              ${chk(manK,  'Änderbar', rbacState.currentPermSet.has(manK), !canEdit)}
-              ${chk(delK,  'Delete',   rbacState.currentPermSet.has(delK), !canEdit)}
-            </div>
-          `;
-        }else{
-          right = `
-            <div style="display:grid;gap:6px">
-              ${chk(b, 'Erlaubt', rbacState.currentPermSet.has(b), !canEdit)}
-            </div>
-          `;
-        }
-
-        rowsHtml += `
-          <div style="display:grid;grid-template-columns:1fr 220px;gap:10px;align-items:start;padding:10px;border-top:1px solid rgba(255,255,255,.08)">
-            ${left}
-            ${right}
-          </div>
-        `;
-      }
-
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-          <div style="font-weight:900">${escapeHtml(g)}</div>
-          <div class="small muted">${bases.length} Einträge</div>
-        </div>
-        <div style="margin-top:8px;border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden">
-          ${rowsHtml}
-        </div>
-      `;
-      host.appendChild(card);
-    }
-
-    // listeners
-    host.querySelectorAll('input[type="checkbox"][data-perm]').forEach(inp=>{
-      inp.addEventListener('change', ()=>{
-        const k = inp.dataset.perm;
-        if(inp.checked) rbacState.currentPermSet.add(k);
-        else rbacState.currentPermSet.delete(k);
-        rbacState.dirty = true;
-        $('btnRbacSave').disabled = !(canEdit && rbacState.dirty);
-      });
-    });
-  }
-
-  async function saveRolePerms(){
-    const sa = String($('sa')?.value||"").trim();
-    if(!sa){ toast('Speichern geht nur mit SA Passwort'); return; }
-    if(!rbacState.role){ toast('Rolle fehlt'); return; }
-    try{
-      const permKeys = Array.from(rbacState.currentPermSet.values()).sort();
-      const j=await api('/api/auth/admin/rbac/role/set', {body:{role: rbacState.role, permKeys}});
-      setOut(j);
-      rbacState.dirty = false;
-      toast('Gespeichert');
-      await loadSnapshot();
-    }catch(e){
-      toast(`Speichern Fehler (${e.status||'?'}) ${e.message||''}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-
-  
-  async function setStationPin(){
-    const p1 = String($('cfgStationPin').value||'').trim();
-    const p2 = String($('cfgStationPin2').value||'').trim();
-    if(!p1 || p1.length < 4) return toast('Stations-PIN zu kurz');
-    if(p1 !== p2) return toast('Stations-PIN stimmt nicht überein');
-    try{
-      const j = await api('/api/admin/set-station-pin', {body:{pin: p1}});
-      setOut(j);
-      toast('Stations-PIN gesetzt');
-      $('cfgStationPin').value=''; $('cfgStationPin2').value='';
-      await cfgLoad();
-    }catch(e){
-      toast(`Stations-PIN Fehler (${e.status||'?'}) ${e.message||''}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-function setVal(id, v){
-    const el = $(id);
-    if(!el) return;
-    el.value = (v ?? "");
-  }
-  function setChk(id, v){
-    const el = $(id);
-    if(!el) return;
-    el.checked = !!v;
-  }
-
-  async function cfgLoad(){
-    try{
-      const j = await api('/api/auth/admin/config/get', {body:{}});
-      setOut(j);
-      const c = j.config || j.data?.config || {};
-      // raw
-      if($('cfgRaw')) $('cfgRaw').value = JSON.stringify(c, null, 2);
-      // form fields
-      setVal('cfgDaysPast', (c.daysPast ?? 1));
-      setVal('cfgDaysFuture', (c.daysFuture ?? 6));
-      setChk('cfgChatEnabled', (c.chatEnabled ?? true));
-      setChk('cfgWhitecardEnabled', (c.whitecardEnabled ?? true));
-      setChk('cfgPortalDebug', (c.portalDebugEnabled ?? false));
-      setChk('cfgWasherPopup', (c.washerPopup ?? false));
-      setChk('cfgDryerPopup', (c.dryerPopup ?? false));
-      setVal('cfgDryerMinutes', String(c.dryerMinutes ?? 120));
-      setChk('cfgNewsEnabled', (c.newsEnabled ?? false));
-      setVal('cfgNewsText', String(c.newsText ?? ''));
-
-      // slots: always render grid; if empty -> show standard default (6–20) but do NOT auto-save
-      const wh = Array.isArray(c.washerHours) ? c.washerHours : [];
-      buildSlotGrid(wh.length ? wh : [6,8,10,12,14,16,18,20]);
-
-      // hint station pin state
-      const hasStation = (typeof j.stationPinSet !== 'undefined') ? !!j.stationPinSet : !!c.stationPinHash;
-      if($('cfgStationPinHint')) $('cfgStationPinHint').textContent = hasStation ? '✅ Stations-PIN ist gesetzt.' : '⚠️ Stations-PIN ist NICHT gesetzt – Portal-Refresh wird blockiert.';
-      applyConfigPerms();
-      toast('Konfig geladen');
-    }catch(e){
-      toast(`Konfig Fehler (${e.status||'?'}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-  
-  function buildSlotGrid(selected){
-    const host = $('slotGrid'); if(!host) return;
-    host.innerHTML = '';
-    const sel = new Set((selected||[]).map(x=>Number(x)));
-    for(let h=0; h<24; h++){
-      const lab = String(h).padStart(2,'0') + ':00';
-      const wrap = document.createElement('label');
-      wrap.style.display='flex';
-      wrap.style.gap='8px';
-      wrap.style.alignItems='center';
-      wrap.style.border='1px solid rgba(255,255,255,.10)';
-      wrap.style.borderRadius='14px';
-      wrap.style.padding='8px 10px';
-      wrap.style.background='rgba(255,255,255,.02)';
-      wrap.style.cursor='pointer';
-      wrap.innerHTML = `<input type="checkbox" data-hour="${h}" ${sel.has(h)?'checked':''}/> <span class="small"><b>${lab}</b></span>`;
-      host.appendChild(wrap);
-    }
-    host.querySelectorAll('input[type="checkbox"][data-hour]').forEach(cb=>{
-      cb.addEventListener('change', ()=>{ /* just mark dirty via raw cfg */ });
-    });
-  }
-
-  function getSelectedSlots(){
-    const host = $('slotGrid'); if(!host) return [];
-    const out=[];
-    host.querySelectorAll('input[type="checkbox"][data-hour]').forEach(cb=>{
-      if(cb.checked) out.push(Number(cb.dataset.hour));
-    });
-    out.sort((a,b)=>a-b);
-    return out;
-  }
-
-
-  function applyConfigPerms(){
-    const canManage = can('admin.config.manage') || (state.me?.perms?.['sa.all']);
-    const ids = [
-      'cfgDaysPast','cfgDaysFuture','cfgChatEnabled','cfgWhitecardEnabled','cfgPortalDebug',
-      'cfgWasherPopup','cfgDryerPopup','cfgDryerMinutes','cfgNewsEnabled','cfgNewsText',
-      'btnCfgSave','btnSetStationPin'
-    ];
-    for(const id of ids){
-      const el = $(id);
-      if(!el) continue;
-      el.disabled = !canManage;
-    }
-    // slot grid checkboxes
-    const host = $('slotGrid');
-    if(host){
-      host.querySelectorAll('input[type="checkbox"][data-hour]').forEach(cb=>cb.disabled = !canManage);
-    }
-    // presets
-    for(const id of ['btnSlotsPresetDay','btnSlotsPresetAll','btnSlotsPresetNone']){
-      const el=$(id); if(el) el.style.pointerEvents = canManage ? 'auto' : 'none';
-      if(el) el.style.opacity = canManage ? '1' : '.5';
-    }
-  }
-
-function cfgFromForm(){
-    // start from raw (so we keep unknown keys)
-    let base={};
-    try{ base = JSON.parse(String($('cfgRaw')?.value||'{}')||'{}'); }catch(_e){ base = {}; }
-    base.daysPast = Number($('cfgDaysPast').value||1) || 1;
-    base.daysFuture = Number($('cfgDaysFuture').value||6) || 6;
-    base.chatEnabled = !!$('cfgChatEnabled').checked;
-    base.whitecardEnabled = !!$('cfgWhitecardEnabled').checked;
-    base.portalDebugEnabled = !!$('cfgPortalDebug').checked;
-    base.washerPopup = !!$('cfgWasherPopup').checked;
-    base.dryerPopup = !!$('cfgDryerPopup').checked;
-    base.dryerMinutes = Number($('cfgDryerMinutes').value||120) || 120;
-    base.newsEnabled = !!$('cfgNewsEnabled').checked;
-    base.newsText = String($('cfgNewsText').value||'');
-    base.washerHours = getSelectedSlots();
-    return base;
-  }
-
-  async function cfgSave(){
-    try{
-      const cfg = cfgFromForm();
-      const j = await api('/api/auth/admin/config/set', {body:{config: cfg}});
-      setOut(j); toast('Konfig gespeichert');
-      // Reload to reflect persisted config
-      await cfgLoad();
-    }catch(e){
-      toast(`Konfig speichern Fehler (${e.status||'?'}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-  function renderTransfer(items){
-    const host = $('trList'); host.innerHTML='';
-    const empty = $('trEmpty'); if(empty) empty.style.display = (items && items.length) ? 'none' : '';
-    for(const it of (items||[])){
-      const card = document.createElement('div'); card.className='group';
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
-          <div>
-            <div style="font-weight:800">${escapeHtml(it.applicantFirstName||'')} ${escapeHtml(it.applicantLastName||'')}</div>
-            <div class="small">${escapeHtml(it.applicantEmail||'')}</div>
-            <div class="small">Zielrolle: <b>${escapeHtml(it.targetRole||'')}</b> • ${escapeHtml(fmtTs(it.createdAt))}</div>
-            <div class="small" style="opacity:.7">id: ${escapeHtml(it.id||'')}</div>
-          </div>
-          <div style="min-width:220px;display:flex;gap:8px">
-            <button class="trAccept" data-id="${escapeHtml(it.id||'')}" style="flex:1">Annehmen</button>
-            <button class="trReject" data-id="${escapeHtml(it.id||'')}" style="flex:1">Ablehnen</button>
-          </div>
-        </div>`;
-      host.appendChild(card);
-    }
-    host.querySelectorAll('.trAccept').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const id = btn.getAttribute('data-id');
-        try{
-          const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'accept'}});
-          setOut(j); toast('Übergabe angenommen');
-          await loadUsers();
-          await loadTransfer();
-        }catch(e){ toast(`Übergabe Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-      });
-    });
-    host.querySelectorAll('.trReject').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const id = btn.getAttribute('data-id');
-        try{
-          const j = await api('/api/auth/roles/transfer/decide', {body:{requestId:id, decision:'reject'}});
-          setOut(j); toast('Bewerbung abgelehnt');
-          await loadTransfer();
-        }catch(e){ toast(`Reject Fehler (${e.status||'?'}) ${e.message}`); setOut({error:true,status:e.status,url:e.url,payload:e.payload}); }
-      });
-    });
-  }
-
-  async function loadTransfer(){
-    try{
-      const j = await api('/api/auth/roles/transfer/list', {body:{}});
-      setOut(j);
-      const items = j.requests || j.items || j.data?.requests || [];
-      state.transfer = Array.isArray(items) ? items : [];
-      toast(`Bewerbungen: ${state.transfer.length}`);
-      renderTransfer(state.transfer);
-    }catch(e){
-      toast(`Transfer Fehler (${e.status||'?'}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      state.transfer=[];
-      renderTransfer([]);
-    }
-  }
-
-  
-  // ----------------------------
-  // Rooms (lock/unlock)
-  // ----------------------------
-  async function loadRooms(){
-    try{
-      const j = await api('/api/auth/room/control/list', { body:{} });
-      setOut(j);
-      state.rooms = j.rooms || [];
-      renderRooms();
-      toast(`Zimmer: ${state.rooms.length}`);
-    }catch(e){
-      toast(`Zimmer Fehler (${e.status||'?'}) ${e.message||''}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      state.rooms = [];
-      renderRooms();
-    }
-  }
-
-  async function applyRoomControl(){
-    const room = String($('roomRoom').value||'').trim();
-    const action = String($('roomAction').value||'block');
-    const message = String($('roomMessage').value||'');
-    if(!room){ toast('Zimmernummer fehlt'); return; }
-
-    const canDo = can('rooms.manage') || can('admin.users.manage') || (state.me?.perms?.['sa.all']);
-    if(!canDo){ toast('Keine Berechtigung: Zimmer sperren'); return; }
-
-    try{
-      const blocked = action === 'block';
-      const j = await api('/api/auth/room/control', { body:{ room, blocked, message } });
-      setOut(j);
-      toast(blocked ? 'Gesperrt' : 'Freigegeben');
-      $('roomMessage').value = '';
-      await loadRooms();
-    }catch(e){
-      toast(`Übernehmen Fehler (${e.status||'?'}) ${e.message||''}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-  function renderRooms(){
-    const host = $('roomList'); if(!host) return;
-    const empty = $('roomEmpty');
-    const q = String($('roomSearch')?.value||'').trim().toLowerCase();
-    const f = String($('roomFilter')?.value||'all');
-
-    let items = Array.isArray(state.rooms) ? state.rooms.slice() : [];
-    items = items.filter(r=>{
-      const room = String(r.room||'');
-      if(q && !room.toLowerCase().includes(q)) return false;
-      if(f==='blocked' && !r.blocked) return false;
-      if(f==='unblocked' && r.blocked) return false;
-      return true;
-    });
-
-    if(empty) empty.style.display = items.length ? 'none' : '';
-    host.innerHTML = '';
-
-    const canDo = can('rooms.manage') || can('admin.users.manage') || (state.me?.perms?.['sa.all']);
-
-    // nice list
-    for(const r of items){
-      const card=document.createElement('div'); card.className='group';
-      const st = r.blocked ? 'GESPERRT' : 'FREI';
-      const ts = r.updatedAt ? fmtTs(r.updatedAt) : '-';
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
-          <div>
-            <div style="font-weight:900;font-size:14px">Zimmer ${escapeHtml(r.room||'')}</div>
-            <div class="small">Status: <b style="color:${r.blocked?'#ffb0b0':'#b8ffcf'}">${st}</b></div>
-            <div class="small muted">Zeit: ${escapeHtml(ts)} • von: ${escapeHtml(r.updatedByEmail||r.updatedBy||'')}</div>
-          </div>
-          <div style="min-width:220px;display:grid;gap:8px">
-            <div style="border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)">
-              <div class="small muted">Nachricht</div>
-              <div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(r.message||'')}</div>
-            </div>
-            <div class="btnrow">
-              <button class="roomToggleBtn" data-room="${escapeHtml(r.room||'')}" data-next="${r.blocked?'0':'1'}" ${canDo?'':'disabled'}>
-                ${r.blocked?'Freigeben':'Sperren'}
-              </button>
-              <button class="roomPrefillBtn secondary" data-room="${escapeHtml(r.room||'')}" data-blocked="${r.blocked?'1':'0'}">In Formular</button>
-            </div>
-          </div>
-        </div>
-      `;
-      host.appendChild(card);
-    }
-
-    host.querySelectorAll('.roomPrefillBtn').forEach(b=>{
-      b.addEventListener('click', ()=>{
-        $('roomRoom').value = b.dataset.room || '';
-        $('roomAction').value = (b.dataset.blocked==='1') ? 'unblock' : 'block';
-        $('roomMessage').focus();
-      });
-    });
-
-    host.querySelectorAll('.roomToggleBtn').forEach(b=>{
-      b.addEventListener('click', async ()=>{
-        const room = b.dataset.room;
-        const next = b.dataset.next === '1';
-        const msg = next ? prompt("Nachricht fürs Popup (optional):","") : "";
-        try{
-          const j = await api('/api/auth/room/control', { body:{ room, blocked: next, message: msg||"" } });
-          setOut(j);
-          toast(next ? 'Gesperrt' : 'Freigegeben');
-          await loadRooms();
-        }catch(e){
-          toast(`Fehler (${e.status||'?'}) ${e.message||''}`);
-        }
-      });
-    });
-  }
-
-
-
-  // ----------------------------
-  // Bookings
-  // ----------------------------
-  async function loadBookings(){
-    try{
-      const machine = String($('bkMachine')?.value||'').trim();
-      const status = String($('bkStatus')?.value||'').trim();
-      const j = await api('/api/auth/admin/bookings/list', { body:{ machine, status } });
-      setOut(j);
-      state.bookings = j.bookings || [];
-      renderBookings();
-      toast(`Buchungen: ${state.bookings.length}`);
-    }catch(e){
-      toast(`Buchungen Fehler (${e.status||'?'}) ${e.message||''}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      state.bookings = [];
-      renderBookings();
-    }
-  }
-
-  function fmtMs(ms){
-    const n = Number(ms||0);
-    if(!n) return '-';
-    return new Date(n).toLocaleString();
-  }
-
-  function renderBookings(){
-    const host=$('bkList'); if(!host) return;
-    const empty=$('bkEmpty');
-    const items = Array.isArray(state.bookings) ? state.bookings : [];
-    if(empty) empty.style.display = items.length ? 'none' : '';
-    host.innerHTML='';
-
-    const canCancel = can('bookings.delete') || (state.me?.perms?.['sa.all']);
-    const canExport = can('bookings.export') || (state.me?.perms?.['sa.all']);
-    if($('btnBkCsv')) $('btnBkCsv').disabled = !canExport;
-
-    for(const b of items){
-      const card=document.createElement('div'); card.className='group';
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
-          <div>
-            <div style="font-weight:900">#${escapeHtml(b.id||'')} • ${escapeHtml(b.machine||'-')} • Zimmer ${escapeHtml(b.room||'-')}</div>
-            <div class="small muted">Status: <b>${escapeHtml(b.status||'')}</b></div>
-            <div class="small">Von: <b>${escapeHtml(fmtMs(b.startAt))}</b> bis <b>${escapeHtml(fmtMs(b.endAt))}</b></div>
-            <div class="small muted">UserId: ${escapeHtml(b.userId||'')}</div>
-          </div>
-          <div class="btnrow">
-            <button class="bkCancelBtn" data-id="${escapeHtml(b.id||'')}" ${canCancel ? '' : 'disabled'}>
-              Stornieren
-            </button>
-          </div>
-        </div>
-      `;
-      host.appendChild(card);
-    }
-
-    host.querySelectorAll('.bkCancelBtn').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const id = btn.dataset.id;
-        const reason = prompt("Storno-Grund (optional):","") || "";
-        try{
-          const j = await api('/api/auth/admin/bookings/cancel', { body:{ bookingId:id, reason } });
-          setOut(j);
-          toast("Storniert");
-          await loadBookings();
-        }catch(e){
-          toast(`Storno Fehler (${e.status||'?'}) ${e.message||''}`);
-          setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-        }
-      });
-    });
-  }
-
-  async function downloadBookingsCsv(){
-    const canExport = can('bookings.export') || (state.me?.perms?.['sa.all']);
-    if(!canExport) return toast('Keine Berechtigung: CSV');
-    const machine = String($('bkMachine')?.value||'').trim();
-    try{
-      const res = await fetch(API_BASE + '/api/auth/admin/bookings/export', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ machine })
-      });
-      if(!res.ok){
-        const j = await res.json().catch(()=>({}));
-        throw {status:res.status, data:j};
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download = `bookings_${machine||'all'}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      toast('CSV geladen');
-    }catch(e){
-      toast(`CSV Fehler (${e.status||'?'}) ${(e?.data?.message||e?.data?.error||e?.message||'')}`);
-    }
-  }
-
-  // ----------------------------
-  // Logs
-  // ----------------------------
-  async function loadLogs(){
-    try{
-      const room = String($('lgRoom')?.value||'').trim();
-      const actor = String($('lgActor')?.value||'').trim();
-      const action = String($('lgAction')?.value||'').trim();
-      const limit = Number($('lgLimit')?.value||500) || 500;
-      const j = await api('/api/auth/admin/logs/list', { body:{ room, actor, action, limit } });
-      setOut(j);
-      state.logs = j.logs || [];
-      renderLogs();
-      toast(`Logs: ${state.logs.length}`);
-    }catch(e){
-      toast(`Logs Fehler (${e.status||'?'}) ${e.message||''}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      state.logs = [];
-      renderLogs();
-    }
-  }
-
-  function renderLogs(){
-    const host=$('lgList'); if(!host) return;
-    const empty=$('lgEmpty');
-    const items = Array.isArray(state.logs) ? state.logs : [];
-    if(empty) empty.style.display = items.length ? 'none' : '';
-    host.innerHTML='';
-
-    const canExport = can('logs.export') || (state.me?.perms?.['sa.all']);
-    if($('btnLgCsv')) $('btnLgCsv').disabled = !canExport;
-
-    for(const l of items){
-      const card=document.createElement('div'); card.className='group';
-      const meta = (()=>{
-        try{ return JSON.stringify(JSON.parse(l.meta||'{}')); }catch{ return String(l.meta||''); }
-      })();
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <div>
-            <div style="font-weight:900">${escapeHtml(l.action||'')}</div>
-            <div class="small muted">Zeit: ${escapeHtml(fmtMs(l.ts))} • Room: ${escapeHtml(l.room||'')} • Actor: ${escapeHtml(l.actor||'')}</div>
-            <div class="small" style="margin-top:6px;white-space:pre-wrap;opacity:.9">${escapeHtml(meta)}</div>
-          </div>
-        </div>
-      `;
-      host.appendChild(card);
-    }
-  }
-
-  async function downloadLogsCsv(){
-    const canExport = can('logs.export') || (state.me?.perms?.['sa.all']);
-    if(!canExport) return toast('Keine Berechtigung: CSV');
-    const limit = Number($('lgLimit')?.value||2000) || 2000;
-    try{
-      const res = await fetch(API_BASE + '/api/auth/admin/logs/export', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ limit })
-      });
-      if(!res.ok){
-        const j = await res.json().catch(()=>({}));
-        throw {status:res.status, data:j};
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download = `logs_last_${limit}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      toast('CSV geladen');
-    }catch(e){
-      toast(`CSV Fehler (${e.status||'?'}) ${(e?.data?.message||e?.data?.error||e?.message||'')}`);
-    }
-  }
-
-
-async function doLogin(){
-    const email = String($('loginEmail').value||'').trim();
-    const password = String($('loginPw').value||'').trim();
-    if(!email || !password){ toast('Email + Passwort eingeben'); return; }
-    try{
-      const j = await api('/api/ps/login', {body:{email, password}, noAuth:true});
-      $('token').value = j.token || '';
-      localStorage.setItem('wp_admin_token', $('token').value);
-      toast(`Eingeloggt als ${j.role||''}`);
-      setOut(j);
-      await loadMe();
-    }catch(e){
-      toast(`Login Fehler (${e.status||'?'}) ${e.message}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-  function doLogout(){
-    $('token').value='';
-    localStorage.removeItem('wp_admin_token');
-    toast('Ausgeloggt');
-  }
-
-  async function doSaLogin(){
-    const sa = String($('sa').value||'').trim();
-    if(!sa){ toast('SA Passwort eintragen'); return; }
-    try{
-      // SA ist kein Email-Login: wir laden direkt /api/auth/me mit x-sa-password
-      const j = await api('/api/auth/me', { method:'GET' });
-      toast('SA aktiv');
-      setOut(j);
-      setMe(j);
-      await loadUsers().catch(()=>{});
-      await loadSnapshot().catch(()=>{});
-    }catch(e){
-      toast(`SA Fehler (${e.status||'?'}) ${e.message||''}`);
-      setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    }
-  }
-
-
-  $('btnStatus').addEventListener('click', loadStatus);
-  $('btnRoutes').addEventListener('click', loadRoutes);
-  $('btnMe').addEventListener('click', loadMe);
-  $('btnUsers').addEventListener('click', ()=>{ setTab('users'); loadUsers(); });
-  $('btnSnap').addEventListener('click', ()=>{ setTab('rbac'); loadSnapshot(); });
-  $('btnCfg').addEventListener('click', ()=>{ setTab('config'); cfgLoad(); });
-  $('btnCfgLoad').addEventListener('click', cfgLoad);
-  $('btnCfgSave').addEventListener('click', cfgSave);
-  $('btnTrList').addEventListener('click', ()=>{ setTab('transfer'); loadTransfer(); });
-  $('btnTrList2').addEventListener('click', loadTransfer);
-
-  $('btnLogin').addEventListener('click', doLogin);
-  $('btnLogout').addEventListener('click', doLogout);
-  const bsa=$('btnSaLogin'); if(bsa) bsa.addEventListener('click', doSaLogin);
-
-  const br=$('btnRbacReload'); if(br) br.addEventListener('click', loadSnapshot);
-  const bs=$('btnRbacSave'); if(bs) bs.addEventListener('click', saveRolePerms);
-  const rs=$('rbacRole'); if(rs) rs.addEventListener('change', ()=>loadRolePerms(rs.value));
-  const rq=$('rbacSearch'); if(rq) rq.addEventListener('input', renderRbacEditor);
-
-  const brm=$('btnRoomReload'); if(brm) brm.addEventListener('click', loadRooms);
-  const bsp=$('btnSetStationPin'); if(bsp) bsp.addEventListener('click', setStationPin);
-  const bcl=$('btnClearStationPin'); if(bcl) bcl.addEventListener('click', ()=>{ $('cfgStationPin').value=''; $('cfgStationPin2').value=''; });
-
-  const pDay=$('btnSlotsPresetDay'); if(pDay) pDay.addEventListener('click', ()=>{
-    buildSlotGrid([6,8,10,12,14,16,18,20]);
-  });
-  const pAll=$('btnSlotsPresetAll'); if(pAll) pAll.addEventListener('click', ()=>{
-    buildSlotGrid(Array.from({length:24},(_,i)=>i));
-  });
-  const pNone=$('btnSlotsPresetNone'); if(pNone) pNone.addEventListener('click', ()=>{
-    buildSlotGrid([]);
-  });
-  const bam=$('btnRoomApply'); if(bam) bam.addEventListener('click', applyRoomControl);
-  const rqs=$('roomSearch'); if(rqs) rqs.addEventListener('input', renderRooms);
-  const rfl=$('roomFilter'); if(rfl) rfl.addEventListener('change', renderRooms);
-
-  const bkr=$('btnBkReload'); if(bkr) bkr.addEventListener('click', loadBookings);
-  const bkc=$('btnBkCsv'); if(bkc) bkc.addEventListener('click', downloadBookingsCsv);
-  const bkm=$('bkMachine'); if(bkm) bkm.addEventListener('change', loadBookings);
-  const bks=$('bkStatus'); if(bks) bks.addEventListener('change', loadBookings);
-
-  const lgr=$('btnLgReload'); if(lgr) lgr.addEventListener('click', loadLogs);
-  const lgc=$('btnLgCsv'); if(lgc) lgc.addEventListener('click', downloadLogsCsv);
-
-
-  $('userStatusFilter').addEventListener('change', renderUsers);
-  $('userSearch').addEventListener('input', renderUsers);
-
-  loadStatus();
-})();
-</script>
-</body>
-</html>
+}
+function timingSafeEq(a, b) {
+  a = String(a); b = String(b);
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
