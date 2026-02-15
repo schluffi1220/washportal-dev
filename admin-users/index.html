@@ -1,1017 +1,455 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Admin – Washportal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Washportal Admin</title>
 <style>
-  :root{
-    color-scheme: dark;
-    --bg:#070b12;
-    --card:rgba(255,255,255,.035);
-    --card2:rgba(255,255,255,.055);
-    --line:rgba(255,255,255,.10);
-    --txt:#e7eefc;
-    --muted:rgba(231,238,252,.68);
-    --good:#42d392;
-    --warn:#ffcc66;
-    --bad:#ff6b6b;
-    --accent:#5aa7ff;
-    --shadow: 0 12px 40px rgba(0,0,0,.35);
-    --r:16px;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:radial-gradient(1200px 700px at 10% -10%, rgba(90,167,255,.18), transparent 60%),radial-gradient(800px 600px at 110% 0%, rgba(66,211,146,.10), transparent 55%),var(--bg);color:var(--txt)}
-  a{color:inherit}
-  .wrap{max-width:1200px;margin:0 auto;padding:14px}
-  header{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .brand{display:flex;gap:10px;align-items:center}
-  .logo{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg, rgba(90,167,255,.95), rgba(66,211,146,.8));box-shadow:var(--shadow)}
-  h1{font-size:14px;margin:0;font-weight:900;letter-spacing:.4px}
-  .sub{font-size:11px;color:var(--muted);margin-top:1px}
-  .pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-  .pill{font-size:11px;padding:6px 9px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
-  .pill.ok{border-color:rgba(66,211,146,.35)}
-  .pill.bad{border-color:rgba(255,107,107,.35)}
-  .grid{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:980px){.grid{grid-template-columns:340px 1fr}}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
-  .card .hd{padding:12px 12px 0 12px}
-  .card .bd{padding:12px}
-  .card h2{margin:0;font-size:12px;letter-spacing:.3px}
-  .row{display:flex;gap:10px;flex-wrap:wrap}
-  label{display:block;font-size:11px;color:var(--muted);margin:0 0 6px 2px}
-  input,select,textarea,button{width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:var(--txt);padding:10px 11px;font-size:13px}
-  textarea{min-height:120px;resize:vertical}
-  button{cursor:pointer;background:linear-gradient(180deg, rgba(90,167,255,.25), rgba(90,167,255,.10));border-color:rgba(90,167,255,.35)}
-  button.secondary{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)}
-  button.danger{background:linear-gradient(180deg, rgba(255,107,107,.22), rgba(255,107,107,.10));border-color:rgba(255,107,107,.35)}
-  button.good{background:linear-gradient(180deg, rgba(66,211,146,.20), rgba(66,211,146,.09));border-color:rgba(66,211,146,.35)}
-  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-  .tab{padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:12px;cursor:pointer}
-  .tab.active{border-color:rgba(90,167,255,.5);background:rgba(90,167,255,.12)}
+  :root{--bg:#0b1220;--card:#121a2b;--muted:#93a4c7;--text:#e8eefc;--acc:#6aa7ff;--good:#25d08a;--bad:#ff5c7a;}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#070b14, #0b1220);color:var(--text);}
+  header{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;background:rgba(7,11,20,.85);backdrop-filter: blur(10px);}
+  h1{margin:0;font-size:16px;letter-spacing:.2px}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,select,textarea{background:#0c1426;color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 10px;font-size:14px;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:rgba(106,167,255,.55);box-shadow:0 0 0 3px rgba(106,167,255,.18)}
+  button{background:linear-gradient(180deg,#2c6bff,#1b4dff);color:white;border:0;border-radius:12px;padding:10px 12px;font-weight:650;cursor:pointer}
+  button.secondary{background:#101a30;border:1px solid rgba(255,255,255,.12)}
+  button.danger{background:linear-gradient(180deg,#ff5c7a,#ff2c55)}
+  .card{background:rgba(18,26,43,.8);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
   .muted{color:var(--muted)}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.22);border-radius:14px;padding:10px;border:1px solid rgba(255,255,255,.10);max-height:320px;overflow:auto}
-  table{width:100%;border-collapse:separate;border-spacing:0 8px}
-  td,th{padding:10px 10px;font-size:12px;text-align:left;vertical-align:top}
-  th{color:var(--muted);font-weight:700}
-  tr{background:rgba(255,255,255,.03);border:1px solid var(--line)}
-  tr td:first-child, tr th:first-child{border-top-left-radius:14px;border-bottom-left-radius:14px}
-  tr td:last-child, tr th:last-child{border-top-right-radius:14px;border-bottom-right-radius:14px}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .tiny{font-size:11px;padding:7px 9px;border-radius:12px}
-  .toast{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(10px);padding:10px 12px;border-radius:14px;max-width:92vw;z-index:9999;font-size:12px}
-  .split{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:1100px){.split{grid-template-columns:1fr 1fr}}
-
-.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media(max-width:900px){.grid2{grid-template-columns:1fr}}
-
-    .hoursgrid{display:grid;grid-template-columns:repeat(12, minmax(0,1fr));gap:8px}
-    .hourbox{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(0,0,0,.12)}
-    .hourbox input{width:16px;height:16px}
-    .check2{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(0,0,0,.12);cursor:pointer}
-    .check2 input{width:18px;height:18px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);cursor:pointer}
+  .tab.active{border-color:rgba(106,167,255,.6);background:rgba(106,167,255,.08)}
+  .grid{display:grid;gap:10px}
+  .hours{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}
+  .chip{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px;background:rgba(0,0,0,.15)}
+  .chip input{width:16px;height:16px}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0c1426;border:1px solid rgba(255,255,255,.12);padding:10px 12px;border-radius:12px;display:none;max-width:90vw}
+  .toast.show{display:block}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap}
 </style>
 </head>
 <body>
+<header>
+  <h1>Washportal Admin</h1>
+</header>
 <div class="wrap">
-  <header>
-    <div class="brand">
-      <div class="logo"></div>
+  <div class="card">
+    <div class="row">
+      <label class="muted">Worker URL</label>
+      <input id="workerUrl" style="min-width:340px" placeholder="https://...workers.dev"/>
+      <label class="muted">SA Password</label>
+      <input id="sa" type="password" placeholder="optional"/>
+      <button id="saveConn" class="secondary">Save</button>
+      <span id="connStatus" class="muted"></span>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="muted">Email</label><input id="email" placeholder="admin@example.com"/>
+      <label class="muted">Password</label><input id="password" type="password" placeholder="••••••••"/>
+      <button id="loginBtn">Login</button>
+      <button id="meBtn" class="secondary">/auth/me</button>
+      <span id="meOut" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-tab="config">Config</div>
+      <div class="tab" data-tab="rbac">RBAC</div>
+      <div class="tab" data-tab="users">Users</div>
+    </div>
+  </div>
+
+  <div class="card" id="tab-config">
+    <h3 style="margin:0 0 10px 0">Config</h3>
+    <div class="grid">
+      <div class="row">
+        <button id="cfgRefresh" class="secondary">Refresh</button>
+        <button id="cfgSave">Save</button>
+        <span class="muted" id="cfgStatus"></span>
+      </div>
+
+      <div class="row">
+        <div style="flex:1;min-width:220px">
+          <div class="muted">Dryer slot minutes</div>
+          <input id="dryerSlotMinutes" type="number" min="10" step="5"/>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div class="muted">Days future</div>
+          <input id="daysFuture" type="number" min="1" step="1"/>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div class="muted">Retention days</div>
+          <input id="retentionDays" type="number" min="1" step="1"/>
+        </div>
+      </div>
+
       <div>
-        <h1>Washportal Admin</h1>
-        <div class="sub">Accounts + RBAC + Betrieb · funktioniert mit <span class="muted">Worker_full.js</span></div>
+        <div class="muted" style="margin-bottom:6px">Washer slot hours (start times)</div>
+        <div class="hours" id="washerHoursGrid"></div>
+        <div class="muted" id="washerHoursText" style="margin-top:6px"></div>
       </div>
-    </div>
-    <div class="pills">
-      <span id="pillAuth" class="pill bad">nicht verbunden</span>
-      <span id="pillUser" class="pill">–</span>
-      <span id="pillRole" class="pill">–</span>
-      <span id="pillBuild" class="pill">build: –</span>
-    </div>
-  </header>
 
-  <div class="grid">
-    <!-- left: connection + auth -->
-    <div class="card">
-      <div class="hd"><h2>Verbindung & Login</h2></div>
-      <div class="bd">
-        <div style="margin-bottom:10px">
-          <label>API Base (Worker URL)</label>
-          <input id="baseUrl" placeholder="https://<dein-worker>.workers.dev" />
+      <div class="row">
+        <label class="chip"><input type="checkbox" id="newsEnabled"/> <span>News enabled</span></label>
+        <label class="chip"><input type="checkbox" id="feedbackEnabled"/> <span>Feedback enabled</span></label>
+        <label class="chip"><input type="checkbox" id="allowOverbook"/> <span>Allow overbook</span></label>
+        <label class="chip"><input type="checkbox" id="userCanReportDefect"/> <span>User can report defect</span></label>
+      </div>
+
+      <div class="row">
+        <label class="chip"><input type="checkbox" id="showWasherPopup"/> <span>Show washer popup</span></label>
+        <label class="chip"><input type="checkbox" id="showDryerPopup"/> <span>Show dryer popup</span></label>
+      </div>
+
+      <div class="row">
+        <div style="flex:1;min-width:260px">
+          <div class="muted">Washer popup image (URL or DataURL)</div>
+          <input id="washerPopupImageUrl" placeholder="https://... or data:image/..."/>
         </div>
-
-        <div class="split">
-          <div>
-            <label>Super-Admin Passwort (Header: x-sa-password)</label>
-            <input id="sa" type="password" placeholder="optional, aber empfohlen" />
-            <div class="actions" style="margin-top:8px">
-              <button class="secondary tiny" id="btnMeSa">SA → /api/auth/me</button>
-            </div>
-            <div class="muted" style="font-size:11px;margin-top:6px">SA ist für Bootstrap/RBAC/Config gedacht. Token-Login ist für normale Admin-User.</div>
-          </div>
-
-          <div>
-            <label>Token (Bearer)</label>
-            <input id="token" placeholder="wird nach Login gesetzt" />
-            <div class="actions" style="margin-top:8px">
-              <button class="secondary tiny" id="btnMeToken">Token → /api/auth/me</button>
-              <button class="secondary tiny" id="btnLogout">Logout</button>
-            </div>
-          </div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
-
-        <div class="split">
-          <div>
-            <h2 style="margin:0 0 8px 0">Login</h2>
-            <label>Email</label><input id="loginEmail" placeholder="admin@example.com" />
-            <label style="margin-top:8px">Passwort</label><input id="loginPw" type="password" placeholder="••••••••" />
-            <div class="actions" style="margin-top:8px">
-              <button class="tiny" id="btnLogin">Login</button>
-            </div>
-          </div>
-
-          <div>
-            <h2 style="margin:0 0 8px 0">Registrieren</h2>
-            <label>Email</label><input id="regEmail" placeholder="neu@example.com" />
-            <label style="margin-top:8px">Passwort (min. 8)</label><input id="regPw" type="password" placeholder="••••••••" />
-            <div class="actions" style="margin-top:8px">
-              <button class="good tiny" id="btnRegister">Account anlegen</button>
-            </div>
-            <div class="muted" style="font-size:11px;margin-top:6px">Der <b>allererste</b> Account wird automatisch <b>admin + aktiv</b>. Danach landen neue Accounts in <b>pending</b> (Freigabe im Tab „Users“).</div>
-          </div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
-
-        <h2 style="margin:0 0 8px 0">Stations-PIN</h2>
-        <div class="split">
-          <div>
-            <label>Neue PIN</label><input id="stationPin1" type="password" placeholder="mind. 4" />
-          </div>
-          <div>
-            <label>Wiederholen</label><input id="stationPin2" type="password" placeholder="…" />
-            <div class="muted" id="stationPinCurrent" style="margin-top:6px">Aktuelle PIN: <span id="pinCurrent">–</span></div>
-          </div>
-        </div>
-        <div class="actions" style="margin-top:8px">
-          <button class="tiny" id="btnStationPin">PIN setzen</button>
-          <button class="secondary tiny" id="btnRoutes">/api/_routes</button>
-          <button class="secondary tiny" id="btnStatus">/api/_status</button>
+        <div style="flex:1;min-width:260px">
+          <div class="muted">Dryer popup image (URL or DataURL)</div>
+          <input id="dryerPopupImageUrl" placeholder="https://... or data:image/..."/>
         </div>
       </div>
-    </div>
 
-    <!-- right: app -->
-    <div class="card">
-      <div class="hd"><h2>Konsole</h2></div>
-      <div class="bd">
-        <div class="tabs" id="tabs">
-          <div class="tab active" data-tab="dash">Dashboard</div>
-          <div class="tab" data-tab="users">Users</div>
-          <div class="tab" data-tab="rbac">RBAC</div>
-          <div class="tab" data-tab="config">Config</div>
-          <div class="tab" data-tab="bookings">Bookings</div>
-          <div class="tab" data-tab="logs">Logs</div>
-          <div class="tab" data-tab="rooms">Rooms</div>
+      <div>
+        <div class="muted">News text</div>
+        <textarea id="newsText" rows="3" style="width:100%"></textarea>
+      </div>
+
+      <div class="row">
+        <div style="flex:1;min-width:260px">
+          <div class="muted">Station PIN (set / overwrite)</div>
+          <input id="stationPinPlain" type="password" placeholder="••••"/>
+          <div class="muted" style="margin-top:6px">Current Station PIN</div>
+          <div id="stationPinCurrent" class="mono muted">—</div>
         </div>
+      </div>
 
-        <div id="viewDash">
-          <div class="row">
-            <div style="flex:1">
-              <h2 style="margin:0 0 8px 0">Quick Actions</h2>
-              <div class="actions">
-                <button class="secondary tiny" id="btnMe">/api/auth/me</button>
-                <button class="secondary tiny" id="btnLoadUsers">Users laden</button>
-                <button class="secondary tiny" id="btnLoadRbac">RBAC Snapshot</button>
-                <button class="secondary tiny" id="btnCfgLoad">Config laden</button>
-                <button class="secondary tiny" id="btnBkLoad">Bookings laden</button>
-                <button class="secondary tiny" id="btnLogsLoad">Logs laden</button>
-              </div>
-              <div class="muted" style="font-size:11px;margin-top:8px">
-                Tipp: Wenn du <b>SA</b> nutzt, trägst du das Passwort links ein – es wird automatisch in <code>x-sa-password</code> gesendet.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="viewUsers" style="display:none">
-          <div class="actions" style="margin-bottom:8px">
-            <button class="secondary tiny" id="btnUsersRefresh">Refresh</button>
-          </div>
-          <div id="usersHost" class="mono">—</div>
-        </div>
-
-        <div id="viewRbac" style="display:none">
-          <div class="actions" style="margin-bottom:8px">
-            <select id="rbacRole" style="max-width:260px"></select>
-            <button class="secondary tiny" id="btnRbacLoadRole">Role laden</button>
-            <button class="tiny" id="btnRbacSave">Speichern</button>
-          </div>
-          <div id="rbacHost"></div>
-        </div>
-
-        <div id="viewConfig" style="display:none">
-          <div class="actions" style="margin-bottom:10px;align-items:flex-end">
-            <button class="secondary tiny" id="btnCfgRefresh">Refresh</button>
-            <button class="tiny" id="btnCfgSave">Speichern</button>
-          </div>
-
-          
-          <div class="card" style="margin-bottom:10px">
-            <h2 style="margin:0 0 10px 0">Config (grafisch)</h2>
-
-            <div class="grid2">
-              <div>
-                <label>daysPast <span class="muted">(Vergangenheit in Tagen)</span></label>
-                <input id="cfgDaysPast" type="number" min="0" step="1" placeholder="z.B. 7"/>
-              </div>
-              <div>
-                <label>daysFuture <span class="muted">(Zukunft in Tagen)</span></label>
-                <input id="cfgDaysFuture" type="number" min="0" step="1" placeholder="z.B. 6"/>
-              </div>
-
-              <div>
-                <label>dryerMinutes <span class="muted">(Trockner Dauer)</span></label>
-                <input id="cfgDryerMinutes" type="number" min="1" step="1" placeholder="z.B. 150"/>
-              </div>
-              <div>
-                <label>Wasch-Slots (washerHours)</label>
-                <input id="cfgWasherHoursText" type="text" placeholder="z.B. 6,8,10,12,14,16,18,20"/>
-                <div class="muted" style="font-size:11px;margin-top:6px">Komma-separierte Stunden (0–23). Haken unten werden automatisch synchronisiert.</div>
-              </div>
-
-              <div class="card" style="grid-column:1 / -1; padding:12px; background:rgba(255,255,255,.04)">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                  <div style="font-weight:700">Wasch-Slots auswählen</div>
-                  <div class="row" style="gap:8px">
-                    <button class="secondary tiny" id="cfgHoursStd">Standard</button>
-                    <button class="secondary tiny" id="cfgHoursClear">Alle aus</button>
-                  </div>
-                </div>
-                <div id="cfgWasherHoursGrid" class="hoursgrid"></div>
-                <div id="cfgHoursText" class="muted" style="margin-top:8px">Aktiv: –</div>
-              </div>
-
-              <div class="card" style="grid-column:1 / -1; padding:12px; background:rgba(255,255,255,.04)">
-                <div style="font-weight:700;margin-bottom:8px">Features</div>
-                <div class="grid2" style="gap:10px">
-                  <label class="check2"><input id="cfgWhitecardEnabled" type="checkbox"/><span>Weißkarte aktiv</span></label>
-                  <label class="check2"><input id="cfgPortalDebugEnabled" type="checkbox"/><span>Portal Debug</span></label>
-                  <label class="check2"><input id="cfgNewsEnabled" type="checkbox"/><span>News/Info Banner</span></label>
-                  <label class="check2"><input id="cfgChatEnabled" type="checkbox"/><span>Chat aktiv</span></label>
-                  <label class="check2"><input id="cfgWasherPopup" type="checkbox"/><span>Washer Popup</span></label>
-                  <label class="check2"><input id="cfgDryerPopup" type="checkbox"/><span>Dryer Popup</span></label>
-                  <div style="grid-column:1 / -1; height:1px; background:rgba(255,255,255,.06); margin:6px 0"></div>
-                  <div class="muted" style="grid-column:1 / -1; font-size:11px; margin-top:-2px">Zielgruppen (optional): wer sieht Feedback/News</div>
-                  <label class="check2"><input id="cfgFeedbackPsEnabled" type="checkbox"/><span>Feedback für PS</span></label>
-                  <label class="check2"><input id="cfgFeedbackSvEnabled" type="checkbox"/><span>Feedback für SV</span></label>
-                  <label class="check2"><input id="cfgFeedbackAdminEnabled" type="checkbox"/><span>Feedback für Admin</span></label>
-                  <label class="check2"><input id="cfgNewsPsEnabled" type="checkbox"/><span>News für PS</span></label>
-                  <label class="check2"><input id="cfgNewsSvEnabled" type="checkbox"/><span>News für SV</span></label>
-                  <label class="check2"><input id="cfgNewsAdminEnabled" type="checkbox"/><span>News für Admin</span></label>
-
-                </div>
-              </div>
-
-              <div style="grid-column:1 / -1">
-                <label>newsText <span class="muted">(nur wenn News aktiv)</span></label>
-                <textarea id="cfgNewsText" style="min-height:84px" placeholder="Kurzer Hinweis…"></textarea>
-              </div>
-            </div>
-
-            <div class="muted" style="font-size:11px;margin-top:10px">
-              Tipp: Du kannst unten jederzeit auch das Raw-JSON bearbeiten – Form &amp; JSON synchronisieren sich.
-            </div>
-          </div>
-<label>Config JSON (Raw)</label>
-          <textarea id="cfgRaw" spellcheck="false"></textarea>
-          <div class="muted" style="font-size:11px;margin-top:6px">Wird gespeichert nach <code>/api/auth/admin/config/set</code>.</div>
-        </div>
-
-        <div id="viewBookings" style="display:none">
-          <div class="actions" style="margin-bottom:8px">
-            <input id="bkMachine" placeholder="machine (optional), z.B. 1" style="max-width:220px"/>
-            <select id="bkStatus" style="max-width:220px">
-              <option value="">status (alle)</option>
-              <option value="booked">booked</option>
-              <option value="cancelled">cancelled</option>
-              <option value="released">released</option>
-            </select>
-            <button class="secondary tiny" id="btnBkRefresh">Refresh</button>
-            <button class="secondary tiny" id="btnBkCsv">CSV Export</button>
-          </div>
-          <div id="bkHost"></div>
-        </div>
-
-        <div id="viewLogs" style="display:none">
-          <div class="actions" style="margin-bottom:8px">
-            <input id="logQ" placeholder="Suche (action/actor/room/meta)" />
-            <button class="secondary tiny" id="btnLogsRefresh">Refresh</button>
-            <button class="secondary tiny" id="btnLogsCsv">CSV Export</button>
-          </div>
-          <div id="logsHost"></div>
-        </div>
-
-        <div id="viewRooms" style="display:none">
-          <div class="actions" style="margin-bottom:8px">
-            <button class="secondary tiny" id="btnRoomsRefresh">Refresh</button>
-          </div>
-          <div class="split">
-            <div>
-              <h2 style="margin:0 0 8px 0">Zimmer sperren</h2>
-              <label>Zimmer</label><input id="roomId" placeholder="z.B. 203" />
-              <label style="margin-top:8px">Message (optional)</label><input id="roomMsg" placeholder="z.B. Bitte an Rezeption wenden" />
-              <div class="actions" style="margin-top:8px">
-                <button class="danger tiny" id="btnRoomBlock">Sperren</button>
-                <button class="good tiny" id="btnRoomUnblock">Entsperren</button>
-              </div>
-            </div>
-            <div>
-              <h2 style="margin:0 0 8px 0">Aktueller Status</h2>
-              <div id="roomsHost" class="mono">—</div>
-            </div>
-          </div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
-        <h2 style="margin:0 0 8px 0">Output</h2>
-        <div id="out" class="mono">—</div>
+      <div>
+        <div class="muted">Raw JSON (advanced)</div>
+        <textarea id="cfgRaw" class="mono" rows="10" style="width:100%"></textarea>
       </div>
     </div>
   </div>
+
+  <div class="card" id="tab-rbac" style="display:none">
+    <h3 style="margin:0 0 10px 0">RBAC</h3>
+    <div class="row">
+      <button id="rbacSnapshot" class="secondary">Snapshot</button>
+      <select id="roleSelect" style="min-width:220px"></select>
+      <button id="rbacLoad" class="secondary">Load role</button>
+      <button id="rbacSave">Save role</button>
+      <span id="rbacStatus" class="muted"></span>
+    </div>
+    <div id="permList" class="grid" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card" id="tab-users" style="display:none">
+    <h3 style="margin:0 0 10px 0">Users</h3>
+    <div class="row">
+      <button id="usersRefresh" class="secondary">Refresh</button>
+      <span id="usersStatus" class="muted"></span>
+    </div>
+    <div id="usersList" class="grid" style="margin-top:10px"></div>
+  </div>
 </div>
 
-<div id="toast" class="toast" style="display:none"></div>
+<div class="toast" id="toast"></div>
 
 <script>
-const $ = (sel)=>{
-  if(!sel) return null;
-  if(typeof sel === 'string' && (sel.startsWith('#') || sel.startsWith('.'))) return document.querySelector(sel);
-  return document.getElementById(sel);
-};
-const state = { me:null, perms:{} , rbac:{catalog:[], role:null, current:new Set()} };
+  const $ = (sel) => sel.startsWith("#") ? document.querySelector(sel) : document.getElementById(sel);
+  const LS = {
+    get(k, d=""){ try{ return localStorage.getItem(k) ?? d }catch{ return d } },
+    set(k, v){ try{ localStorage.setItem(k, v) }catch{} }
+  };
+  const toast = (msg) => { const t=$("#toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 2200); };
 
-function toast(msg){
-  const el=$('toast'); el.textContent=String(msg||''); el.style.display='';
-  clearTimeout(toast._t); toast._t=setTimeout(()=>el.style.display='none', 2200);
-}
-function base(){
-  let u = String($('baseUrl').value||'').trim();
-  u = u.replace(/\/+$/,'');
-  return u;
-}
-function headers(includeAuth=true){
-  const h = { 'Content-Type':'application/json' };
-  const sa = String($('sa').value||'').trim();
-  if(sa) h['x-sa-password'] = sa;
-  if(includeAuth){
-    const t = String($('token').value||'').trim();
-    if(t) h['authorization'] = 'Bearer ' + t;
-  }
-  return h;
-}
-async function api(path, opts={}){
-  const url = base()+path;
-  const method = (opts.method || (opts.body===undefined ? 'GET' : 'POST')).toUpperCase();
-  const init = { method, headers: {...headers(opts.noAuth?false:true), ...(opts.headers||{})} };
-  if(method!=='GET' && method!=='HEAD' && opts.body!==undefined){
-    init.body = (typeof opts.body==='string') ? opts.body : JSON.stringify(opts.body);
-  }
-  const res = await fetch(url, init);
-  const txt = await res.text();
-  let j; try{ j = JSON.parse(txt); }catch{ j = {raw: txt}; }
-  if(!res.ok){
-    const msg = (j?.message || j?.error || j?.raw || ('HTTP '+res.status));
-    const err = new Error(msg); err.status=res.status; err.url=url; err.payload=j; throw err;
-  }
-  return j;
-}
-function setOut(obj){
-  $('out').textContent = JSON.stringify(obj, null, 2);
-  const build = obj?.build || obj?.data?.build || '–';
-  $('pillBuild').textContent = 'build: ' + build;
-}
-function setAuthPills(ok){
-  $('pillAuth').textContent = ok ? 'verbunden' : 'nicht verbunden';
-  $('pillAuth').className = 'pill ' + (ok ? 'ok' : 'bad');
-  $('pillUser').textContent = state.me?.user?.email || '–';
-  $('pillRole').textContent = state.me?.user?.roleLabel || state.me?.user?.role || '–';
-}
-function can(key){
-  if(state.me?.perms?.['sa.all']) return true;
-  return !!state.me?.perms?.[key];
-}
+  const state = { token:"", me:null, config:{} };
 
-async function loadMe(){
-  try{
-    const j = await api('/api/auth/me', {method:'GET'});
-    state.me = j;
-    setOut(j);
-    setAuthPills(true);
-    toast('me geladen');
-    // auto-load config so Stations-PIN shows immediately
-    try{ if(can('config.read')) await cfgLoad(); }catch(_e){}
-
-  }catch(e){
-    state.me=null;
-    setAuthPills(false);
-    toast('me Fehler: ' + e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+  function apiBase(){
+    const u = ($("#workerUrl").value||"").trim().replace(/\/+$/,"");
+    return u;
   }
-}
-
-async function doLogin(){
-  const email = String($('loginEmail').value||'').trim();
-  const password = String($('loginPw').value||'').trim();
-  if(!email || !password) return toast('Email + Passwort');
-  try{
-    const j = await api('/api/ps/login', {body:{email,password}, noAuth:true});
-    $('token').value = j.token || '';
-    localStorage.setItem('wp_admin_token', $('token').value);
-    toast('Login ok ('+(j.role||'')+')');
-    setOut(j);
-    await loadMe();
-  }catch(e){
-    toast('Login Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
+  function authHeaders(){
+    const h = { "Content-Type":"application/json" };
+    const sa = ($("#sa").value||"").trim();
+    if (sa) h["X-SA-Password"]=sa;
+    if (state.token) h["Authorization"]="Bearer " + state.token;
+    return h;
   }
-}
-async function doRegister(){
-  const email = String($('regEmail').value||'').trim();
-  const password = String($('regPw').value||'').trim();
-  if(!email || !password) return toast('Email + Passwort');
-  try{
-    const j = await api('/api/ps/register', {body:{email,password}, noAuth:true});
-    toast('Registriert: '+(j.status||''));
-    setOut(j);
-  }catch(e){
-    toast('Register Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
-function doLogout(){
-  $('token').value='';
-  localStorage.removeItem('wp_admin_token');
-  state.me=null;
-  setAuthPills(false);
-  toast('Logout');
-}
-async function setStationPin(){
-  const p1=String($('stationPin1').value||'').trim();
-  const p2=String($('stationPin2').value||'').trim();
-  if(p1.length<4) return toast('PIN zu kurz');
-  if(p1!==p2) return toast('PIN stimmt nicht');
-  try{
-    const j = await api('/api/admin/set-station-pin', {body:{pin:p1}});
-    $('stationPin1').value=''; $('stationPin2').value='';
-    toast('Stations-PIN gesetzt');
-    setOut(j);
-    try{ await cfgLoad(); }catch(_e){}
-
-  }catch(e){
-    toast('PIN Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
-async function loadUsers(){
-  try{
-    const j = await api('/api/auth/admin/users/list', {body:{}});
-    setOut(j);
-    renderUsers(j.users||[]);
-  }catch(e){
-    toast('Users Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    $('usersHost').textContent='—';
-  }
-}
-function renderUsers(users){
-  if(!users.length){ $('usersHost').textContent='(keine)'; return; }
-  // nice table
-  const rows = users.map(u=>{
-    const actions = [];
-    if(can('users.write')){
-      if(u.status==='pending') actions.push(`<button class="good tiny" data-act="approve" data-id="${u.id}">Approve</button>`);
-      actions.push(`<button class="danger tiny" data-act="disable" data-id="${u.id}">Disable</button>`);
-      actions.push(`<button class="secondary tiny" data-act="role" data-id="${u.id}" data-email="${u.email}">Role</button>`);
-    }
-    return `<tr>
-      <td style="width:260px"><div><b>${escapeHtml(u.email)}</b></div><div class="muted" style="font-size:11px">${escapeHtml(u.id)}</div></td>
-      <td>${pill(u.status)}<div class="muted" style="font-size:11px;margin-top:6px">role: <b>${escapeHtml(u.role)}</b></div></td>
-      <td class="muted">${fmt(u.createdAt)}<br>${u.approvedAt?('approved: '+fmt(u.approvedAt)):'—'}</td>
-      <td style="width:260px"><div class="actions">${actions.join(' ')||'<span class="muted">—</span>'}</div></td>
-    </tr>`;
-  }).join('');
-  $('usersHost').innerHTML = `<table>
-    <thead><tr><th>User</th><th>Status</th><th>Zeiten</th><th>Aktionen</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-  $('usersHost').querySelectorAll('button[data-act]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const act=btn.dataset.act, id=btn.dataset.id;
-      try{
-        if(act==='approve'){
-          const j = await api('/api/auth/admin/users/approve', {body:{userId:id, approve:true}});
-          setOut(j); toast('approved'); await loadUsers();
-        }
-        if(act==='disable'){
-          const ok = confirm('User wirklich deaktivieren?'); if(!ok) return;
-          const j = await api('/api/auth/admin/users/approve', {body:{userId:id, approve:false}});
-          setOut(j); toast('disabled'); await loadUsers();
-        }
-        if(act==='role'){
-          const role = prompt('Neue Rolle (Admin/PS/SV/User):','admin');
-          if(!role) return;
-          const j = await api('/api/auth/admin/users/set-role', {body:{userId:id, role}});
-          setOut(j); toast('role gesetzt'); await loadUsers();
-        }
-      }catch(e){
-        toast('Aktion Fehler: '+e.message);
-        setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      }
+  async function api(path, body=null, method="POST"){
+    const base = apiBase();
+    if(!base){ toast("Set Worker URL"); throw new Error("no_worker_url"); }
+    const res = await fetch(base + path, {
+      method,
+      headers: authHeaders(),
+      body: body ? JSON.stringify(body) : (method==="POST" ? "{}" : undefined),
     });
-  });
-}
+    const j = await res.json().catch(()=>({ok:false,error:"bad_json"}));
+    if(!res.ok || j.ok===false) throw new Error(j.message||j.error||("HTTP "+res.status));
+    return j;
+  }
 
-async function loadRbacSnapshot(){
-  try{
-    const j = await api('/api/auth/admin/rbac/snapshot', {body:{}});
-    setOut(j);
-    state.rbac.catalog = j.catalog || [];
-    // roles from snapshot fallback
-    const roles = (j.roles && j.roles.length) ? j.roles : ['Admin','PS','SV','User'];
-    const sel=$('rbacRole');
-    if(!roles.length){
-      sel.innerHTML = `<option value="">(no roles found)</option>`;
-      sel.value = '';
-      state.rbac.role = '';
-      toast('No roles found in DB');
-      return;
+  function setActiveTab(name){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+    $("#tab-config").style.display = name==="config" ? "" : "none";
+    $("#tab-rbac").style.display   = name==="rbac" ? "" : "none";
+    $("#tab-users").style.display  = name==="users" ? "" : "none";
+    if(name==="rbac") { if(!$("#roleSelect").options.length) loadSnapshot().catch(()=>{}); }
+  }
+
+  function buildHoursGrid(selected){
+    const grid = $("#washerHoursGrid");
+    grid.innerHTML="";
+    for(let h=0; h<24; h++){
+      const id = "wh_"+h;
+      const lab = document.createElement("label");
+      lab.className="chip";
+      lab.style.justifyContent="center";
+      const cb = document.createElement("input");
+      cb.type="checkbox";
+      cb.id=id;
+      cb.checked = selected.includes(h);
+      cb.addEventListener("change", syncHoursText);
+      const sp = document.createElement("span");
+      sp.textContent = String(h).padStart(2,"0");
+      lab.appendChild(cb); lab.appendChild(sp);
+      grid.appendChild(lab);
     }
-    sel.innerHTML = roles.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-    sel.value = roles.includes(sel.value)?sel.value:roles[0];
-    state.rbac.role = sel.value;
-    await loadRbacRole();
-    toast('RBAC loaded');
-  }catch(e){
-    toast('RBAC Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
-async function loadRbacRole(){
-  const role = String($('rbacRole').value||'').trim();
-  if(!role) return;
-  state.rbac.role = role;
-  try{
-    const j = await api('/api/auth/admin/rbac/role/get', {body:{role}});
-    setOut(j);
-    state.rbac.current = new Set((j.perms||[]).filter(x=>x.allowed).map(x=>String(x.permKey)));
-    renderRbac(j.perms||[]);
-  }catch(e){
-    toast('Role Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
-function renderRbac(perms){
-  const groups = {};
-  for(const p of perms){
-    const g = p.permGroup || 'Sonstiges';
-    if(!groups[g]) groups[g]=[];
-    groups[g].push(p);
-  }
-  const html = Object.keys(groups).sort().map(g=>{
-    const items = groups[g].map(p=>{
-      const checked = state.rbac.current.has(p.permKey) ? 'checked' : '';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:8px">
-        <div>
-          <div><b>${escapeHtml(p.permLabel)}</b></div>
-          <div class="muted" style="font-size:11px">${escapeHtml(p.permKey)}</div>
-        </div>
-        <label style="margin:0;display:flex;align-items:center;gap:8px">
-          <input type="checkbox" data-perm="${escapeHtml(p.permKey)}" ${checked} style="width:18px;height:18px"/>
-          <span class="muted" style="font-size:11px">allowed</span>
-        </label>
-      </div>`;
-    }).join('');
-    return `<div style="margin-bottom:12px">
-      <h2 style="margin:0 0 8px 0">${escapeHtml(g)}</h2>
-      ${items}
-    </div>`;
-  }).join('');
-  $('rbacHost').innerHTML = html || '<div class="muted">—</div>';
-  $('rbacHost').querySelectorAll('input[type=checkbox][data-perm]').forEach(cb=>{
-    cb.addEventListener('change', ()=>{
-      const k=cb.dataset.perm;
-      if(cb.checked) state.rbac.current.add(k); else state.rbac.current.delete(k);
-    });
-  });
-}
-async function saveRbacRole(){
-  const role = String($('rbacRole').value||'').trim();
-  if(!role) return toast('Role fehlt');
-  if(!$('sa').value.trim() && !can('rbac.write')) return toast('Keine Berechtigung');
-  try{
-    const permKeys = Array.from(state.rbac.current.values()).sort();
-    const j = await api('/api/auth/admin/rbac/role/set', {body:{role, permKeys}});
-    setOut(j);
-    toast('Gespeichert');
-    await loadRbacSnapshot();
-  }catch(e){
-    toast('Save Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
-
-
-  function cfgSetForm(cfg){
-    const get=(k,def)=> (cfg && typeof cfg[k] !== "undefined") ? cfg[k] : def;
-    $("#cfgDaysPast").value = String(get("daysPast", 7));
-    $("#cfgDaysFuture").value = String(get("daysFuture", 6));
-    $("#cfgDryerMinutes").value = String(get("dryerMinutes", 150));
-
-    const hours = Array.isArray(get("washerHours", [6,8,10,12,14,16,18,20])) ? get("washerHours", []) : [];
-    setHoursUI(hours);
-    updateHoursPretty();
-
-    $("#cfgWhitecardEnabled").checked = !!get("whitecardEnabled", false);
-    $("#cfgPortalDebugEnabled").checked = !!get("portalDebugEnabled", false);
-    $("#cfgNewsEnabled").checked = !!get("newsEnabled", false);
-    $("#cfgChatEnabled").checked = !!get("chatEnabled", false);
-    $("#cfgWasherPopup").checked = !!get("washerPopup", false);
-    $("#cfgDryerPopup").checked = !!get("dryerPopup", false);
-    $("#cfgFeedbackPsEnabled").checked = !!get("feedbackPsEnabled", false);
-    $("#cfgFeedbackSvEnabled").checked = !!get("feedbackSvEnabled", false);
-    $("#cfgFeedbackAdminEnabled").checked = !!get("feedbackAdminEnabled", false);
-    $("#cfgNewsPsEnabled").checked = !!get("newsPsEnabled", false);
-    $("#cfgNewsSvEnabled").checked = !!get("newsSvEnabled", false);
-    $("#cfgNewsAdminEnabled").checked = !!get("newsAdminEnabled", false);
-
-    $("#cfgNewsText").value = String(get("newsText",""));
-    syncFormToRaw();
-  }
-  function cfgGetForm(){
-    const n=(id,def)=> {
-      const v = Number($("#"+id).value);
-      return Number.isFinite(v) ? v : def;
-    };
-    return {
-      daysPast: n("cfgDaysPast", 7),
-      daysFuture: n("cfgDaysFuture", 6),
-      dryerMinutes: n("cfgDryerMinutes", 150),
-      washerHours: getHoursFromUI(),
-
-      newsEnabled: $("#cfgNewsEnabled").checked,
-      newsText: String($("#cfgNewsText").value||""),
-      chatEnabled: $("#cfgChatEnabled").checked,
-
-      whitecardEnabled: $("#cfgWhitecardEnabled").checked,
-      portalDebugEnabled: $("#cfgPortalDebugEnabled").checked,
-      washerPopup: $("#cfgWasherPopup").checked,
-      dryerPopup: $("#cfgDryerPopup").checked
-    };
-  }
-  function cfgMergeRawWithForm(){
-    let raw = {};
-    try { raw = JSON.parse($("#cfgRaw").value || "{}"); } catch {}
-    const form = cfgGetForm();
-    const merged = { ...raw, ...form };
-    $("#cfgRaw").value = JSON.stringify(merged, null, 2);
-    return merged;
-  }
-  function initHoursGrid(){
-    const host = $("#cfgWasherHoursGrid");
-    if(!host || host.dataset.ready==="1") return;
-    host.dataset.ready="1";
-    host.innerHTML="";
-    for(let h=0; h<=23; h++){
-      const box=document.createElement("label");
-      box.className="hourbox";
-      box.innerHTML = `<input type="checkbox" data-hour="${h}"><span>${String(h).padStart(2,"0")}:00</span>`;
-      host.appendChild(box);
-    }
-    $("#cfgHoursStd")?.addEventListener("click", (e)=>{ e.preventDefault(); setHoursUI([6,8,10,12,14,16,18,20]); });
-    $("#cfgHoursClear")?.addEventListener("click", (e)=>{ e.preventDefault(); setHoursUI([]); });
-    host.addEventListener("change", ()=>{ syncHoursToText();
-    updateHoursPretty(); syncFormToRaw(); });
-    $("#cfgWasherHoursText")?.addEventListener("input", ()=>{ syncTextToHours(); syncFormToRaw(); });
-  }
-
-  function parseHoursText(){
-    const txt = String($("#cfgWasherHoursText")?.value||"").trim();
-    if(!txt) return [];
-    const parts = txt.split(/[,;\s]+/).map(s=>s.trim()).filter(Boolean);
-    const out=[];
-    for(const p of parts){
-      const n=Number(p);
-      if(Number.isFinite(n) && n>=0 && n<=23) out.push(Math.trunc(n));
-    }
-    return Array.from(new Set(out)).sort((a,b)=>a-b);
-  }
-  function setHoursUI(hours){
-    initHoursGrid();
-    const set = new Set((hours||[]).map(n=>Number(n)));
-    // checkboxes
-    $("#cfgWasherHoursGrid")?.querySelectorAll("input[data-hour]")?.forEach(cb=>{
-      const h=Number(cb.dataset.hour);
-      cb.checked = set.has(h);
-    });
-    // text
-    $("#cfgWasherHoursText").value = (Array.from(set).sort((a,b)=>a-b)).join(",");
-    syncFormToRaw();
+    syncHoursText();
   }
   function getHoursFromUI(){
-    initHoursGrid();
-    const set=[];
-    $("#cfgWasherHoursGrid")?.querySelectorAll("input[data-hour]")?.forEach(cb=>{
-      if(cb.checked) set.push(Number(cb.dataset.hour));
-    });
-    return set.sort((a,b)=>a-b);
-  }
-
-  function updateHoursPretty(){
-    const hours = getHoursFromUI();
-    const el = $("#cfgHoursText");
-    if(!el) return;
-    if(!hours.length){ el.textContent = "Aktiv: –"; return; }
-    el.textContent = "Aktiv: " + hours.map(h=>String(h).padStart(2,"0")+":00").join(", ");
-  }
-function syncHoursToText(){
-    $("#cfgWasherHoursText").value = getHoursFromUI().join(",");
-    updateHoursPretty();
-  }
-  function syncTextToHours(){
-    const hours = parseHoursText();
-    const set = new Set(hours);
-    $("#cfgWasherHoursGrid")?.querySelectorAll("input[data-hour]")?.forEach(cb=>{
-      cb.checked = set.has(Number(cb.dataset.hour));
-    });
-  }
-
-  function syncFormToRaw(){
-    // merge form over raw
-    cfgMergeRawWithForm();
-    // disable newsText when news disabled (UX)
-    const en=$("#cfgNewsEnabled")?.checked;
-    const nt=$("#cfgNewsText");
-    if(nt){ nt.disabled = !en; nt.style.opacity = en ? "1" : ".6"; }
-  }
-
-  function cfgFormBind(){
-    initHoursGrid();
-    const ids=[
-      "cfgDaysPast","cfgDaysFuture","cfgDryerMinutes",
-      "cfgWhitecardEnabled","cfgPortalDebugEnabled","cfgNewsEnabled","cfgChatEnabled","cfgWasherPopup","cfgDryerPopup","cfgFeedbackPsEnabled","cfgFeedbackSvEnabled","cfgFeedbackAdminEnabled","cfgNewsPsEnabled","cfgNewsSvEnabled","cfgNewsAdminEnabled",
-      "cfgNewsText"
-    ];
-    for (const id of ids){
-      const el=$("#"+id);
-      if(!el) continue;
-      el.addEventListener("input", ()=>syncFormToRaw());
-      el.addEventListener("change", ()=>syncFormToRaw());
+    const out=[];
+    for(let h=0; h<24; h++){
+      const cb = $("#wh_"+h);
+      if(cb && cb.checked) out.push(h);
     }
-    $("#cfgRaw").addEventListener("input", ()=>{
-      try{ const cfg=JSON.parse($("#cfgRaw").value||"{}"); cfgSetForm(cfg); } catch {}
+    out.sort((a,b)=>a-b);
+    return out;
+  }
+  function syncHoursText(){
+    const hrs = getHoursFromUI();
+    $("#washerHoursText").textContent = hrs.length ? ("Aktiv: " + hrs.map(h=>String(h).padStart(2,"0")+":00").join(", ")) : "Aktiv: —";
+  }
+
+  async function refreshConfig(){
+    $("#cfgStatus").textContent="Loading...";
+    const j = await api("/api/auth/admin/config/get", {});
+    state.config = j.config || {};
+    const cfg = state.config;
+
+    $("#dryerSlotMinutes").value = Number(cfg.dryerSlotMinutes || 60);
+    $("#daysFuture").value = Number(cfg.daysFuture || 14);
+    $("#retentionDays").value = Number(cfg.retentionDays || 30);
+    $("#newsEnabled").checked = String(cfg.newsEnabled||"false")==="true";
+    $("#feedbackEnabled").checked = String(cfg.feedbackEnabled||"false")==="true";
+    $("#allowOverbook").checked = String(cfg.allowOverbook||"false")==="true";
+    $("#userCanReportDefect").checked = String(cfg.userCanReportDefect||"true")==="true";
+    $("#showWasherPopup").checked = String(cfg.showWasherPopup||"false")==="true";
+    $("#showDryerPopup").checked = String(cfg.showDryerPopup||"false")==="true";
+    $("#washerPopupImageUrl").value = cfg.washerPopupImageUrl || "";
+    $("#dryerPopupImageUrl").value = cfg.dryerPopupImageUrl || "";
+    $("#newsText").value = cfg.newsText || "";
+
+    const hours = String(cfg.washerHours||"6,8,10,12,14,16,18,20,22").split(/[,;\s]+/).map(x=>Number(x)).filter(n=>Number.isFinite(n)&&n>=0&&n<=23);
+    const uniq = Array.from(new Set(hours)).sort((a,b)=>a-b);
+    buildHoursGrid(uniq);
+
+    const cur = (cfg.stationPinPlain && String(cfg.stationPinPlain).trim()) ? String(cfg.stationPinPlain) : (cfg.stationPinHash ? "gesetzt (nicht auslesbar)" : "—");
+    $("#stationPinCurrent").textContent = cur;
+
+    $("#cfgRaw").value = JSON.stringify(cfg, null, 2);
+    $("#cfgStatus").textContent="OK";
+  }
+
+  function collectConfig(){
+    // start from raw if valid
+    let cfg = {};
+    try { cfg = JSON.parse($("#cfgRaw").value || "{}"); } catch { cfg = {}; }
+    cfg.dryerSlotMinutes = String(Number($("#dryerSlotMinutes").value||60));
+    cfg.daysFuture = String(Number($("#daysFuture").value||14));
+    cfg.retentionDays = String(Number($("#retentionDays").value||30));
+    cfg.newsEnabled = $("#newsEnabled").checked ? "true" : "false";
+    cfg.feedbackEnabled = $("#feedbackEnabled").checked ? "true" : "false";
+    cfg.allowOverbook = $("#allowOverbook").checked ? "true" : "false";
+    cfg.userCanReportDefect = $("#userCanReportDefect").checked ? "true" : "false";
+    cfg.showWasherPopup = $("#showWasherPopup").checked ? "true" : "false";
+    cfg.showDryerPopup = $("#showDryerPopup").checked ? "true" : "false";
+    cfg.washerPopupImageUrl = ($("#washerPopupImageUrl").value||"").trim();
+    cfg.dryerPopupImageUrl = ($("#dryerPopupImageUrl").value||"").trim();
+    cfg.newsText = $("#newsText").value || "";
+    cfg.washerHours = getHoursFromUI().join(",");
+    const sp = ($("#stationPinPlain").value||"").trim();
+    if(sp) cfg.stationPinPlain = sp;
+    return cfg;
+  }
+
+  async function saveConfig(){
+    $("#cfgStatus").textContent="Saving...";
+    const cfg = collectConfig();
+    await api("/api/auth/admin/config/set", { config: cfg });
+    $("#stationPinPlain").value="";
+    $("#cfgStatus").textContent="Saved";
+    await refreshConfig();
+  }
+
+  async function loadSnapshot(){
+    $("#rbacStatus").textContent="Loading...";
+    const j = await api("/api/auth/admin/rbac/snapshot", {});
+    const roles = (j.roles||[]).filter(Boolean);
+    const sel = $("#roleSelect");
+    sel.innerHTML="";
+    roles.forEach(r=>{
+      const o=document.createElement("option"); o.value=r; o.textContent=r;
+      sel.appendChild(o);
     });
-    syncFormToRaw();
+    $("#rbacStatus").textContent = roles.length ? "OK" : "(no roles found)";
   }
 
-async function cfgLoad(){
-  try{
-    const j = await api('/api/auth/admin/config/get', {body:{}});
-    setOut(j);
-    $('cfgRaw').value = JSON.stringify(j.config||{}, null, 2);
-    cfgSetForm(j.config||{});
-    try{
-      const pin = (j.config||{}).stationPinPlain;
-      const el=$('#pinCurrent');
-      if(el) el.textContent = pin ? String(pin) : '–';
-    }catch(_e){}
-    toast('Config geladen');
-  }catch(e){
-    toast('Config Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
-async function cfgSave(){
-  try{
-    const raw = $('cfgRaw').value || "{}";
-    const cfg = JSON.parse(raw);
-    const j = await api('/api/auth/admin/config/set', {body:{config:cfg}});
-    setOut(j);
-    $('cfgRaw').value = JSON.stringify(j.config||{}, null, 2);
-    toast('Config gespeichert');
-  }catch(e){
-    toast('Save Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
+  const ALL_PERMS = [
+    "config.read","config.write",
+    "rbac.read","rbac.write",
+    "users.read","users.write",
+    "machine.lock"
+  ];
 
-async function loadBookings(){
-  try{
-    const machine = String($('bkMachine').value||'').trim();
-    const status = String($('bkStatus').value||'').trim();
-    const j = await api('/api/auth/admin/bookings/list', {body:{machine,status}});
-    setOut(j);
-    renderBookings(j.bookings||[]);
-    toast('Bookings: '+(j.bookings||[]).length);
-  }catch(e){
-    toast('Bookings Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    $('bkHost').innerHTML='<div class="muted">—</div>';
+  async function loadRole(){
+    if(!$("#roleSelect").value){ await loadSnapshot(); }
+    const role = $("#roleSelect").value;
+    if(!role){ toast("No roles in DB"); return; }
+    $("#rbacStatus").textContent="Loading role...";
+    const j = await api("/api/auth/admin/rbac/role/get", { role });
+    const allowed = new Set((j.perms||[]).filter(p=>p.allowed).map(p=>p.perm));
+    const wrap = $("#permList");
+    wrap.innerHTML="";
+    ALL_PERMS.forEach(p=>{
+      const lab=document.createElement("label");
+      lab.className="chip";
+      const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=allowed.has(p);
+      cb.dataset.perm=p;
+      const sp=document.createElement("span"); sp.textContent=p;
+      lab.appendChild(cb); lab.appendChild(sp);
+      wrap.appendChild(lab);
+    });
+    $("#rbacStatus").textContent="OK";
   }
-}
-function renderBookings(items){
-  if(!items.length){ $('bkHost').innerHTML='<div class="muted">Keine Buchungen</div>'; return; }
-  const canCancel = can('bookings.delete');
-  const rows = items.map(b=>{
-    const btn = canCancel ? `<button class="danger tiny" data-id="${b.id}">Cancel</button>` : `<span class="muted">—</span>`;
-    return `<tr>
-      <td><b>${escapeHtml(b.id)}</b><div class="muted" style="font-size:11px">${escapeHtml(b.type)} · machine ${b.machine} · room ${escapeHtml(b.room)}</div></td>
-      <td>${pill(b.status)} ${b.whitecard?`<span class="pill ok">whitecard</span>`:''}</td>
-      <td class="muted">${fmt(b.start)} → ${fmt(b.end)}<br>created: ${fmt(b.createdAt)}</td>
-      <td style="width:140px"><div class="actions">${btn}</div></td>
-    </tr>`;
-  }).join('');
-  $('bkHost').innerHTML = `<table>
-    <thead><tr><th>Booking</th><th>Status</th><th>Zeit</th><th>Aktion</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-  $('bkHost').querySelectorAll('button[data-id]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const id=btn.dataset.id;
-      const reason = prompt('Storno-Grund (optional):','') || '';
+
+  async function saveRole(){
+    const role = $("#roleSelect").value;
+    if(!role){ toast("Select role"); return; }
+    const perms=[];
+    document.querySelectorAll("#permList input[type=checkbox]").forEach(cb=>{
+      perms.push({ perm: cb.dataset.perm, allowed: cb.checked });
+    });
+    $("#rbacStatus").textContent="Saving...";
+    await api("/api/auth/admin/rbac/role/set", { role, perms });
+    $("#rbacStatus").textContent="Saved";
+  }
+
+  async function refreshUsers(){
+    $("#usersStatus").textContent="Loading...";
+    const j = await api("/api/auth/admin/users/list", {});
+    const list = $("#usersList"); list.innerHTML="";
+    (j.users||[]).forEach(u=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML = `
+        <div><b>${u.email}</b> <span class="muted">(${u.role||"—"})</span></div>
+        <div class="muted">${u.displayName||""}</div>
+        <div class="row" style="margin-top:8px">
+          <span class="muted">Active: ${u.isActive? "yes":"no"}</span>
+          <button class="secondary" data-approve="${u.id}">Approve</button>
+          <select data-role="${u.id}">
+            ${(j.roles||[]).map(r=>`<option value="${r}">${r}</option>`).join("")}
+          </select>
+          <button class="secondary" data-setrole="${u.id}">Set role</button>
+        </div>
+      `;
+      list.appendChild(div);
+      const sel = div.querySelector(`select[data-role="${u.id}"]`);
+      if(sel) sel.value = u.role || "";
+    });
+    list.querySelectorAll("button[data-approve]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        await api("/api/auth/admin/users/approve",{id:btn.dataset.approve});
+        toast("Approved");
+        refreshUsers();
+      });
+    });
+    list.querySelectorAll("button[data-setrole]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.dataset.setrole;
+        const sel = list.querySelector(`select[data-role="${id}"]`);
+        await api("/api/auth/admin/users/set-role",{id, role: sel.value});
+        toast("Role set");
+        refreshUsers();
+      });
+    });
+    $("#usersStatus").textContent="OK";
+  }
+
+  async function login(){
+    const email = ($("#email").value||"").trim();
+    const password = ($("#password").value||"").trim();
+    const j = await api("/api/ps/login", { email, password });
+    state.token = j.token;
+    LS.set("admin_token", state.token);
+    $("#meOut").textContent = (j.user && (j.user.role||"")) ? ("Logged in as " + j.user.role) : "Logged in";
+    await refreshConfig();
+  }
+
+  async function me(){
+    const base = apiBase();
+    if(!base){ toast("Set Worker URL"); return; }
+    const res = await fetch(base + "/api/auth/me", { headers: authHeaders() });
+    const j = await res.json();
+    $("#meOut").textContent = j.ok ? ("Me: " + ((j.user && j.user.role)||"")) : "unauthorized";
+  }
+
+  function loadConn(){
+    $("#workerUrl").value = LS.get("worker_url","");
+    $("#sa").value = LS.get("sa_pw","");
+    state.token = LS.get("admin_token","");
+    $("#connStatus").textContent = state.token ? "token loaded" : "";
+  }
+  function saveConn(){
+    LS.set("worker_url", ($("#workerUrl").value||"").trim());
+    LS.set("sa_pw", ($("#sa").value||"").trim());
+    toast("Saved");
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    loadConn();
+    document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>setActiveTab(t.dataset.tab)));
+    $("#saveConn").addEventListener("click", saveConn);
+    $("#loginBtn").addEventListener("click", ()=>login().catch(e=>toast(e.message)));
+    $("#meBtn").addEventListener("click", ()=>me().catch(e=>toast(e.message)));
+
+    $("#cfgRefresh").addEventListener("click", ()=>refreshConfig().catch(e=>toast(e.message)));
+    $("#cfgSave").addEventListener("click", ()=>saveConfig().catch(e=>toast(e.message)));
+
+    $("#rbacSnapshot").addEventListener("click", ()=>loadSnapshot().catch(e=>toast(e.message)));
+    $("#rbacLoad").addEventListener("click", ()=>loadRole().catch(e=>toast(e.message)));
+    $("#rbacSave").addEventListener("click", ()=>saveRole().catch(e=>toast(e.message)));
+
+    $("#usersRefresh").addEventListener("click", async ()=>{
       try{
-        const j = await api('/api/auth/admin/bookings/cancel', {body:{bookingId:id, reason}});
-        setOut(j); toast('storniert'); await loadBookings();
-      }catch(e){
-        toast('Cancel Fehler: '+e.message);
-        setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-      }
+        // roles list for set-role dropdown from snapshot (DB only)
+        const snap = await api("/api/auth/admin/rbac/snapshot", {});
+        const j = await api("/api/auth/admin/users/list", {});
+        j.roles = snap.roles || [];
+        // reuse refreshUsers rendering using j? keep simple:
+        await refreshUsers();
+      } catch(e){ toast(e.message); }
     });
+
+    // try auto config if token present
+    if(state.token){ refreshConfig().catch(()=>{}); }
+    buildHoursGrid([6,8,10,12,14,16,18,20,22]);
   });
-}
-async function downloadCsv(path, body, filename){
-  const res = await fetch(base()+path, {method:'POST', headers: headers(true), body: JSON.stringify(body||{})});
-  if(!res.ok){
-    const j = await res.json().catch(()=>({}));
-    throw new Error(j.message || j.error || ('HTTP '+res.status));
-  }
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
-async function downloadBookingsCsv(){
-  const machine = String($('bkMachine').value||'').trim();
-  try{
-    await downloadCsv('/api/auth/admin/bookings/export', {machine}, `bookings_${machine||'all'}.csv`);
-    toast('CSV geladen');
-  }catch(e){ toast('CSV Fehler: '+e.message); }
-}
-
-async function loadLogs(){
-  try{
-    const q = String($('logQ').value||'').trim();
-    const j = await api('/api/auth/admin/logs/list', {body:{q, limit:200}});
-    setOut(j);
-    renderLogs(j.logs||[]);
-    toast('Logs: '+(j.logs||[]).length);
-  }catch(e){
-    toast('Logs Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    $('logsHost').innerHTML='<div class="muted">—</div>';
-  }
-}
-function renderLogs(items){
-  if(!items.length){ $('logsHost').innerHTML='<div class="muted">Keine Logs</div>'; return; }
-  const rows = items.map(l=>{
-    return `<tr>
-      <td style="width:190px" class="muted">${fmt(l.ts)}</td>
-      <td><b>${escapeHtml(l.action)}</b><div class="muted" style="font-size:11px">actor: ${escapeHtml(l.actor)} · room: ${escapeHtml(l.room)}</div></td>
-      <td><div class="mono" style="max-height:120px">${escapeHtml(JSON.stringify(l.meta||{}, null, 0))}</div></td>
-    </tr>`;
-  }).join('');
-  $('logsHost').innerHTML = `<table>
-    <thead><tr><th>Zeit</th><th>Event</th><th>Meta</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-}
-async function downloadLogsCsv(){
-  const q = String($('logQ').value||'').trim();
-  try{
-    await downloadCsv('/api/auth/admin/logs/export', {q}, `logs.csv`);
-    toast('CSV geladen');
-  }catch(e){ toast('CSV Fehler: '+e.message); }
-}
-
-async function roomsRefresh(){
-  try{
-    const j = await api('/api/auth/room/control/list', {body:{}});
-    setOut(j);
-    $('roomsHost').textContent = JSON.stringify(j.rooms||[], null, 2);
-  }catch(e){
-    toast('Rooms Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-    $('roomsHost').textContent='—';
-  }
-}
-async function roomSet(blocked){
-  const room = String($('roomId').value||'').trim();
-  const message = String($('roomMsg').value||'').trim();
-  if(!room) return toast('Zimmer fehlt');
-  try{
-    const j = await api('/api/auth/room/control', {body:{room, blocked, message}});
-    setOut(j);
-    toast(blocked?'gesperrt':'entsperrt');
-    await roomsRefresh();
-  }catch(e){
-    toast('Room Fehler: '+e.message);
-    setOut({error:true,status:e.status,url:e.url,payload:e.payload});
-  }
-}
-
-function fmt(ms){
-  const n=Number(ms||0); if(!n) return '—';
-  return new Date(n).toLocaleString();
-}
-function escapeHtml(s){
-  return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-}
-function pill(status){
-  const s=String(status||'');
-  const cls = s==='active' || s==='approved' || s==='booked' ? 'ok' : (s==='pending' ? '' : 'bad');
-  return `<span class="pill ${cls}">${escapeHtml(s||'-')}</span>`;
-}
-
-function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
-  const views = {
-    dash:'viewDash', users:'viewUsers', rbac:'viewRbac', config:'viewConfig', bookings:'viewBookings', logs:'viewLogs', rooms:'viewRooms'
-  };
-  Object.entries(views).forEach(([k,id])=>$(id).style.display = (k===name)?'':'none');
-}
-
-// Wire
-window.addEventListener('DOMContentLoaded', ()=>{
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
-
-$('btnLogin').addEventListener('click', doLogin);
-$('btnRegister').addEventListener('click', doRegister);
-$('btnLogout').addEventListener('click', doLogout);
-
-$('btnMe').addEventListener('click', loadMe);
-$('btnMeSa').addEventListener('click', loadMe);
-$('btnMeToken').addEventListener('click', loadMe);
-
-$('btnStationPin').addEventListener('click', setStationPin);
-$('btnRoutes').addEventListener('click', async ()=>{ try{ setOut(await api('/api/_routes',{method:'GET'})); toast('routes'); }catch(e){ toast(e.message); }});
-$('btnStatus').addEventListener('click', async ()=>{ try{ setOut(await api('/api/_status',{method:'GET'})); toast('status'); }catch(e){ toast(e.message); }});
-
-$('btnLoadUsers').addEventListener('click', ()=>{ switchTab('users'); loadUsers(); });
-$('btnUsersRefresh').addEventListener('click', loadUsers);
-
-$('btnLoadRbac').addEventListener('click', ()=>{ switchTab('rbac'); loadRbacSnapshot(); });
-$('btnRbacLoadRole').addEventListener('click', async ()=>{
-  if(!String($('rbacRole').value||'').trim()){
-    await loadRbacSnapshot();
-    return;
-  }
-  await loadRbacRole();
-});
-$('btnRbacSave').addEventListener('click', saveRbacRole);
-
-$('btnCfgLoad').addEventListener('click', ()=>{ switchTab('config'); cfgLoad(); });
-$('btnCfgRefresh').addEventListener('click', cfgLoad);
-$('btnCfgSave').addEventListener('click', cfgSave);
-
-$('btnBkLoad').addEventListener('click', ()=>{ switchTab('bookings'); loadBookings(); });
-$('btnBkRefresh').addEventListener('click', loadBookings);
-$('btnBkCsv').addEventListener('click', downloadBookingsCsv);
-
-$('btnLogsLoad').addEventListener('click', ()=>{ switchTab('logs'); loadLogs(); });
-$('btnLogsRefresh').addEventListener('click', loadLogs);
-$('btnLogsCsv').addEventListener('click', downloadLogsCsv);
-
-$('btnRoomsRefresh').addEventListener('click', roomsRefresh);
-$('btnRoomBlock').addEventListener('click', ()=>roomSet(true));
-$('btnRoomUnblock').addEventListener('click', ()=>roomSet(false));
-
-// Init
-try{ cfgFormBind(); }catch(e){ console.warn(e); }
-
-// Restore
-(function boot(){
-  $('token').value = localStorage.getItem('wp_admin_token') || '';
-  const prev = localStorage.getItem('wp_admin_base') || '';
-  if(prev) $('baseUrl').value = prev;
-  $('baseUrl').addEventListener('change', ()=>localStorage.setItem('wp_admin_base', $('baseUrl').value.trim()));
-})()});
-;
 </script>
 </body>
 </html>
