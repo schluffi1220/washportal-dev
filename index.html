@@ -147,6 +147,27 @@
   </div>
 
 <script>
+// ---- Zeit/Format-Helpers (global) ----
+function pad2(n){ return String(n).padStart(2,"0"); }
+function fmtHM(ts){
+  const d=new Date(Number(ts));
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function fmtDate(dayTs){
+  const d=new Date(Number(dayTs));
+  return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}`;
+}
+function fmtDateTime(ts){
+  const d=new Date(Number(ts));
+  return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function startOfDay(ts){
+  const d = new Date(Number(ts||Date.now()));
+  d.setHours(0,0,0,0);
+  return d.getTime();
+}
+
+
   const API = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const $ = (id) => document.getElementById(id);
 
@@ -215,7 +236,7 @@
       const endTs = ts + 3600000;
       // Nur laufende oder zukünftige Slots anzeigen
       if(endTs <= now) continue;
-      const label = `${fmtDate(day)} ${fmtHM(ts)}–${fmtHM(endTs)}`;
+      const label = `${window.fmtDate(day)} ${window.fmtHM(ts)}–${window.fmtHM(endTs)}`;
       out.push({ ts, endTs, label });
     }
   }
@@ -466,6 +487,94 @@ function fmtHM(ts){
   return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
 }
 
+function updateGlobalBookPanel(state){
+  const panel = document.getElementById("globalBookPanel");
+  if(!panel) return;
+
+  const cfg = state?.config || {};
+  const kindSel = document.getElementById("gbKind");
+  const machSel = document.getElementById("gbMachine");
+  const slotSel = document.getElementById("gbSlot");
+  const minSel = document.getElementById("gbMinutes");
+  const wc = document.getElementById("gbWhitecard");
+  const btn = document.getElementById("gbBookBtn");
+
+  // Weißkarte nur wenn enabled
+  const wcEnabled = !!cfg.whitecardEnabled;
+  wc.disabled = !wcEnabled;
+  if(!wcEnabled) wc.checked = false;
+
+  const kind = kindSel.value;
+
+  // Machines list
+  machSel.innerHTML = "";
+  const machines = (state?.machines||[]).filter(x => String(x.kind)===String(kind));
+  for(const m of machines){
+    const o=document.createElement("option");
+    o.value = String(m.machineId);
+    o.textContent = `${kind==="dryer"?"T":"W"}${m.label||m.machineId}`;
+    if(!m.enabled) o.textContent += " (defekt)";
+    machSel.appendChild(o);
+  }
+
+  // Slots
+  slotSel.innerHTML = "";
+  if(kind === "dryer"){
+    // Trockner: Start sofort
+    const o=document.createElement("option");
+    o.value = String(Date.now());
+    o.textContent = `Sofort (${fmtDateTime(Date.now())})`;
+    slotSel.appendChild(o);
+    minSel.value = String(cfg.dryerMinutes || 150);
+  } else {
+    const slots = buildWasherSlots(cfg);
+    for(const s of slots){
+      const o=document.createElement("option");
+      o.value = String(s.ts);
+      o.textContent = s.label;
+      slotSel.appendChild(o);
+    }
+    if(!slotSel.value && slots.length) slotSel.value = String(slots[0].ts);
+  }
+
+  // Hook change to rebuild
+  if(!kindSel._hooked){
+    kindSel._hooked = true;
+    kindSel.addEventListener("change", ()=>updateGlobalBookPanel(window.__STATE__));
+  }
+
+  if(!btn._hooked){
+    btn._hooked = true;
+    btn.addEventListener("click", async ()=>{
+      const kind = kindSel.value;
+      const machineId = machSel.value;
+      const startAt = Number(slotSel.value||0);
+      const minutes = Number(minSel.value||60);
+      const whitecard = !!wc.checked;
+
+      if(!machineId) return toast("⛔ Maschine fehlt");
+      if(kind==="washer" && !startAt) return toast("⛔ Slot fehlt");
+
+      const payload = { room, pin, stationPin, machineId, minutes, whitecard };
+      if(kind==="washer") payload.startAt = startAt;
+      if(kind==="dryer") payload.startAt = startAt;
+
+      // überbuchen nur wenn Slot opt. WEISSKARTE markiert (Portal markiert das in Slot-Auswahl)
+      const selOpt = slotSel?.options?.[slotSel.selectedIndex];
+      if(selOpt && selOpt.dataset && selOpt.dataset.whitecard==="1"){
+        const ok = confirm("Dieser Slot ist mit Weißkarte freigegeben. Überbuchen?");
+        if(!ok) return;
+        payload.overbook = true;
+      }
+
+      const url = kind==="dryer" ? "/api/dryer/book" : "/api/washer/book";
+      await jpost(url, payload);
+      toast("✅ Gebucht", 1200);
+      await refreshAll();
+    });
+  }
+}
+
 async function refreshAll(){
 
     showErr("");
@@ -483,6 +592,8 @@ async function refreshAll(){
       const state = await jpost("/api/user/refresh",{ room, pin, stationPin });
       $("workerBuild").textContent = state.build || "-";
       renderMachines(state);
+      updateGlobalBookPanel(state);
+
       renderMyBookings(state);
     }catch(e){
       showErr("⛔ " + e.message);
