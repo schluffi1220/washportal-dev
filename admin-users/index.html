@@ -527,7 +527,7 @@ function renderUsers(users){
   });
 }
 
-async async function loadRbacSnapshot(){
+async function loadRbacSnapshot(){
   try{
     const j = await api('/api/auth/admin/rbac/snapshot', {body:{}});
     setOut(j);
