@@ -936,6 +936,7 @@ function switchTab(name){
 }
 
 // Wire
+window.addEventListener('DOMContentLoaded', ()=>{
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
 
 $('btnLogin').addEventListener('click', doLogin);
@@ -979,7 +980,8 @@ $('btnRoomUnblock').addEventListener('click', ()=>roomSet(false));
   const prev = localStorage.getItem('wp_admin_base') || '';
   if(prev) $('baseUrl').value = prev;
   $('baseUrl').addEventListener('change', ()=>localStorage.setItem('wp_admin_base', $('baseUrl').value.trim()));
-})();
+})()});
+;
 </script>
 </body>
 </html>
