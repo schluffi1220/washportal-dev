@@ -184,6 +184,21 @@ function startOfDay(ts){
     el.textContent = msg || "";
   }
 
+
+function showToast(msg){
+  try{
+    const el = document.getElementById("toast");
+    if(!el) return;
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+    if(msg){
+      clearTimeout(window.__toastT);
+      window.__toastT = setTimeout(()=>{ el.style.display="none"; }, 1800);
+    }
+  }catch{}
+}
+
+
   function fmtDT(ts){
     const d = new Date(Number(ts));
     if (isNaN(d.getTime())) return "—";
@@ -561,7 +576,7 @@ function updateGlobalBookPanel(state){
   }
 }
 
-async function refreshAll(){
+async async function refreshAll(){
 
     showErr("");
     saveCreds();
@@ -593,5 +608,6 @@ async function refreshAll(){
   loadCreds();
   refreshAll();
 >
+<div id="toast" style="display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,.18);font-weight:700;z-index:9999"></div>
 </body>
 </html>
