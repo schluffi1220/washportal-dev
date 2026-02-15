@@ -69,6 +69,7 @@
     .mcard.state-free{border-color: rgba(45,212,191,.28); background: rgba(45,212,191,.08); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
     .mcard.state-busy{border-color: rgba(96,165,250,.30); background: rgba(96,165,250,.08); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
     .mcard.state-whitecard{border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.12);}
+    .mcard.state-defect{border-color: rgba(248,113,113,.55); background: rgba(248,113,113,.14);}
 
 
     .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
@@ -288,7 +289,7 @@
       const free = !cur || (cur.status!=="booked" && cur.status!=="active") || Date.now() >= Number(cur.endAt||0);
 
       const card = document.createElement("div");
-      card.className = "mcard " + (free ? "state-free" : "state-busy") + ((active && (active.whitecard || active.whiteCard)) ? " state-whitecard" : "");
+      card.className = "mcard " + (free ? "state-free" : "state-busy");
 
       const head = document.createElement("div");
       head.className = "mhead";
