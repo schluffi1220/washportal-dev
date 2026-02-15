@@ -329,6 +329,10 @@
             opt.disabled = true;
             const until = new Date(occ.endAt).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
             opt.textContent = `${s.label} (belegt: Zimmer ${occ.room} bis ${until})`;
+        if(occ && occ.whitecard){
+          opt.dataset.whitecard="1";
+          opt.textContent = opt.textContent + " • WEISSKARTE";
+        }
           }else{
             opt.disabled = false;
             opt.textContent = s.label;
