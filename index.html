@@ -600,14 +600,13 @@ async async function refreshAll(){
       showErr("⛔ " + e.message);
     }
   }
-  }
 
     const _sb = $("saveBtn"); if(_sb) _sb.onclick = ()=>{ saveCreds(); showErr(""); };
   const _rb = $("refreshBtn"); if(_rb) _rb.onclick = refreshAll;
 
   loadCreds();
   refreshAll();
->
+</script>
 <div id="toast" style="display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,.18);font-weight:700;z-index:9999"></div>
 </body>
 </html>
