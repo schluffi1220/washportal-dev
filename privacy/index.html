@@ -2,110 +2,135 @@
 <html lang="de">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Privacy – Washportal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Datenschutz</title>
 <style>
-  :root{
-    color-scheme:dark;
-    --bg:#070b12;
-    --card:rgba(255,255,255,.035);
-    --line:rgba(255,255,255,.10);
-    --txt:#e7eefc;
-    --muted:rgba(231,238,252,.68);
-    --accent:#5aa7ff;
-    --shadow:0 12px 40px rgba(0,0,0,.35);
-    --r:16px;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:radial-gradient(1200px 700px at 10% -10%, rgba(90,167,255,.18), transparent 60%),var(--bg);color:var(--txt)}
-  .wrap{max-width:900px;margin:0 auto;padding:14px}
-  header{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .brand{display:flex;gap:10px;align-items:center}
-  .logo{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg, rgba(90,167,255,.95), rgba(66,211,146,.8));box-shadow:var(--shadow)}
-  h1{font-size:14px;margin:0;font-weight:900;letter-spacing:.4px}
-  .sub{font-size:11px;color:var(--muted);margin-top:1px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
-  .card .bd{padding:12px}
-  label{display:block;font-size:11px;color:var(--muted);margin:0 0 6px 2px}
-  input,button{width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:var(--txt);padding:10px 11px;font-size:13px}
-  button{cursor:pointer;background:linear-gradient(180deg, rgba(90,167,255,.25), rgba(90,167,255,.10));border-color:rgba(90,167,255,.35)}
-  .mono{margin-top:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.22);border-radius:14px;padding:10px;border:1px solid rgba(255,255,255,.10)}
+  :root{--bg:#070b14;--card:#121a2b;--muted:#93a4c7;--text:#e8eefc;--acc:#6aa7ff;}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#050912,#0b1220);color:var(--text)}
+  header{position:sticky;top:0;background:rgba(5,9,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08);padding:12px 14px}
+  .wrap{max-width:900px;margin:0 auto;padding:14px;display:grid;gap:12px}
+  .card{background:rgba(18,26,43,.78);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
+  h1{margin:0;font-size:16px}
+  h2{margin:0 0 8px 0;font-size:16px}
   .muted{color:var(--muted)}
-  ul{margin:8px 0 0 18px;color:var(--muted);font-size:12px;line-height:1.5}
-  hr{border:none;border-top:1px solid var(--line);margin:12px 0}
+  a{color:var(--acc);text-decoration:none}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap;color:var(--muted)}
 </style>
 </head>
 <body>
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>Datenschutz</h1>
+  </div>
+</header>
 <div class="wrap">
-  <header>
-    <div class="brand">
-      <div class="logo"></div>
-      <div>
-        <h1>Datenschutz – Washportal</h1>
-        <div class="sub">Live-Infos kommen aus <code>/api/privacy/meta</code></div>
-      </div>
-    </div>
-  </header>
+  <div class="card">
+    <div class="muted">Diese Seite lädt die Meta-Infos live aus dem Worker.</div>
+    <div class="muted" style="margin-top:6px">Worker: <span id="workerOut" class="mono"></span></div>
+  </div>
+
+  <div class="card" id="textCard" style="display:none">
+    <h2>Datenschutzerklärung</h2>
+    <div id="text"></div>
+    <div class="muted" style="margin-top:10px">Stand: <span id="stand"></span></div>
+  </div>
 
   <div class="card">
-    <div class="bd">
-      <label>API Base (Worker URL)</label>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <input id="baseUrl" placeholder="https://<dein-worker>.workers.dev" style="flex:1;min-width:260px"/>
-        <button id="btnLoad" style="width:180px">Laden</button>
-      </div>
-
-      <hr>
-
-      <div id="human"></div>
-      <div id="raw" class="mono">—</div>
-
-      <hr>
-
-      <div class="muted" style="font-size:12px;line-height:1.55">
-        Dieses Portal arbeitet primär mit <b>Zimmer + PIN</b> (kein klassischer Nutzer-Account im Portal).
-        Für Admin-Funktionen existieren optional Accounts + RBAC im Worker.
-      </div>
-    </div>
+    <h2>Meta</h2>
+    <div class="mono" id="raw"></div>
   </div>
 </div>
 
 <script>
-const $ = (id)=>document.getElementById(id);
-function base(){ return String($('baseUrl').value||'').trim().replace(/\/+$/,''); }
-function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+  // 🔒 Privacy Worker-URL "freezed" (fixiert)
+  const WORKER_URL = "https://washportal-dev-worker.schluffi1220.workers.dev";
 
-async function load(){
-  const url = base() + '/api/privacy/meta';
-  const res = await fetch(url, {method:'GET'});
-  const txt = await res.text();
-  let j; try{ j=JSON.parse(txt); }catch{ j={raw:txt}; }
-  $('raw').textContent = JSON.stringify(j, null, 2);
+  const $ = (id)=>document.getElementById(id);
+  const pad2 = (n)=>String(n).padStart(2,"0");
+  const fmtDate = (ts)=>{
+    const d=new Date(ts);
+    return pad2(d.getDate())+"."+pad2(d.getMonth()+1)+"."+d.getFullYear();
+  };
+  const escapeHtml = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  $("workerOut").textContent = WORKER_URL;
 
-  if(!res.ok){
-    $('human').innerHTML = `<div class="muted">Fehler beim Laden: ${escapeHtml(j.message||j.error||('HTTP '+res.status))}</div>`;
-    return;
+  async function load(){
+    const res = await fetch(WORKER_URL + "/api/privacy/meta");
+    const j = await res.json();
+    $("raw").textContent = JSON.stringify(j, null, 2);
+
+    if(j && j.ok){
+      const psName = (j.patientSpeaker && j.patientSpeaker.name) ? j.patientSpeaker.name : "—";
+      const psEmail = (j.patientSpeaker && j.patientSpeaker.email) ? j.patientSpeaker.email : "—";
+      const deleteAt = j.deleteAt || 0;
+
+      const txt = `
+<h3>1. Verantwortlicher</h3>
+<p>Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
+<p><b>${escapeHtml(psName)}</b><br/>
+Salzburgweg 7, 97616 Bad Neustadt an der Saale</p>
+<p>Kontakt: <b>${escapeHtml(psEmail)}</b></p>
+<p>Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.</p>
+
+<h3>2. Zweck der Website</h3>
+<p>Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.</p>
+
+<h3>3. Welche Daten werden verarbeitet?</h3>
+<p>Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:</p>
+<ul>
+<li>Zimmernummer (als Benutzerkennung)</li>
+<li>selbstgewählter PIN-Code</li>
+<li>gebuchte Waschmaschinen-Zeiten</li>
+<li>technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)</li>
+</ul>
+<p>Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.</p>
+
+<h3>4. Zweck der Datenverarbeitung</h3>
+<p>Die Verarbeitung erfolgt ausschließlich zum Zweck:</p>
+<ul>
+<li>der Identifikation der jeweiligen Nutzer bei der Buchung</li>
+<li>der Verwaltung der Waschmaschinenbelegung</li>
+<li>der technischen Bereitstellung und Sicherheit der Website</li>
+</ul>
+<p>Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.</p>
+
+<h3>5. Rechtsgrundlage</h3>
+<p>Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht möglich wäre und keine überwiegenden Interessen der betroffenen Personen entgegenstehen.</p>
+
+<h3>6. Speicherung und Löschung</h3>
+<p>Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist.</p>
+<p><b>Geplantes Löschdatum (nach aktueller Retention): ${deleteAt ? fmtDate(deleteAt) : "—"}</b></p>
+<p>Server-Logdaten (z. B. IP-Adressen) werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.</p>
+
+<h3>7. Datensicherheit</h3>
+<p>Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.</p>
+
+<h3>8. Rechte der betroffenen Personen</h3>
+<p>Nutzer haben jederzeit das Recht auf:</p>
+<ul>
+<li>Auskunft über ihre gespeicherten Daten (Art. 15 DSGVO)</li>
+<li>Berichtigung unrichtiger Daten (Art. 16 DSGVO)</li>
+<li>Löschung ihrer Daten (Art. 17 DSGVO)</li>
+<li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+<li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
+</ul>
+<p>Anfragen können an den oben genannten Verantwortlichen gerichtet werden.</p>
+
+<h3>9. Beschwerderecht</h3>
+<p>Es besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde, hier das Bayerisches Landesamt für Datenschutzaufsicht.</p>
+
+<h3>10. Änderungen dieser Datenschutzerklärung</h3>
+<p>Diese Datenschutzerklärung kann angepasst werden, falls sich technische oder rechtliche Änderungen ergeben.</p>
+      `.trim();
+
+      $("text").innerHTML = txt;
+      $("stand").textContent = fmtDate(Date.now());
+      $("textCard").style.display = "";
+    }
   }
-  const m = j.meta || j || {};
-  const items = [];
-  if(m.note) items.push(`<li>${escapeHtml(m.note)}</li>`);
-  if(m.retention) items.push(`<li><b>Retention:</b> ${escapeHtml(m.retention)}</li>`);
-  if(typeof m.retentionDays !== 'undefined') items.push(`<li><b>Retention:</b> ${escapeHtml(m.retentionDays)} Tage</li>`);
-  if(m.dataTypes && Array.isArray(m.dataTypes)) items.push(`<li><b>Daten:</b><ul>` + m.dataTypes.map(x=>`<li>${escapeHtml(x)}</li>`).join('') + `</ul></li>`);
-  if(m.security) items.push(`<li><b>Sicherheit:</b> ${escapeHtml(m.security)}</li>`);
-  $('human').innerHTML = `
-    <div style="font-size:13px;line-height:1.55">
-      <b>Kurzübersicht</b>
-      <ul>${items.join('') || '<li>—</li>'}</ul>
-    </div>`;
-}
-
-$('btnLoad').addEventListener('click', load);
-(function boot(){
-  const prev = localStorage.getItem('wp_privacy_base') || '';
-  if(prev) $('baseUrl').value = prev;
-  $('baseUrl').addEventListener('change', ()=>localStorage.setItem('wp_privacy_base', $('baseUrl').value.trim()));
-})();
+  load().catch(err=>{
+    $("raw").textContent = "Fehler: " + String(err);
+  });
 </script>
 </body>
 </html>
