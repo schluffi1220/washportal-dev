@@ -4,639 +4,646 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Washportal</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <style>
     :root{
       --bg:#08111f; --panel:#0f1c2f; --panel2:#10243b; --line:rgba(255,255,255,.08);
-      --text:#eaf1ff; --muted:rgba(234,241,255,.72);
-      --ok:#2ee59d; --warn:#ffd166; --bad:#ff5d6c; --info:#6ea8ff; --white:#ffffff;
-      --pFree:rgba(46,229,157,.26);
-      --pBooked:rgba(255,209,102,.28);
-      --pActive:rgba(110,168,255,.30);
-      --pReleased:rgba(167,199,231,.18);
-      --pDefect:rgba(255,93,108,.42);
-      --pLocked:rgba(160,160,160,.32);
-      --shadow:0 10px 28px rgba(0,0,0,.35);
-      --r:18px;
+      --text:#eaf1ff; --muted:rgba(234,241,255,.70);
+      --ok:#2dd4bf; --bad:#ef4444; --warn:#f59e0b; --blue:#60a5fa;
+      --btn:#1f2d44; --btn2:#263a59;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --radius:18px;
+
+      /* pastel tiles (intensiver) */
+      --tile-free: rgba(45,212,191,.22);
+      --tile-busy: rgba(96,165,250,.18);
+      --tile-defect: rgba(239,68,68,.22);
+      --tile-locked: rgba(148,163,184,.18);
     }
     *{box-sizing:border-box}
     body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: radial-gradient(1200px 600px at 20% 0%, #112a54 0%, transparent 55%),
-                  radial-gradient(900px 600px at 90% 20%, #1b3a5f 0%, transparent 55%),
-                  var(--bg);
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background: radial-gradient(1200px 600px at 30% 10%, rgba(45,212,191,.18), transparent 55%),
+                  radial-gradient(900px 500px at 85% 35%, rgba(96,165,250,.16), transparent 50%),
+                  linear-gradient(180deg, #061022, var(--bg));
       color:var(--text);
     }
-    header{
-      position:sticky; top:0; z-index:20;
-      backdrop-filter: blur(10px);
-      background: rgba(8,17,31,.72);
-      border-bottom:1px solid var(--line);
-    }
-    .wrap{max-width:1100px; margin:0 auto; padding:16px;}
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
-    .pill{padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
+    .wrap{max-width:760px; margin:14px auto 90px; padding:0 12px;}
+    .topbar{position:sticky; top:0; z-index:10; padding:10px 0 8px; background:linear-gradient(180deg, rgba(8,17,31,.94), rgba(8,17,31,.72)); backdrop-filter: blur(10px);}
+    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .brand{display:flex; gap:10px; align-items:center; margin-bottom:8px}
+    .dot{width:10px; height:10px; border-radius:99px; background:var(--ok); box-shadow:0 0 0 4px rgba(45,212,191,.14)}
+    .title{font-weight:900; letter-spacing:.2px}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.04); font-size:12px; color:var(--muted)}
+    .pill strong{color:var(--text)}
+    .err{display:none; margin:10px 0 12px; padding:10px 12px; border-radius:14px; border:1px solid rgba(239,68,68,.35); background:rgba(239,68,68,.10); color:#ffd5d5}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px;}
+    h2{margin:0 0 10px; font-size:16px}
+    .muted{color:var(--muted); font-size:12px; line-height:1.35}
+
     input, select, button, textarea{
-      border-radius:12px; border:1px solid var(--line);
-      background: rgba(255,255,255,.05);
-      color:var(--text);
-      padding:10px 12px;
-      outline:none;
+      width:100%; box-sizing:border-box; border-radius:14px; border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04); color:var(--text); padding:11px 12px; font-size:14px;
     }
-    input::placeholder, textarea::placeholder{color:rgba(234,241,255,.45)}
-    button{
-      cursor:pointer; font-weight:700;
-      background: linear-gradient(180deg, rgba(110,168,255,.22), rgba(110,168,255,.08));
-    }
-    button.secondary{background: rgba(255,255,255,.06)}
-    button.danger{background: linear-gradient(180deg, rgba(255,93,108,.22), rgba(255,93,108,.08))}
-    button.ok{background: linear-gradient(180deg, rgba(46,229,157,.22), rgba(46,229,157,.08))}
-    button:disabled{opacity:.45; cursor:not-allowed}
-    .grid{display:grid; gap:14px}
-    .grid2{grid-template-columns:1fr;}
-    .panel{
-      background: linear-gradient(180deg, rgba(16,36,59,.96), rgba(15,28,47,.92));
-      border:1px solid var(--line);
-      border-radius: var(--r);
-      box-shadow: var(--shadow);
-      padding:14px;
-    }
-    .title{font-weight:900; margin:0 0 8px 0; font-size:15px}
-    .muted{color:var(--muted)}
-    .small{font-size:12px}
-    .hr{height:1px; background:var(--line); margin:10px 0}
-    .toast{
-      position:fixed; left:50%; transform:translateX(-50%);
-      bottom:18px; z-index:50;
-      padding:10px 12px; border-radius:14px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.55);
-      box-shadow: var(--shadow);
-      display:none;
-      max-width:min(560px, calc(100vw - 24px));
-      white-space:pre-wrap;
-    }
-    .banner{
-      position:fixed; left:14px; bottom:14px; z-index:45;
-      background: rgba(0,0,0,.55);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px 12px;
-      max-width:min(520px, calc(100vw - 28px));
-      display:none;
-      white-space:pre-wrap;
-    }
-    .machineGrid{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap:12px;
-    }
-    @media (max-width: 900px){
-      .grid2{grid-template-columns:1fr;}
-      .machineGrid{grid-template-columns: repeat(2, minmax(0,1fr));}
-    }
-    .card{
-      border-radius: 18px;
-      border:1px solid var(--line);
-      padding:12px;
-      background: rgba(255,255,255,.04);
-      position:relative;
-      overflow:hidden;
-      min-height:132px;
-    }
-    .card::before{
-      content:"";
-      position:absolute; inset:0;
-      background: var(--pFree);
-      opacity:1;
-      pointer-events:none;
-    }
-    .card > *{position:relative}
-    .card.defect::before{background: var(--pDefect)}
-    .card.locked::before{background: var(--pLocked)}
-    .card.booked::before{background: var(--pBooked)}
-    .card.active::before{background: var(--pActive)}
-    .card.released::before{background: var(--pReleased)}
-    .kicker{font-size:12px; color:var(--muted)}
-    .big{font-size:20px; font-weight:900}
-    .btnRow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
-    .slotGrid{
-      display:grid; gap:10px;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-    }
-    @media (max-width: 900px){ .slotGrid{grid-template-columns: repeat(2, minmax(0,1fr));} }
-    .slotBox{
-      border:1px solid var(--line);
-      border-radius:16px;
-      background: rgba(255,255,255,.04);
-      padding:10px;
-    }
-    .slotBox .hdr{display:flex; justify-content:space-between; gap:10px; align-items:center}
-    .slotBox .hdr b{font-size:13px}
-    .slotBox .actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px}
-    .pop{
-      position:fixed; inset:0; z-index:60;
-      display:none; align-items:center; justify-content:center;
-      background: rgba(0,0,0,.55);
-      padding:18px;
-    }
-    .pop .box{
-      width:min(520px, 100%);
-      border-radius: 18px;
-      border:1px solid var(--line);
-      background: rgba(15,28,47,.98);
-      box-shadow: var(--shadow);
-      padding:14px;
-    }
-    .pop .box h3{margin:0 0 6px 0}
-    .pop .box p{margin:0; color:var(--muted)}
+    textarea{min-height:72px; resize:vertical}
+    button{cursor:pointer; font-weight:800; background:linear-gradient(90deg, rgba(96,165,250,.75), rgba(45,212,191,.75)); border:0}
+    button.secondary{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); font-weight:700}
+    button.danger{background:rgba(239,68,68,.18); border:1px solid rgba(239,68,68,.40)}
+    button:disabled{opacity:.55; cursor:not-allowed}
+
+    .grid2{display:grid; grid-template-columns:1fr; gap:10px}
+    @media(min-width:680px){ .grid2{grid-template-columns:1fr 1fr;} }
+
+    .tiles{display:grid; grid-template-columns:1fr; gap:10px}
+    @media(min-width:620px){ .tiles{grid-template-columns:1fr 1fr;} }
+
+    .tile{border-radius:18px; border:1px solid rgba(255,255,255,.10); padding:12px; background:rgba(255,255,255,.03)}
+    .tile.free{background:linear-gradient(180deg, var(--tile-free), rgba(255,255,255,.02));}
+    .tile.busy{background:linear-gradient(180deg, var(--tile-busy), rgba(255,255,255,.02));}
+    .tile.defect{background:linear-gradient(180deg, var(--tile-defect), rgba(255,255,255,.02));}
+    .tile.locked{background:linear-gradient(180deg, var(--tile-locked), rgba(255,255,255,.02));}
+
+    .tileHead{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .tileHead .name{font-weight:900}
+    .badge{font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); color:var(--muted)}
+    .badge.ok{border-color:rgba(45,212,191,.35); color:#bff7ef}
+    .badge.bad{border-color:rgba(239,68,68,.40); color:#ffd5d5}
+    .badge.lock{border-color:rgba(148,163,184,.35); color:#e2e8f0}
+    .tile .line{height:1px; background:rgba(255,255,255,.08); margin:10px 0}
+
+    .tileActions{display:grid; grid-template-columns: 1fr; gap:8px}
+    .tileActions .row2{display:flex; gap:8px}
+    .tileActions .row2 > *{flex:1}
+
+    .small{font-size:12px; color:var(--muted)}
+
+    .toggle{display:flex; gap:10px; align-items:center; user-select:none}
+    .toggle input{width:auto}
+
+    .footerSpace{height:14px}
   </style>
 </head>
 <body>
-<header>
   <div class="wrap">
-    <div class="row" style="justify-content:space-between">
+    <div class="topbar">
       <div class="brand">
-        <span style="display:inline-block;width:12px;height:12px;border-radius:999px;background:var(--info)"></span>
-        <span>Washportal</span>
-        <span id="buildPill" class="pill">BUILD: –</span>
+        <span class="dot"></span>
+        <div class="title">Washportal</div>
+        <div class="pill"><strong id="buildPill">BUILD:</strong>&nbsp;<span id="buildTxt">—</span></div>
+        <div class="pill"><strong>Zimmer:</strong>&nbsp;<span id="roomPill">—</span></div>
       </div>
-      <div class="row">
-        <span id="statusPill" class="pill">offline</span>
+
+      <div id="err" class="err"></div>
+
+      <div class="card">
+        <h2>Login</h2>
+        <div class="grid2">
+          <div>
+            <div class="muted">Zimmer</div>
+            <input id="room" inputmode="numeric" placeholder="z.B. 316" />
+          </div>
+          <div>
+            <div class="muted">Persönlicher PIN</div>
+            <input id="pin" inputmode="numeric" placeholder="z.B. 1711" />
+          </div>
+          <div>
+            <div class="muted">Stations‑PIN</div>
+            <input id="stationPin" inputmode="numeric" placeholder="z.B. 1111" />
+          </div>
+          <div class="row" style="align-items:end">
+            <button id="saveBtn" class="secondary">Speichern</button>
+            <button id="refreshBtn">Aktualisieren</button>
+          </div>
+        </div>
+        <div class="muted" style="margin-top:8px">Hinweis: Es werden nur Slots angezeigt, die noch laufen oder in der Zukunft liegen. Vergangene Slots können nicht storniert werden.</div>
       </div>
     </div>
 
-    <div class="row" style="margin-top:12px">
-      <input id="room" placeholder="Zimmer" style="width:110px" inputmode="numeric" />
-      <input id="pin" placeholder="Persönlicher PIN" style="width:170px" inputmode="numeric" />
-      <input id="stationPin" placeholder="Stations‑PIN" style="width:170px" inputmode="numeric" />
-      <button id="btnSave" class="secondary">Speichern</button>
-      <button id="btnRefresh" class="">Aktualisieren</button>
-      <span class="pill" id="lockState">—</span>
-    </div>
+    <div style="height:12px"></div>
 
-    <div id="newsBox" class="panel" style="margin-top:12px; display:none">
-      <div class="title">News</div>
-      <div id="newsText" class="muted"></div>
-    </div>
-  </div>
-</header>
-
-<div class="wrap">
-  <div class="grid">
-    <div class="panel">
-      <div class="title">Slots (Waschmaschinen)</div>
-      <div class="muted small">Alle Slots, die noch laufen oder in der Zukunft liegen, sind sichtbar. Freie Slots sind buchbar.</div>
-      <div class="hr"></div>
-      <div id="slotsAll" class="slotGrid"></div>
-    </div>
-
-    
-  </div>
-
-  <div class="panel" style="margin-top:14px">
-    <div class="row" style="justify-content:space-between; align-items:flex-end">
-      <div>
-        <div class="title">Maschinenübersicht</div>
-        <div class="muted small">Waschmaschinen oben, Trockner unten. Rot = defekt, Grau = admin‑gesperrt.</div>
+    <div id="slotsAll" class="card">
+      <h2>Slots buchen (Waschmaschinen)</h2>
+      <div class="muted" style="margin-bottom:10px">Hier kannst du jeden sichtbaren Slot direkt buchen (auch wenn er schon läuft). Start‑ und Endzeit werden angezeigt.</div>
+      <div class="grid2">
+        <div>
+          <div class="muted">Maschine</div>
+          <select id="allMachine"></select>
+        </div>
+        <div>
+          <div class="muted">Slot</div>
+          <select id="allSlot"></select>
+        </div>
+        <div class="row" style="align-items:end">
+          <button id="allBookBtn">Buchen</button>
+        </div>
       </div>
-      <div class="row">
-        <label class="pill" style="display:flex; gap:8px; align-items:center">
-          <input id="whitecard" type="checkbox" style="margin:0" />
-          Whitecard (Wäsche darf raus)
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between; gap:12px">
+        <div>
+          <h2 style="margin-bottom:6px">Maschinenübersicht</h2>
+          <div class="muted">Waschmaschinen oben, Trockner unten. <span style="color:#ffd5d5">Rot = defekt</span>, <span style="color:#e2e8f0">Grau = admin‑gesperrt</span>.</div>
+        </div>
+        <label id="whitecardWrap" class="toggle" style="display:none">
+          <input id="whitecard" type="checkbox" />
+          <span class="muted" style="font-size:12px">Whitecard (Wäsche darf raus)</span>
         </label>
       </div>
+
+      <div class="footerSpace"></div>
+
+      <h2>Waschmaschinen</h2>
+      <div id="washTiles" class="tiles"></div>
+
+      <div style="height:14px"></div>
+
+      <h2>Trockner</h2>
+      <div id="dryTiles" class="tiles"></div>
     </div>
-    <div class="hr"></div>
 
-    <div class="title" style="margin-top:0">Waschmaschinen</div>
-    <div id="washers" class="machineGrid"></div>
+    <div style="height:12px"></div>
 
-    <div class="hr"></div>
-
-    <div class="title" style="margin-top:0">Trockner</div>
-    <div id="dryers" class="machineGrid"></div>
-  </div>
-</div>
-
-  <div class="panel">
-      <div class="title">Meine Buchungen</div>
-      <div class="muted small">Freigeben ist nur für Buchungen mit deinem PIN möglich. Vergangene Slots können nicht storniert werden.</div>
-      <div class="hr"></div>
+    <div id="myBookingsCard" class="card">
+      <h2>Meine Buchungen</h2>
+      <div class="muted" style="margin-bottom:10px">Freigeben ist nur für Buchungen mit deinem PIN möglich.</div>
       <div id="myBookings"></div>
     </div>
 
-<div id="toast" class="toast"></div>
-<div id="errBanner" class="banner"></div>
-
-<div id="lockPop" class="pop">
-  <div class="box">
-    <h3>Zimmer gesperrt</h3>
-    <p id="lockMsg"></p>
-    <div class="btnRow" style="justify-content:flex-end">
-      <button class="secondary" onclick="hideLockPopup()">OK</button>
-    </div>
   </div>
-</div>
 
 <script>
 (() => {
-  "use strict";
-  const API = "https://washportal-dev-worker.schluffi1220.workers.dev";
-
+  const API = 'https://washportal-dev-worker.schluffi1220.workers.dev';
   const $ = (id) => document.getElementById(id);
 
-  function showToast(msg){
-    const el = $("toast");
-    el.textContent = msg;
-    el.style.display = "block";
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => el.style.display = "none", 2600);
-  }
-  function showErrBanner(msg){
-    const el = $("errBanner");
-    el.textContent = msg;
-    el.style.display = "block";
-  }
-  function hideErrBanner(){ $("errBanner").style.display = "none"; }
-
-  window.hideLockPopup = function hideLockPopup(){
-    $("lockPop").style.display = "none";
+  const state = {
+    config: null,
+    machines: [],
+    bookings: [],
+    myBookings: [],
   };
 
-  async function jget(path){
-    const r = await fetch(API + path, { method:"GET", mode:"cors", credentials:"omit" });
-    const txt = await r.text();
-    let data = {};
-    try{ data = JSON.parse(txt); }catch{ data = { ok:false, error:"bad_json", message:txt }; }
-    if(!r.ok || data.ok === false) throw new Error(data.message || ("HTTP " + r.status));
-    return data;
+  function showErr(msg){
+    const el = $('err');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
   }
+
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function fmtDate(ts){
+    const d = new Date(Number(ts||0));
+    if (Number.isNaN(d.getTime())) return 'Invalid Date';
+    return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+
+  function loadCreds(){
+    try{
+      const v = JSON.parse(localStorage.getItem('wp_creds')||'{}');
+      $('room').value = v.room || '316';
+      $('pin').value = v.pin || '1711';
+      $('stationPin').value = v.stationPin || '1111';
+    }catch{}
+  }
+
+  function saveCreds(){
+    const v = { room: $('room').value.trim(), pin: $('pin').value.trim(), stationPin: $('stationPin').value.trim() };
+    localStorage.setItem('wp_creds', JSON.stringify(v));
+    $('roomPill').textContent = v.room || '—';
+    return v;
+  }
+
   async function jpost(path, body){
-    const r = await fetch(API + path, {
-      method:"POST",
-      mode:"cors",
-      credentials:"omit",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body || {})
+    const res = await fetch(API+path, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body||{})
     });
-    const txt = await r.text();
+    const txt = await res.text();
     let data = {};
-    try{ data = JSON.parse(txt); }catch{ data = { ok:false, error:"bad_json", message:txt }; }
-    if(!r.ok || data.ok === false) {
-      const msg = data.message || data.error || ("HTTP " + r.status);
-      throw new Error(msg);
+    try{ data = JSON.parse(txt || '{}'); }catch{ data = { ok:false, error:'bad_json', message:txt }; }
+    if(!res.ok || data.ok === false){
+      const m = data?.message || data?.error || `HTTP_${res.status}`;
+      throw new Error(m);
     }
     return data;
   }
 
-  function pad2(n){ return String(n).padStart(2,"0"); }
-  function fmtTime(ts){
-    const d = new Date(Number(ts));
-    return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  function machineName(kind, label){
+    return (kind === 'washer' ? 'Waschmaschine ' : 'Trockner ') + label;
   }
-  function fmtDate(ts){
-    const d = new Date(Number(ts));
-    return pad2(d.getDate()) + "." + pad2(d.getMonth()+1) + "." + d.getFullYear();
+
+  function getActiveBookingsFor(kind, machineId){
+    const now = Date.now();
+    return state.bookings.filter(b => String(b.kind)===kind && String(b.machineId)===String(machineId) && (b.status==='booked' || b.status==='active') && Number(b.endAt) > now);
   }
+
+  function pickPrevNext(kind, machineId){
+    const now = Date.now();
+    const all = state.bookings
+      .filter(b => String(b.kind)===kind && String(b.machineId)===String(machineId))
+      .sort((a,b)=>Number(a.startAt)-Number(b.startAt));
+
+    const prev = [...all].reverse().find(b => Number(b.endAt) <= now);
+    const next = all.find(b => Number(b.startAt) >= now && (b.status==='booked' || b.status==='active'));
+    return { prev, next };
+  }
+
+  function tileClass(m){
+    if (!m.enabled) return 'tile locked';
+    if (m.defective) return 'tile defect';
+    const busy = getActiveBookingsFor(m.kind, m.machineId).length > 0;
+    return busy ? 'tile busy' : 'tile free';
+  }
+
+  function tileBadge(m){
+    if (!m.enabled) return `<span class="badge lock">ADMIN‑GESPERRT</span>`;
+    if (m.defective) return `<span class="badge bad">DEFEKT</span>`;
+    const busy = getActiveBookingsFor(m.kind, m.machineId).length > 0;
+    return busy ? `<span class="badge">BELEGT</span>` : `<span class="badge ok">FREI</span>`;
+  }
+
+  function buildWasherSlots(){
+    const cfg = state.config;
+    const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours : [6,8,10,12,14,16,18,20];
+
+    const now = Date.now();
+    const daysFuture = Number(cfg?.daysFuture ?? 6);
+    const daysPast = Number(cfg?.daysPast ?? 7);
+    const startDay = startOfDay(now - daysPast*86400000);
+    const endDay = startOfDay(now + daysFuture*86400000);
+
+    const slots = [];
+    for (let t = startDay; t <= endDay; t += 86400000){
+      for (const h of hours){
+        const s = t + Number(h)*3600000;
+        const e = s + 60*60000; // default 60 min
+        // show running or future
+        if (e > now) slots.push({ startAt: s, endAt: e });
+      }
+    }
+    // unique
+    const seen = new Set();
+    const out = [];
+    for (const s of slots){
+      const k = `${s.startAt}`;
+      if(seen.has(k)) continue;
+      seen.add(k);
+      out.push(s);
+    }
+    out.sort((a,b)=>a.startAt-b.startAt);
+    return out;
+  }
+
   function startOfDay(ts){
-    const d = new Date(Number(ts));
+    const d = new Date(ts);
     d.setHours(0,0,0,0);
     return d.getTime();
   }
 
-  function normalizeState(s){
-    s = s || {};
-    s.config = s.config || {};
-    s.machines = Array.isArray(s.machines) ? s.machines : [];
-    s.machines.sort((a,b)=> (a.kind===b.kind? (Number(a.machineId)-Number(b.machineId)) : (a.kind==='washer'?-1:1)) );
-    s.bookings = Array.isArray(s.bookings) ? s.bookings : [];
-    s.myBookings = Array.isArray(s.myBookings) ? s.myBookings : [];
-    return s;
+  function renderAllSlotsBooking(){
+    const washers = state.machines.filter(m => m.kind==='washer');
+    const allMachine = $('allMachine');
+    const allSlot = $('allSlot');
+    allMachine.innerHTML = '';
+
+    if (washers.length === 0){
+      allMachine.innerHTML = `<option value="">Keine Waschmaschinen aktiv.</option>`;
+      allSlot.innerHTML = `<option value="">—</option>`;
+      $('allBookBtn').disabled = true;
+      return;
+    }
+
+    for (const m of washers){
+      const dis = (!m.enabled || m.defective) ? 'disabled' : '';
+      const tag = m.defective ? ' (defekt)' : (!m.enabled ? ' (gesperrt)' : '');
+      allMachine.innerHTML += `<option value="${m.machineId}" ${dis}>Waschmaschine ${m.label}${tag}</option>`;
+    }
+
+    const slots = buildWasherSlots();
+    function refreshSlots(){
+      const machineId = allMachine.value;
+      const m = washers.find(x => String(x.machineId)===String(machineId));
+      const locked = !m || !m.enabled || m.defective;
+      allSlot.innerHTML = '';
+
+      for (const s of slots){
+        const taken = state.bookings.some(b => b.kind==='washer' && String(b.machineId)===String(machineId) && (b.status==='booked' || b.status==='active') && Number(b.startAt)===Number(s.startAt));
+        const label = `${fmtDate(s.startAt)} – ${pad2(new Date(s.endAt).getHours())}:${pad2(new Date(s.endAt).getMinutes())}`;
+        const suffix = taken ? ' (belegt)' : '';
+        allSlot.innerHTML += `<option value="${s.startAt}" ${taken?'disabled':''}>${label}${suffix}</option>`;
+      }
+
+      $('allBookBtn').disabled = locked;
+    }
+
+    allMachine.onchange = refreshSlots;
+    refreshSlots();
   }
 
-  function getAuthBody(){
-    return {
-      room: String($("room").value || "").trim(),
-      pin: String($("pin").value || "").trim(),
-      stationPin: String($("stationPin").value || "").trim()
-    };
+  function renderTiles(){
+    const wash = state.machines.filter(m => m.kind==='washer');
+    const dry = state.machines.filter(m => m.kind==='dryer');
+
+    const washWrap = $('washTiles');
+    const dryWrap = $('dryTiles');
+    washWrap.innerHTML = '';
+    dryWrap.innerHTML = '';
+
+    for (const m of wash){ washWrap.appendChild(renderTile(m)); }
+    for (const m of dry){ dryWrap.appendChild(renderTile(m)); }
+
+    // Whitecard visible only if enabled in config
+    $('whitecardWrap').style.display = state.config?.whitecardEnabled ? 'flex' : 'none';
   }
 
-  function saveCreds(){
-    const a = getAuthBody();
-    localStorage.setItem("wp_room", a.room);
-    localStorage.setItem("wp_pin", a.pin);
-    localStorage.setItem("wp_stationPin", a.stationPin);
-    showToast("✅ Gespeichert");
-  }
-  function loadCreds(){
-    $("room").value = localStorage.getItem("wp_room") || "";
-    $("pin").value = localStorage.getItem("wp_pin") || "";
-    $("stationPin").value = localStorage.getItem("wp_stationPin") || "";
-  }
+  function renderTile(m){
+    const el = document.createElement('div');
+    el.className = tileClass(m);
 
-  function renderNewsBox(cfg){
-    const enabled = !!(cfg && cfg.newsEnabled);
-    const text = (cfg && cfg.newsText) ? String(cfg.newsText) : "";
-    if(enabled && text.trim()){
-      $("newsText").textContent = text;
-      $("newsBox").style.display = "block";
+    const { prev, next } = pickPrevNext(m.kind, m.machineId);
+    const prevTxt = prev ? `${prev.room} bis ${fmtDate(prev.endAt).split(' ')[1]}` : '—';
+    const nextTxt = next ? `${next.room} ab ${fmtDate(next.startAt).split(' ')[1]}` : '—';
+
+    const canDefect = Boolean(state.config?.defectReportEnabled);
+
+    el.innerHTML = `
+      <div class="tileHead">
+        <div>
+          <div class="name">${machineName(m.kind, m.label)}</div>
+          <div class="small">Zuletzt: ${prevTxt}</div>
+          <div class="small">Nächster: ${nextTxt}</div>
+        </div>
+        ${tileBadge(m)}
+      </div>
+      <div class="line"></div>
+      <div class="tileActions"></div>
+    `;
+
+    const actions = el.querySelector('.tileActions');
+
+    if (m.kind === 'washer') {
+      const sel = document.createElement('select');
+      sel.innerHTML = `<option value="">Slot wählen…</option>`;
+      const slots = buildWasherSlots();
+      for (const s of slots){
+        const taken = state.bookings.some(b => b.kind==='washer' && String(b.machineId)===String(m.machineId) && (b.status==='booked' || b.status==='active') && Number(b.startAt)===Number(s.startAt));
+        const label = `${fmtDate(s.startAt)} – ${pad2(new Date(s.endAt).getHours())}:${pad2(new Date(s.endAt).getMinutes())}`;
+        const suffix = taken ? ' (belegt)' : '';
+        sel.innerHTML += `<option value="${s.startAt}" ${taken?'disabled':''}>${label}${suffix}</option>`;
+      }
+
+      const bookBtn = document.createElement('button');
+      bookBtn.textContent = 'Buchen';
+
+      const relBtn = document.createElement('button');
+      relBtn.textContent = 'Freigeben';
+      relBtn.className = 'secondary';
+
+      const defectBtn = document.createElement('button');
+      defectBtn.textContent = 'Defekt';
+      defectBtn.className = 'danger';
+      defectBtn.style.display = canDefect ? 'block' : 'none';
+
+      const row2 = document.createElement('div');
+      row2.className = 'row2';
+      row2.appendChild(bookBtn);
+      row2.appendChild(relBtn);
+      row2.appendChild(defectBtn);
+
+      actions.appendChild(sel);
+      actions.appendChild(row2);
+
+      // Disable logic
+      const disabled = (!m.enabled || m.defective);
+      sel.disabled = disabled;
+      bookBtn.disabled = disabled;
+      relBtn.disabled = disabled;
+      defectBtn.disabled = disabled;
+
+      bookBtn.onclick = async () => {
+        try{
+          showErr('');
+          const startAt = Number(sel.value || 0);
+          if(!startAt) return showErr('Bitte Slot auswählen.');
+          const creds = saveCreds();
+          const slot = buildWasherSlots().find(s=>Number(s.startAt)===startAt);
+          const minutes = slot ? Math.round((slot.endAt-slot.startAt)/60000) : 60;
+          await jpost('/api/washer/book', { ...creds, machineId: m.machineId, startAt, minutes, whitecard: $('whitecard').checked });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
+
+      relBtn.onclick = async () => {
+        try{
+          showErr('');
+          // release the next future booking of mine for this machine
+          const now = Date.now();
+          const mine = state.myBookings
+            .filter(b => b.kind==='washer' && String(b.machineId)===String(m.machineId) && (b.status==='booked' || b.status==='active'))
+            .sort((a,b)=>a.startAt-b.startAt);
+          const b = mine.find(x=>Number(x.endAt)>now);
+          if(!b) return showErr('Keine aktive/gebuchte Buchung für diese Maschine (mit deinem PIN).');
+          const creds = saveCreds();
+          await jpost('/api/booking/release', { ...creds, bookingId: b.id });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
+
+      defectBtn.onclick = async () => {
+        try{
+          showErr('');
+          const ok = confirm(`${machineName(m.kind, m.label)} als defekt markieren? Die Maschine wird sofort gesperrt (bestehende Buchungen bleiben).`);
+          if(!ok) return;
+          const creds = saveCreds();
+          await jpost('/api/defect/report', { ...creds, kind: m.kind, machineId: m.machineId, text: '' });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
+
     } else {
-      $("newsBox").style.display = "none";
+      const bookBtn = document.createElement('button');
+      bookBtn.textContent = 'Jetzt buchen';
+
+      const relBtn = document.createElement('button');
+      relBtn.textContent = 'Freigeben';
+      relBtn.className = 'secondary';
+
+      const defectBtn = document.createElement('button');
+      defectBtn.textContent = 'Defekt';
+      defectBtn.className = 'danger';
+      defectBtn.style.display = canDefect ? 'block' : 'none';
+
+      const row2 = document.createElement('div');
+      row2.className = 'row2';
+      row2.appendChild(bookBtn);
+      row2.appendChild(relBtn);
+      row2.appendChild(defectBtn);
+      actions.appendChild(row2);
+
+      const disabled = (!m.enabled || m.defective);
+      bookBtn.disabled = disabled;
+      relBtn.disabled = disabled;
+      defectBtn.disabled = disabled;
+
+      bookBtn.onclick = async () => {
+        try{
+          showErr('');
+          const creds = saveCreds();
+          await jpost('/api/dryer/book', { ...creds, machineId: m.machineId, minutes: state.config?.dryerMinutes, whitecard: $('whitecard').checked });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
+
+      relBtn.onclick = async () => {
+        try{
+          showErr('');
+          const now = Date.now();
+          const mine = state.myBookings
+            .filter(b => b.kind==='dryer' && String(b.machineId)===String(m.machineId) && (b.status==='booked' || b.status==='active'))
+            .sort((a,b)=>a.startAt-b.startAt);
+          const b = mine.find(x=>Number(x.endAt)>now);
+          if(!b) return showErr('Keine aktive/gebuchte Buchung für diesen Trockner (mit deinem PIN).');
+          const creds = saveCreds();
+          await jpost('/api/booking/release', { ...creds, bookingId: b.id });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
+
+      defectBtn.onclick = async () => {
+        try{
+          showErr('');
+          const ok = confirm(`${machineName(m.kind, m.label)} als defekt markieren? Die Maschine wird sofort gesperrt (bestehende Buchungen bleiben).`);
+          if(!ok) return;
+          const creds = saveCreds();
+          await jpost('/api/defect/report', { ...creds, kind: m.kind, machineId: m.machineId, text: '' });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
     }
+
+    return el;
   }
 
-  function bookingWindow(cfg){
+  function renderMyBookings(){
+    const wrap = $('myBookings');
+    wrap.innerHTML = '';
     const now = Date.now();
-    const daysPast = Number(cfg.daysPast ?? 7);
-    const daysFuture = Number(cfg.daysFuture ?? 6);
-    return {
-      t0: now - daysPast * 86400000,
-      t1: now + daysFuture * 86400000
-    };
-  }
 
-  function buildSlots(cfg){
-    // Show slots for today (and next daysFuture days) but only those not finished yet.
-    const hours = Array.isArray(cfg.washerHours) && cfg.washerHours.length ? cfg.washerHours : [6,8,10,12,14,16,18,20];
-    const now = Date.now();
-    const { t1 } = bookingWindow(cfg);
-    const slots = [];
-    for(let dayTs = startOfDay(now); dayTs <= startOfDay(t1); dayTs += 86400000){
-      for(const h of hours){
-        const start = dayTs + Number(h)*3600000;
-        const end = start + 60*60000;
-        // show if running or future
-        if(end > now) slots.push({ startAt:start, endAt:end });
-      }
-    }
-    return slots;
-  }
-
-  function findBookingsFor(machineKind, machineId, bookings){
-    return bookings.filter(b => String(b.kind)===String(machineKind) && String(b.machineId)===String(machineId));
-  }
-
-  function summarizeMachine(machineKind, machineId, bookings){
-    const list = findBookingsFor(machineKind, machineId, bookings)
-      .slice()
-      .sort((a,b) => Number(a.startAt)-Number(b.startAt));
-    const now = Date.now();
-    let last = null;
-    let next = null;
-    let active = null;
-    for(const b of list){
-      const st = Number(b.startAt), en = Number(b.endAt);
-      if(en <= now) last = b;
-      if(st <= now && en > now && (b.status==="booked" || b.status==="active")) active = b;
-      if(st > now && !next && b.status==="booked") next = b;
-    }
-    return { last, next, active };
-  }
-
-  function cardClassFor(machine, summary, defectSet){
-    if(machine.enabled === false) return "locked"; // treat disabled as locked for UI
-    if(defectSet.has(machine.kind + ":" + machine.machineId)) return "defect";
-    if(summary.active) return "active";
-    if(summary.next) return "booked";
-    return "";
-  }
-
-  async function bookWasher(machineId, startAt){
-    const cfg = window.__state?.config || {};
-    const minutes = 60;
-    const body = { ...getAuthBody(), machineId:String(machineId), minutes, startAt:Number(startAt) };
-    // whitecard is front-end flag for later (kept for future worker support)
-    body.whitecard = !!$("whitecard").checked;
-    await jpost("/api/washer/book", body);
-    showToast("✅ Gebucht");
-    await refreshAll();
-  }
-  async function bookDryer(machineId){
-    const body = { ...getAuthBody(), machineId:String(machineId), minutes:0 };
-    body.whitecard = !!$("whitecard").checked;
-    await jpost("/api/dryer/book", body);
-    showToast("✅ Trockner gestartet");
-    await refreshAll();
-  }
-  async function releaseBooking(id){
-    const body = { ...getAuthBody(), bookingId:String(id) };
-    await jpost("/api/booking/release", body);
-    showToast("✅ Freigegeben");
-    await refreshAll();
-  }
-  async function reportDefect(kind, machineId){
-    // description is optional
-    const text = (prompt("Optional: Beschreibung (leer lassen = nur Defekt melden)") || "").trim();
-    const body = { ...getAuthBody(), machineId: `${kind}:${machineId}`, text };
-    await jpost("/api/defect/report", body);
-    showToast("✅ Defekt gemeldet");
-    await refreshAll();
-  }
-
-  function renderMyBookings(state){
-    const list = (state.myBookings || []).slice().sort((a,b)=>Number(a.startAt)-Number(b.startAt));
-    const root = $("myBookings");
-    root.innerHTML = "";
-    if(!list.length){
-      root.innerHTML = `<div class="muted small">Keine eigenen Buchungen.</div>`;
+    const list = (state.myBookings || []).slice().sort((a,b)=>a.startAt-b.startAt);
+    if (list.length === 0){
+      wrap.innerHTML = `<div class="muted">Keine Buchungen.</div>`;
       return;
     }
-    const now = Date.now();
-    for(const b of list){
-      const div = document.createElement("div");
-      div.className = "slotBox";
+
+    for (const b of list){
       const past = Number(b.endAt) <= now;
-      const canRelease = !past && String(b.status)==="booked";
-      div.innerHTML = `
-        <div class="hdr">
-          <b>${b.kind === "washer" ? "Waschmaschine" : "Trockner"} ${b.machineId}</b>
-          <span class="pill">${b.status}</span>
+      const card = document.createElement('div');
+      card.className = 'tile ' + (past ? '' : '');
+      card.style.background = 'rgba(255,255,255,.03)';
+
+      const name = (b.kind==='washer'?'Waschmaschine ':'Trockner ') + b.machineId;
+      const line1 = `${fmtDate(b.startAt)} – ${pad2(new Date(b.endAt).getHours())}:${pad2(new Date(b.endAt).getMinutes())} (${b.durationMinutes||b.duration||'?'} min)`;
+
+      card.innerHTML = `
+        <div class="tileHead">
+          <div>
+            <div class="name">${name}</div>
+            <div class="small">${line1}</div>
+          </div>
+          <span class="badge">${b.status}</span>
         </div>
-        <div class="muted small" style="margin-top:6px">
-          ${fmtDate(b.startAt)} · ${fmtTime(b.startAt)} – ${fmtTime(b.endAt)} (${b.durationMinutes || Math.max(1, Math.round((b.endAt-b.startAt)/60000))} min)
+        <div class="line"></div>
+        <div class="row" style="justify-content:space-between; gap:10px">
+          <div class="small">${past ? 'Vergangen — keine Aktion möglich' : 'Aktionen: Freigeben möglich'}</div>
+          <button class="secondary" ${past?'disabled':''}>Freigeben</button>
         </div>
       `;
-      const actions = document.createElement("div");
-      actions.className = "actions";
-      if(canRelease){
-        const btn = document.createElement("button");
-        btn.className = "ok";
-        btn.textContent = "Freigeben";
-        btn.onclick = () => releaseBooking(b.id).catch(e=>showToast("⛔ " + e.message));
-        actions.appendChild(btn);
-      } else {
-        const info = document.createElement("span");
-        info.className = "muted small";
-        info.textContent = past ? "Vergangen — keine Aktion möglich" : "—";
-        actions.appendChild(info);
-      }
-      div.appendChild(actions);
-      root.appendChild(div);
+
+      const btn = card.querySelector('button');
+      btn.onclick = async () => {
+        try{
+          showErr('');
+          const creds = saveCreds();
+          await jpost('/api/booking/release', { ...creds, bookingId: b.id });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
+
+      wrap.appendChild(card);
     }
-  }
-
-  function renderSlotsAll(state){
-    const cfg = state.config || {};
-    const slots = buildSlots(cfg);
-    const washers = state.machines.filter(m => m.kind === "washer" && m.enabled);
-    const bookings = state.bookings || [];
-
-    const root = $("slotsAll");
-    root.innerHTML = "";
-    if(!washers.length){
-      root.innerHTML = `<div class="muted small">Keine Waschmaschinen aktiv.</div>`;
-      return;
-    }
-    // For each slot show buttons for each washer that is free at that time.
-    for(const s of slots){
-      const div = document.createElement("div");
-      div.className = "slotBox";
-      div.innerHTML = `
-        <div class="hdr">
-          <b>${fmtDate(s.startAt)} · ${fmtTime(s.startAt)} – ${fmtTime(s.endAt)}</b>
-          <span class="pill">60 min</span>
-        </div>
-        <div class="actions" id="act_${s.startAt}"></div>
-      `;
-      const act = div.querySelector(".actions");
-      for(const w of washers){
-        const conflict = bookings.some(b =>
-          b.kind === "washer" &&
-          String(b.machineId) === String(w.machineId) &&
-          (b.status === "booked" || b.status === "active") &&
-          (Number(b.startAt) < s.endAt && Number(b.endAt) > s.startAt)
-        );
-        const btn = document.createElement("button");
-        btn.textContent = `W${w.machineId}`;
-        btn.disabled = conflict;
-        btn.onclick = () => bookWasher(w.machineId, s.startAt).catch(e=>showToast("⛔ " + e.message));
-        act.appendChild(btn);
-      }
-      root.appendChild(div);
-    }
-  }
-
-  function renderMachines(state){
-    const bookings = state.bookings || [];
-    const machines = state.machines || [];
-    const defectSet = new Set(); // future: derive from admin config; for now, none (worker stores defects separately)
-    // We can at least mark machines as defect if there is a recent defect report matching machineId prefix
-    // (No endpoint yet -> keep empty).
-
-    function renderGroup(kind, targetId){
-      const root = $(targetId);
-      root.innerHTML = "";
-      const list = machines.filter(m => m.kind === kind);
-      for(const m of list){
-        const summary = summarizeMachine(kind, m.machineId, bookings);
-        const cls = cardClassFor(m, summary, defectSet);
-        const card = document.createElement("div");
-        card.className = "card " + cls;
-
-        const lastTxt = summary.last ? (`Zuletzt: Zimmer ${summary.last.room} bis ${fmtTime(summary.last.endAt)}`) : "Zuletzt: —";
-        const nextTxt = summary.next ? (`Nächste: Zimmer ${summary.next.room} ab ${fmtTime(summary.next.startAt)}`) : "Nächste: —";
-
-        card.innerHTML = `
-          <div class="kicker">${kind === "washer" ? "Waschmaschine" : "Trockner"}</div>
-          <div class="big">${m.label}</div>
-          <div class="muted small" style="margin-top:4px">${lastTxt}</div>
-          <div class="muted small">${nextTxt}</div>
-        `;
-
-        const btnRow = document.createElement("div");
-        btnRow.className = "btnRow";
-
-        if(kind === "dryer"){
-          const b = document.createElement("button");
-          b.textContent = "Starten";
-          b.onclick = () => bookDryer(m.machineId).catch(e=>showToast("⛔ " + e.message));
-          btnRow.appendChild(b);
-        } else {
-          const hint = document.createElement("span");
-          hint.className = "muted small";
-          hint.textContent = "Buchen oben in der Slotliste";
-          btnRow.appendChild(hint);
-        }
-
-        const d = document.createElement("button");
-        d.className = "danger";
-        d.textContent = "Defekt";
-        d.onclick = () => reportDefect(kind, m.machineId).catch(e=>showToast("⛔ " + e.message));
-        btnRow.appendChild(d);
-
-        card.appendChild(btnRow);
-        root.appendChild(card);
-      }
-    }
-
-    renderGroup("washer", "washers");
-    renderGroup("dryer", "dryers");
   }
 
   async function refreshAll(){
-    hideErrBanner();
-    const auth = getAuthBody();
-    if(!auth.room || !auth.pin || !auth.stationPin){
-      showToast("⛔ Bitte Zimmer, PIN und Stations‑PIN eingeben.");
-      return;
-    }
-    try{
-      const st = await jget("/api/_status?ts=" + Date.now());
-      $("buildPill").textContent = "BUILD: " + (st.build || "–");
-      $("statusPill").textContent = "online";
-    }catch{ $("statusPill").textContent = "offline"; }
+    const creds = saveCreds();
+    if(!creds.room || !creds.pin || !creds.stationPin) return showErr('Bitte Zimmer, PIN und Stations‑PIN eingeben.');
 
     try{
-      const lock = await jpost("/api/room/control/check", { room:auth.room, pin:auth.pin, stationPin:auth.stationPin }).catch(()=>null);
-      if(lock){
-        $("lockState").textContent = lock.blocked ? "🔒 Zimmer gesperrt" : "✅ Zimmer frei";
-        if(lock.blocked){
-          $("lockMsg").textContent = lock.message || "Bitte wende dich an PS/SV.";
-          $("lockPop").style.display = "flex";
-        }
-      }
-      const state = normalizeState(await jpost("/api/user/refresh", auth));
-      window.__state = state;
+      showErr('');
 
-      renderNewsBox(state.config);
-      renderSlotsAll(state);
-      renderMyBookings(state);
-      renderMachines(state);
+      // check lock (optional)
+      try{
+        const lock = await jpost('/api/room/control/check', { room: creds.room });
+        if (lock.blocked) showErr(`⛔ ${lock.message || 'Zimmer ist gesperrt.'}`);
+      } catch { /* ignore */ }
 
-      if(state.blocked){
-        $("lockState").textContent = "🔒 Zimmer gesperrt";
-      }
-    }catch(e){
-      showErrBanner("⛔ " + (e.message || String(e)));
-      showToast("⛔ Fehler");
-      console.error("refreshAll failed:", e);
-    }
-  }
+      const data = await jpost('/api/user/refresh', creds);
 
-  function wire(){
-    $("btnSave").onclick = () => saveCreds();
-    $("btnRefresh").onclick = () => refreshAll();
-    $("room").addEventListener("keydown", (e)=>{ if(e.key==="Enter") refreshAll(); });
-    $("pin").addEventListener("keydown", (e)=>{ if(e.key==="Enter") refreshAll(); });
-    $("stationPin").addEventListener("keydown", (e)=>{ if(e.key==="Enter") refreshAll(); });
-  }
+      $('buildTxt').textContent = data.build || '—';
+      $('roomPill').textContent = creds.room;
 
-  async function boot(){
-    loadCreds();
-    wire();
-    try{
-      const st = await jget("/api/_status?ts=" + Date.now());
-      $("buildPill").textContent = "BUILD: " + (st.build || "–");
-      $("statusPill").textContent = "online";
-    }catch{}
-    if(($("room").value || "").trim()){
-      refreshAll();
+      state.config = data.config || {};
+      state.machines = (data.machines || []).map(m => ({
+        machineId: String(m.machineId),
+        kind: String(m.kind),
+        label: String(m.label ?? m.machineId),
+        enabled: !!m.enabled,
+        minutes: Number(m.minutes||0),
+        defective: !!m.defective,
+      }));
+      state.bookings = data.bookings || [];
+      state.myBookings = data.myBookings || data.bookings?.filter(b=>String(b.room)===String(creds.room)) || [];
+
+      // Keep washers on top, dryers bottom
+      state.machines.sort((a,b)=> (a.kind===b.kind ? Number(a.machineId)-Number(b.machineId) : (a.kind==='washer'?-1:1)));
+
+      renderAllSlotsBooking();
+      renderTiles();
+      renderMyBookings();
+
+      // global slots booking button
+      $('allBookBtn').onclick = async () => {
+        try{
+          showErr('');
+          const machineId = $('allMachine').value;
+          const startAt = Number($('allSlot').value || 0);
+          if(!machineId || !startAt) return showErr('Bitte Maschine und Slot auswählen.');
+          const slot = buildWasherSlots().find(s=>Number(s.startAt)===startAt);
+          const minutes = slot ? Math.round((slot.endAt-slot.startAt)/60000) : 60;
+          await jpost('/api/washer/book', { ...creds, machineId, startAt, minutes, whitecard: $('whitecard').checked });
+          await refreshAll();
+        }catch(e){ showErr(`⛔ ${e.message}`); }
+      };
+
+    } catch(e){
+      showErr(`⛔ ${e.message}`);
     }
   }
 
-  boot();
+  // Wire buttons
+  $('saveBtn').onclick = () => { saveCreds(); showErr('Gespeichert.'); setTimeout(()=>showErr(''), 900); };
+  $('refreshBtn').onclick = refreshAll;
+
+  loadCreds();
+  saveCreds();
+
+  // Auto boot
+  refreshAll();
 })();
 </script>
 </body>
