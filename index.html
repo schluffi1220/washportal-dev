@@ -53,7 +53,7 @@
     button.ok{background: linear-gradient(180deg, rgba(46,229,157,.22), rgba(46,229,157,.08))}
     button:disabled{opacity:.45; cursor:not-allowed}
     .grid{display:grid; gap:14px}
-    .grid2{grid-template-columns: 1fr 1fr}
+    .grid2{grid-template-columns:1fr;}
     .panel{
       background: linear-gradient(180deg, rgba(16,36,59,.96), rgba(15,28,47,.92));
       border:1px solid var(--line);
@@ -92,7 +92,7 @@
       gap:12px;
     }
     @media (max-width: 900px){
-      .grid2{grid-template-columns:1fr}
+      .grid2{grid-template-columns:1fr;}
       .machineGrid{grid-template-columns: repeat(2, minmax(0,1fr));}
     }
     .card{
@@ -183,7 +183,7 @@
 </header>
 
 <div class="wrap">
-  <div class="grid grid2">
+  <div class="grid">
     <div class="panel">
       <div class="title">Slots (Waschmaschinen)</div>
       <div class="muted small">Alle Slots, die noch laufen oder in der Zukunft liegen, sind sichtbar. Freie Slots sind buchbar.</div>
@@ -307,6 +307,7 @@
     s = s || {};
     s.config = s.config || {};
     s.machines = Array.isArray(s.machines) ? s.machines : [];
+    s.machines.sort((a,b)=> (a.kind===b.kind? (Number(a.machineId)-Number(b.machineId)) : (a.kind==='washer'?-1:1)) );
     s.bookings = Array.isArray(s.bookings) ? s.bookings : [];
     s.myBookings = Array.isArray(s.myBookings) ? s.myBookings : [];
     return s;
