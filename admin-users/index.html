@@ -413,8 +413,9 @@ async function loadMe(){
     setOut(j);
     setAuthPills(true);
     toast('me geladen');
-    // Nach Login/SA-Check direkt Config laden (zeigt u.a. Stations-PIN)
-    try{ await loadConfig(); }catch(_e){}
+    // auto-load config so Stations-PIN shows immediately
+    try{ if(can('config.read')) await cfgLoad(); }catch(_e){}
+
   }catch(e){
     state.me=null;
     setAuthPills(false);
@@ -469,6 +470,8 @@ async function setStationPin(){
     $('stationPin1').value=''; $('stationPin2').value='';
     toast('Stations-PIN gesetzt');
     setOut(j);
+    try{ await cfgLoad(); }catch(_e){}
+
   }catch(e){
     toast('PIN Fehler: '+e.message);
     setOut({error:true,status:e.status,url:e.url,payload:e.payload});
@@ -775,12 +778,9 @@ async function cfgLoad(){
     $('cfgRaw').value = JSON.stringify(j.config||{}, null, 2);
     cfgSetForm(j.config||{});
     try{
-      const cfgObj = (j && typeof j==='object') ? (j.config||j||{}) : {};
-      const pin = cfgObj.stationPinPlain || cfgObj.stationPin || '';
-      const pinHash = cfgObj.stationPinHash || '';
-      const stationPinSet = !!(j.stationPinSet || (pinHash && String(pinHash).trim()));
+      const pin = (j.config||{}).stationPinPlain;
       const el=$('#pinCurrent');
-      if(el) el.textContent = pin ? String(pin) : (stationPinSet ? 'gesetzt (nicht auslesbar)' : '–');
+      if(el) el.textContent = pin ? String(pin) : '–';
     }catch(_e){}
     toast('Config geladen');
   }catch(e){
