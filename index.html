@@ -101,6 +101,9 @@
   .check{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.55);}
   .check .cb{width:18px; height:18px;}
 
+
+    .mbox{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px}
+    .pill{font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10)}
 </style>
 </head>
 <body>
@@ -624,6 +627,53 @@ function updateGlobalBookPanel(state){
     });
   }
 }
+
+
+
+  function renderMyBookings(state){
+    const box = $("myBookings");
+    if(!box) return;
+    box.innerHTML = "";
+    const room = String($("room").value||"").trim();
+    const bookings = Array.isArray(state?.bookings) ? state.bookings : [];
+    const mine = bookings
+      .filter(b=>String(b.room||"")===room)
+      .sort((a,b)=>Number(a.startAt||0)-Number(b.startAt||0));
+    if(!mine.length){
+      box.innerHTML = '<div class="muted">Keine aktiven/kommenden Buchungen.</div>';
+      return;
+    }
+    const pin = String($("pin").value||"").trim();
+    const stationPin = String($("stationPin").value||"").trim();
+
+    for(const b of mine){
+      const item = document.createElement("div");
+      item.className = "mbox";
+      const kindLabel = b.kind==="dryer" ? "Trockner" : "Waschmaschine";
+      const when = `${fmtDateTime(b.startAt)}–${fmtTime(b.endAt)}`;
+      const wc = Number(b.whitecard||0)===1 ? " • WEISSKARTE" : "";
+      const st = (b.status||"active");
+      item.innerHTML = `
+        <div class="row" style="justify-content:space-between;gap:10px;align-items:center">
+          <div>
+            <div style="font-weight:700">${kindLabel} ${escapeHtml(String(b.machineId||""))}</div>
+            <div class="muted" style="margin-top:2px">${escapeHtml(when)}${wc}</div>
+          </div>
+          <div class="row" style="gap:8px;align-items:center">
+            <span class="pill">${escapeHtml(st)}</span>
+            <button class="secondary tiny">Freigeben</button>
+          </div>
+        </div>`;
+      const btn = item.querySelector("button");
+      btn.onclick = async ()=>{
+        try{
+          await jpost("/api/booking/release", { room, pin, stationPin, bookingId: b.bookingId || b.id || null, kind:b.kind, machineId:b.machineId, startAt:b.startAt });
+          await refreshAll();
+        }catch(e){ showErr("⛔ " + e.message); }
+      };
+      box.appendChild(item);
+    }
+  }
 
 async function refreshAll(){
 
