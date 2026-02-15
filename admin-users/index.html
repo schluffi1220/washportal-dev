@@ -63,6 +63,9 @@
   .toast{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(10px);padding:10px 12px;border-radius:14px;max-width:92vw;z-index:9999;font-size:12px}
   .split{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:1100px){.split{grid-template-columns:1fr 1fr}}
+
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -205,13 +208,64 @@
         </div>
 
         <div id="viewConfig" style="display:none">
-          <div class="actions" style="margin-bottom:8px">
+          <div class="actions" style="margin-bottom:10px;align-items:flex-end">
             <button class="secondary tiny" id="btnCfgRefresh">Refresh</button>
             <button class="tiny" id="btnCfgSave">Speichern</button>
           </div>
-          <label>Config JSON</label>
+
+          <div class="card" style="margin-bottom:10px">
+            <h2 style="margin:0 0 10px 0">Config Builder</h2>
+            <div class="grid2">
+              <div>
+                <label>daysPast</label>
+                <input id="cfgDaysPast" type="number" min="0" step="1" placeholder="z.B. 2"/>
+              </div>
+              <div>
+                <label>daysFuture</label>
+                <input id="cfgDaysFuture" type="number" min="0" step="1" placeholder="z.B. 14"/>
+              </div>
+
+              <div>
+                <label>washerHours</label>
+                <input id="cfgWasherHours" type="number" min="0" step="1" placeholder="z.B. 2"/>
+              </div>
+              <div>
+                <label>dryerHours</label>
+                <input id="cfgDryerHours" type="number" min="0" step="1" placeholder="z.B. 1"/>
+              </div>
+
+              <div class="row" style="gap:10px;align-items:center">
+                <input id="cfgWhitecardEnabled" type="checkbox" style="width:18px;height:18px"/>
+                <label for="cfgWhitecardEnabled" style="margin:0">whitecardEnabled</label>
+              </div>
+              <div class="row" style="gap:10px;align-items:center">
+                <input id="cfgPortalRequirePin" type="checkbox" style="width:18px;height:18px"/>
+                <label for="cfgPortalRequirePin" style="margin:0">portalRequirePin</label>
+              </div>
+
+              <div class="row" style="gap:10px;align-items:center">
+                <input id="cfgEnableWasher" type="checkbox" style="width:18px;height:18px"/>
+                <label for="cfgEnableWasher" style="margin:0">enableWasher</label>
+              </div>
+              <div class="row" style="gap:10px;align-items:center">
+                <input id="cfgEnableDryer" type="checkbox" style="width:18px;height:18px"/>
+                <label for="cfgEnableDryer" style="margin:0">enableDryer</label>
+              </div>
+
+              <div style="grid-column:1 / -1">
+                <label>uiNotice (optional)</label>
+                <input id="cfgUiNotice" placeholder="Hinweistext im Portal (optional)"/>
+              </div>
+            </div>
+
+            <div class="muted" style="font-size:11px;margin-top:8px">
+              Tipp: Änderungen hier aktualisieren automatisch das JSON unten. Für Spezialfelder kannst du das JSON direkt editieren.
+            </div>
+          </div>
+
+          <label>Config JSON (Raw)</label>
           <textarea id="cfgRaw" spellcheck="false"></textarea>
-          <div class="muted" style="font-size:11px;margin-top:6px">Format entspricht dem Portal: <code>daysPast</code>, <code>daysFuture</code>, <code>washerHours</code>, <code>whitecardEnabled</code>, …</div>
+          <div class="muted" style="font-size:11px;margin-top:6px">Wird gespeichert nach <code>/api/auth/admin/config/set</code>.</div>
         </div>
 
         <div id="viewBookings" style="display:none">
@@ -530,6 +584,56 @@ async function saveRbacRole(){
     setOut({error:true,status:e.status,url:e.url,payload:e.payload});
   }
 }
+
+
+  function cfgSetForm(cfg){
+    const get=(k,def)=> (cfg && typeof cfg[k] !== "undefined") ? cfg[k] : def;
+    $("#cfgDaysPast").value = String(get("daysPast", 2));
+    $("#cfgDaysFuture").value = String(get("daysFuture", 14));
+    $("#cfgWasherHours").value = String(get("washerHours", 2));
+    $("#cfgDryerHours").value = String(get("dryerHours", 1));
+    $("#cfgWhitecardEnabled").checked = !!get("whitecardEnabled", true);
+    $("#cfgPortalRequirePin").checked = !!get("portalRequirePin", true);
+    $("#cfgEnableWasher").checked = !!get("enableWasher", true);
+    $("#cfgEnableDryer").checked = !!get("enableDryer", true);
+    $("#cfgUiNotice").value = String(get("uiNotice",""));
+  }
+  function cfgGetForm(){
+    const n=(id,def)=> {
+      const v = Number($("#"+id).value);
+      return Number.isFinite(v) ? v : def;
+    };
+    return {
+      daysPast: n("cfgDaysPast", 2),
+      daysFuture: n("cfgDaysFuture", 14),
+      washerHours: n("cfgWasherHours", 2),
+      dryerHours: n("cfgDryerHours", 1),
+      whitecardEnabled: $("#cfgWhitecardEnabled").checked,
+      portalRequirePin: $("#cfgPortalRequirePin").checked,
+      enableWasher: $("#cfgEnableWasher").checked,
+      enableDryer: $("#cfgEnableDryer").checked,
+      uiNotice: String($("#cfgUiNotice").value||"")
+    };
+  }
+  function cfgMergeRawWithForm(){
+    let raw = {};
+    try { raw = JSON.parse($("#cfgRaw").value || "{}"); } catch {}
+    const form = cfgGetForm();
+    const merged = { ...raw, ...form };
+    $("#cfgRaw").value = JSON.stringify(merged, null, 2);
+    return merged;
+  }
+  function cfgFormBind(){
+    const ids=["cfgDaysPast","cfgDaysFuture","cfgWasherHours","cfgDryerHours","cfgWhitecardEnabled","cfgPortalRequirePin","cfgEnableWasher","cfgEnableDryer","cfgUiNotice"];
+    for (const id of ids){
+      const el=$("#"+id);
+      el.addEventListener("input", ()=>cfgMergeRawWithForm());
+      el.addEventListener("change", ()=>cfgMergeRawWithForm());
+    }
+    $("#cfgRaw").addEventListener("input", ()=>{
+      try{ const cfg=JSON.parse($("#cfgRaw").value||"{}"); cfgSetForm(cfg); } catch {}
+    });
+  }
 
 async function cfgLoad(){
   try{
