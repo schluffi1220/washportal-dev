@@ -275,6 +275,35 @@ function showToast(msg){
     const last = rel.slice().sort((a,b)=>Number(b.endAt||0)-Number(a.endAt||0))[0];
     return last || null;
   }
+  function findLastNext(bookings, kind, machineId){
+    const now = Date.now();
+    const rel = (bookings||[]).filter(b => String(b.kind)===String(kind) && String(b.machineId)===String(machineId))
+      .slice()
+      .sort((a,b)=>Number(a.startAt||0)-Number(b.startAt||0));
+    let current = null, last = null, next = null;
+    for(const b of rel){
+      const st = Number(b.startAt||0);
+      const en = Number(b.endAt||0);
+      const active = (b.status==="booked" || b.status==="active") && en > now;
+      if(active && st <= now && en > now){
+        current = b;
+      }
+      if(en <= now){
+        if(!last || Number(last.endAt||0) < en) last = b;
+      }
+      if(st > now){
+        if(!next || st < Number(next.startAt||0)) next = b;
+      }
+    }
+    // If there's an upcoming booking that already started (time drift), treat as current
+    if(!current){
+      const maybe = rel.find(b => (b.status==="booked"||b.status==="active") && Number(b.startAt||0) <= now && Number(b.endAt||0) > now);
+      if(maybe) current = maybe;
+    }
+    return { current, last, next };
+  }
+
+
 
   function isSlotTaken(bookings, kind, machineId, startAt){
     const s = Number(startAt);
