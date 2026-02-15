@@ -86,11 +86,12 @@ async function load(){
     $('human').innerHTML = `<div class="muted">Fehler beim Laden: ${escapeHtml(j.message||j.error||('HTTP '+res.status))}</div>`;
     return;
   }
-  const m = j.meta || {};
+  const m = j.meta || j || {};
   const items = [];
   if(m.note) items.push(`<li>${escapeHtml(m.note)}</li>`);
   if(m.retention) items.push(`<li><b>Retention:</b> ${escapeHtml(m.retention)}</li>`);
-  if(m.dataTypes && Array.isArray(m.dataTypes)) items.push(`<li><b>Daten:</b> ${escapeHtml(m.dataTypes.join(', '))}</li>`);
+  if(typeof m.retentionDays !== 'undefined') items.push(`<li><b>Retention:</b> ${escapeHtml(m.retentionDays)} Tage</li>`);
+  if(m.dataTypes && Array.isArray(m.dataTypes)) items.push(`<li><b>Daten:</b><ul>` + m.dataTypes.map(x=>`<li>${escapeHtml(x)}</li>`).join('') + `</ul></li>`);
   if(m.security) items.push(`<li><b>Sicherheit:</b> ${escapeHtml(m.security)}</li>`);
   $('human').innerHTML = `
     <div style="font-size:13px;line-height:1.55">
