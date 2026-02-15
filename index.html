@@ -66,6 +66,9 @@
       background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:16px; padding:14px;
       display:flex; flex-direction:column; gap:10px; min-height:150px;
     }
+    .mcard.state-free{border-color: rgba(45,212,191,.28); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
+    .mcard.state-busy{border-color: rgba(96,165,250,.30); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
+
     .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
     .mtitle{font-weight:800}
     .badge{font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:rgba(0,0,0,.15)}
@@ -144,9 +147,21 @@
   const API = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const $ = (id) => document.getElementById(id);
 
+  function showOk(msg){
+    const el = $("err");
+    el.style.display = msg ? "block" : "none";
+    el.style.borderColor = "rgba(45,212,191,.35)";
+    el.style.background = "rgba(45,212,191,.10)";
+    el.style.color = "#c7fffb";
+    el.textContent = msg || "";
+  }
+
   function showErr(msg){
     const el = $("err");
     el.style.display = msg ? "block" : "none";
+    el.style.borderColor = "rgba(239,68,68,.35)";
+    el.style.background = "rgba(239,68,68,.10)";
+    el.style.color = "#ffd5d5";
     el.textContent = msg || "";
   }
 
@@ -227,6 +242,15 @@
     );
   }
 
+
+  function findSlotBooking(bookings, kind, machineId, startAt){
+    const s = Number(startAt);
+    return (bookings||[]).find(b => String(b.kind)===String(kind) && String(b.machineId)===String(machineId) &&
+      (b.status==="booked" || b.status==="active") &&
+      Number(b.startAt) === s
+    ) || null;
+  }
+
   function renderMachines(state){
     const box = $("machines");
     box.innerHTML = "";
@@ -235,15 +259,14 @@
     const bookings = Array.isArray(state?.bookings) ? state.bookings : [];
     const slots = buildWasherSlots(cfg);
 
-    // Sort: washer zuerst
+    // Sort: Trockner zuerst (wie vorher)
     const ordered = machines.slice().sort((a,b)=>{
-      const ak = a.kind === "washer" ? 0 : 1;
-      const bk = b.kind === "washer" ? 0 : 1;
+      const ak = a.kind === "dryer" ? 0 : 1;
+      const bk = b.kind === "dryer" ? 0 : 1;
       if(ak!==bk) return ak-bk;
       return Number(a.machineId)-Number(b.machineId);
     });
-
-    // Defect dropdown befüllen
+// Defect dropdown befüllen
     const dsel = $("defectMachine");
     const keep = dsel.value;
     dsel.innerHTML = '<option value="">(optional) keine Auswahl</option>';
@@ -263,7 +286,7 @@
       const free = !cur || (cur.status!=="booked" && cur.status!=="active") || Date.now() >= Number(cur.endAt||0);
 
       const card = document.createElement("div");
-      card.className = "mcard";
+      card.className = "mcard " + (free ? "state-free" : "state-busy");
 
       const head = document.createElement("div");
       head.className = "mhead";
@@ -295,11 +318,17 @@
         const sel = document.createElement("select");
         sel.innerHTML = `<option value="">Slot wählen…</option>`;
         for(const s of slots){
-          const taken = isSlotTaken(bookings, "washer", m.machineId, s.ts);
+          const occ = findSlotBooking(bookings, "washer", m.machineId, s.ts);
           const opt = document.createElement("option");
           opt.value = String(s.ts);
-          opt.disabled = taken;
-          opt.textContent = taken ? (s.label + " (belegt)") : s.label;
+          if(occ){
+            opt.disabled = true;
+            const until = new Date(occ.endAt).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+            opt.textContent = `${s.label} (belegt: Zimmer ${occ.room} bis ${until})`;
+          }else{
+            opt.disabled = false;
+            opt.textContent = s.label;
+          }
           sel.appendChild(opt);
         }
         const btn = document.createElement("button");
@@ -449,9 +478,11 @@
       const parts = sel.split(":");
       machineId = parts[1] || "";
     }
+    machineId = String(machineId || "");
     try{
       await jpost("/api/defect/report",{ room, pin, stationPin, machineId, text });
       $("defectText").value = "";
+      showOk("✅ Defektmeldung gesendet.");
       await refreshAll();
     }catch(e){ showErr("⛔ " + e.message); }
   }
