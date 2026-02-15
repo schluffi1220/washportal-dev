@@ -5,132 +5,64 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Datenschutz</title>
 <style>
-  :root{--bg:#070b14;--card:#121a2b;--muted:#93a4c7;--text:#e8eefc;--acc:#6aa7ff;}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#050912,#0b1220);color:var(--text)}
-  header{position:sticky;top:0;background:rgba(5,9,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08);padding:12px 14px}
-  .wrap{max-width:900px;margin:0 auto;padding:14px;display:grid;gap:12px}
-  .card{background:rgba(18,26,43,.78);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
-  h1{margin:0;font-size:16px}
-  h2{margin:0 0 8px 0;font-size:16px}
-  .muted{color:var(--muted)}
-  a{color:var(--acc);text-decoration:none}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;white-space:pre-wrap;color:var(--muted)}
+:root{--bg:#070b14;--card:#121a2b;--muted:#93a4c7;--text:#e8eefc;--acc:#6aa7ff;}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#050912,#0b1220);color:var(--text)}
+header{position:sticky;top:0;background:rgba(5,9,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
+.wrap{max-width:1100px;margin:0 auto;padding:14px 16px}
+h1{margin:0;font-size:18px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}
+pre{white-space:pre-wrap;word-break:break-word;color:var(--text);margin:0;font-size:14px;line-height:1.55}
+.small{color:var(--muted);font-size:12px}
+a{color:var(--acc)}
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap" style="padding:0">
-    <h1>Datenschutz</h1>
-  </div>
-</header>
-<div class="wrap">
+<header><div class="wrap"><h1>Datenschutz</h1><div class="small">Worker: <span id="w">https://washportal-dev-worker.schluffi1220.workers.dev</span></div></div></header>
+<main class="wrap" style="display:grid;gap:12px">
   <div class="card">
-    <div class="muted">Diese Seite lädt die Meta-Infos live aus dem Worker.</div>
-    <div class="muted" style="margin-top:6px">Worker: <span id="workerOut" class="mono"></span></div>
+    <div class="small">Diese Seite lädt die Meta-Infos live aus dem Worker (fest verdrahtet).</div>
   </div>
-
-  <div class="card" id="textCard" style="display:none">
-    <h2>Datenschutzerklärung</h2>
-    <div id="text"></div>
-    <div class="muted" style="margin-top:10px">Stand: <span id="stand"></span></div>
-  </div>
-
   <div class="card">
-    <h2>Meta</h2>
-    <div class="mono" id="raw"></div>
+    <h2 style="margin:0 0 10px 0;font-size:16px">Datenschutzerklärung</h2>
+    <pre id="doc">Lade…</pre>
   </div>
-</div>
-
+  <div class="card">
+    <h2 style="margin:0 0 10px 0;font-size:16px">Meta (Debug)</h2>
+    <pre id="meta">—</pre>
+  </div>
+</main>
 <script>
-  // 🔒 Privacy Worker-URL "freezed" (fixiert)
-  const WORKER_URL = "https://washportal-dev-worker.schluffi1220.workers.dev";
-
-  const $ = (id)=>document.getElementById(id);
-  const pad2 = (n)=>String(n).padStart(2,"0");
-  const fmtDate = (ts)=>{
-    const d=new Date(ts);
-    return pad2(d.getDate())+"."+pad2(d.getMonth()+1)+"."+d.getFullYear();
-  };
-  const escapeHtml = (s)=>String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  $("workerOut").textContent = WORKER_URL;
-
-  async function load(){
-    const res = await fetch(WORKER_URL + "/api/privacy/meta");
-    const j = await res.json();
-    $("raw").textContent = JSON.stringify(j, null, 2);
-
-    if(j && j.ok){
-      const psName = (j.patientSpeaker && j.patientSpeaker.name) ? j.patientSpeaker.name : "—";
-      const psEmail = (j.patientSpeaker && j.patientSpeaker.email) ? j.patientSpeaker.email : "—";
-      const deleteAt = j.deleteAt || 0;
-
-      const txt = `
-<h3>1. Verantwortlicher</h3>
-<p>Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
-<p><b>${escapeHtml(psName)}</b><br/>
-Salzburgweg 7, 97616 Bad Neustadt an der Saale</p>
-<p>Kontakt: <b>${escapeHtml(psEmail)}</b></p>
-<p>Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.</p>
-
-<h3>2. Zweck der Website</h3>
-<p>Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.</p>
-
-<h3>3. Welche Daten werden verarbeitet?</h3>
-<p>Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:</p>
-<ul>
-<li>Zimmernummer (als Benutzerkennung)</li>
-<li>selbstgewählter PIN-Code</li>
-<li>gebuchte Waschmaschinen-Zeiten</li>
-<li>technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)</li>
-</ul>
-<p>Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.</p>
-
-<h3>4. Zweck der Datenverarbeitung</h3>
-<p>Die Verarbeitung erfolgt ausschließlich zum Zweck:</p>
-<ul>
-<li>der Identifikation der jeweiligen Nutzer bei der Buchung</li>
-<li>der Verwaltung der Waschmaschinenbelegung</li>
-<li>der technischen Bereitstellung und Sicherheit der Website</li>
-</ul>
-<p>Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.</p>
-
-<h3>5. Rechtsgrundlage</h3>
-<p>Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht möglich wäre und keine überwiegenden Interessen der betroffenen Personen entgegenstehen.</p>
-
-<h3>6. Speicherung und Löschung</h3>
-<p>Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist.</p>
-<p><b>Geplantes Löschdatum (nach aktueller Retention): ${deleteAt ? fmtDate(deleteAt) : "—"}</b></p>
-<p>Server-Logdaten (z. B. IP-Adressen) werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.</p>
-
-<h3>7. Datensicherheit</h3>
-<p>Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.</p>
-
-<h3>8. Rechte der betroffenen Personen</h3>
-<p>Nutzer haben jederzeit das Recht auf:</p>
-<ul>
-<li>Auskunft über ihre gespeicherten Daten (Art. 15 DSGVO)</li>
-<li>Berichtigung unrichtiger Daten (Art. 16 DSGVO)</li>
-<li>Löschung ihrer Daten (Art. 17 DSGVO)</li>
-<li>Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
-<li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
-</ul>
-<p>Anfragen können an den oben genannten Verantwortlichen gerichtet werden.</p>
-
-<h3>9. Beschwerderecht</h3>
-<p>Es besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde, hier das Bayerisches Landesamt für Datenschutzaufsicht.</p>
-
-<h3>10. Änderungen dieser Datenschutzerklärung</h3>
-<p>Diese Datenschutzerklärung kann angepasst werden, falls sich technische oder rechtliche Änderungen ergeben.</p>
-      `.trim();
-
-      $("text").innerHTML = txt;
-      $("stand").textContent = fmtDate(Date.now());
-      $("textCard").style.display = "";
-    }
+const WORKER="https://washportal-dev-worker.schluffi1220.workers.dev";
+const TEMPLATE = "Datenschutzerkl\u00e4rung\n\n1. Verantwortlicher\nVerantwortlich f\u00fcr die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:\n\n{{PS_NAME}}\nSalzburgweg 7, 97616 Bad Neustadt an der Saale\n\nKontakt: {{PS_EMAIL}}\n\nDa diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.\n\n2. Zweck der Website\nDiese Website dient ausschlie\u00dflich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur f\u00fcr Patienten der Klinik bestimmt.\n\n3. Welche Daten werden verarbeitet?\n\nBei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:\n\n\u2022 Zimmernummer (als Benutzerkennung)\n\u2022 selbstgew\u00e4hlter PIN-Code\n\u2022 gebuchte Waschmaschinen-Zeiten\n\u2022 technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)\n\nDie Zimmernummer erm\u00f6glicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.\n\n4. Zweck der Datenverarbeitung:\n\nDie Verarbeitung erfolgt ausschlie\u00dflich zum Zweck:\n\n\u2022 der Identifikation der jeweiligen Nutzer bei der Buchung\n\u2022 der Verwaltung der Waschmaschinenbelegung\n\u2022 der technischen Bereitstellung und Sicherheit der Website\n\nEine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.\n\n5. Rechtsgrundlage\nDie Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht m\u00f6glich w\u00e4re und keine \u00fcberwiegenden Interessen der betroffenen Personen entgegenstehen.\n\n6. Speicherung und L\u00f6schung\nBuchungsdaten werden nur so lange gespeichert, wie dies f\u00fcr die Organisation der Waschmaschinenbelegung erforderlich ist.\nServer-Logdaten (z. B. IP-Adressen) werden ausschlie\u00dflich aus technischen Gr\u00fcnden kurzfristig gespeichert und regelm\u00e4\u00dfig gel\u00f6scht.\n\nAktuelle Aufbewahrungsfrist: {{RETENTION_DAYS}} Tage  \nGeplantes L\u00f6schdatum (gerechnet ab heute): {{DELETE_DATE}}\n\n7. Datensicherheit:\nEs werden angemessene technische Ma\u00dfnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu sch\u00fctzen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.\n\n8. Rechte der betroffenen Personen:\nNutzer haben jederzeit das Recht auf:\n\n\u2022 Auskunft \u00fcber ihre gespeicherten Daten (Art. 15 DSGVO)\n\u2022 Berichtigung unrichtiger Daten (Art. 16 DSGVO)\n\u2022 L\u00f6schung ihrer Daten (Art. 17 DSGVO)\n\u2022 Einschr\u00e4nkung der Verarbeitung (Art. 18 DSGVO)\n\u2022 Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)\n\nAnfragen k\u00f6nnen an den oben genannten Verantwortlichen gerichtet werden.\n\n9. Beschwerderecht:\nEs besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbeh\u00f6rde, hier das Bayerisches Landesamt f\u00fcr Datenschutzaufsicht.\n\n10. \u00c4nderungen dieser Datenschutzerkl\u00e4rung:\nDiese Datenschutzerkl\u00e4rung kann angepasst werden, falls sich technische oder rechtliche \u00c4nderungen ergeben.\n\nStand: {{TODAY}}\n";
+function fmtDate(ts){
+  const d=new Date(ts);
+  const dd=String(d.getDate()).padStart(2,"0");
+  const mm=String(d.getMonth()+1).padStart(2,"0");
+  const yy=d.getFullYear();
+  return `${dd}.${mm}.${yy}`;
+}
+(async()=>{
+  let meta={};
+  try{
+    const res=await fetch(WORKER+"/api/privacy/meta");
+    meta=await res.json();
+    document.getElementById("meta").textContent=JSON.stringify(meta,null,2);
+  }catch(e){
+    document.getElementById("meta").textContent=String(e);
   }
-  load().catch(err=>{
-    $("raw").textContent = "Fehler: " + String(err);
-  });
+  const today=fmtDate(Date.now());
+  const psName=(meta.psName||"—");
+  const psEmail=(meta.psEmail||"—");
+  const retention=String(meta.retentionDays||30);
+  const deleteDate=fmtDate(meta.deleteAt|| (Date.now()+Number(retention)*86400000));
+  let out=TEMPLATE
+    .replaceAll("{PS_NAME}", psName)
+    .replaceAll("{PS_EMAIL}", psEmail)
+    .replaceAll("{RETENTION_DAYS}", retention)
+    .replaceAll("{DELETE_DATE}", deleteDate)
+    .replaceAll("{TODAY}", today);
+  document.getElementById("doc").textContent=out;
+})();
 </script>
 </body>
 </html>
