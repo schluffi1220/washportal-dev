@@ -66,10 +66,10 @@
       background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:16px; padding:14px;
       display:flex; flex-direction:column; gap:10px; min-height:150px;
     }
-    .mcard.state-free{border-color: rgba(45,212,191,.28); background: rgba(45,212,191,.08); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
-    .mcard.state-busy{border-color: rgba(96,165,250,.30); background: rgba(96,165,250,.08); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
-    .mcard.state-whitecard{border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.12);}
-    .mcard.state-defect{border-color: rgba(248,113,113,.55); background: rgba(248,113,113,.14);}
+    .mcard.state-free{border-color: rgba(45,212,191,.28); background: rgba(45,212,191,.14); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
+    .mcard.state-busy{border-color: rgba(96,165,250,.30); background: rgba(96,165,250,.14); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
+    .mcard.state-whitecard{border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.20);}
+    .mcard.state-defect{border-color: rgba(248,113,113,.55); background: rgba(248,113,113,.22);}
 
 
     .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
@@ -202,29 +202,24 @@
   }
 
   function buildWasherSlots(cfg){
-    const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours : [6,8,10,12,14,16,18,20];
-    const daysFuture = Number(cfg?.daysFuture ?? 6);
-    const now = new Date();
-    const slots = [];
-    for(let day=0; day<=daysFuture; day++){
-      const base = new Date(now.getFullYear(), now.getMonth(), now.getDate()+day, 0,0,0,0);
-      for(const h of hours){
-        const s = new Date(base);
-        s.setHours(Number(h), 0, 0, 0);
-        const ts = s.getTime();
-        // nur zukünftige Slots (ab jetzt - 2 min)
-        if(ts >= Date.now() - 2*60*1000){
-          const e = new Date(ts + 60*60*1000);
-          const startStr = s.toLocaleString("de-DE",{ weekday:"short", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"});
-          const endStr = e.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
-          slots.push({ ts, endTs: e.getTime(), label: `${startStr}–${endStr}` });
-        }
-      }
+  const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours.slice() : [];
+  const out = [];
+  const daysFuture = Number(cfg?.daysFuture ?? 6);
+  const daysPast = Number(cfg?.daysPast ?? 7);
+  const startDay = startOfDay(Date.now() - daysPast*86400000);
+  const endDay = startOfDay(Date.now() + daysFuture*86400000);
+
+  for(let day=startDay; day<=endDay; day+=86400000){
+    for(const h of hours){
+      const ts = day + Number(h)*3600000;
+      const endTs = ts + 3600000;
+      const label = `${fmtDate(day)} ${fmtHM(ts)}–${fmtHM(endTs)}`;
+      out.push({ ts, label });
     }
-    // unique + sort
-    slots.sort((a,b)=>a.ts-b.ts);
-    return slots;
   }
+  return out;
+}
+
 
   function activeBookingFor(machine, bookings){
     // bookings: global list im Zeitraum; finde aktiv/gebucht für Maschine
