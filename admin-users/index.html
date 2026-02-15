@@ -518,7 +518,7 @@ function renderUsers(users){
           setOut(j); toast('disabled'); await loadUsers();
         }
         if(act==='role'){
-          const role = prompt('Neue Rolle (Admin/PS/SV/User):','admin');
+          const role = prompt('Neue Rolle (Admin/PS/SV/User):','User');
           if(!role) return;
           const j = await api('/api/auth/admin/users/set-role', {body:{userId:id, role}});
           setOut(j); toast('role gesetzt'); await loadUsers();
@@ -550,8 +550,13 @@ async function loadRbacSnapshot(){
   }
 }
 async function loadRbacRole(){
-  const role = String($('rbacRole').value||'').trim();
-  if(!role) return;
+  const sel = $('rbacRole');
+  let role = String(sel?.value||'').trim();
+  if(!role){
+    await loadRbacSnapshot();
+    role = String($('rbacRole')?.value||'').trim();
+    if(!role) return;
+  }
   state.rbac.role = role;
   try{
     const j = await api('/api/auth/admin/rbac/role/get', {body:{role}});
@@ -942,6 +947,12 @@ function switchTab(name){
     dash:'viewDash', users:'viewUsers', rbac:'viewRbac', config:'viewConfig', bookings:'viewBookings', logs:'viewLogs', rooms:'viewRooms'
   };
   Object.entries(views).forEach(([k,id])=>$(id).style.display = (k===name)?'':'none');
+  if(name==='rbac'){
+    const sel=$('rbacRole');
+    if(sel && (!sel.options || sel.options.length===0 || !String(sel.value||'').trim())){
+      loadRbacSnapshot();
+    }
+  }
 }
 
 // Wire
