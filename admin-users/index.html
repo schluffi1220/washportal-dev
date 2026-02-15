@@ -544,11 +544,18 @@ async function loadRbacSnapshot(){
     // roles from snapshot fallback
     const roles = (j.roles && j.roles.length) ? j.roles : ['Admin','PS','SV','User'];
     const sel=$('rbacRole');
+    if(!roles.length){
+      sel.innerHTML = `<option value="">(no roles found)</option>`;
+      sel.value = '';
+      state.rbac.role = '';
+      toast('No roles found in DB');
+      return;
+    }
     sel.innerHTML = roles.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
     sel.value = roles.includes(sel.value)?sel.value:roles[0];
     state.rbac.role = sel.value;
     await loadRbacRole();
-    toast('RBAC geladen');
+    toast('RBAC loaded');
   }catch(e){
     toast('RBAC Fehler: '+e.message);
     setOut({error:true,status:e.status,url:e.url,payload:e.payload});
@@ -969,7 +976,13 @@ $('btnLoadUsers').addEventListener('click', ()=>{ switchTab('users'); loadUsers(
 $('btnUsersRefresh').addEventListener('click', loadUsers);
 
 $('btnLoadRbac').addEventListener('click', ()=>{ switchTab('rbac'); loadRbacSnapshot(); });
-$('btnRbacLoadRole').addEventListener('click', loadRbacRole);
+$('btnRbacLoadRole').addEventListener('click', async ()=>{
+  if(!String($('rbacRole').value||'').trim()){
+    await loadRbacSnapshot();
+    return;
+  }
+  await loadRbacRole();
+});
 $('btnRbacSave').addEventListener('click', saveRbacRole);
 
 $('btnCfgLoad').addEventListener('click', ()=>{ switchTab('config'); cfgLoad(); });
