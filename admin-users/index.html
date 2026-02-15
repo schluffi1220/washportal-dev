@@ -154,7 +154,7 @@
           </div>
           <div>
             <label>Wiederholen</label><input id="stationPin2" type="password" placeholder="…" />
-            <div class="muted" id="stationPinCurrent" style="margin-top:6px">Aktuelle PIN: –</div>
+            <div class="muted" id="stationPinCurrent" style="margin-top:6px">Aktuelle PIN: <span id="pinCurrent">–</span></div>
           </div>
         </div>
         <div class="actions" style="margin-top:8px">
@@ -348,7 +348,11 @@
 <div id="toast" class="toast" style="display:none"></div>
 
 <script>
-const $ = (id)=>document.getElementById(id);
+const $ = (sel)=>{
+  if(!sel) return null;
+  if(typeof sel === 'string' && (sel.startsWith('#') || sel.startsWith('.'))) return document.querySelector(sel);
+  return document.getElementById(sel);
+};
 const state = { me:null, perms:{} , rbac:{catalog:[], role:null, current:new Set()} };
 
 function toast(msg){
@@ -767,6 +771,12 @@ async function cfgLoad(){
     const j = await api('/api/auth/admin/config/get', {body:{}});
     setOut(j);
     $('cfgRaw').value = JSON.stringify(j.config||{}, null, 2);
+    cfgSetForm(j.config||{});
+    try{
+      const pin = (j.config||{}).stationPinPlain;
+      const el=$('#pinCurrent');
+      if(el) el.textContent = pin ? String(pin) : '–';
+    }catch(_e){}
     toast('Config geladen');
   }catch(e){
     toast('Config Fehler: '+e.message);
@@ -972,6 +982,9 @@ $('btnLogsCsv').addEventListener('click', downloadLogsCsv);
 $('btnRoomsRefresh').addEventListener('click', roomsRefresh);
 $('btnRoomBlock').addEventListener('click', ()=>roomSet(true));
 $('btnRoomUnblock').addEventListener('click', ()=>roomSet(false));
+
+// Init
+try{ cfgFormBind(); }catch(e){ console.warn(e); }
 
 // Restore
 (function boot(){
