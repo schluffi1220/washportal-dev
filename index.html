@@ -136,7 +136,7 @@
 <body>
   <div class="topbar">
     <div class="brand"><span class="dot"></span> Washportal</div>
-    <div class="pill" id="buildPill">PORTAL BUILD: oldstyle_v11</div>
+    <div class="pill" id="buildPill">PORTAL BUILD: oldstyle_v12</div>
     <div class="pill" id="workerPill">Worker: —</div>
     <div class="pill" id="roomPill">Zimmer: —</div>
   </div>
@@ -264,6 +264,20 @@
     });
     const ct = res.headers.get("content-type")||"";
     const data = ct.includes("application/json") ? await res.json() : { ok:false, error:"bad_response", message: await res.text() };
+
+  const fmtDateShort = (ms) => {
+    const d = new Date(ms);
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    return `${dd}.${mm}`;
+  };
+  const fmtHM = (ms) => {
+    const d = new Date(ms);
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mi = String(d.getMinutes()).padStart(2,"0");
+    return `${hh}:${mi}`;
+  };
+  const slotLine = (start,end,mNum) => `${fmtDow(start)} ${fmtDateShort(start)} ${fmtHM(start)}–${fmtHM(end)} WM ${mNum}`;
     if (!res.ok || data?.ok === false) throw data;
     return data;
   }
@@ -293,7 +307,7 @@
 
   function machineLabel(m){
     const t = (m?.type || "washer").toLowerCase();
-    const n = m?.num ?? m?.number ?? m?.index ?? m?.id ?? "";
+    const n = m?._dispNum ?? m?.num ?? m?.number ?? m?.index ?? m?.machineNum ?? m?.machine ?? m?.id ?? "";
     if (t === "dryer") return `Trockner ${n || ""}`.trim();
     return `Waschmaschine ${n || ""}`.trim();
   }
@@ -345,7 +359,7 @@
       const mId = m.id ?? mNum;
       const occ = bookings.find(b => String(b.machine)===String(mNum) && overlaps(s.start,s.end,b.start,b.end));
       const dow = fmtDow(s.start);
-      const label = `${dow}, ${fmtTime(s.start)}–${fmtTime(s.end)}  WM ${mNum}` + (occ ? `  •  BELEGT (Zimmer ${occ.room||"?"})` : "");
+      const label = slotLine(s.start, s.end, mNum) + (occ ? ` • BELEGT` : "");
       const v = JSON.stringify({machineId:mId, machineNum:mNum, start:s.start, end:s.end});
       const o = document.createElement("option");
       o.value = v;
@@ -380,7 +394,11 @@
     const dryers = state.machines.filter(m => (m.type||"washer").toLowerCase()==="dryer");
     el("dryerHint").textContent = dryers.length ? "" : "Keine Trockner im Worker-Response.";
 
+    let w=0,d=0;
     for (const m of state.machines){
+      const t0=(m.type||"washer").toLowerCase();
+      if(t0==="dryer") d++; else w++;
+      m._dispNum = (m.num ?? m.number ?? m.index ?? m.machineNum ?? m.machine_no ?? m.machine ?? m.id ?? (t0==="dryer"?d:w));
       const b = badgeFor(m);
       const card = document.createElement("div");
       card.className = `machine ${b.cls}`;
@@ -424,7 +442,7 @@
           const occ = bookings.find(b => String(b.machine)===String(mNum) && overlaps(s.start,s.end,b.start,b.end));
           const o = document.createElement("option");
           o.value = JSON.stringify({machineId:mId, machineNum:mNum, start:s.start, end:s.end});
-          o.textContent = `${fmtDow(s.start)} ${fmtTime(s.start)}–${fmtTime(s.end)}` + (occ ? ` • BELEGT (Zimmer ${occ.room||"?"})` : "");
+          o.textContent = slotLine(s.start, s.end, mNum) + (occ ? ` • BELEGT` : "");
           if (occ) o.disabled = true;
           sel.appendChild(o);
         }
@@ -440,8 +458,9 @@
             showErr("");
             await jpost("/api/washer/book", {
               room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-              machineId: slot.machineId, machineNum: slot.machineNum,
-              startAt: slot.start, endAt: slot.end
+              machineId: String(slot.machineNum ?? slot.machineId),
+              startAt: Number(slot.start),
+              minutes: Math.max(1, Math.round((Number(slot.end)-Number(slot.start))/60000))
             });
             await refreshAll();
           }catch(e){
@@ -582,15 +601,27 @@
       const actions = document.createElement("div");
       actions.className = "actions";
 
-      const hideBtn = document.createElement("button");
-      hideBtn.className = "secondary";
-      hideBtn.textContent = "Ausblenden";
-      hideBtn.onclick = () => {
-        hidden.add(id);
-        localStorage.setItem("hiddenBookings", JSON.stringify([...hidden]));
-        renderMyBookings(state);
+      const hideWrap = document.createElement("label");
+      hideWrap.style.display="flex";
+      hideWrap.style.alignItems="center";
+      hideWrap.style.gap="8px";
+      hideWrap.style.cursor="pointer";
+      hideWrap.className="mini muted";
+      const cb = document.createElement("input");
+      cb.type="checkbox";
+      cb.checked=false;
+      cb.onchange = () => {
+        if(cb.checked){
+          hidden.add(id);
+          localStorage.setItem("hiddenBookings", JSON.stringify([...hidden]));
+          renderMyBookings(state);
+        }
       };
-      actions.appendChild(hideBtn);
+      const span = document.createElement("span");
+      span.textContent="Ausblenden";
+      hideWrap.appendChild(cb);
+      hideWrap.appendChild(span);
+      actions.appendChild(hideWrap);
 
       if (!expired){
         const relBtn = document.createElement("button");
@@ -683,8 +714,9 @@
       showErr("");
       await jpost("/api/washer/book", {
         room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-        machineId: slot.machineId, machineNum: slot.machineNum,
-        startAt: slot.start, endAt: slot.end
+        machineId: String(slot.machineNum ?? slot.machineId),
+        startAt: Number(slot.start),
+        minutes: Math.max(1, Math.round((Number(slot.end)-Number(slot.start))/60000))
       });
       await refreshAll();
     }catch(e){
@@ -708,7 +740,7 @@
   }
 
   // init UI
-  el("buildPill").textContent = "PORTAL BUILD: oldstyle_v11";
+  el("buildPill").textContent = "PORTAL BUILD: oldstyle_v12";
   el("workerPill").textContent = "Worker: " + apiBase.replace(/^https?:\/\//,"");
   el("btnRefresh").addEventListener("click", refreshAll);
   el("btnBookGlobal").addEventListener("click", bookGlobal);
