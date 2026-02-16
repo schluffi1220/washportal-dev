@@ -1,408 +1,631 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin – Washportal</title>
-  <style>
-    :root{
-      --bg0:#07131f; --bg1:#0b1b2b; --card:rgba(255,255,255,.06);
-      --stroke:rgba(255,255,255,.10); --txt:#e8f1ff; --muted:rgba(232,241,255,.70);
-      --good:#23c58a; --bad:#ff5b73; --info:#4aa3ff; --warn:#ffc857;
-      --r:18px;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--txt);
-      background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
-                  radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
-                  linear-gradient(180deg,var(--bg0),var(--bg1)); min-height:100vh;}
-    .top{position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(7,19,31,.88), rgba(7,19,31,.60));
-      backdrop-filter: blur(10px); border-bottom:1px solid rgba(255,255,255,.08);}
-    .bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .brand{font-weight:900;display:flex;align-items:center;gap:10px}
-    .dot{width:10px;height:10px;border-radius:999px;background:#2ff2cc;box-shadow:0 0 18px rgba(47,242,204,.55)}
-    .pill{padding:7px 10px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:rgba(255,255,255,.05);
-      color:var(--muted);font-size:12px;white-space:nowrap}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
-      box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
-    h2{margin:0 0 10px 0;font-size:18px}
-    .row{display:flex;gap:12px;flex-wrap:wrap}
-    .field{flex:1 1 220px}
-    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
-    input,select,textarea{width:100%;border-radius:14px;padding:12px 12px;border:1px solid rgba(255,255,255,.10);
-      background:rgba(6,12,20,.55);color:var(--txt);outline:none}
-    textarea{min-height:88px;resize:vertical}
-    button{border:0;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;color:white;
-      background:linear-gradient(135deg,#2a76ff,#28c6b2);box-shadow:0 10px 20px rgba(25,92,255,.20)}
-    button.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:none;color:var(--txt)}
-    button.danger{background:linear-gradient(135deg,#ff5b73,#ff9aa9)}
-    .help{color:var(--muted);font-size:12px;margin-top:8px;white-space:pre-wrap}
-    .banner{display:none;padding:10px 12px;border-radius:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,.14);white-space:pre-wrap}
-    .banner.ok{background:rgba(35,197,138,.12);border-color:rgba(35,197,138,.35);color:#c8ffe8}
-    .banner.err{background:rgba(255,91,115,.12);border-color:rgba(255,91,115,.35);color:#ffd0d7}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
-      color:var(--txt);cursor:pointer;font-weight:900}
-    .tab.active{background:rgba(42,118,255,.18);border-color:rgba(42,118,255,.45)}
-    table{width:100%;border-collapse:separate;border-spacing:0 10px}
-    th{color:var(--muted);font-size:12px;text-align:left;padding:0 10px}
-    td{padding:12px 10px;background:rgba(255,255,255,.05);border-top:1px solid rgba(255,255,255,.10);
-      border-bottom:1px solid rgba(255,255,255,.10)}
-    tr td:first-child{border-left:1px solid rgba(255,255,255,.10);border-top-left-radius:14px;border-bottom-left-radius:14px}
-    tr td:last-child{border-right:1px solid rgba(255,255,255,.10);border-top-right-radius:14px;border-bottom-right-radius:14px}
-    .gridChecks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-    @media(max-width:820px){.gridChecks{grid-template-columns:repeat(3,minmax(0,1fr));}}
-    .chk{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;padding:10px}
-    .chk input{width:auto}
-    code{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.10);padding:2px 6px;border-radius:10px}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Washportal Admin</title>
+<style>
+:root{
+  --bg1:#061018; --bg2:#0b2230; --card:#0f1f2b; --card2:#0c1822;
+  --text:#e8f1f7; --muted:#9fb3c3; --line:rgba(255,255,255,.08);
+  --accent:#26c6da; --accent2:#4f8cff; --good:#1ee2a2; --warn:#f7b955; --bad:#ff5d6c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  color:var(--text);
+  min-height:100vh;
+  background:
+    radial-gradient(1200px 700px at 20% 15%, rgba(38,198,218,.22), transparent 55%),
+    radial-gradient(900px 600px at 70% 35%, rgba(79,140,255,.18), transparent 55%),
+    linear-gradient(180deg,var(--bg1),var(--bg2));
+}
+a{color:var(--accent)}
+.container{max-width:1180px;margin:18px auto;padding:0 16px}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.dot{width:9px;height:9px;border-radius:99px;background:var(--good);box-shadow:0 0 0 6px rgba(30,226,162,.12)}
+.h1{font-weight:800;letter-spacing:.2px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);color:var(--muted);font-size:12px}
+.grid{display:grid;gap:14px}
+.card{
+  border:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  box-shadow:0 10px 25px rgba(0,0,0,.35);
+  border-radius:18px;
+  padding:14px;
+}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.field{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
+label{font-size:12px;color:var(--muted)}
+input,select,textarea{
+  background:rgba(0,0,0,.22); color:var(--text);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px; padding:10px 12px; outline:none;
+}
+textarea{min-height:92px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-shadow:0 0 0 4px rgba(38,198,218,.12)}
+.btn{
+  border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg, rgba(79,140,255,.95), rgba(38,198,218,.72));
+  color:#061018; font-weight:800;
+  padding:10px 14px; border-radius:14px; cursor:pointer;
+}
+.btn.secondary{
+  background:rgba(255,255,255,.05); color:var(--text); font-weight:700;
+}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tab{
+  padding:9px 12px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(0,0,0,.18); color:var(--muted);
+  cursor:pointer; user-select:none;
+}
+.tab.active{color:var(--text);background:rgba(79,140,255,.18);border-color:rgba(79,140,255,.35)}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 10px;border-radius:999px;font-size:12px;
+  border:1px solid var(--line); background:rgba(0,0,0,.18); color:var(--muted);
+}
+.badge.ok{background:rgba(30,226,162,.12);color:var(--good);border-color:rgba(30,226,162,.25)}
+.badge.bad{background:rgba(255,93,108,.12);color:var(--bad);border-color:rgba(255,93,108,.25)}
+.badge.warn{background:rgba(247,185,85,.12);color:var(--warn);border-color:rgba(247,185,85,.25)}
+.hr{height:1px;background:var(--line);margin:12px 0}
+.small{font-size:12px;color:var(--muted);line-height:1.4}
+.kv{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre-wrap;background:rgba(0,0,0,.25);padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.08)}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:13px}
+.table th{color:var(--muted);font-weight:700}
+.slotgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
+.slot{
+  display:flex;align-items:center;gap:8px;
+  padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.10);
+  background:rgba(0,0,0,.16);
+}
+.slot input{width:16px;height:16px}
+.featuregrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.feature{
+  display:flex;align-items:center;gap:10px;padding:12px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.16)
+}
+.feature input{width:18px;height:18px}
+.preview{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.preview img{max-height:86px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18)}
+.hidden{display:none !important}
+@media (max-width: 860px){
+  .slotgrid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .featuregrid{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
-  <div class="top">
-    <div class="bar">
-      <div class="brand"><span class="dot"></span> Admin</div>
-      <div class="pill" id="buildPill">Worker: —</div>
-      <div class="pill">Hinweis: Zugriff nur mit <code>x-sa-password</code></div>
+<div class="container">
+  <div class="topbar">
+    <span class="dot"></span>
+    <div class="h1">Admin</div>
+    <span class="pill" id="pillBuild">build: -</span>
+    <span class="pill" id="pillConn">nicht verbunden</span>
+    <span class="pill">Hinweis: Zugriff nur mit <b>x-sa-password</b></span>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="field" style="min-width:360px;flex:2">
+        <label>Worker Base URL</label>
+        <input id="apiBase" placeholder="https://...workers.dev"/>
+        <div class="small">Wird lokal gespeichert. Keine .workers.de / .worker.de – nur .workers.dev</div>
+      </div>
+      <div class="field" style="min-width:260px;flex:1">
+        <label>SA Password (Header: x-sa-password)</label>
+        <input id="saPass" type="password" placeholder="optional"/>
+        <div class="small">Wenn falsch → 403. Wird lokal gespeichert.</div>
+      </div>
+      <div class="field" style="min-width:220px;flex:0">
+        <label>&nbsp;</label>
+        <button class="btn" id="btnConnect">Connect</button>
+      </div>
     </div>
   </div>
 
-  <div class="wrap">
-    <div class="card">
-      <h2>Verbindung</h2>
-      <div class="row">
-        <div class="field">
-          <label>Worker Base URL</label>
-          <input id="workerBase" placeholder="https://…workers.dev" />
-          <div class="help">Wird lokal gespeichert (nur in deinem Browser). Änderbar + speicherbar.</div>
-        </div>
-        <div class="field">
-          <label>SA Password</label>
-          <input id="saPass" type="password" placeholder="••••••••" />
-          <div class="help">Wird lokal gespeichert. Wenn falsch → 403.</div>
-        </div>
-        <div class="field" style="flex:0 0 220px;align-self:flex-end">
-          <button id="btnConnect" style="width:100%">Connect</button>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+
+    <!-- CONFIG -->
+    <div id="view-config" class="view">
+      <div class="row" style="justify-content:space-between">
+        <div class="badge" id="cfgStatus">Config</div>
+        <div class="row">
+          <button class="btn secondary" id="btnCfgLoad">Load</button>
+          <button class="btn" id="btnCfgSave">Save</button>
         </div>
       </div>
-      <div class="banner" id="banner"></div>
-    </div>
-
-    <div class="card">
-      <div class="tabs">
-        <div class="tab active" data-tab="config">Config</div>
-        <div class="tab" data-tab="users">Users</div>
-        <div class="tab" data-tab="rbac">RBAC</div>
-      </div>
-    </div>
-
-    <div class="card" id="tabConfig">
-      <h2>Config</h2>
+      <div class="hr"></div>
 
       <div class="row">
         <div class="field">
-          <label>Stations-PIN (Klartext Anzeige nach Laden)</label>
-          <input id="stationPin" type="password" placeholder="••••" />
-          <div class="help">Hinweis: Eingabe verdeckt. Nach “Load Config” zeigen wir unten Klartext an (nur Admin-Ansicht).</div>
+          <label>Stations-PIN (Eingabe verdeckt)</label>
+          <input id="cfgStationPin" type="password" placeholder="z.B. 1111"/>
+          <div class="small">Nach <b>Load</b> zeigen wir unten Klartext (nur Admin-Ansicht).</div>
         </div>
         <div class="field">
-          <label>Trockner Minuten (Slot läuft danach ab)</label>
-          <input id="dryerMinutes" type="number" min="1" step="1" placeholder="90" />
+          <label>Trockner Minuten (Slot läuft nach Buchung ab)</label>
+          <input id="cfgDryerMinutes" type="number" min="10" step="1" placeholder="z.B. 90"/>
         </div>
         <div class="field">
           <label>Retention Days</label>
-          <input id="retentionDays" type="number" min="1" step="1" placeholder="30" />
+          <input id="cfgRetentionDays" type="number" min="1" step="1" placeholder="z.B. 30"/>
         </div>
       </div>
 
-      <div style="margin-top:10px">
-        <label>Waschslotzeiten (Haken)</label>
-        <div class="gridChecks" id="washerChecks"></div>
-        <div class="help" id="washerHuman"></div>
-      </div>
-
-      <div style="margin-top:12px">
-        <label>Features</label>
-        <div class="gridChecks">
-          <div class="chk"><input type="checkbox" id="f_news"><div>News aktiv</div></div>
-          <div class="chk"><input type="checkbox" id="f_feedback"><div>Feedback aktiv</div></div>
-          <div class="chk"><input type="checkbox" id="f_defect"><div>User darf Defekt melden</div></div>
-          <div class="chk"><input type="checkbox" id="f_overbook"><div>Trockner überbuchen</div></div>
-        </div>
-      </div>
-
-      <div style="margin-top:12px">
-        <label>News Text</label>
-        <textarea id="newsText" placeholder="Nur sichtbar wenn News aktiv"></textarea>
-      </div>
-
-      <div class="row" style="margin-top:12px">
-        <div class="field" style="flex:0 0 220px"><button id="btnLoadCfg" style="width:100%">Load Config</button></div>
-        <div class="field" style="flex:0 0 220px"><button id="btnSaveCfg" style="width:100%">Save Config</button></div>
-      </div>
-
-      <div class="help" id="stationPinPlain"></div>
-    </div>
-
-    <div class="card" id="tabUsers" style="display:none">
-      <h2>Users</h2>
-      <div class="help">Rollen werden direkt aus der DB geladen. Du siehst also z.B. <code>PS</code>, <code>ps_deputy</code>, <code>admin</code> etc.</div>
-      <div class="row" style="margin-top:10px">
-        <div class="field" style="flex:0 0 220px">
-          <button id="btnLoadUsers" style="width:100%">Load Users</button>
-        </div>
-      </div>
-      <div id="usersTable"></div>
-    </div>
-
-    <div class="card" id="tabRbac" style="display:none">
-      <h2>RBAC Snapshot</h2>
       <div class="row">
-        <div class="field" style="flex:0 0 220px">
-          <button id="btnLoadRbac" style="width:100%">Load RBAC</button>
+        <div class="field">
+          <label>daysPast (Vergangenheit in Tagen)</label>
+          <input id="cfgDaysPast" type="number" min="0" step="1" placeholder="z.B. 7"/>
+        </div>
+        <div class="field">
+          <label>daysFuture (Zukunft in Tagen)</label>
+          <input id="cfgDaysFuture" type="number" min="0" step="1" placeholder="z.B. 6"/>
+        </div>
+        <div class="field">
+          <label>Aktuelle Station-PIN (Klartext, nach Load)</label>
+          <input id="cfgStationPinClear" disabled placeholder="—"/>
         </div>
       </div>
-      <pre id="rbacBox" style="white-space:pre-wrap;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10);padding:12px;border-radius:14px;margin-top:12px"></pre>
+
+      <div class="hr"></div>
+      <div class="small"><b>Waschslotzeiten</b> (Haken → Start-Stunden 0–23). Dauer wird im Portal automatisch als „bis zum nächsten Slot“ angezeigt.</div>
+      <div class="slotgrid" id="slotGrid"></div>
+      <div class="small" style="margin-top:6px">Aktiv: <span id="slotActiveText">—</span></div>
+
+      <div class="hr"></div>
+      <div class="small"><b>Features</b></div>
+      <div class="featuregrid">
+        <div class="feature"><input type="checkbox" id="fNews"><div><b>News aktiv</b><div class="small">Portal zeigt News-Banner</div></div></div>
+        <div class="feature"><input type="checkbox" id="fFeedback"><div><b>Feedback aktiv</b><div class="small">Portal Feedback-Formular</div></div></div>
+        <div class="feature"><input type="checkbox" id="fDefect"><div><b>User darf Defekt melden</b><div class="small">Defekt-Button im Portal</div></div></div>
+        <div class="feature"><input type="checkbox" id="fOverbook"><div><b>Trockner überbuchen</b><div class="small">Überbuchen im Portal</div></div></div>
+        <div class="feature"><input type="checkbox" id="fWhitecard"><div><b>Whitecard erlaubt</b><div class="small">User kann Whitecard selbst setzen</div></div></div>
+        <div class="feature"><input type="checkbox" id="fWasherPopup"><div><b>Washer Popup</b><div class="small">Info-Popup + Bild</div></div></div>
+        <div class="feature"><input type="checkbox" id="fDryerPopup"><div><b>Dryer Popup</b><div class="small">Info-Popup + Bild</div></div></div>
+        <div class="feature"><input type="checkbox" id="fAllowUserHide"><div><b>User kann alte Buchungen ausblenden</b><div class="small">(Portal localStorage)</div></div></div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="row">
+        <div class="field">
+          <label>News Text</label>
+          <textarea id="cfgNewsText" placeholder="Kurzer Hinweis..."></textarea>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="small"><b>Feedback Zielgruppen</b> (im Portal Drop-Down)</div>
+      <div class="row">
+        <label class="badge"><input type="checkbox" id="tPS" style="margin-right:8px"> PS</label>
+        <label class="badge"><input type="checkbox" id="tSV" style="margin-right:8px"> SV</label>
+        <label class="badge"><input type="checkbox" id="tAdmin" style="margin-right:8px"> Admin</label>
+        <span class="badge warn">Antworten auf Feedback: INAKTIV (Worker-Route fehlt)</span>
+      </div>
+
+      <div class="hr"></div>
+      <div class="small"><b>Popup Bilder</b> (wir speichern DataURL direkt in der DB in config.json)</div>
+      <div class="row">
+        <div class="field">
+          <label>Washer Popup Image (URL oder DataURL)</label>
+          <input id="cfgWasherImg" placeholder="https://... oder data:image/..."/>
+          <div class="row" style="margin-top:8px">
+            <input id="fileWasher" type="file" accept="image/*" />
+            <button class="btn secondary" id="btnClearWasher">löschen</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Dryer Popup Image (URL oder DataURL)</label>
+          <input id="cfgDryerImg" placeholder="https://... oder data:image/..."/>
+          <div class="row" style="margin-top:8px">
+            <input id="fileDryer" type="file" accept="image/*" />
+            <button class="btn secondary" id="btnClearDryer">löschen</button>
+          </div>
+        </div>
+      </div>
+      <div class="preview">
+        <div class="badge">Preview</div>
+        <img id="imgPrevWasher" alt="washer preview" />
+        <img id="imgPrevDryer" alt="dryer preview" />
+      </div>
+
+      <div class="hr"></div>
+      <div class="small"><b>Weitere geplante Admin-Funktionen</b> (UI vorhanden, Worker fehlt noch):</div>
+      <div class="row" style="flex-wrap:wrap">
+        <span class="badge warn">Maschinen sperren/freigeben (INAKTIV)</span>
+        <span class="badge warn">Defekt-Management (INAKTIV)</span>
+        <span class="badge warn">Feedback Threads + Antworten (INAKTIV)</span>
+        <span class="badge warn">Logs/Protocol/Rooms (INAKTIV)</span>
+      </div>
     </div>
+
+    <!-- USERS -->
+    <div id="view-users" class="view hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="badge" id="usersStatus">Users</div>
+        <div class="row">
+          <button class="btn secondary" id="btnUsersLoad">Users laden</button>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="small">Rollenliste kommt aus der DB (RBAC Snapshot). Du kannst Rollen setzen, auch als SA.</div>
+      <div class="hr"></div>
+      <table class="table">
+        <thead><tr><th>Email</th><th>Status</th><th>Role</th><th>Aktion</th></tr></thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+      <div class="hr"></div>
+      <div class="badge warn">Email-Login/Registrierung: INAKTIV (Routes fehlen im Worker)</div>
+    </div>
+
+    <!-- RBAC -->
+    <div id="view-rbac" class="view hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="badge" id="rbacStatus">RBAC</div>
+        <div class="row">
+          <button class="btn secondary" id="btnRbacLoad">RBAC Snapshot</button>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="kv" id="rbacOut">—</div>
+      <div class="hr"></div>
+      <div class="badge warn">Granulare Rechte/Perms editieren: INAKTIV (Routes fehlen)</div>
+    </div>
+
+    <!-- PLACEHOLDER TABS -->
+    <div id="view-machines" class="view hidden"><div class="badge warn">Machines: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-defects" class="view hidden"><div class="badge warn">Defects: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-feedback" class="view hidden"><div class="badge warn">Feedback Inbox/Antworten: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-logs" class="view hidden"><div class="badge warn">Logs: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-rooms" class="view hidden"><div class="badge warn">Rooms / Room-Locks: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-privacy" class="view hidden">
+      <div class="badge">Privacy Meta</div>
+      <div class="hr"></div>
+      <button class="btn secondary" id="btnPrivacyLoad">/api/privacy/meta laden</button>
+      <div class="hr"></div>
+      <div class="kv" id="privacyOut">—</div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="small" id="msg"></div>
   </div>
+</div>
 
 <script>
 (() => {
-  const DEFAULT_WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  const LS_WORKER = "wash_admin_worker_base";
-  const LS_SA = "wash_admin_sa";
-
-  const $ = (id)=>document.getElementById(id);
-
-  const state = {
-    roles: [],
-    users: []
+  const el = (id) => document.getElementById(id);
+  const msg = (t, kind="") => {
+    const m = el("msg");
+    m.textContent = t || "";
+    m.style.color = kind==="bad" ? "var(--bad)" : kind==="ok" ? "var(--good)" : "var(--muted)";
   };
 
-  function banner(msg, ok=true){
-    const b = $("banner");
-    if(!msg){ b.style.display="none"; b.textContent=""; b.className="banner"; return; }
-    b.style.display="block";
-    b.textContent=msg;
-    b.className="banner " + (ok ? "ok":"err");
+  let API = "";
+  let SA = "";
+  let ROUTES = new Set();
+  let ROLE_OPTIONS = [];
+
+  function normBase(u){
+    u = (u||"").trim();
+    u = u.replace(/\/+$/,'');
+    if (!u) return "";
+    return u;
   }
 
-  function apiBase(){
-    return String($("workerBase").value||"").trim().replace(/\/$/,"");
-  }
-  function saPass(){
-    return String($("saPass").value||"").trim();
-  }
-
-  async function jpost(path, body){
-    const res = await fetch(apiBase()+path, {
-      method:"POST",
-      headers:{
-        "content-type":"application/json",
-        "x-sa-password": saPass()
-      },
-      body: JSON.stringify(body||{})
-    });
-    const data = await res.json().catch(async()=>({ok:false,message:await res.text()}));
-    if(!res.ok || data.ok===false) throw data;
+  async function jfetch(path, opts={}){
+    if (!API) throw new Error("Kein Worker gesetzt.");
+    const headers = Object.assign({}, opts.headers || {});
+    if (SA) headers["x-sa-password"] = SA;
+    headers["content-type"] = headers["content-type"] || "application/json";
+    const res = await fetch(API + path, Object.assign({}, opts, { headers }));
+    const ct = res.headers.get("content-type") || "";
+    const data = ct.includes("application/json") ? await res.json() : { ok:false, status:res.status, message: await res.text() };
+    if (!res.ok) throw Object.assign(new Error(data?.message || "HTTP "+res.status), { data, status: res.status });
     return data;
   }
+  const jpost = (path, body) => jfetch(path, { method:"POST", body: JSON.stringify(body||{}) });
+  const jget = (path) => jfetch(path, { method:"GET", headers: { "content-type": "text/plain" } });
 
-  function setActive(tab){
-    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===tab));
-    $("tabConfig").style.display = (tab==="config") ? "" : "none";
-    $("tabUsers").style.display  = (tab==="users") ? "" : "none";
-    $("tabRbac").style.display   = (tab==="rbac") ? "" : "none";
+  function setConn(ok, build=""){
+    el("pillConn").textContent = ok ? "verbunden" : "nicht verbunden";
+    el("pillConn").className = "pill " + (ok ? "" : "");
+    el("pillBuild").textContent = "build: " + (build || "-");
   }
 
-  function buildWasherChecks(selected){
-    const wrap = $("washerChecks");
-    wrap.innerHTML="";
-    // Hours 0..23 as checkboxes, but visually we focus on typical times.
-    for(let h=0; h<24; h++){
-      const id = "wh_"+h;
-      const div = document.createElement("div");
-      div.className="chk";
-      div.innerHTML = `<input type="checkbox" id="${id}"><div>${String(h).padStart(2,"0")}:00</div>`;
-      wrap.appendChild(div);
-      const cb = div.querySelector("input");
-      cb.checked = selected.includes(h);
-      cb.addEventListener("change", updateWasherHuman);
+  function tabButton(key, label, warn=false){
+    const b = document.createElement("div");
+    b.className = "tab";
+    b.dataset.key = key;
+    b.textContent = label + (warn ? " (INAKTIV)" : "");
+    b.addEventListener("click", () => setTab(key));
+    return b;
+  }
+
+  function setTab(key){
+    for (const t of document.querySelectorAll(".tab")) t.classList.toggle("active", t.dataset.key===key);
+    for (const v of document.querySelectorAll(".view")) v.classList.add("hidden");
+    el("view-"+key).classList.remove("hidden");
+  }
+
+  function buildTabs(){
+    const t = el("tabs");
+    t.innerHTML = "";
+    const active = (k) => ROUTES.has(k);
+    // These are "capabilities" based on routes we actually have:
+    t.appendChild(tabButton("config","Config", !active("/api/auth/admin/config/get")));
+    t.appendChild(tabButton("users","Users", !active("/api/auth/admin/users/list")));
+    t.appendChild(tabButton("rbac","RBAC", !active("/api/auth/admin/rbac/snapshot")));
+    t.appendChild(tabButton("machines","Machines", true));
+    t.appendChild(tabButton("defects","Defects", true));
+    t.appendChild(tabButton("feedback","Feedback", true));
+    t.appendChild(tabButton("logs","Logs", true));
+    t.appendChild(tabButton("rooms","Rooms", true));
+    t.appendChild(tabButton("privacy","Privacy", !active("/api/privacy/meta")));
+    setTab("config");
+  }
+
+  function hoursFromChecks(){
+    const hours=[];
+    for (let h=0; h<24; h++){
+      const cb = el("slot_"+h);
+      if (cb && cb.checked) hours.push(h);
     }
-    updateWasherHuman();
+    hours.sort((a,b)=>a-b);
+    return hours;
   }
-
-  function getWasherHours(){
-    const out=[];
-    for(let h=0; h<24; h++){
-      const cb = document.getElementById("wh_"+h);
-      if(cb && cb.checked) out.push(h);
+  function setChecksFromHours(hours){
+    const set = new Set((hours||[]).map(n=>Number(n)));
+    for (let h=0; h<24; h++){
+      const cb = el("slot_"+h);
+      if (cb) cb.checked = set.has(h);
     }
-    out.sort((a,b)=>a-b);
-    return out;
+    updateSlotActiveText();
+  }
+  function updateSlotActiveText(){
+    const hours = hoursFromChecks();
+    el("slotActiveText").textContent = hours.length ? hours.map(h=>String(h).padStart(2,"0")+":00").join(", ") : "—";
+  }
+  function initSlotGrid(){
+    const g = el("slotGrid");
+    g.innerHTML = "";
+    for (let h=0; h<24; h++){
+      const d = document.createElement("label");
+      d.className = "slot";
+      d.innerHTML = `<input type="checkbox" id="slot_${h}"><span>${String(h).padStart(2,"0")}:00</span>`;
+      g.appendChild(d);
+      d.querySelector("input").addEventListener("change", updateSlotActiveText);
+    }
   }
 
-  function updateWasherHuman(){
-    const hours = getWasherHours();
-    const parts = hours.map(h=>String(h).padStart(2,"0")+":00");
-    $("washerHuman").textContent = "Gesetzt: " + (parts.length ? parts.join(", ") : "— (keine)");
+  function configToUI(cfg){
+    cfg = cfg || {};
+    el("cfgDryerMinutes").value = cfg.dryerMinutes ?? cfg.dryerSlotMinutes ?? cfg.dryer_slot_minutes ?? "";
+    el("cfgRetentionDays").value = cfg.retentionDays ?? cfg.retention_days ?? "";
+    el("cfgDaysPast").value = cfg.daysPast ?? cfg.days_past ?? "";
+    el("cfgDaysFuture").value = cfg.daysFuture ?? cfg.days_future ?? "";
+    // station pin: masked input empty (we don't re-fill), but show clear if present
+    el("cfgStationPinClear").value = cfg.stationPin ?? cfg.station_pin ?? "—";
+
+    const hours = cfg.washerHours ?? cfg.washer_hours ?? cfg.washerSlots ?? cfg.washer_slots ?? [];
+    setChecksFromHours(hours);
+
+    const features = cfg.features || cfg;
+    el("fNews").checked = !!(features.newsEnabled ?? features.news ?? false);
+    el("fFeedback").checked = !!(features.feedbackEnabled ?? features.feedback ?? false);
+    el("fDefect").checked = !!(features.userCanReportDefect ?? features.userDefect ?? features.allowDefectReport ?? false);
+    el("fOverbook").checked = !!(features.allowOverbook ?? features.overbook ?? false);
+    el("fWhitecard").checked = !!(features.whitecardEnabled ?? features.whitecard ?? false);
+    el("fWasherPopup").checked = !!(features.showWasherPopup ?? features.washerPopup ?? false);
+    el("fDryerPopup").checked = !!(features.showDryerPopup ?? features.dryerPopup ?? false);
+    el("fAllowUserHide").checked = true;
+
+    el("cfgNewsText").value = cfg.newsText ?? cfg.news_text ?? "";
+
+    // targets
+    const targets = (cfg.feedbackTargets ?? cfg.feedback_targets ?? "ps,sv,admin").toString().toLowerCase();
+    el("tPS").checked = targets.includes("ps");
+    el("tSV").checked = targets.includes("sv");
+    el("tAdmin").checked = targets.includes("admin");
+
+    // images
+    el("cfgWasherImg").value = cfg.washerPopupImage ?? cfg.washer_popup_image ?? "";
+    el("cfgDryerImg").value = cfg.dryerPopupImage ?? cfg.dryer_popup_image ?? "";
+    updatePreviews();
+  }
+
+  function uiToConfig(){
+    const cfg = {};
+    const stationPin = (el("cfgStationPin").value || "").trim();
+    if (stationPin) cfg.stationPin = stationPin;
+
+    cfg.dryerMinutes = Number(el("cfgDryerMinutes").value || 0) || 0;
+    cfg.retentionDays = Number(el("cfgRetentionDays").value || 0) || 0;
+    cfg.daysPast = Number(el("cfgDaysPast").value || 0) || 0;
+    cfg.daysFuture = Number(el("cfgDaysFuture").value || 0) || 0;
+    cfg.washerHours = hoursFromChecks();
+
+    cfg.features = {
+      newsEnabled: el("fNews").checked,
+      feedbackEnabled: el("fFeedback").checked,
+      userCanReportDefect: el("fDefect").checked,
+      allowOverbook: el("fOverbook").checked,
+      whitecardEnabled: el("fWhitecard").checked,
+      showWasherPopup: el("fWasherPopup").checked,
+      showDryerPopup: el("fDryerPopup").checked
+    };
+
+    cfg.newsText = el("cfgNewsText").value || "";
+
+    const targets = [];
+    if (el("tPS").checked) targets.push("ps");
+    if (el("tSV").checked) targets.push("sv");
+    if (el("tAdmin").checked) targets.push("admin");
+    cfg.feedbackTargets = targets.join(",");
+
+    cfg.washerPopupImage = (el("cfgWasherImg").value||"").trim();
+    cfg.dryerPopupImage = (el("cfgDryerImg").value||"").trim();
+    return cfg;
+  }
+
+  function updatePreviews(){
+    const w = el("cfgWasherImg").value.trim();
+    const d = el("cfgDryerImg").value.trim();
+    const iw = el("imgPrevWasher");
+    const id = el("imgPrevDryer");
+    iw.src = w || "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+    id.src = d || "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+  }
+
+  async function fileToDataURL(file){
+    return await new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onerror=()=>reject(new Error("FileReader error"));
+      fr.onload=()=>resolve(String(fr.result||""));
+      fr.readAsDataURL(file);
+    });
   }
 
   async function connect(){
-    try{
-      banner("");
-      const base = apiBase();
-      if(!base) return banner("Bitte Worker URL eintragen.", false);
-      if(!saPass()) return banner("Bitte SA Password eintragen.", false);
+    API = normBase(el("apiBase").value);
+    SA = (el("saPass").value||"").trim();
+    if (!API) { msg("Bitte Worker Base URL setzen.","bad"); return; }
 
-      localStorage.setItem(LS_WORKER, base);
-      localStorage.setItem(LS_SA, saPass());
+    localStorage.setItem("wp_admin_apiBase", API);
+    localStorage.setItem("wp_admin_sa", SA);
 
-      // ping routes
-      const r = await fetch(base+"/api/_routes");
-      const data = await r.json();
-      $("buildPill").textContent = "Worker: " + (data.build || "—");
-      banner("Verbunden. Worker Build: "+(data.build||"—"), true);
-    }catch(e){
-      banner(e.message || e.error || JSON.stringify(e), false);
-    }
+    msg("Verbinde...");
+
+    // load routes + status
+    const routes = await jget("/api/_routes").catch(async () => ({ ok:false, routes:[] }));
+    ROUTES = new Set((routes.routes||[]).map(r => String(r).split(" ").slice(1).join(" ")).filter(Boolean));
+
+    const st = await jget("/api/_status");
+    setConn(true, st.build || st.version || "-");
+    buildTabs();
+    msg("Verbunden. Worker: " + (st.build || "-"), "ok");
+
+    // preload RBAC roles list (optional)
+    await loadRbac().catch(()=>{});
   }
 
-  async function loadCfg(){
-    try{
-      banner("");
-      const r = await jpost("/api/auth/admin/config/get", {});
-      const cfg = r.config || {};
-      $("dryerMinutes").value = cfg.dryerMinutes ?? 90;
-      $("retentionDays").value = cfg.retentionDays ?? 30;
-
-      // station pin -> input remains masked but we show plain below
-      $("stationPin").value = cfg.stationPin || "";
-      $("stationPinPlain").textContent = "Stations-PIN (Klartext): " + (cfg.stationPin || "—");
-
-      const hours = (cfg.washerHours||[]).map(Number).filter(n=>Number.isFinite(n));
-      buildWasherChecks(hours);
-
-      $("f_news").checked = !!cfg.features?.newsEnabled;
-      $("f_feedback").checked = !!cfg.features?.feedbackEnabled;
-      $("f_defect").checked = cfg.features?.userCanReportDefect !== false;
-      $("f_overbook").checked = !!cfg.features?.allowOverbook;
-
-      $("newsText").value = cfg.newsText || "";
-
-      banner("Config geladen.", true);
-    }catch(e){
-      banner(e.message || e.error || JSON.stringify(e), false);
-    }
+  async function loadConfig(){
+    const data = await jpost("/api/auth/admin/config/get", {});
+    const cfg = data.config || data.cfg || data;
+    configToUI(cfg);
+    msg("Config geladen.", "ok");
   }
 
-  async function saveCfg(){
-    try{
-      banner("");
-      const cfg = {
-        stationPin: String($("stationPin").value||"").trim(),
-        dryerMinutes: Number($("dryerMinutes").value||90),
-        retentionDays: Number($("retentionDays").value||30),
-        washerHours: getWasherHours(),
-        features: {
-          newsEnabled: $("f_news").checked,
-          feedbackEnabled: $("f_feedback").checked,
-          userCanReportDefect: $("f_defect").checked,
-          allowOverbook: $("f_overbook").checked,
-        },
-        newsText: String($("newsText").value||"")
-      };
-      const r = await jpost("/api/auth/admin/config/set", { config: cfg });
-      $("stationPinPlain").textContent = "Stations-PIN (Klartext): " + (r.config?.stationPin || "—");
-      banner("Config gespeichert.", true);
-    }catch(e){
-      banner(e.message || e.error || JSON.stringify(e), false);
-    }
-  }
-
-  function renderUsers(){
-    const roles = state.roles.map(x=>x.role);
-    const rows = state.users;
-
-    let html = `<table>
-      <thead><tr>
-        <th>Email</th><th>Name</th><th>Rolle</th><th>Status</th><th>Aktion</th>
-      </tr></thead><tbody>`;
-
-    for(const u of rows){
-      const name = `${u.firstName||""} ${u.lastName||""}`.trim();
-      const opt = roles.map(r=>`<option value="${escapeHtml(r)}" ${String(u.role)===String(r)?"selected":""}>${escapeHtml(r)}</option>`).join("");
-      html += `<tr>
-        <td>${escapeHtml(u.email||"")}</td>
-        <td>${escapeHtml(name||"")}</td>
-        <td><select data-email="${escapeHtml(u.email||"")}" class="roleSel">${opt}</select></td>
-        <td>${escapeHtml(u.status||"")}</td>
-        <td><button class="secondary btnSetRole" data-email="${escapeHtml(u.email||"")}">Set</button></td>
-      </tr>`;
-    }
-    html += `</tbody></table>`;
-    $("usersTable").innerHTML = html;
-
-    document.querySelectorAll(".btnSetRole").forEach(btn=>{
-      btn.addEventListener("click", async ()=>{
-        const email = btn.dataset.email;
-        const sel = document.querySelector(`select.roleSel[data-email="${cssEscape(email)}"]`);
-        const role = sel ? sel.value : "";
-        try{
-          banner("");
-          await jpost("/api/auth/admin/users/role/set", { email, role });
-          banner(`Role gesetzt: ${email} -> ${role}`, true);
-        }catch(e){
-          banner(e.message || e.error || JSON.stringify(e), false);
-        }
-      });
-    });
+  async function saveConfig(){
+    const cfg = uiToConfig();
+    const data = await jpost("/api/auth/admin/config/set", { config: cfg });
+    msg("Config gespeichert.", "ok");
+    // reload to show cleartext station pin after set
+    await loadConfig();
   }
 
   async function loadUsers(){
-    try{
-      banner("");
-      const r = await jpost("/api/auth/admin/users/list", {});
-      state.users = r.users || [];
-      state.roles = r.roles || [];
-      renderUsers();
-      banner("Users geladen.", true);
-    }catch(e){
-      banner(e.message || e.error || JSON.stringify(e), false);
+    const data = await jpost("/api/auth/admin/users/list", {});
+    const users = data.users || data.items || [];
+    const tbody = el("usersBody");
+    tbody.innerHTML = "";
+    for (const u of users){
+      const tr = document.createElement("tr");
+      const email = u.email || u.userEmail || "";
+      const status = u.status || "";
+      const role = u.role || "";
+      const sel = document.createElement("select");
+      const opts = (ROLE_OPTIONS.length ? ROLE_OPTIONS : [...new Set(users.map(x=>x.role).filter(Boolean))]).sort();
+      for (const r of opts){
+        const o = document.createElement("option");
+        o.value = r; o.textContent = r;
+        if (r === role) o.selected = true;
+        sel.appendChild(o);
+      }
+      const btn = document.createElement("button");
+      btn.className = "btn secondary";
+      btn.textContent = "Role setzen";
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try{
+          await jpost("/api/auth/admin/users/role/set", { email, role: sel.value });
+          msg("Rolle gesetzt: "+email+" → "+sel.value, "ok");
+          await loadUsers();
+        } catch(e){
+          msg("Fehler Role set: " + (e.data?.message || e.message), "bad");
+        } finally { btn.disabled = false; }
+      });
+      tr.innerHTML = `<td>${escapeHtml(email)}</td><td>${escapeHtml(status)}</td>`;
+      const tdRole = document.createElement("td"); tdRole.appendChild(sel);
+      const tdAct = document.createElement("td"); tdAct.appendChild(btn);
+      tr.appendChild(tdRole); tr.appendChild(tdAct);
+      tbody.appendChild(tr);
     }
+    msg("Users geladen: " + users.length, "ok");
   }
 
   async function loadRbac(){
-    try{
-      banner("");
-      const r = await jpost("/api/auth/admin/rbac/snapshot", {});
-      $("rbacBox").textContent = JSON.stringify(r, null, 2);
-      banner("RBAC geladen.", true);
-    }catch(e){
-      banner(e.message || e.error || JSON.stringify(e), false);
+    const data = await jpost("/api/auth/admin/rbac/snapshot", {});
+    el("rbacOut").textContent = JSON.stringify(data, null, 2);
+    // extract roles list
+    const roles = data.roles || data.roleList || data.availableRoles || [];
+    if (Array.isArray(roles) && roles.length){
+      ROLE_OPTIONS = roles.map(String);
+    } else if (typeof data === "object") {
+      // fallback: parse from message or keys
+      const txt = JSON.stringify(data);
+      // crude: roles: [...] already handled
     }
+    msg("RBAC Snapshot ok.", "ok");
+    return data;
+  }
+
+  async function loadPrivacy(){
+    const data = await jget("/api/privacy/meta");
+    el("privacyOut").textContent = JSON.stringify(data, null, 2);
+    msg("Privacy Meta geladen.", "ok");
   }
 
   function escapeHtml(s){
-    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-  function cssEscape(s){
-    // minimal
-    return String(s).replace(/"/g,'\\"');
+    return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
-  // Init
-  $("workerBase").value = localStorage.getItem(LS_WORKER) || DEFAULT_WORKER;
-  $("saPass").value = localStorage.getItem(LS_SA) || "";
+  // wire
+  initSlotGrid();
+  el("btnConnect").addEventListener("click", () => connect().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("btnCfgLoad").addEventListener("click", () => loadConfig().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("btnCfgSave").addEventListener("click", () => saveConfig().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("btnUsersLoad").addEventListener("click", () => loadUsers().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("btnRbacLoad").addEventListener("click", () => loadRbac().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("btnPrivacyLoad").addEventListener("click", () => loadPrivacy().catch(e => msg(e.data?.message || e.message, "bad")));
 
-  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>setActive(t.dataset.tab)));
-  $("btnConnect").addEventListener("click", connect);
-  $("btnLoadCfg").addEventListener("click", loadCfg);
-  $("btnSaveCfg").addEventListener("click", saveCfg);
-  $("btnLoadUsers").addEventListener("click", loadUsers);
-  $("btnLoadRbac").addEventListener("click", loadRbac);
+  el("cfgWasherImg").addEventListener("input", updatePreviews);
+  el("cfgDryerImg").addEventListener("input", updatePreviews);
 
+  el("btnClearWasher").addEventListener("click", () => { el("cfgWasherImg").value=""; updatePreviews(); });
+  el("btnClearDryer").addEventListener("click", () => { el("cfgDryerImg").value=""; updatePreviews(); });
+
+  el("fileWasher").addEventListener("change", async (ev) => {
+    const f = ev.target.files?.[0]; if (!f) return;
+    el("cfgWasherImg").value = await fileToDataURL(f);
+    updatePreviews();
+    msg("Washer Bild geladen (DataURL). Nicht vergessen: Save.", "ok");
+  });
+  el("fileDryer").addEventListener("change", async (ev) => {
+    const f = ev.target.files?.[0]; if (!f) return;
+    el("cfgDryerImg").value = await fileToDataURL(f);
+    updatePreviews();
+    msg("Dryer Bild geladen (DataURL). Nicht vergessen: Save.", "ok");
+  });
+
+  // restore
+  el("apiBase").value = localStorage.getItem("wp_admin_apiBase") || "";
+  el("saPass").value = localStorage.getItem("wp_admin_sa") || "";
+  buildTabs();
+  updatePreviews();
 })();
 </script>
 </body>
