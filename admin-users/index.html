@@ -336,6 +336,14 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     el("pillBuild").textContent = "build: " + (build || "-");
   }
 
+  function setCfgBadge(kind, text){
+    const b = document.getElementById("cfgStatus");
+    if (!b) return;
+    b.textContent = text || "Config";
+    b.classList.remove("ok","warn","bad");
+    if (kind) b.classList.add(kind);
+  }
+
   function tabButton(key, label, warn=false){
     const b = document.createElement("div");
     b.className = "tab";
@@ -498,6 +506,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     localStorage.setItem("wp_admin_sa", SA);
 
     msg("Verbinde...");
+    setCfgBadge("warn","Config: (noch nicht geladen)");
 
     // load routes + status
     const routes = await jget("/api/_routes").catch(async () => ({ ok:false, routes:[] }));
@@ -507,6 +516,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     setConn(true, st.build || st.version || "-");
     buildTabs();
     msg("Verbunden. Worker: " + (st.build || "-"), "ok");
+    if (ROUTES.has("/api/auth/admin/config/get")) setCfgBadge("warn","Config: bereit (Load klicken)");
 
     // preload RBAC roles list (optional)
     await loadRbac().catch(()=>{});
@@ -517,12 +527,14 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     const cfg = data.config || data.cfg || data;
     configToUI(cfg);
     msg("Config geladen.", "ok");
+    setCfgBadge("ok","Config: AKTIV");
   }
 
   async function saveConfig(){
     const cfg = uiToConfig();
     const data = await jpost("/api/auth/admin/config/set", { config: cfg });
     msg("Config gespeichert.", "ok");
+    setCfgBadge("ok","Config: gespeichert");
     // reload to show cleartext station pin after set
     await loadConfig();
   }
