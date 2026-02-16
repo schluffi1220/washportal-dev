@@ -143,8 +143,18 @@
 
 <script>
 // ---- helpers (added in v4) ----
+
+// --- API base (Cloudflare Worker) ---
+const WORKER_BASE = (new URLSearchParams(location.search).get('worker') || 'https://washportal-dev-worker.schluffi1220.workers.dev').replace(/\/$/, '');
+function apiUrl(path){
+  if(!path) return WORKER_BASE;
+  if(/^https?:\/\//i.test(path)) return path;
+  return WORKER_BASE + (path.startsWith('/') ? path : ('/' + path));
+}
+
 function jpost(url, body, extraHeaders){
   const headers = Object.assign({'Content-Type':'application/json'}, extraHeaders||{});
+    url = apiUrl(url);
   return fetch(url, {method:'POST', headers, body: JSON.stringify(body||{})})
     .then(async (r)=>{
       let data=null;
@@ -158,6 +168,7 @@ function jpost(url, body, extraHeaders){
 }
 function jget(url, extraHeaders){
   const headers = Object.assign({}, extraHeaders||{});
+    url = apiUrl(url);
   return fetch(url, {method:'GET', headers})
     .then(async (r)=>{
       let data=null;
