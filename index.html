@@ -705,7 +705,10 @@ async function bookDryer(machineId){
   const body = { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), minutes };
   const res = await jpost("/api/dryer/book", body);
   if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
-  toast("Tro
+  toast("Trockner gebucht");
+  await refreshAll();
+}
+
 function renderGlobalSlots(state){
   const sel = $("globalSlotSel");
   if(!sel) return;
