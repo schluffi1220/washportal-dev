@@ -244,6 +244,33 @@ function renderMachines(state){
   function cardHtml(m){
     const bs = bookingsForMachine(state, m);
     const { last, current, next } = findLastNext(bs);
+    const kind = normalizeType(m);
+    const id = String(m.machineId || m.id || "");
+    let actions = "";
+    if (kind === "washer") {
+      const slots = buildWasherSlotsForDays(state.config);
+      const opts = slots.map(s=>{
+        const occ = slotIsOccupied(state, "washer", id, s);
+        const txt = occ ? `${s.label}  •  BELEGT` : s.label;
+        return `<option value="${s.startAt}" data-end-at="${s.endAt}" ${occ?"disabled":""}>${escapeHtml(txt)}</option>`;
+      }).join("");
+      actions = `
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+          <select id="slot_${id}" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18); color:#eaf2ff;">
+            <option value="">Bitte Slot auswählen…</option>
+            ${opts}
+          </select>
+          <button class="btn" style="width:100%;" onclick="bookWasher('${id}')">Buchen</button>
+        </div>`;
+    } else if (kind === "dryer") {
+      const mins = Number(state?.config?.dryerMinutes ?? 150);
+      actions = `
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+          <div class="muted">Dauer: ${escapeHtml(String(mins))} Minuten</div>
+          <button class="btn" style="width:100%;" onclick="bookDryer('${id}')">Buchen</button>
+        </div>`;
+    }
+
     return `
       <div style="border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); border-radius:18px; padding:14px;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -255,6 +282,7 @@ function renderMachines(state){
           <div><span class="muted">Aktuell:</span> ${current ? escapeHtml((current.room?('Zimmer '+current.room+' · '):'')) + escapeHtml(bookingTimeRange(current)) : '—'}</div>
           <div><span class="muted">Als nächstes:</span> ${next ? escapeHtml((next.room?('Zimmer '+next.room+' · '):'')) + escapeHtml(bookingTimeRange(next)) : '—'}</div>
         </div>
+        ${actions}
       </div>`;
   }
 
@@ -484,6 +512,93 @@ async function refreshAll(){
 
   loadCreds();
   refreshAll();
+
+// ===== booking helpers (added v7) =====
+function parseWasherHours(cfg){
+  let wh = cfg?.washerHours ?? cfg?.washer_hours ?? cfg?.washerHoursText;
+  if (Array.isArray(wh)) return wh.map(n=>Number(n)).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
+  if (typeof wh === "string") {
+    return wh.split(/[,;\s]+/).map(s=>Number(s.trim())).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
+  }
+  return [6,8,10,12,14,16,18,20]; // default
+}
+function pad2(n){ return String(n).padStart(2,"0"); }
+function fmtSlotLabel(startMs, endMs){
+  const d = new Date(startMs);
+  const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
+  const dd = pad2(d.getDate());
+  const mm = pad2(d.getMonth()+1);
+  const sH = pad2(d.getHours()), sM = pad2(d.getMinutes());
+  const e = new Date(endMs);
+  const eH = pad2(e.getHours()), eM = pad2(e.getMinutes());
+  return `${wd} ${dd}.${mm} ${sH}:${sM}–${eH}:${eM}`;
+}
+function buildWasherSlotsForDays(cfg){
+  const hours = parseWasherHours(cfg);
+  if (!hours.length) return [];
+  const daysFuture = Number(cfg?.daysFuture ?? cfg?.days_future ?? 6);
+  const slots = [];
+  const now = Date.now();
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let d=0; d<=daysFuture; d++){
+    const day = new Date(today.getTime() + d*86400000);
+    for (let i=0;i<hours.length;i++){
+      const h = hours[i];
+      const start = new Date(day.getTime()); start.setHours(h,0,0,0);
+      let end;
+      if (i < hours.length-1){
+        end = new Date(day.getTime()); end.setHours(hours[i+1],0,0,0);
+      } else {
+        // last -> next day first hour
+        const nextDay = new Date(day.getTime()+86400000);
+        end = new Date(nextDay.getTime()); end.setHours(hours[0],0,0,0);
+      }
+      const startMs = start.getTime(), endMs = end.getTime();
+      // include future slots and also currently running (end in future)
+      if (endMs > now) slots.push({ startAt:startMs, endAt:endMs, label: fmtSlotLabel(startMs,endMs), minutes: Math.round((endMs-startMs)/60000) });
+    }
+  }
+  // sort by start
+  slots.sort((a,b)=>a.startAt-b.startAt);
+  return slots;
+}
+function overlaps(aStart,aEnd,bStart,bEnd){
+  return !(aEnd<=bStart || aStart>=bEnd);
+}
+function machineBookings(state, kind, machineId){
+  const all = Array.isArray(state?.bookings) ? state.bookings : [];
+  return all.filter(b=>{
+    const t = String(b.type||b.kind||"");
+    const m = String(b.machine||b.machineId||b.machine_id||"");
+    return normalizeType({kind:t,type:t})===kind && m===String(machineId) && ["booked","active"].includes(String(b.status||""));
+  });
+}
+function slotIsOccupied(state, kind, machineId, slot){
+  const bs = machineBookings(state, kind, machineId);
+  return bs.some(b=>overlaps(slot.startAt, slot.endAt, Number(b.start), Number(b.end)));
+}
+
+async function bookWasher(machineId){
+  const sel = document.getElementById(`slot_${machineId}`);
+  if (!sel || !sel.value) return toast("Bitte Slot auswählen");
+  const startAt = Number(sel.value);
+  const endAt = Number(sel.selectedOptions?.[0]?.dataset?.endAt || 0);
+  const minutes = endAt && startAt ? Math.round((endAt-startAt)/60000) : 60;
+  const body = { room: state.room, pin: creds.pin, stationPin: creds.stationPin, machineId: String(machineId), startAt, minutes };
+  const res = await jpost("/api/washer/book", body);
+  if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
+  toast("Gebucht ✓");
+  await refreshAll();
+}
+async function bookDryer(machineId){
+  const minutes = Number(state?.config?.dryerMinutes ?? 150);
+  const body = { room: state.room, pin: creds.pin, stationPin: creds.stationPin, machineId: String(machineId), minutes };
+  const res = await jpost("/api/dryer/book", body);
+  if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
+  toast("Trockner gebucht ✓");
+  await refreshAll();
+}
+
 </script>
 <div id="toast" style="display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,.18);font-weight:700;z-index:9999"></div>
 </body>
