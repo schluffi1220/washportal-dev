@@ -3,65 +3,145 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Datenschutz</title>
+<title>Datenschutz – Washportal</title>
 <style>
-:root{--bg:#070b14;--card:#121a2b;--muted:#93a4c7;--text:#e8eefc;--acc:#6aa7ff;}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#050912,#0b1220);color:var(--text)}
-header{position:sticky;top:0;background:rgba(5,9,18,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
-.wrap{max-width:1100px;margin:0 auto;padding:14px 16px}
-h1{margin:0;font-size:18px}
-.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}
-pre{white-space:pre-wrap;word-break:break-word;color:var(--text);margin:0;font-size:14px;line-height:1.55}
-.small{color:var(--muted);font-size:12px}
-a{color:var(--acc)}
+  :root{--bg0:#07131f;--bg1:#0b1b2b;--card:rgba(255,255,255,.06);--stroke:rgba(255,255,255,.10);--txt:#e8f1ff;--muted:rgba(232,241,255,.70);--r:18px;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial;color:var(--txt);
+    background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
+                radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
+                linear-gradient(180deg,var(--bg0),var(--bg1));
+    min-height:100vh;}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter: blur(10px);}
+  h1{margin:0 0 6px 0;font-size:22px}
+  h2{margin:18px 0 8px 0;font-size:16px}
+  .muted{color:var(--muted)}
+  code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:8px}
+  pre{background:rgba(0,0,0,.25);padding:12px;border-radius:14px;overflow:auto;border:1px solid rgba(255,255,255,.10)}
+  .kv{display:grid;grid-template-columns:220px 1fr;gap:8px 12px}
+  @media (max-width:720px){.kv{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><div class="wrap"><h1>Datenschutz</h1><div class="small">Worker: <span id="w">https://washportal-dev-worker.schluffi1220.workers.dev</span></div></div></header>
-<main class="wrap" style="display:grid;gap:12px">
+<div class="wrap">
   <div class="card">
-    <div class="small">Diese Seite lädt die Meta-Infos live aus dem Worker (fest verdrahtet).</div>
+    <h1>Datenschutz</h1>
+    <div class="muted">Diese Seite lädt die Meta-Infos live aus dem Worker.</div>
+    <div class="muted" style="margin-top:6px">Worker: <code id="w"></code></div>
   </div>
+
+  <div class="card" id="metaCard">
+    <h2>Meta</h2>
+    <div class="kv">
+      <div class="muted">Build</div><div id="build">—</div>
+      <div class="muted">Aufbewahrung (Tage)</div><div id="ret">—</div>
+      <div class="muted">Löschgrenze (alles davor wird gelöscht)</div><div id="delBefore">—</div>
+      <div class="muted">Nächster Löschlauf spätestens</div><div id="delAt">—</div>
+      <div class="muted">Patientensprecher</div><div id="ps">—</div>
+      <div class="muted">Datenarten</div><div id="types">—</div>
+    </div>
+    <h2 style="margin-top:16px">Debug</h2>
+    <pre id="raw">lädt…</pre>
+  </div>
+
   <div class="card">
-    <h2 style="margin:0 0 10px 0;font-size:16px">Datenschutzerklärung</h2>
-    <pre id="doc">Lade…</pre>
+    <pre style="white-space:pre-wrap;line-height:1.5" id="text">
+Datenschutzerklärung
+
+1. Verantwortlicher
+Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
+
+[HIER KOMMT DER VORNAME UND NACHNAME DES PATIENTENSPRECHERS REIN!!!]
+Salzburgweg 7, 97616 Bad Neustadt an der Saale
+
+Kontakt: HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHERS REIN!!!
+
+Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
+
+2. Zweck der Website
+Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.
+
+3. Welche Daten werden verarbeitet?
+Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:
+• Zimmernummer (als Benutzerkennung)
+• selbstgewählter PIN-Code
+• gebuchte Waschmaschinen-Zeiten
+• technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)
+
+Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
+
+4. Zweck der Datenverarbeitung:
+Die Verarbeitung erfolgt ausschließlich zum Zweck:
+• der Identifikation der jeweiligen Nutzer bei der Buchung
+• der Verwaltung der Waschmaschinenbelegung
+• der technischen Bereitstellung und Sicherheit der Website
+Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.
+
+5. Rechtsgrundlage
+Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).
+
+6. Speicherung und Löschung
+Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. (Siehe oben „Löschgrenze“)
+Server-Logdaten werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
+
+7. Datensicherheit:
+Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch nicht garantiert werden.
+
+8. Rechte der betroffenen Personen:
+Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch.
+
+9. Beschwerderecht:
+Bayerisches Landesamt für Datenschutzaufsicht.
+
+10. Änderungen:
+Diese Datenschutzerklärung kann angepasst werden.
+Stand: <span id="stand"></span>
+    </pre>
   </div>
-  <div class="card">
-    <h2 style="margin:0 0 10px 0;font-size:16px">Meta (Debug)</h2>
-    <pre id="meta">—</pre>
-  </div>
-</main>
+</div>
+
 <script>
-const WORKER="https://washportal-dev-worker.schluffi1220.workers.dev";
-const TEMPLATE = "Datenschutzerkl\u00e4rung\n\n1. Verantwortlicher\nVerantwortlich f\u00fcr die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:\n\n{{PS_NAME}}\nSalzburgweg 7, 97616 Bad Neustadt an der Saale\n\nKontakt: {{PS_EMAIL}}\n\nDa diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.\n\n2. Zweck der Website\nDiese Website dient ausschlie\u00dflich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur f\u00fcr Patienten der Klinik bestimmt.\n\n3. Welche Daten werden verarbeitet?\n\nBei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:\n\n\u2022 Zimmernummer (als Benutzerkennung)\n\u2022 selbstgew\u00e4hlter PIN-Code\n\u2022 gebuchte Waschmaschinen-Zeiten\n\u2022 technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)\n\nDie Zimmernummer erm\u00f6glicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.\n\n4. Zweck der Datenverarbeitung:\n\nDie Verarbeitung erfolgt ausschlie\u00dflich zum Zweck:\n\n\u2022 der Identifikation der jeweiligen Nutzer bei der Buchung\n\u2022 der Verwaltung der Waschmaschinenbelegung\n\u2022 der technischen Bereitstellung und Sicherheit der Website\n\nEine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.\n\n5. Rechtsgrundlage\nDie Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht m\u00f6glich w\u00e4re und keine \u00fcberwiegenden Interessen der betroffenen Personen entgegenstehen.\n\n6. Speicherung und L\u00f6schung\nBuchungsdaten werden nur so lange gespeichert, wie dies f\u00fcr die Organisation der Waschmaschinenbelegung erforderlich ist.\nServer-Logdaten (z. B. IP-Adressen) werden ausschlie\u00dflich aus technischen Gr\u00fcnden kurzfristig gespeichert und regelm\u00e4\u00dfig gel\u00f6scht.\n\nAktuelle Aufbewahrungsfrist: {{RETENTION_DAYS}} Tage  \nGeplantes L\u00f6schdatum (gerechnet ab heute): {{DELETE_BEFORE}}\n\n7. Datensicherheit:\nEs werden angemessene technische Ma\u00dfnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu sch\u00fctzen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.\n\n8. Rechte der betroffenen Personen:\nNutzer haben jederzeit das Recht auf:\n\n\u2022 Auskunft \u00fcber ihre gespeicherten Daten (Art. 15 DSGVO)\n\u2022 Berichtigung unrichtiger Daten (Art. 16 DSGVO)\n\u2022 L\u00f6schung ihrer Daten (Art. 17 DSGVO)\n\u2022 Einschr\u00e4nkung der Verarbeitung (Art. 18 DSGVO)\n\u2022 Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)\n\nAnfragen k\u00f6nnen an den oben genannten Verantwortlichen gerichtet werden.\n\n9. Beschwerderecht:\nEs besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbeh\u00f6rde, hier das Bayerisches Landesamt f\u00fcr Datenschutzaufsicht.\n\n10. \u00c4nderungen dieser Datenschutzerkl\u00e4rung:\nDiese Datenschutzerkl\u00e4rung kann angepasst werden, falls sich technische oder rechtliche \u00c4nderungen ergeben.\n\nStand: {{TODAY}}\n";
-function fmtDate(ts){
-  const d=new Date(ts);
-  const dd=String(d.getDate()).padStart(2,"0");
-  const mm=String(d.getMonth()+1).padStart(2,"0");
-  const yy=d.getFullYear();
-  return `${dd}.${mm}.${yy}`;
-}
-(async()=>{
-  let meta={};
-  try{
-    const res=await fetch(WORKER+"/api/privacy/meta");
-    meta=await res.json();
-    document.getElementById("meta").textContent=JSON.stringify(meta,null,2);
-  }catch(e){
-    document.getElementById("meta").textContent=String(e);
-  }
-  const today=fmtDate(Date.now());
-  const psName=(meta.psName||"—");
-  const psEmail=(meta.psEmail||"—");
-  const retention=String(meta.retentionDays||30);
-  const deleteBefore=fmtDate(meta.deleteBefore ?? (Date.now()-Number(retention)*86400000));
-  let out=TEMPLATE
-    .replaceAll("{PS_NAME}", psName)
-    .replaceAll("{PS_EMAIL}", psEmail)
-    .replaceAll("{RETENTION_DAYS}", retention)
-    .replaceAll("{DELETE_BEFORE}", deleteBefore)
-    .replaceAll("{TODAY}", today);
-  document.getElementById("doc").textContent=out;
+(() => {
+  const WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  document.getElementById("w").textContent = WORKER;
+
+  const fmt = (ms) => {
+    const d = new Date(Number(ms));
+    if (!Number.isFinite(d.getTime())) return "—";
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const yy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mi = String(d.getMinutes()).padStart(2,"0");
+    return `${dd}.${mm}.${yy} ${hh}:${mi}`;
+  };
+
+  document.getElementById("stand").textContent = (() => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const yy = d.getFullYear();
+    return `${dd}.${mm}.${yy}`;
+  })();
+
+  fetch(WORKER + "/api/privacy/meta").then(r => r.json()).then(meta => {
+    document.getElementById("raw").textContent = JSON.stringify(meta, null, 2);
+    if(!meta.ok) throw new Error(meta.message || meta.error || "meta not ok");
+
+    document.getElementById("build").textContent = meta.build || "—";
+    document.getElementById("ret").textContent = String(meta.retentionDays ?? "—");
+    document.getElementById("delBefore").textContent = fmt(meta.deleteBefore);
+    document.getElementById("delAt").textContent = fmt(meta.deleteAt);
+
+    const ps = [meta.psName, meta.psEmail].filter(Boolean).join(" – ");
+    document.getElementById("ps").textContent = ps || "—";
+
+    document.getElementById("types").innerHTML = (meta.dataTypes||[]).map(t => "• " + t).join("<br>");
+  }).catch(err => {
+    document.getElementById("raw").textContent = "Fehler: " + String(err);
+  });
 })();
 </script>
 </body>
