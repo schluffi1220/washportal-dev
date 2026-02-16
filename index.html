@@ -136,7 +136,7 @@
 <body>
   <div class="topbar">
     <div class="brand"><span class="dot"></span> Washportal</div>
-    <div class="pill" id="buildPill">PORTAL BUILD: oldstyle_v14</div>
+    <div class="pill" id="buildPill">PORTAL BUILD: oldstyle_v15</div>
     <div class="pill" id="workerPill">Worker: —</div>
     <div class="pill" id="roomPill">Zimmer: —</div>
   </div>
@@ -742,6 +742,13 @@
   }
 
   // init UI
-  el("buildPill").textContent = "PORTAL BUILD: oldstyle_v14</script>
+  el("buildPill").textContent = "PORTAL BUILD: oldstyle_v15";
+  // wire buttons
+  el("btnRefresh").addEventListener("click", () => refreshAll());
+  el("btnSave").addEventListener("click", () => { /* local only in future */ });
+  // initial load only if fields filled
+  try { } catch(e) {}
+  
+</script>
 </body>
 </html>
