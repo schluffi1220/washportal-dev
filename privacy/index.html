@@ -1,104 +1,43 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Datenschutz – Washportal</title>
-<style>
-  :root{--bg0:#07131f;--bg1:#0b1b2b;--card:rgba(255,255,255,.06);--stroke:rgba(255,255,255,.10);--txt:#e8f1ff;--muted:rgba(232,241,255,.70);--r:18px;}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial;color:var(--txt);
-    background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
-                radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
-                linear-gradient(180deg,var(--bg0),var(--bg1));
-    min-height:100vh;}
-  .wrap{max-width:980px;margin:0 auto;padding:16px}
-  .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
-    box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter: blur(10px);}
-  h1{margin:0 0 6px 0;font-size:22px}
-  h2{margin:18px 0 8px 0;font-size:16px}
-  .muted{color:var(--muted)}
-  code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:8px}
-  pre{background:rgba(0,0,0,.25);padding:12px;border-radius:14px;overflow:auto;border:1px solid rgba(255,255,255,.10)}
-  .kv{display:grid;grid-template-columns:220px 1fr;gap:8px 12px}
-  @media (max-width:720px){.kv{grid-template-columns:1fr}}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Datenschutz</title>
+  <style>
+    :root{--bg0:#07131f;--bg1:#0b1b2b;--card:rgba(255,255,255,.06);--stroke:rgba(255,255,255,.10);--txt:#e8f1ff;--muted:rgba(232,241,255,.70);--r:18px;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--txt);
+      background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
+                  radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
+                  linear-gradient(180deg,var(--bg0),var(--bg1)); min-height:100vh;}
+    .wrap{max-width:980px;margin:0 auto;padding:18px}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
+    h1{margin:0 0 10px 0;font-size:20px}
+    h2{margin:18px 0 8px 0;font-size:16px}
+    .muted{color:var(--muted);white-space:pre-wrap}
+    a{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
+    pre{white-space:pre-wrap;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10);padding:12px;border-radius:14px}
+  </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
     <h1>Datenschutz</h1>
-    <div class="muted">Diese Seite lädt die Meta-Infos live aus dem Worker.</div>
-    <div class="muted" style="margin-top:6px">Worker: <code id="w"></code></div>
+    <div class="muted">Worker: <span id="w"></span></div>
+    <div class="muted" id="metaLine">Lade…</div>
   </div>
 
-  <div class="card" id="metaCard">
-    <h2>Meta</h2>
-    <div class="kv">
-      <div class="muted">Build</div><div id="build">—</div>
-      <div class="muted">Aufbewahrung (Tage)</div><div id="ret">—</div>
-      <div class="muted">Löschgrenze (alles davor wird gelöscht)</div><div id="delBefore">—</div>
-      <div class="muted">Nächster Löschlauf spätestens</div><div id="delAt">—</div>
-      <div class="muted">Patientensprecher</div><div id="ps">—</div>
-      <div class="muted">Datenarten</div><div id="types">—</div>
-    </div>
-    <h2 style="margin-top:16px">Debug</h2>
-    <pre id="raw">lädt…</pre>
+  <div class="card" id="policyCard" style="display:none">
+    <h2>Datenschutzerklärung</h2>
+    <div class="muted" id="policy"></div>
+    <div class="muted" style="margin-top:12px">Stand: <span id="stand"></span></div>
   </div>
 
   <div class="card">
-    <pre style="white-space:pre-wrap;line-height:1.5" id="text">
-Datenschutzerklärung
-
-1. Verantwortlicher
-Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
-
-[HIER KOMMT DER VORNAME UND NACHNAME DES PATIENTENSPRECHERS REIN!!!]
-Salzburgweg 7, 97616 Bad Neustadt an der Saale
-
-Kontakt: HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHERS REIN!!!
-
-Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
-
-2. Zweck der Website
-Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.
-
-3. Welche Daten werden verarbeitet?
-Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:
-• Zimmernummer (als Benutzerkennung)
-• selbstgewählter PIN-Code
-• gebuchte Waschmaschinen-Zeiten
-• technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)
-
-Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
-
-4. Zweck der Datenverarbeitung:
-Die Verarbeitung erfolgt ausschließlich zum Zweck:
-• der Identifikation der jeweiligen Nutzer bei der Buchung
-• der Verwaltung der Waschmaschinenbelegung
-• der technischen Bereitstellung und Sicherheit der Website
-Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.
-
-5. Rechtsgrundlage
-Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).
-
-6. Speicherung und Löschung
-Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. (Siehe oben „Löschgrenze“)
-Server-Logdaten werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
-
-7. Datensicherheit:
-Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch nicht garantiert werden.
-
-8. Rechte der betroffenen Personen:
-Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch.
-
-9. Beschwerderecht:
-Bayerisches Landesamt für Datenschutzaufsicht.
-
-10. Änderungen:
-Diese Datenschutzerklärung kann angepasst werden.
-Stand: <span id="stand"></span>
-    </pre>
+    <h2>Debug</h2>
+    <pre id="dbg"></pre>
   </div>
 </div>
 
@@ -107,41 +46,99 @@ Stand: <span id="stand"></span>
   const WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
   document.getElementById("w").textContent = WORKER;
 
-  const fmt = (ms) => {
-    const d = new Date(Number(ms));
-    if (!Number.isFinite(d.getTime())) return "—";
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const yy = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mi = String(d.getMinutes()).padStart(2,"0");
-    return `${dd}.${mm}.${yy} ${hh}:${mi}`;
-  };
+  const policyRaw = `Datenschutzerklärung
 
-  document.getElementById("stand").textContent = (() => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const yy = d.getFullYear();
-    return `${dd}.${mm}.${yy}`;
-  })();
+1. Verantwortlicher
+Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
 
-  fetch(WORKER + "/api/privacy/meta").then(r => r.json()).then(meta => {
-    document.getElementById("raw").textContent = JSON.stringify(meta, null, 2);
-    if(!meta.ok) throw new Error(meta.message || meta.error || "meta not ok");
+[PS_NAME]
+Salzburgweg 7, 97616 Bad Neustadt an der Saale
 
-    document.getElementById("build").textContent = meta.build || "—";
-    document.getElementById("ret").textContent = String(meta.retentionDays ?? "—");
-    document.getElementById("delBefore").textContent = fmt(meta.deleteBefore);
-    document.getElementById("delAt").textContent = fmt(meta.deleteAt);
+Kontakt: [PS_EMAIL]
 
-    const ps = [meta.psName, meta.psEmail].filter(Boolean).join(" – ");
-    document.getElementById("ps").textContent = ps || "—";
+Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
 
-    document.getElementById("types").innerHTML = (meta.dataTypes||[]).map(t => "• " + t).join("<br>");
-  }).catch(err => {
-    document.getElementById("raw").textContent = "Fehler: " + String(err);
-  });
+2. Zweck der Website
+Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.
+
+3. Welche Daten werden verarbeitet?
+
+Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:
+
+• Zimmernummer (als Benutzerkennung)
+• selbstgewählter PIN-Code
+• gebuchte Waschmaschinen-Zeiten
+• technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)
+
+Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
+
+4. Zweck der Datenverarbeitung:
+
+Die Verarbeitung erfolgt ausschließlich zum Zweck:
+
+• der Identifikation der jeweiligen Nutzer bei der Buchung
+• der Verwaltung der Waschmaschinenbelegung
+• der technischen Bereitstellung und Sicherheit der Website
+
+Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.
+
+5. Rechtsgrundlage
+Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse), da ohne die Verarbeitung der genannten Daten eine geordnete Buchung der Waschmaschinen nicht möglich wäre und keine überwiegenden Interessen der betroffenen Personen entgegenstehen.
+
+6. Speicherung und Löschung
+Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. (Siehe unten)
+Server-Logdaten (z. B. IP-Adressen) werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
+
+7. Datensicherheit:
+
+Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch bei internetbasierten Systemen nicht garantiert werden.
+
+8. Rechte der betroffenen Personen:
+
+Nutzer haben jederzeit das Recht auf:
+
+• Auskunft über ihre gespeicherten Daten (Art. 15 DSGVO)
+• Berichtigung unrichtiger Daten (Art. 16 DSGVO)
+• Löschung ihrer Daten (Art. 17 DSGVO)
+• Einschränkung der Verarbeitung (Art. 18 DSGVO)
+• Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)
+
+Anfragen können an den oben genannten Verantwortlichen gerichtet werden.
+
+9. Beschwerderecht:
+
+Es besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde, hier das Bayerisches Landesamt für Datenschutzaufsicht.
+
+10. Änderungen dieser Datenschutzerklärung:
+
+Diese Datenschutzerklärung kann angepasst werden, falls sich technische oder rechtliche Änderungen ergeben.`;
+
+  const esc = (s)=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const pad = (n)=>String(n).padStart(2,"0");
+  const fmt = (ms)=>{ const d=new Date(ms); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`; };
+
+  fetch(WORKER + "/api/privacy/meta")
+    .then(r=>r.json())
+    .then(meta=>{
+      document.getElementById("dbg").textContent = JSON.stringify(meta,null,2);
+
+      const psName = meta.psName || "(Patientensprecher nicht gesetzt)";
+      const psEmail = meta.psEmail || "(Email nicht gesetzt)";
+      const del = meta.deleteBefore ? fmt(meta.deleteBefore) : "(unbekannt)";
+
+      document.getElementById("metaLine").textContent = `Patientensprecher: ${psEmail} · Daten werden gelöscht ab: ${del}`;
+
+      const txt = policyRaw
+        .replace("[PS_NAME]", psName)
+        .replace("[PS_EMAIL]", psEmail);
+
+      document.getElementById("policy").innerHTML = esc(txt).replace(/\n/g,"<br>");
+      document.getElementById("stand").textContent = fmt(Date.now());
+      document.getElementById("policyCard").style.display = "";
+    })
+    .catch(e=>{
+      document.getElementById("dbg").textContent = String(e);
+    });
 })();
 </script>
 </body>
