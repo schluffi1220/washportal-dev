@@ -61,10 +61,7 @@
     .btn.secondary{background:rgba(255,255,255,.05); font-weight:600}
     .btn.danger{background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.35)}
     .btn.small{padding:8px 10px; border-radius:12px; font-size:13px}
-    .machines{
-      display:grid; gap:12px;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
+    .machines{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px;}
     @media (max-width: 980px){ .machines{grid-template-columns: repeat(2, minmax(0, 1fr));} }
     @media (max-width: 520px){ .machines{grid-template-columns: 1fr;} }
     .mcard{
@@ -111,7 +108,24 @@
   .check{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.55);}
   .check .cb{width:18px; height:18px;}
 
-</style>
+
+    .mcard{border:1px solid rgba(255,255,255,.10); border-radius:18px; padding:14px; position:relative; overflow:hidden;}
+    .mcard.free{background:linear-gradient(180deg, rgba(34,197,94,.16), rgba(255,255,255,.03));}
+    .mcard.booked{background:linear-gradient(180deg, rgba(96,165,250,.18), rgba(255,255,255,.03));}
+    .mcard.defect{background:linear-gradient(180deg, rgba(239,68,68,.20), rgba(255,255,255,.03));}
+    .mcard.locked{background:linear-gradient(180deg, rgba(239,68,68,.12), rgba(156,163,175,.12));}
+    .mcard.whitecard{background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.03));}
+    .badge{font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.16);}
+    .badge.free{background:rgba(34,197,94,.18); color:#d1fae5;}
+    .badge.booked{background:rgba(96,165,250,.20); color:#dbeafe;}
+    .badge.defect{background:rgba(239,68,68,.22); color:#fee2e2;}
+    .badge.locked{background:rgba(239,68,68,.14); color:#f3f4f6;}
+    .badge.whitecard{background:rgba(255,255,255,.18); color:#fff;}
+    .machines{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px;}
+    @media (max-width: 860px){ .machines{grid-template-columns:repeat(2, minmax(0,1fr));} }
+    @media (max-width: 380px){ .machines{grid-template-columns:repeat(1, minmax(0,1fr));} }
+
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -137,6 +151,16 @@
         <div class="footer-note">Hinweis: Slot-Buchung nutzt deinen persönlichen PIN (Storno/Freigabe nur für dich). Stations-PIN wird zusätzlich geprüft.</div>
       </div>
 
+
+      <div class="card">
+        <h2>Slots buchen</h2>
+        <div class="muted" style="margin-top:-6px;">Waschmaschine + Slot auswählen</div>
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+          <select id="globalSlotSel" style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.92); color:#0b1220;"></select>
+          <button class="btn btn-primary" style="width:220px;" onclick="bookGlobalWasher()">Buchen</button>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Maschinen</h2>
         <div class="muted" id="legend">Grün = frei · Blau = gebucht/läuft · Weiß = Whitecard · Rot = defekt · Rot/Grau = gesperrt</div>
@@ -148,6 +172,16 @@
         <h2>Meine Buchungen</h2>
         <div class="list" id="myBookings"></div>
       </div>
+
+      <div class="card" id="feedbackCard" style="display:none;">
+        <h2>Feedback</h2>
+        <div class="muted">Dein Feedback geht an PS/SV/Admin (je nach Freigabe).</div>
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+          <textarea id="fbText" rows="4" placeholder="Dein Feedback…" style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text);"></textarea>
+          <button class="btn btn-primary" style="width:220px;" onclick="sendFeedback()">Senden</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -290,8 +324,21 @@ function renderMachines(state){
         </div>`;
     }
 
+    // status → badge + pastel tint
+    const locked = Boolean(m.locked || m.blocked || m.isLocked);
+    const defect = Boolean(m.defect || m.isDefect);
+    const wc = Boolean(m.whitecard || m.isWhitecard);
+    let cls = "free";
+    let badge = "FREI";
+    if(locked){ cls="locked"; badge="GESPERRT"; }
+    else if(defect){ cls="defect"; badge="DEFEKT"; }
+    else if(current){ cls="booked"; badge="LÄUFT"; }
+    else if(next){ cls="booked"; badge="GEBUCHT"; }
+    if(wc){ cls="whitecard"; badge="WHITECARD"; }
+
+
     return `
-      <div style="border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); border-radius:18px; padding:14px;">
+      <div class="mcard ${cls}">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div style="font-weight:700">${escapeHtml(machineLabel(m) || 'Maschine')}</div>
           ${statusBadge(state,m,{last,current,next})}
@@ -544,9 +591,9 @@ async function refreshAll(){
       state.room = room; state.pin = pin; state.stationPin = stationPin;
       $("workerBuild").textContent = data.build || "-";
       renderMachines(data);
-      updateGlobalBookPanel(data);
-
+      renderGlobalSlots(data);
       renderMyBookings(data);
+      renderFeedback(data);
     }catch(e){
       showErr("⛔ " + e.message);
     }
@@ -615,12 +662,17 @@ function machineBookings(state, kind, machineId){
   return all.filter(b=>{
     const t = String(b.type||b.kind||"");
     const m = String(b.machine||b.machineId||b.machine_id||"");
-    return normalizeType({kind:t,type:t})===kind && m===String(machineId) && ["booked","active"].includes(String(b.status||""));
+    return normalizeType({kind:t,type:t})===kind && m===String(machineId) && ["booked","active","running","in_use","reserved"].includes(String(b.status||""));
   });
 }
 function slotIsOccupied(state, kind, machineId, slot){
   const bs = machineBookings(state, kind, machineId);
-  return bs.some(b=>overlaps(slot.startAt, slot.endAt, Number(b.start), Number(b.end)));
+  return bs.some(b=>{
+    const bsStart = Number(b.start ?? b.startAt ?? b.start_at);
+    const bsEnd   = Number(b.end ?? b.endAt ?? b.end_at);
+    if(!Number.isFinite(bsStart) || !Number.isFinite(bsEnd)) return false;
+    return overlaps(slot.startAt, slot.endAt, bsStart, bsEnd);
+  });
 }
 
 
@@ -648,12 +700,66 @@ async function bookWasher(machineId){
   await refreshAll();
 }
 async function bookDryer(machineId){
-  const minutes = Number(state?.config?.dryerMinutes ?? 150);
+  const minutes = Number((window.__WASH_STATE__||{}).config?.dryerMinutes ?? 150);
   const c = currentCreds();
   const body = { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), minutes };
   const res = await jpost("/api/dryer/book", body);
   if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
-  toast("Trockner gebucht ✓");
+  toast("Tro
+function renderGlobalSlots(state){
+  const sel = $("globalSlotSel");
+  if(!sel) return;
+  const cfg = state.config || {};
+  const machines = Array.isArray(state.machines)?state.machines:[];
+  const washers = machines.filter(m=>normalizeType(m)==="washer");
+  const slots = buildWasherSlotsForDays(cfg);
+  const opts = [];
+  opts.push(`<option value="">Bitte Waschmaschine + Slot auswählen…</option>`);
+  for(const m of washers){
+    const id = String(m.machineId || m.id || "");
+    const labelM = machineLabel(m);
+    for(const s of slots){
+      const occ = slotIsOccupied(state,"washer",id,s);
+      const txt = `${s.label}  •  ${labelM}` + (occ ? "  •  BELEGT" : "");
+      opts.push(`<option value="${encodeURIComponent(JSON.stringify({machineId:id,startAt:s.startAt,endAt:s.endAt}))}" ${occ?"disabled":""}>${escapeHtml(txt)}</option>`);
+    }
+  }
+  sel.innerHTML = opts.join("");
+}
+async function bookGlobalWasher(){
+  const sel = $("globalSlotSel");
+  if(!sel) return;
+  if(!sel.value) return toast("Bitte Slot auswählen");
+  let payload;
+  try{ payload = JSON.parse(decodeURIComponent(sel.value)); }catch{ return toast("Ungültige Auswahl"); }
+  const c = currentCreds();
+  const body = { room:c.room, pin:c.pin, stationPin:c.stationPin, machineId:String(payload.machineId), startAt:Number(payload.startAt), endAt:Number(payload.endAt) };
+  const res = await jpost("/api/washer/book", body);
+  if(!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
+  toast("Gebucht ✓");
+  await refreshAll();
+}
+
+function feedbackEnabled(cfg){
+  return !!(cfg.feedbackEnabled || cfg.feedback || cfg.feedbackPsEnabled || cfg.feedbackSvEnabled || cfg.feedbackAdminEnabled);
+}
+function renderFeedback(state){
+  const card = $("feedbackCard");
+  if(!card) return;
+  const cfg = state.config || {};
+  if(!feedbackEnabled(cfg)){ card.style.display="none"; return; }
+  card.style.display = "";
+}
+async function sendFeedback(){
+  const c = currentCreds();
+  const txt = ($("fbText")?.value||"").trim();
+  if(!txt) return toast("Bitte Text eingeben");
+  const res = await jpost("/api/feedback/submit", { room:c.room, pin:c.pin, stationPin:c.stationPin, text:txt });
+  if(!res.ok) return toast(res.message || res.error || "Feedback fehlgeschlagen");
+  $("fbText").value="";
+  toast("Danke! Feedback gesendet ✓");
+}
+ckner gebucht ✓");
   await refreshAll();
 }
 
