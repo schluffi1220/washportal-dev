@@ -52,6 +52,11 @@
       color:var(--text); font-weight:700; cursor:pointer;
       transition:transform .05s ease, filter .15s ease;
     }
+    .btn-primary{ background:linear-gradient(90deg, rgba(96,165,250,.40), rgba(59,130,246,.28)); }
+    .btn-success{ background:linear-gradient(90deg, rgba(45,212,191,.38), rgba(34,197,94,.26)); }
+    .btn-danger{ background:linear-gradient(90deg, rgba(244,63,94,.38), rgba(251,113,133,.22)); border-color:rgba(244,63,94,.35); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
     .btn:active{transform:translateY(1px)}
     .btn.secondary{background:rgba(255,255,255,.05); font-weight:600}
     .btn.danger{background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.35)}
@@ -256,18 +261,20 @@ function renderMachines(state){
       }).join("");
       actions = `
         <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-          <select id="slot_${id}" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18); color:#eaf2ff;">
+          <select id="slot_${id}" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.92); color:#0b1220;">
             <option value="">Bitte Slot auswählen…</option>
             ${opts}
           </select>
-          <button class="btn" style="width:100%;" onclick="bookWasher('${id}')">Buchen</button>
+          <button class="btn btn-primary" style="width:100%;" onclick="bookWasher('${id}')">Buchen</button>
+          <button class="btn btn-danger" style="width:100%;" onclick="reportDefect('${id}')">Defekt melden</button>
         </div>`;
     } else if (kind === "dryer") {
       const mins = Number(state?.config?.dryerMinutes ?? 150);
       actions = `
         <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
           <div class="muted">Dauer: ${escapeHtml(String(mins))} Minuten</div>
-          <button class="btn" style="width:100%;" onclick="bookDryer('${id}')">Buchen</button>
+          <button class="btn btn-primary" style="width:100%;" onclick="bookDryer('${id}')">Buchen</button>
+          <button class="btn btn-danger" style="width:100%;" onclick="reportDefect('${id}')">Defekt melden</button>
         </div>`;
     }
 
@@ -379,7 +386,7 @@ function renderMyBookings(state){
       const hide=document.createElement("button");
       hide.className="btn ghost";
       hide.textContent="Ausblenden";
-      hide.onclick=()=>{ hideBooking(id); renderMyBookings(state); };
+      hide.onclick=()=>{ hideBooking(id); renderMyBookings(data); };
       actions.appendChild(hide);
       const note=document.createElement("div");
       note.className="muted";
@@ -408,7 +415,7 @@ function renderMyBookings(state){
       const hide=document.createElement("button");
       hide.className="btn ghost";
       hide.textContent="Ausblenden";
-      hide.onclick=()=>{ hideBooking(id); renderMyBookings(state); };
+      hide.onclick=()=>{ hideBooking(id); renderMyBookings(data); };
       actions.appendChild(hide);
       card.appendChild(actions);
     }
@@ -479,8 +486,29 @@ function showToast(msg){
     return d.toLocaleString("de-DE", { weekday:"short", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
   }
 
-  function loadCreds(){ /* disabled */ }
-  function saveCreds(){ /* disabled */ }
+  function loadCreds(){ /* disabled (no persistence) */ }
+  function saveCreds(){ /* disabled (no persistence) */ }
+
+  // Global runtime state (NOT persisted)
+  const state = {
+    build: "",
+    config: {},
+    machines: [],
+    bookings: [],
+    room: "",
+    pin: "",
+    stationPin: "",
+  };
+  window.__WASH_STATE__ = state;
+
+  function currentCreds(){
+    return {
+      room: $("room")?.value?.trim() || "",
+      pin: $("pin")?.value?.trim() || "",
+      stationPin: $("stationPin")?.value?.trim() || ""
+    };
+  }
+
 
 async function refreshAll(){
 
@@ -496,12 +524,17 @@ async function refreshAll(){
       return;
     }
     try{
-      const state = await jpost("/api/user/refresh",{ room, pin, stationPin });
-      $("workerBuild").textContent = state.build || "-";
-      renderMachines(state);
-      updateGlobalBookPanel(state);
+      const data = await jpost("/api/user/refresh",{ room, pin, stationPin });
+      state.build = data.build || "";
+      state.config = data.config || data.cfg || {};
+      state.machines = data.machines || data.machineList || [];
+      state.bookings = data.bookings || data.myBookings || data.items || [];
+      state.room = room; state.pin = pin; state.stationPin = stationPin;
+      $("workerBuild").textContent = data.build || "-";
+      renderMachines(data);
+      updateGlobalBookPanel(data);
 
-      renderMyBookings(state);
+      renderMyBookings(data);
     }catch(e){
       showErr("⛔ " + e.message);
     }
@@ -578,13 +611,25 @@ function slotIsOccupied(state, kind, machineId, slot){
   return bs.some(b=>overlaps(slot.startAt, slot.endAt, Number(b.start), Number(b.end)));
 }
 
+
+async function reportDefect(machineId){
+  const c = currentCreds();
+  if(!c.room || !c.pin || !c.stationPin) return toast("Bitte Zimmer, PIN und Stations-PIN eintragen");
+  const text = prompt("Defektbeschreibung (optional):", "");
+  if (text === null) return; // canceled
+  const res = await jpost("/api/defect/report", { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), text: text || "" });
+  if (!res.ok) return toast(res.message || res.error || "Defekt melden fehlgeschlagen");
+  toast("Defekt gemeldet ✓");
+  await refreshAll();
+}
 async function bookWasher(machineId){
   const sel = document.getElementById(`slot_${machineId}`);
   if (!sel || !sel.value) return toast("Bitte Slot auswählen");
   const startAt = Number(sel.value);
   const endAt = Number(sel.selectedOptions?.[0]?.dataset?.endAt || 0);
   const minutes = endAt && startAt ? Math.round((endAt-startAt)/60000) : 60;
-  const body = { room: state.room, pin: creds.pin, stationPin: creds.stationPin, machineId: String(machineId), startAt, minutes };
+  const c = currentCreds();
+  const body = { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), startAt, minutes };
   const res = await jpost("/api/washer/book", body);
   if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
   toast("Gebucht ✓");
@@ -592,7 +637,8 @@ async function bookWasher(machineId){
 }
 async function bookDryer(machineId){
   const minutes = Number(state?.config?.dryerMinutes ?? 150);
-  const body = { room: state.room, pin: creds.pin, stationPin: creds.stationPin, machineId: String(machineId), minutes };
+  const c = currentCreds();
+  const body = { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), minutes };
   const res = await jpost("/api/dryer/book", body);
   if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
   toast("Trockner gebucht ✓");
