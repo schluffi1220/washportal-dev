@@ -119,35 +119,12 @@
         <h2>Login</h2>
         <div class="row">
           <div class="field"><label>Zimmer</label><input id="room" inputmode="numeric" placeholder="z.B. 316"></div>
-          <div class="field"><label>Persönlicher PIN</label><input id="pin" inputmode="numeric" placeholder="PIN"></div>
-          <div class="field"><label>Stations-PIN</label><input id="stationPin" inputmode="numeric" placeholder="Stations-PIN"></div>
+          <div class="field"><label>Persönlicher PIN</label><input id="pin" type="password" inputmode="numeric" placeholder="PIN"></div>
+          <div class="field"><label>Stations-PIN</label><input id="stationPin" type="password" inputmode="numeric" placeholder="Stations-PIN"></div>
           <button class="btn" id="saveBtn">Speichern</button>
           <button class="btn secondary" id="refreshBtn">Aktualisieren</button>
         </div>
         <div class="footer-note">Hinweis: Slot-Buchung nutzt deinen persönlichen PIN (Storno/Freigabe nur für dich). Stations-PIN wird zusätzlich geprüft.</div>
-      </div>
-
-
-      <div class="card" id="privacyNoticeCard">
-        <div class="muted">
-          Mit der Benutzung dieser Seite erklärst du dich mit der aktuellen
-          <a href="https://schluffi1220.github.io/washportal-dev/privacy/" target="_blank" rel="noopener">Datenschutzvereinbarung</a>
-          einverstanden.
-        </div>
-      </div>
-
-      <div class="card" id="newsCard" style="display:none">
-        <h2>News</h2>
-        <div class="muted" id="newsText"></div>
-      </div>
-
-      <div class="card" id="globalWasherCard">
-        <h2>Waschmaschine + Slot auswählen</h2>
-        <div class="row">
-          <select class="sel" id="gbWasherSlot"></select>
-          <button class="btn" id="gbWasherBook">Buchen</button>
-        </div>
-        <div class="footer-note" id="gbWasherHint">Wähle einen Slot (inkl. Waschmaschine). Belegte Slots sind als „belegt“ markiert.</div>
       </div>
 
       <div class="card">
@@ -165,6 +142,115 @@
   </div>
 
 <script>
+function escapeHtml(s){
+  return String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+function fmtTime(ts){
+  const d=new Date(Number(ts));
+  const hh=String(d.getHours()).padStart(2,"0");
+  const mm=String(d.getMinutes()).padStart(2,"0");
+  return `${hh}:${mm}`;
+}
+
+function findLastNext(bookings, kind, machineId){
+  const now = Date.now();
+  const list = (Array.isArray(bookings)?bookings:[])
+    .filter(b=>String(b.kind)===String(kind) && String(b.machineId)===String(machineId) && (b.status==="booked"||b.status==="active"||b.status==="released"));
+  const current = list.find(b => Number(b.startAt)<=now && now<Number(b.endAt) && (b.status==="active" || b.status==="booked"));
+  const past = list.filter(b => Number(b.endAt)<=now).sort((a,b)=>Number(b.endAt)-Number(a.endAt));
+  const last = past[0] || null;
+  const future = list.filter(b => Number(b.startAt)>now && (b.status==="booked"||b.status==="active")).sort((a,b)=>Number(a.startAt)-Number(b.startAt));
+  const next = future[0] || null;
+  return {current,last,next};
+}
+
+const HIDDEN_KEY="wp_hidden_bookings_v1";
+function getHiddenBookings(){
+  try{ return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY)||"[]")); }catch{ return new Set(); }
+}
+function hideBooking(id){
+  const set=getHiddenBookings();
+  set.add(String(id));
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify([...set]));
+}
+
+async function cancelBooking(b){
+  return jpost("/api/booking/cancel", { bookingId: b.id, room: String($("room").value||""), pin: String($("pin").value||""), stationPin: String($("stationPin").value||"") });
+}
+async function releaseBooking(b){
+  return jpost("/api/booking/release", { bookingId: b.id, room: String($("room").value||""), pin: String($("pin").value||""), stationPin: String($("stationPin").value||"") });
+}
+
+function renderMyBookings(state){
+  const box=$("myBookings");
+  const hidden=getHiddenBookings();
+  const bookings=Array.isArray(state?.bookings)?state.bookings:[];
+  const roomNow=String(state?.room || $("room").value || "");
+  const mine=bookings.filter(b=>String(b.room)===roomNow).sort((a,b)=>Number(a.startAt)-Number(b.startAt));
+  const now=Date.now();
+  box.innerHTML="";
+  if(!roomNow){ box.innerHTML = `<div class="muted">Bitte Zimmer eingeben und aktualisieren.</div>`; return; }
+  if(mine.length===0){ box.innerHTML = `<div class="muted">Keine Buchungen gefunden.</div>`; return; }
+
+  for(const b of mine){
+    const id=String(b.id ?? `${b.kind}-${b.machineId}-${b.startAt}`);
+    if(hidden.has(id)) continue;
+    const card=document.createElement("div");
+    card.className="card booking";
+    const title = `${b.kind==="dryer"?"Trockner":"Waschmaschine"} ${b.machineId}`;
+    const range = `${fmtDateTime(b.startAt)}–${fmtTime(b.endAt)}`;
+    const status = b.status || "—";
+    const expired = Number(b.endAt) <= now;
+    const top = document.createElement("div");
+    top.className="btop";
+    top.innerHTML = `<div><strong>${escapeHtml(title)}</strong><div class="muted">${escapeHtml(range)}</div></div><span class="pill2">${escapeHtml(status)}</span>`;
+    card.appendChild(top);
+
+    const actions=document.createElement("div");
+    actions.className="bactions";
+
+    if(expired){
+      const hide=document.createElement("button");
+      hide.className="btn ghost";
+      hide.textContent="Ausblenden";
+      hide.onclick=()=>{ hideBooking(id); renderMyBookings(state); };
+      actions.appendChild(hide);
+      const note=document.createElement("div");
+      note.className="muted";
+      note.style.marginTop="6px";
+      note.textContent="Abgelaufen – keine Aktion möglich.";
+      card.appendChild(actions);
+      card.appendChild(note);
+    }else{
+      if((b.status==="active"||b.status==="released") && Number(b.startAt)<=now){
+        const rel=document.createElement("button");
+        rel.className="btn";
+        rel.textContent="Freigeben";
+        rel.onclick=async()=>{ try{ await releaseBooking(b); await refreshAll(); }catch(e){ showErr("⛔ "+e.message); } };
+        actions.appendChild(rel);
+      }
+      if(b.status==="booked" && Number(b.startAt)>now){
+        const canc=document.createElement("button");
+        canc.className="btn ghost";
+        canc.textContent="Stornieren";
+        canc.onclick=async()=>{ 
+          try{ await cancelBooking(b); await refreshAll(); }
+          catch(e){ showErr("⛔ Stornieren nicht möglich: "+e.message); }
+        };
+        actions.appendChild(canc);
+      }
+      const hide=document.createElement("button");
+      hide.className="btn ghost";
+      hide.textContent="Ausblenden";
+      hide.onclick=()=>{ hideBooking(id); renderMyBookings(state); };
+      actions.appendChild(hide);
+      card.appendChild(actions);
+    }
+    box.appendChild(card);
+  }
+}
+
 // ---- Zeit/Format-Helpers (global) ----
 function pad2(n){ return String(n).padStart(2,"0"); }
 function fmtHM(ts){
@@ -228,564 +314,7 @@ function showToast(msg){
     return d.toLocaleString("de-DE", { weekday:"short", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
   }
 
-  function loadCreds(){
-    // Privacy: do not persist room/pin/stationPin
-    $("room").value = "";
-    $("pin").value = "";
-    $("stationPin").value = "";
-  }
-  function saveCreds(){
-    // no-op (do not persist)
-  }
-
-  async function jpost(path, body){
-    const r = await fetch(API + path, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body || {})
-    }
-
-  function getAuthPayload(){
-    return {
-      room: String($("room").value||"").trim(),
-      pin: String($("pin").value||"").trim(),
-      stationPin: String($("stationPin").value||"").trim()
-    };
-  }
-);
-    const t = await r.text();
-    let data = {};
-    try{ data = JSON.parse(t); }catch{ data = { ok:false, error:"bad_json", message:t }; }
-    if(!r.ok || data.ok === false){
-      const msg = data?.message || data?.error || ("HTTP " + r.status);
-      throw new Error(msg);
-    }
-    return data;
-  }
-
-  function buildWasherSlots(cfg){
-    const hours = Array.isArray(cfg?.washerHours) ? cfg.washerHours : [];
-    const daysFuture = Number(cfg?.daysFuture ?? 6);
-    const now = Date.now();
-    const today0 = startOfDay(now);
-    const slots = [];
-    for(let day=0; day<=daysFuture; day++){
-      const day0 = today0 + day*86400000;
-      const hs = hours.map(x=>Number(x)).filter(x=>!Number.isNaN(x)).sort((a,b)=>a-b);
-      for(let i=0;i<hs.length;i++){
-        const h = hs[i];
-        const startAt = day0 + h*3600000;
-        const endAt = (i < hs.length-1) ? (day0 + hs[i+1]*3600000) : (startAt + 60*60000);
-        // anzeigen: läuft noch oder Zukunft
-        if(endAt <= now) continue;
-        const running = startAt <= now && endAt > now;
-        const disabled = false; // laufende Slots sind buchbar, solange sie noch nicht beendet sind
-        const label = `${fmtDate(startAt)} ${fmtHM(startAt)}–${fmtHM(endAt)}` + (running ? " (läuft)" : "");
-        slots.push({ startAt, endAt, label, running, disabled });
-      }
-    }
-    // nach Zeit sortieren
-    slots.sort((a,b)=>a.startAt-b.startAt);
-    return slots;
-  }
-
-
-
-  function activeBookingFor(machine, bookings){
-    // bookings: global list im Zeitraum; finde aktiv/gebucht für Maschine
-    const kind = machine.kind;
-    const mid = String(machine.machineId);
-    const now = Date.now();
-    const rel = (bookings||[]).filter(b => String(b.kind)===kind && String(b.machineId)===mid);
-    // Priorität: active/booked, dann released
-    const act = rel.find(b => (b.status==="active" || b.status==="booked") && now < Number(b.endAt||0));
-    if(act) return act;
-    const last = rel.slice().sort((a,b)=>Number(b.endAt||0)-Number(a.endAt||0))[0];
-    return last || null;
-  }
-
-  function isSlotTaken(bookings, kind, machineId, startAt){
-    const s = Number(startAt);
-    const e = s + 60*60*1000; // 60 min standard (Portal)
-    return (bookings||[]).some(b => String(b.kind)===kind && String(b.machineId)===String(machineId) &&
-      (b.status==="booked" || b.status==="active") &&
-      Number(b.startAt) === s
-    );
-  }
-
-
-  function findSlotBooking(bookings, kind, machineId, startAt){
-    const s = Number(startAt);
-    return (bookings||[]).find(b => String(b.kind)===String(kind) && String(b.machineId)===String(machineId) &&
-      (b.status==="booked" || b.status==="active") &&
-      Number(b.startAt) === s
-    ) || null;
-  }
-
-  function renderMachines(state){
-    const box = $("machines");
-    box.innerHTML = "";
-    const cfg = state?.config || {};
-    const machines = Array.isArray(state?.machines) ? state.machines : [];
-    const bookings = Array.isArray(state?.bookings) ? state.bookings : [];
-    const roomNow = String(state?.room || $("room").value || "");
-
-    const washers = machines.filter(m=>m.kind==="washer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
-    const dryers  = machines.filter(m=>m.kind==="dryer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
-    const ordered = [...washers, ...dryers];
-
-    const slots = buildWasherSlots(cfg);
-
-    for(const m of ordered){
-      const kindLabel = m.kind==="washer" ? "Waschmaschine" : "Trockner";
-      const card = document.createElement("div");
-      card.className = "card machine";
-
-      // Status flags
-      const isAdminLocked = Number(m.adminLocked||0)===1;
-      const isDefect = Number(m.defect||0)===1;
-      if(isAdminLocked) card.classList.add("locked");
-      if(isDefect) card.classList.add("defect");
-      if(Number(m.enabled||0)===0) card.classList.add("disabled");
-
-      const head = document.createElement("div");
-      head.className = "mhead";
-      head.innerHTML = `<h3>${kindLabel} ${m.label}</h3>`;
-
-      const { current, last, next } = findLastNext(bookings, m.kind, m.machineId);
-
-      const badge = document.createElement("span");
-      badge.className = "badge";
-      if(isDefect) { badge.classList.add("bad"); badge.textContent = "DEFEKT"; }
-      else if(isAdminLocked) { badge.classList.add("locked"); badge.textContent = "GESPERRT"; }
-      else if(current) { badge.classList.add("busy"); badge.textContent = (current.kind==="dryer"?"LÄUFT":"BELEGT"); }
-      else { badge.classList.add("ok"); badge.textContent = "FREI"; }
-      head.appendChild(badge);
-
-      const meta = document.createElement("div");
-      meta.className = "mmeta";
-
-      const curLine = document.createElement("div");
-      curLine.className = "line";
-      if(current){
-        const until = fmtDateTime(current.endAt);
-        const wc = Number(current.whitecard||0)===1 ? " • WEISSKARTE" : "";
-        curLine.textContent = `Aktuell: Zimmer ${current.room} bis ${until}${wc}`;
-      }else{
-        curLine.textContent = "Aktuell: frei";
-      }
-
-      const lastLine = document.createElement("div");
-      lastLine.className = "line muted";
-      lastLine.textContent = last ? `Zuletzt: Zimmer ${last.room} bis ${fmtDateTime(last.endAt)}` : "Zuletzt: —";
-
-      const nextLine = document.createElement("div");
-      nextLine.className = "line muted";
-      nextLine.textContent = next ? `Als nächstes: Zimmer ${next.room} ab ${fmtDateTime(next.startAt)}` : "Als nächstes: —";
-
-      meta.appendChild(curLine);
-      meta.appendChild(lastLine);
-      meta.appendChild(nextLine);
-
-      const controls = document.createElement("div");
-      controls.className = "mcontrols";
-
-      const disabled = isAdminLocked || isDefect;
-
-      // Slot/Booking UI
-      if(m.kind==="washer"){
-        const sel = document.createElement("select");
-        sel.className = "sel";
-        for(const s of slots){
-          const opt = document.createElement("option");
-          opt.value = String(s.startAt);
-          opt.textContent = s.label;
-          // disable if started (worker would reject) OR collision without overbook
-          const endAt = s.endAt;
-          const overlaps = bookings.filter(b => b.kind==="washer" && String(b.machineId)===String(m.machineId) && (b.status==="booked"||b.status==="active") && !(Number(b.endAt)<=s.startAt || Number(b.startAt)>=endAt));
-          const allWhite = overlaps.length>0 && overlaps.every(b=>Number(b.whitecard||0)===1);
-          const collides = overlaps.length>0;
-          if(s.disabled) opt.disabled = true;
-          if(collides && !allWhite) opt.disabled = true;
-          if(collides && allWhite) opt.textContent = opt.textContent + " • WEISSKARTE";
-          sel.appendChild(opt);
-        }
-
-        const wcEnabled = !!cfg.whitecardEnabled;
-        const wcWrap = document.createElement("label");
-        wcWrap.className = "check";
-        wcWrap.style.display = wcEnabled ? "flex" : "none";
-        wcWrap.innerHTML = `<input type="checkbox" class="cb"><span>Weißkarte</span>`;
-        const wcCb = wcWrap.querySelector("input");
-
-        const btn = document.createElement("button");
-        btn.className = "btn small";
-        btn.textContent = "Buchen";
-        btn.disabled = disabled;
-        btn.onclick = async ()=>{
-          showErr("");
-          const room = $("room").value.trim();
-          const pin = $("pin").value.trim();
-          const stationPin = $("stationPin").value.trim();
-          const startAt = Number(sel.value||0);
-          if(!startAt) return showErr("Bitte Slot auswählen.");
-          const endAt = startAt + 60*60000;
-
-          const overlaps = bookings.filter(b => b.kind==="washer" && String(b.machineId)===String(m.machineId) && (b.status==="booked"||b.status==="active") && !(Number(b.endAt)<=startAt || Number(b.startAt)>=endAt));
-          const allWhite = overlaps.length>0 && overlaps.every(b=>Number(b.whitecard||0)===1);
-          const overbook = overlaps.length>0 && allWhite && wcEnabled ? confirm("Diese Maschine ist belegt, aber mit Weißkarte freigegeben. Überbuchen?") : false;
-
-          try{
-            await jpost("/api/washer/book",{ room, pin, stationPin, machineId:m.machineId, minutes:60, startAt, whitecard: wcCb?.checked?1:0, overbook });
-            await refreshAll();
-          }catch(e){ showErr("⛔ " + e.message); }
-        };
-
-        controls.appendChild(sel);
-        controls.appendChild(wcWrap);
-        controls.appendChild(btn);
-      }else{
-        const wcEnabled = !!cfg.whitecardEnabled;
-        const wcWrap = document.createElement("label");
-        wcWrap.className = "check";
-        wcWrap.style.display = wcEnabled ? "flex" : "none";
-        wcWrap.innerHTML = `<input type="checkbox" class="cb"><span>Weißkarte</span>`;
-        const wcCb = wcWrap.querySelector("input");
-
-        const btn = document.createElement("button");
-        btn.className = "btn small";
-        btn.textContent = "Jetzt buchen";
-        btn.disabled = disabled;
-        btn.onclick = async ()=>{
-          showErr("");
-          const room = $("room").value.trim();
-          const pin = $("pin").value.trim();
-          const stationPin = $("stationPin").value.trim();
-          try{
-            await jpost("/api/dryer/book",{ room, pin, stationPin, machineId:m.machineId, minutes: Number(cfg.dryerMinutes||150), whitecard: wcCb?.checked?1:0 });
-            await refreshAll();
-          }catch(e){ showErr("⛔ " + e.message); }
-        };
-        controls.appendChild(wcWrap);
-        controls.appendChild(btn);
-      }
-
-      // Freigeben: nur eigene aktuelle Buchung
-      if(current && String(current.room)===roomNow){
-        const rel = document.createElement("button");
-        rel.className = "btn small secondary";
-        rel.textContent = "Freigeben";
-        rel.disabled = disabled;
-        rel.onclick = async ()=>{
-          showErr("");
-          const room = $("room").value.trim();
-          const pin = $("pin").value.trim();
-          const stationPin = $("stationPin").value.trim();
-          try{
-            await jpost("/api/booking/release",{ room, pin, stationPin, bookingId: current.id });
-            await refreshAll();
-          }catch(e){ showErr("⛔ " + e.message); }
-        };
-        controls.appendChild(rel);
-      }
-
-      // Defekt melden (Beschreibung optional)
-      const def = document.createElement("button");
-      def.className = "btn small danger";
-      def.textContent = "Defekt";
-      def.onclick = async ()=>{
-        showErr("");
-        const room = $("room").value.trim();
-        const pin = $("pin").value.trim();
-        const stationPin = $("stationPin").value.trim();
-        const text = prompt("Defekt melden (optional Beschreibung):") ?? "";
-        try{
-          await jpost("/api/defect/report",{ room, pin, stationPin, machineId: m.machineId, kind: m.kind, text });
-          await refreshAll();
-        }catch(e){ showErr("⛔ " + e.message); }
-      };
-      controls.appendChild(def);
-
-      card.appendChild(head);
-      card.appendChild(meta);
-      card.appendChild(controls);
-      box.appendChild(card);
-    }
-  }
-
-function fmtHM(ts){
-  const d = new Date(Number(ts||0));
-  if(!Number.isFinite(d.getTime())) return "–";
-  return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
-}
-
-function updateGlobalBookPanel(state){
-  const panel = document.getElementById("globalBookPanel");
-  if(!panel) return;
-
-  const cfg = state?.config || {};
-  const kindSel = document.getElementById("gbKind");
-  const machSel = document.getElementById("gbMachine");
-  const slotSel = document.getElementById("gbSlot");
-  const minSel = document.getElementById("gbMinutes");
-  const wc = document.getElementById("gbWhitecard");
-  const btn = document.getElementById("gbBookBtn");
-
-  // Weißkarte nur wenn enabled
-  const wcEnabled = !!cfg.whitecardEnabled;
-  wc.disabled = !wcEnabled;
-  if(!wcEnabled) wc.checked = false;
-
-  const kind = kindSel.value;
-
-  // Machines list
-  machSel.innerHTML = "";
-  const machines = (state?.machines||[]).filter(x => String(x.kind)===String(kind));
-  for(const m of machines){
-    const o=document.createElement("option");
-    o.value = String(m.machineId);
-    o.textContent = `${kind==="dryer"?"T":"W"}${m.label||m.machineId}`;
-    if(!m.enabled) o.textContent += " (defekt)";
-    machSel.appendChild(o);
-  }
-
-  // Slots
-  slotSel.innerHTML = "";
-  if(kind === "dryer"){
-    // Trockner: Start sofort
-    const o=document.createElement("option");
-    o.value = String(Date.now());
-    o.textContent = `Sofort (${fmtDateTime(Date.now())})`;
-    slotSel.appendChild(o);
-    minSel.value = String(cfg.dryerMinutes || 150);
-  } else {
-    const slots = buildWasherSlots(cfg);
-    for(const s of slots){
-      const o=document.createElement("option");
-      o.value = String(s.ts);
-      o.textContent = s.label;
-      slotSel.appendChild(o);
-    }
-    if(!slotSel.value && slots.length) slotSel.value = String(slots[0].ts);
-  }
-
-  // Hook change to rebuild
-  if(!kindSel._hooked){
-    kindSel._hooked = true;
-    kindSel.addEventListener("change", ()=>updateGlobalBookPanel(window.__STATE__));
-  }
-
-  if(!btn._hooked){
-    btn._hooked = true;
-    btn.addEventListener("click", async ()=>{
-      const kind = kindSel.value;
-      const machineId = machSel.value;
-      const startAt = Number(slotSel.value||0);
-      const minutes = Number(minSel.value||60);
-      const whitecard = !!wc.checked;
-
-      if(!machineId) return toast("⛔ Mas
-  // ---- HTML escape ----
-  function escapeHtml(s){
-    return String(s??"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  // ---- News ----
-  function renderNews(cfg){
-    const card = document.getElementById("newsCard");
-    const box = document.getElementById("newsText");
-    if(!card || !box) return;
-    const enabled = !!cfg?.newsEnabled;
-    const txt = String(cfg?.newsText||"").trim();
-    if(enabled && txt){
-      card.style.display = "block";
-      box.innerHTML = escapeHtml(txt).replace(/\n/g,"<br>");
-    }else{
-      card.style.display = "none";
-      box.textContent = "";
-    }
-  }
-
-  // ---- Hidden bookings (local only) ----
-  const HIDDEN_KEY = "wp_hidden_bookings";
-  function getHiddenBookingIds(){
-    try{ return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY)||"[]")); }catch{ return new Set(); }
-  }
-  function hideBooking(id){
-    const s=getHiddenBookingIds();
-    s.add(String(id));
-    localStorage.setItem(HIDDEN_KEY, JSON.stringify([...s]));
-  }
-
-  // ---- Meine Buchungen ----
-  function renderMyBookings(state){
-    const box = document.getElementById("myBookings");
-    if(!box) return;
-    box.innerHTML = "";
-    const now = Date.now();
-    const hidden = getHiddenBookingIds();
-    const list = Array.isArray(state?.myBookings) ? state.myBookings : [];
-    if(!list.length){
-      const empty=document.createElement("div");
-      empty.className="muted";
-      empty.textContent="—";
-      box.appendChild(empty);
-      return;
-    }
-    for(const b of list){
-      const id = String(b.id||"");
-      if(hidden.has(id)) continue;
-
-      const item=document.createElement("div");
-      item.className="item";
-      const title=document.createElement("div");
-      title.className="itop";
-      const kindLabel = (b.kind==="dryer") ? "Trockner" : "Waschmaschine";
-      title.innerHTML = `<strong>${kindLabel} ${escapeHtml(b.machineId||b.machine||"")}</strong>`;
-      const badge=document.createElement("span");
-      badge.className="badge " + (b.status==="cancelled"||b.status==="released"?"":"busy");
-      badge.textContent = b.status || "";
-      title.appendChild(badge);
-
-      const meta=document.createElement("div");
-      meta.className="muted";
-      meta.textContent = `${fmtDateTime(b.startAt||b.start||0)} – ${fmtDateTime(b.endAt||b.end||0)}`;
-
-      const actions=document.createElement("div");
-      actions.className="actions";
-      const endAt = Number(b.endAt||b.end||0);
-      const startAt = Number(b.startAt||b.start||0);
-      const expired = endAt > 0 && endAt <= now;
-
-      if(expired){
-        const hideBtn=document.createElement("button");
-        hideBtn.className="btn secondary";
-        hideBtn.textContent="Ausblenden";
-        hideBtn.onclick=()=>{ hideBooking(id); refresh(); };
-        actions.appendChild(hideBtn);
-      }else{
-        // Freigeben nur wenn läuft & zu diesem Room/PIN gehört (Worker prüft)
-        const relBtn=document.createElement("button");
-        relBtn.className="btn secondary";
-        relBtn.textContent="Freigeben";
-        relBtn.onclick=()=>releaseBooking(id);
-        actions.appendChild(relBtn);
-
-        // Storno nur wenn in Zukunft
-        const canCancel = startAt > now + 30*1000 && (b.status==="booked" || b.status==="reserved" || b.status==="");
-        const cancelBtn=document.createElement("button");
-        cancelBtn.className="btn secondary";
-        cancelBtn.textContent="Stornieren";
-        cancelBtn.disabled = !canCancel;
-        cancelBtn.onclick=()=>cancelBooking(id);
-        actions.appendChild(cancelBtn);
-      }
-
-      item.appendChild(title);
-      item.appendChild(meta);
-      item.appendChild(actions);
-      box.appendChild(item);
-    }
-  }
-
-  async function releaseBooking(bookingId){
-    try{
-      const payload = getAuthPayload();
-      payload.bookingId = bookingId;
-      const res = await jpost("/api/booking/release", payload);
-      if(!res.ok) throw new Error(res.message||res.error||"release_failed");
-      showOk("✅ freigegeben");
-      refresh();
-    }catch(e){ showErr("⛔ " + e.message); }
-  }
-  async function cancelBooking(bookingId){
-    try{
-      const payload = getAuthPayload();
-      payload.bookingId = bookingId;
-      const res = await jpost("/api/booking/cancel", payload);
-      if(!res.ok) throw new Error(res.message||res.error||"cancel_failed");
-      showOk("✅ storniert");
-      refresh();
-    }catch(e){ showErr("⛔ " + e.message); }
-  }
-
-  // ---- Global Washer Booking ----
-  function renderGlobalWasherBooking(state){
-    const sel = document.getElementById("gbWasherSlot");
-    const btn = document.getElementById("gbWasherBook");
-    if(!sel || !btn) return;
-
-    const cfg = state?.config || {};
-    const slots = buildWasherSlots(cfg);
-    const machines = (state?.machines||[]).filter(m=>m.kind==="washer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
-    const bookings = Array.isArray(state?.bookings)? state.bookings : [];
-
-    // map occupied: key kind|mid|startAt -> booking
-    const occ = new Map();
-    for(const b of bookings){
-      const k = `${b.kind}|${b.machineId}|${Number(b.startAt)}`;
-      if(b.status!=="cancelled") occ.set(k,b);
-    }
-
-    sel.innerHTML = "";
-    const placeholder=document.createElement("option");
-    placeholder.value="";
-    placeholder.textContent="Bitte Slot wählen…";
-    sel.appendChild(placeholder);
-
-    for(const s of slots){
-      for(const m of machines){
-        const k = `washer|${m.machineId}|${Number(s.startAt)}`;
-        const booked = occ.get(k);
-        const opt=document.createElement("option");
-        opt.value = JSON.stringify({ machineId: String(m.machineId), startAt: Number(s.startAt) });
-        const day = new Date(s.startAt);
-        const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][day.getDay()];
-        opt.textContent = `${wd}, ${fmtDate(s.startAt)} ${fmtHM(s.startAt)}–${fmtHM(s.endAt)}  WM ${m.machineId}` + (booked ? `  (belegt ${booked.room})` : "");
-        if(booked) opt.disabled = true;
-        sel.appendChild(opt);
-      }
-    }
-
-    btn.onclick = async ()=>{
-      try{
-        const raw = sel.value;
-        if(!raw) return showErr("Bitte Slot auswählen.");
-        const {machineId,startAt} = JSON.parse(raw);
-        const payload = getAuthPayload();
-        payload.machineId = String(machineId);
-        payload.startAt = Number(startAt);
-        const res = await jpost("/api/washer/book", payload);
-        if(!res.ok) throw new Error(res.message||res.error||"book_failed");
-        showOk("✅ gebucht");
-        refresh();
-      }catch(e){ showErr("⛔ " + e.message); }
-    };
-  }
-
-
-chine fehlt");
-      if(kind==="washer" && !startAt) return toast("⛔ Slot fehlt");
-
-      const payload = { room, pin, stationPin, machineId, minutes, whitecard };
-      if(kind==="washer") payload.startAt = startAt;
-      if(kind==="dryer") payload.startAt = startAt;
-
-      // überbuchen nur wenn Slot opt. WEISSKARTE markiert (Portal markiert das in Slot-Auswahl)
-      const selOpt = slotSel?.options?.[slotSel.selectedIndex];
-      if(selOpt && selOpt.dataset && selOpt.dataset.whitecard==="1"){
-        const ok = confirm("Dieser Slot ist mit Weißkarte freigegeben. Überbuchen?");
-        if(!ok) return;
-        payload.overbook = true;
-      }
-
-      const url = kind==="dryer" ? "/api/dryer/book" : "/api/washer/book";
-      await jpost(url, payload);
-      toast("✅ Gebucht", 1200);
-      await refreshAll();
-    });
-  }
-}
+  function loadCreds(){ /* disabled */ }
 
 async function refreshAll(){
 
@@ -803,9 +332,7 @@ async function refreshAll(){
     try{
       const state = await jpost("/api/user/refresh",{ room, pin, stationPin });
       $("workerBuild").textContent = state.build || "-";
-      renderNews(state?.config||{});
       renderMachines(state);
-      renderGlobalWasherBooking(state);
       updateGlobalBookPanel(state);
 
       renderMyBookings(state);
