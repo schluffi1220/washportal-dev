@@ -180,6 +180,103 @@ function jget(url, extraHeaders){
       return data;
     });
 }
+// ---- machines rendering (restored) ----
+function normalizeType(m){
+  const t = (m.type || m.kind || m.machineType || '').toString().toLowerCase();
+  if(t.includes('dry')) return 'dryer';
+  return 'washer';
+}
+function machineLabel(m){
+  const n = (m.no ?? m.num ?? m.index ?? m.id ?? '').toString();
+  const type = normalizeType(m);
+  if(type==='dryer') return 'Trockner ' + (m.name || n || '');
+  return 'Waschmaschine ' + (m.name || n || '');
+}
+function bookingTimeRange(b){
+  if(!b) return '—';
+  const s = b.startAt ?? b.start ?? b.ts ?? b.from;
+  const e = b.endAt ?? b.end ?? b.until ?? b.to;
+  if(!s || !e) return '—';
+  return fmtDateTime(s) + '–' + fmtHM(e);
+}
+function extractBookings(state){
+  return Array.isArray(state?.bookings) ? state.bookings : (Array.isArray(state?.allBookings) ? state.allBookings : []);
+}
+function bookingsForMachine(state, m){
+  const all = extractBookings(state);
+  const mid = m.id ?? m.machineId ?? m.no ?? m.num;
+  const type = normalizeType(m);
+  return all.filter(b=>{
+    const bt = (b.type || b.kind || b.machineType || '').toString().toLowerCase();
+    const btype = bt.includes('dry') ? 'dryer' : 'washer';
+    const bmid = b.machineId ?? b.machine ?? b.no ?? b.num ?? b.machineNo;
+    return (btype===type) && (String(bmid)===String(mid));
+  });
+}
+function statusBadge(state, m, info){
+  // info: {current,last,next}
+  const now = Date.now();
+  const defect = !!(m.defect || m.isDefect || m.broken || m.status==='defect');
+  const locked = !!(m.locked || m.isLocked || m.blocked || m.status==='locked');
+  if(defect || locked) return `<span class="badge bad">${defect?'DEFEKT':'GESPERRT'}</span>`;
+  if(info?.current) return `<span class="badge warn">LÄUFT</span>`;
+  if(info?.next && ( (info.next.startAt ?? info.next.start) > now)) return `<span class="badge ok">FREI</span>`;
+  return `<span class="badge ok">FREI</span>`;
+}
+
+function renderMachines(state){
+  const root = $("machines");
+  if(!root) return;
+
+  const machines = Array.isArray(state?.machines) ? state.machines
+    : (Array.isArray(state?.machineList) ? state.machineList : []);
+
+  // If worker doesn't provide machines yet, show a helpful message.
+  if(!machines.length){
+    root.innerHTML = `<div class="muted">Keine Maschinen-Daten erhalten. Prüfe Worker-URL und /api/user/refresh.</div>`;
+    return;
+  }
+
+  // Group washers then dryers
+  const washers = machines.filter(m=>normalizeType(m)==='washer');
+  const dryers  = machines.filter(m=>normalizeType(m)==='dryer');
+
+  function cardHtml(m){
+    const bs = bookingsForMachine(state, m);
+    const { last, current, next } = findLastNext(bs);
+    return `
+      <div style="border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); border-radius:18px; padding:14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700">${escapeHtml(machineLabel(m) || 'Maschine')}</div>
+          ${statusBadge(state,m,{last,current,next})}
+        </div>
+        <div class="muted" style="margin-top:8px">
+          <div><span class="muted">Zuletzt:</span> ${last ? escapeHtml((last.room?('Zimmer '+last.room+' · '):'')) + escapeHtml(bookingTimeRange(last)) : '—'}</div>
+          <div><span class="muted">Aktuell:</span> ${current ? escapeHtml((current.room?('Zimmer '+current.room+' · '):'')) + escapeHtml(bookingTimeRange(current)) : '—'}</div>
+          <div><span class="muted">Als nächstes:</span> ${next ? escapeHtml((next.room?('Zimmer '+next.room+' · '):'')) + escapeHtml(bookingTimeRange(next)) : '—'}</div>
+        </div>
+      </div>`;
+  }
+
+  let html = '';
+  if(washers.length){
+    html += washers.map(cardHtml).join('');
+  }
+  if(dryers.length){
+    html += dryers.map(cardHtml).join('');
+  } else {
+    // If no dryers in response, keep section hint (matches your expectation)
+    html += `<div class="muted">Keine Trockner im Worker-Response.</div>`;
+  }
+  root.innerHTML = html;
+}
+
+// Global booking panel currently optional in oldstyle build.
+// Keep it as a safe no-op so refresh doesn't crash.
+function updateGlobalBookPanel(state){
+  // implemented in newer portal versions; oldstyle keeps machine-only view for now
+}
+
 // --------------------------------
 
 function escapeHtml(s){
