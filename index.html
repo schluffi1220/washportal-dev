@@ -1,770 +1,721 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Washportal (DEV)</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Washportal (Oldstyle v11)</title>
   <style>
     :root{
-      --bg:#08111f; --panel:#0f1c2f; --panel2:#10243b; --line:rgba(255,255,255,.08);
-      --text:#eaf1ff; --muted:rgba(234,241,255,.70);
-      --ok:#2dd4bf; --bad:#ef4444; --warn:#f59e0b; --blue:#60a5fa;
-      --btn:#1f2d44; --btn2:#263a59;
-      --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --radius:18px;
+      --bg0:#07131f; --bg1:#0b1b2b; --card:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.10); --txt:#e8f1ff; --muted:rgba(232,241,255,.70);
+      --good:#23c58a; --bad:#ff5b73; --info:#4aa3ff; --lock:#8e95a1; --white:#f3f6ff;
+      --btn:#2a76ff; --btn2:#28c6b2;
+      --r:18px;
     }
     *{box-sizing:border-box}
     body{
-      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background: radial-gradient(1200px 600px at 30% 10%, rgba(45,212,191,.18), transparent 55%),
-                  radial-gradient(900px 500px at 85% 35%, rgba(96,165,250,.16), transparent 50%),
-                  linear-gradient(180deg, #061022, var(--bg));
-      color:var(--text);
+      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial;
+      color:var(--txt);
+      background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
+                  radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
+                  linear-gradient(180deg, var(--bg0), var(--bg1));
+      min-height:100vh;
     }
-    .wrap{max-width:1180px; margin:24px auto 80px; padding:0 16px;}
-    .topbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px;}
-    .pill{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px;
-      border:1px solid var(--line); background:rgba(255,255,255,.04); font-size:13px; color:var(--muted)}
-    .pill strong{color:var(--text); font-weight:700}
-    .pill .dot{width:8px; height:8px; border-radius:99px; background:var(--ok); box-shadow:0 0 0 3px rgba(45,212,191,.15)}
-    .err{display:none; margin:10px 0 16px; padding:12px 14px; border-radius:14px; border:1px solid rgba(239,68,68,.35);
-      background:rgba(239,68,68,.10); color:#ffd5d5}
-    .grid{display:grid; grid-template-columns: 1fr; gap:16px;}
+    .topbar{
+      display:flex; gap:10px; align-items:center; padding:14px 16px; position:sticky; top:0;
+      background:linear-gradient(180deg, rgba(7,19,31,.85), rgba(7,19,31,.55));
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      z-index:20;
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
+    .dot{width:10px;height:10px;border-radius:999px;background:#2ff2cc; box-shadow:0 0 18px rgba(47,242,204,.55)}
+    .pill{
+      padding:7px 10px; border:1px solid rgba(255,255,255,.10); border-radius:999px;
+      background:rgba(255,255,255,.05); color:var(--muted); font-size:12px;
+      white-space:nowrap;
+    }
+    .wrap{max-width:1080px; margin:0 auto; padding:16px}
     .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:var(--r);
       padding:16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.28);
+      backdrop-filter: blur(10px);
+      margin-bottom:14px;
     }
-    h1{margin:0 0 4px; font-size:20px}
-    h2{margin:0 0 12px; font-size:18px}
-    .muted{color:var(--muted); font-size:13px}
-    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end}
-    .field{min-width:180px; flex:1}
-    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    h2{margin:0 0 10px 0; font-size:18px}
+    .row{display:flex; gap:12px; flex-wrap:wrap}
+    .field{flex:1 1 180px}
+    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px}
     input, select, textarea{
-      width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.20); color:var(--text); outline:none;
+      width:100%; border-radius:14px; padding:12px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(6,12,20,.55);
+      color:var(--txt);
+      outline:none;
     }
-    textarea{min-height:44px; resize:vertical}
-    .btn{
-      padding:10px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12);
-      background:linear-gradient(90deg, rgba(96,165,250,.25), rgba(45,212,191,.25));
-      color:var(--text); font-weight:700; cursor:pointer;
-      transition:transform .05s ease, filter .15s ease;
+    textarea{min-height:92px; resize:vertical}
+    button{
+      border:0; border-radius:14px; padding:12px 14px; font-weight:700; cursor:pointer; color:white;
+      background:linear-gradient(135deg, var(--btn), var(--btn2));
+      box-shadow: 0 10px 20px rgba(25,92,255,.20);
     }
-    .btn-primary{ background:linear-gradient(90deg, rgba(96,165,250,.40), rgba(59,130,246,.28)); }
-    .btn-success{ background:linear-gradient(90deg, rgba(45,212,191,.38), rgba(34,197,94,.26)); }
-    .btn-danger{ background:linear-gradient(90deg, rgba(244,63,94,.38), rgba(251,113,133,.22)); border-color:rgba(244,63,94,.35); }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; }
-
-    .btn:active{transform:translateY(1px)}
-    .btn.secondary{background:rgba(255,255,255,.05); font-weight:600}
-    .btn.danger{background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.35)}
-    .btn.small{padding:8px 10px; border-radius:12px; font-size:13px}
-    .machines{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px;}
-    @media (max-width: 980px){ .machines{grid-template-columns: repeat(2, minmax(0, 1fr));} }
-    @media (max-width: 520px){ .machines{grid-template-columns: 1fr;} }
-    .mcard{
-      background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:16px; padding:14px;
-      display:flex; flex-direction:column; gap:10px; min-height:150px;
+    button.secondary{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:none;
+      color:var(--txt);
+      font-weight:700;
     }
-    .mcard.state-free{border-color: rgba(45,212,191,.28); background: rgba(45,212,191,.14); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10) inset;}
-    .mcard.state-busy{border-color: rgba(96,165,250,.30); background: rgba(96,165,250,.14); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(96,165,250,.10) inset;}
-    .mcard.state-whitecard{border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.20);}
-    .mcard.state-defect{border-color: rgba(248,113,113,.55); background: rgba(248,113,113,.22);}
-
-
-    .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
-    .mtitle{font-weight:800}
-    .badge{font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.15); font-weight:700; letter-spacing:.2px}
-    .badge.b-free{color:#052016; background:rgba(34,197,94,.18); border-color:rgba(34,197,94,.35)}
-    .badge.b-busy{color:#061427; background:rgba(59,130,246,.20); border-color:rgba(59,130,246,.40)}
-    .badge.b-defect{color:#2a0608; background:rgba(239,68,68,.20); border-color:rgba(239,68,68,.45)}
-    .badge.b-locked{color:rgba(255,255,255,.92); background:linear-gradient(180deg, rgba(239,68,68,.22), rgba(148,163,184,.18)); border-color:rgba(239,68,68,.35)}
-    .badge.b-whitecard{color:#111827; background:rgba(255,255,255,.92); border-color:rgba(255,255,255,.55)}
-    .badge.ok{color:#c7fffb; border-color:rgba(45,212,191,.35); background:rgba(45,212,191,.10)}
-    .badge.busy{color:#dbeafe; border-color:rgba(96,165,250,.35); background:rgba(96,165,250,.10)}
-    .badge.bad{color:#ffd5d5; border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.10)}
-    .mp{font-size:13px; color:var(--muted); line-height:1.3}
-    .mcontrols{margin-top:auto; display:flex; flex-direction:column; gap:10px}
-    .inline{display:flex; gap:10px; align-items:center}
-    .inline select{flex:1}
-    .list{display:flex; flex-direction:column; gap:10px}
-    .item{border:1px solid var(--line); background:rgba(255,255,255,.03); border-radius:14px; padding:12px}
-    .itemtop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
-    .item h3{margin:0; font-size:14px}
-    .item .meta{margin-top:6px; font-size:13px; color:var(--muted)}
-    .divider{height:1px; background:var(--line); margin:10px 0}
-    .footer-note{margin-top:14px; font-size:12px; color:rgba(234,241,255,.55)}
-  
-  .card.machine{position:relative;}
-  .card.machine.locked{background:rgba(160,160,160,.22); border-color: rgba(120,120,120,.35);}
-  .card.machine.defect{background:rgba(255,80,80,.18); border-color: rgba(255,80,80,.40);}
-  .card.machine .mhead{display:flex; align-items:center; justify-content:space-between; gap:10px;}
-  .card.machine .mmeta{margin-top:8px; display:flex; flex-direction:column; gap:4px;}
-  .card.machine .mcontrols{margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
-  .badge.bad{background:rgba(255,60,60,.22); border:1px solid rgba(255,60,60,.45);}
-  .badge.locked{background:rgba(120,120,120,.22); border:1px solid rgba(120,120,120,.45);}
-  .check{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.55);}
-  .check .cb{width:18px; height:18px;}
-
-
-    .mcard{border:1px solid rgba(255,255,255,.10); border-radius:18px; padding:14px; position:relative; overflow:hidden;}
-    .mcard.free{background:linear-gradient(180deg, rgba(34,197,94,.16), rgba(255,255,255,.03));}
-    .mcard.booked{background:linear-gradient(180deg, rgba(96,165,250,.18), rgba(255,255,255,.03));}
-    .mcard.defect{background:linear-gradient(180deg, rgba(239,68,68,.20), rgba(255,255,255,.03));}
-    .mcard.locked{background:linear-gradient(180deg, rgba(239,68,68,.12), rgba(156,163,175,.12));}
-    .mcard.whitecard{background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.03));}
-    .badge{font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.16);}
-    .badge.free{background:rgba(34,197,94,.18); color:#d1fae5;}
-    .badge.booked{background:rgba(96,165,250,.20); color:#dbeafe;}
-    .badge.defect{background:rgba(239,68,68,.22); color:#fee2e2;}
-    .badge.locked{background:rgba(239,68,68,.14); color:#f3f4f6;}
-    .badge.whitecard{background:rgba(255,255,255,.18); color:#fff;}
-    .machines{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px;}
-    @media (max-width: 860px){ .machines{grid-template-columns:repeat(2, minmax(0,1fr));} }
-    @media (max-width: 380px){ .machines{grid-template-columns:repeat(1, minmax(0,1fr));} }
-
+    button.danger{
+      background: rgba(255,91,115,.18);
+      border:1px solid rgba(255,91,115,.45);
+      color: #ffd0d7;
+      box-shadow:none;
+    }
+    .help{color:var(--muted); font-size:12px; margin-top:8px}
+    .banner{
+      display:none;
+      padding:10px 12px; border-radius:14px;
+      background: rgba(255,91,115,.12);
+      border:1px solid rgba(255,91,115,.35);
+      margin-bottom:12px;
+      color:#ffd0d7;
+      font-weight:700;
+    }
+    .privacyline{
+      font-size:12px; color:var(--muted);
+    }
+    .privacyline a{color:var(--txt); text-decoration:underline; text-underline-offset:3px}
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:12px;
+    }
+    @media (max-width:760px){
+      .grid{grid-template-columns: repeat(2, minmax(0,1fr));}
+    }
+    @media (max-width:420px){
+      .grid{grid-template-columns: 1fr;}
+    }
+    .machine{
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      padding:14px;
+      background: rgba(255,255,255,.05);
+      position:relative;
+      overflow:hidden;
+    }
+    .mhead{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+    .mtitle{font-weight:900}
+    .badge{
+      font-size:11px; font-weight:900; padding:6px 9px; border-radius:999px; border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.15);
+      color:var(--txt);
+    }
+    .tint-free{background:linear-gradient(180deg, rgba(35,197,138,.18), rgba(255,255,255,.05));}
+    .tint-busy{background:linear-gradient(180deg, rgba(74,163,255,.18), rgba(255,255,255,.05));}
+    .tint-def{background:linear-gradient(180deg, rgba(255,91,115,.18), rgba(255,255,255,.05));}
+    .tint-lock{background:linear-gradient(180deg, rgba(142,149,161,.18), rgba(255,255,255,.05));}
+    .tint-white{background:linear-gradient(180deg, rgba(243,246,255,.35), rgba(255,255,255,.05));}
+    .sub{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.4}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    .actions button{flex:1 1 120px}
+    .myitem{
+      border-radius:16px; border:1px solid rgba(255,255,255,.12);
+      padding:14px; background:rgba(255,255,255,.05); margin-top:10px;
+    }
+    .right{float:right}
+    .muted{color:var(--muted)}
+    .mini{font-size:12px}
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> Washportal</div>
+    <div class="pill" id="buildPill">PORTAL BUILD: oldstyle_v11</div>
+    <div class="pill" id="workerPill">Worker: —</div>
+    <div class="pill" id="roomPill">Zimmer: —</div>
+  </div>
+
   <div class="wrap">
-    <div class="topbar">
-      <div class="pill"><span class="dot"></span><strong>Washportal</strong></div>
-      <div class="pill">PORTAL BUILD: <strong id="portalBuild">2026-02-15 PORTAL</strong></div>
-      <div class="pill">Worker: <strong id="workerBuild">-</strong></div>
-      <div class="pill">Zimmer: <strong id="roomPill">-</strong></div>
+    <div class="card">
+      <div class="privacyline">
+        Mit der Benutzung dieser Seite erklärst du dich mit der aktuellen
+        <a href="https://schluffi1220.github.io/washportal-dev/privacy/" target="_blank" rel="noopener">Datenschutzvereinbarung</a>
+        einverstanden.
+      </div>
     </div>
 
-    <div id="err" class="err"></div>
+    <div class="banner" id="errBanner"></div>
 
-    <div class="grid">
-      <div class="card">
-        <h2>Login</h2>
-        <div class="row">
-          <div class="field"><label>Zimmer</label><input id="room" inputmode="numeric" placeholder="z.B. 316"></div>
-          <div class="field"><label>Persönlicher PIN</label><input id="pin" type="password" inputmode="numeric" placeholder="PIN"></div>
-          <div class="field"><label>Stations-PIN</label><input id="stationPin" type="password" inputmode="numeric" placeholder="Stations-PIN"></div>
-          <button class="btn" id="saveBtn">Speichern</button>
-          <button class="btn secondary" id="refreshBtn">Aktualisieren</button>
+    <div class="card">
+      <h2>Login</h2>
+      <div class="row">
+        <div class="field">
+          <label>Zimmer</label>
+          <input id="room" inputmode="numeric" autocomplete="off" placeholder="z.B. 203"/>
         </div>
-        <div class="footer-note">Hinweis: Slot-Buchung nutzt deinen persönlichen PIN (Storno/Freigabe nur für dich). Stations-PIN wird zusätzlich geprüft.</div>
-      </div>
-
-
-      <div class="card">
-        <h2>Slots buchen</h2>
-        <div class="muted" style="margin-top:-6px;">Waschmaschine + Slot auswählen</div>
-        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
-          <select id="globalSlotSel" style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.92); color:#0b1220;"></select>
-          <button class="btn btn-primary" style="width:220px;" onclick="bookGlobalWasher()">Buchen</button>
+        <div class="field">
+          <label>Persönlicher PIN</label>
+          <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/>
+        </div>
+        <div class="field">
+          <label>Stations-PIN</label>
+          <input id="stationPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/>
+        </div>
+        <div class="field" style="flex:0 0 180px; align-self:flex-end">
+          <button id="btnRefresh" style="width:100%">Aktualisieren</button>
         </div>
       </div>
-
-      <div class="card">
-        <h2>Maschinen</h2>
-        <div class="muted" id="legend">Grün = frei · Blau = gebucht/läuft · Weiß = Whitecard · Rot = defekt · Rot/Grau = gesperrt</div>
-        <div class="divider"></div>
-        <div class="machines" id="machines"></div>
+      <div class="help">
+        Hinweis: Slot-Buchung nutzt deinen persönlichen PIN (Storno/Freigabe nur für dich). Stations-PIN wird zusätzlich geprüft.
       </div>
-
-      <div class="card">
-        <h2>Meine Buchungen</h2>
-        <div class="list" id="myBookings"></div>
-      </div>
-
-      <div class="card" id="feedbackCard" style="display:none;">
-        <h2>Feedback</h2>
-        <div class="muted">Dein Feedback geht an PS/SV/Admin (je nach Freigabe).</div>
-        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
-          <textarea id="fbText" rows="4" placeholder="Dein Feedback…" style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text);"></textarea>
-          <button class="btn btn-primary" style="width:220px;" onclick="sendFeedback()">Senden</button>
-        </div>
-      </div>
-
     </div>
+
+    <div class="card" id="bookPanel">
+      <h2>Waschmaschine + Slot auswählen</h2>
+      <div class="row">
+        <div class="field" style="flex:1 1 420px">
+          <label>Waschmaschine + Slot auswählen</label>
+          <select id="globalSlot">
+            <option value="">Bitte auswählen…</option>
+          </select>
+          <div class="help" id="globalSlotHint">Belegte Slots sind als „BELEGT“ markiert und nicht auswählbar.</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:0 0 220px">
+          <button id="btnBookGlobal" style="width:100%">Buchen</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Maschinenübersicht</h2>
+      <div class="help">Grün = frei · Blau = läuft/gebucht · Rot = defekt · Rot/Grau = gesperrt · Weiß = Whitecard</div>
+      <div class="help" id="dryerHint" style="margin-top:8px"></div>
+      <div class="grid" id="machinesGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Meine Buchungen</h2>
+      <div id="myBookings"></div>
+    </div>
+
+    <div class="card" id="feedbackCard">
+      <h2>Feedback</h2>
+      <div class="row">
+        <div class="field">
+          <label>Nachricht</label>
+          <textarea id="fbText" placeholder="Kurzer Hinweis…"></textarea>
+          <div class="help muted mini">Wird nur angezeigt, wenn Feedback in der Config aktiviert ist.</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:0 0 220px">
+          <button id="btnSendFb" style="width:100%">Senden</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 <script>
-// ---- helpers (added in v4) ----
+(() => {
+  const WORKER_DEFAULT = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  const apiBase = (() => {
+    const u = new URL(location.href);
+    const q = u.searchParams.get("worker");
+    if (q && q.startsWith("http")) return q.replace(/\/+$/,"");
+    return WORKER_DEFAULT;
+  })();
 
-// --- API base (Cloudflare Worker) ---
-const WORKER_BASE = (new URLSearchParams(location.search).get('worker') || 'https://washportal-dev-worker.schluffi1220.workers.dev').replace(/\/$/, '');
-function apiUrl(path){
-  if(!path) return WORKER_BASE;
-  if(/^https?:\/\//i.test(path)) return path;
-  return WORKER_BASE + (path.startsWith('/') ? path : ('/' + path));
-}
-
-function jpost(url, body, extraHeaders){
-  const headers = Object.assign({'Content-Type':'application/json'}, extraHeaders||{});
-    url = apiUrl(url);
-  return fetch(url, {method:'POST', headers, body: JSON.stringify(body||{})})
-    .then(async (r)=>{
-      let data=null;
-      try{ data = await r.json(); }catch(e){}
-      if(!r.ok){
-        const msg = (data && (data.message||data.error)) ? (data.message||data.error) : (r.status+' '+r.statusText);
-        throw new Error(msg);
-      }
-      return data;
-    });
-}
-function jget(url, extraHeaders){
-  const headers = Object.assign({}, extraHeaders||{});
-    url = apiUrl(url);
-  return fetch(url, {method:'GET', headers})
-    .then(async (r)=>{
-      let data=null;
-      try{ data = await r.json(); }catch(e){}
-      if(!r.ok){
-        const msg = (data && (data.message||data.error)) ? (data.message||data.error) : (r.status+' '+r.statusText);
-        throw new Error(msg);
-      }
-      return data;
-    });
-}
-// ---- machines rendering (restored) ----
-function normalizeType(m){
-  const t = (m.type || m.kind || m.machineType || '').toString().toLowerCase();
-  if(t.includes('dry')) return 'dryer';
-  return 'washer';
-}
-function machineLabel(m){
-  const n = (m.no ?? m.num ?? m.index ?? m.id ?? '').toString();
-  const type = normalizeType(m);
-  if(type==='dryer') return 'Trockner ' + (m.name || n || '');
-  return 'Waschmaschine ' + (m.name || n || '');
-}
-function bookingTimeRange(b){
-  if(!b) return '—';
-  const s = b.startAt ?? b.start ?? b.ts ?? b.from;
-  const e = b.endAt ?? b.end ?? b.until ?? b.to;
-  if(!s || !e) return '—';
-  return fmtDateTime(s) + '–' + fmtHM(e);
-}
-function extractBookings(state){
-  return Array.isArray(state?.bookings) ? state.bookings : (Array.isArray(state?.allBookings) ? state.allBookings : []);
-}
-function bookingsForMachine(state, m){
-  const all = extractBookings(state);
-  const mid = m.id ?? m.machineId ?? m.no ?? m.num;
-  const type = normalizeType(m);
-  return all.filter(b=>{
-    const bt = (b.type || b.kind || b.machineType || '').toString().toLowerCase();
-    const btype = bt.includes('dry') ? 'dryer' : 'washer';
-    const bmid = b.machineId ?? b.machine ?? b.no ?? b.num ?? b.machineNo;
-    return (btype===type) && (String(bmid)===String(mid));
-  });
-}
-function statusBadge(state, m, info){
-  const defect = !!(m.defect || m.isDefect || m.broken || m.status==='defect');
-  const locked = !!(m.locked || m.isLocked || m.blocked || m.status==='locked');
-
-  if(defect) return `<span class="badge b-defect">DEFEKT</span>`;
-  if(locked) return `<span class="badge b-locked">GESPERRT</span>`;
-
-  const cur = info?.current;
-  const nxt = info?.next;
-
-  const curWhite = !!(cur && (cur.whitecard || cur.isWhitecard || cur.flags?.whitecard));
-  if(curWhite) return `<span class="badge b-whitecard">WHITE</span>`;
-
-  if(cur) return `<span class="badge b-busy">LÄUFT</span>`;
-  if(nxt) return `<span class="badge b-busy">GEBUCHT</span>`;
-  return `<span class="badge b-free">FREI</span>`;
-}
-
-function renderMachines(state){
-  const root = $("machines");
-  if(!root) return;
-
-  const machines = Array.isArray(state?.machines) ? state.machines
-    : (Array.isArray(state?.machineList) ? state.machineList : []);
-
-  // If worker doesn't provide machines yet, show a helpful message.
-  if(!machines.length){
-    root.innerHTML = `<div class="muted">Keine Maschinen-Daten erhalten. Prüfe Worker-URL und /api/user/refresh.</div>`;
-    return;
-  }
-
-  // Group washers then dryers
-  const washers = machines.filter(m=>normalizeType(m)==='washer');
-  const dryers  = machines.filter(m=>normalizeType(m)==='dryer');
-
-  function cardHtml(m){
-    const bs = bookingsForMachine(state, m);
-    const { last, current, next } = findLastNext(bs);
-    const kind = normalizeType(m);
-    const id = String(m.machineId || m.id || "");
-    let actions = "";
-    if (kind === "washer") {
-      const slots = buildWasherSlotsForDays(state.config);
-      const opts = slots.map(s=>{
-        const occ = slotIsOccupied(state, "washer", id, s);
-        const txt = occ ? `${s.label}  •  BELEGT` : s.label;
-        return `<option value="${s.startAt}" data-end-at="${s.endAt}" ${occ?"disabled":""}>${escapeHtml(txt)}</option>`;
-      }).join("");
-      actions = `
-        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-          <select id="slot_${id}" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.92); color:#0b1220;">
-            <option value="">Bitte Slot auswählen…</option>
-            ${opts}
-          </select>
-          <button class="btn btn-primary" style="width:100%;" onclick="bookWasher('${id}')">Buchen</button>
-          <button class="btn btn-danger" style="width:100%;" onclick="reportDefect('${id}')">Defekt melden</button>
-        </div>`;
-    } else if (kind === "dryer") {
-      const mins = Number(state?.config?.dryerMinutes ?? 150);
-      actions = `
-        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-          <div class="muted">Dauer: ${escapeHtml(String(mins))} Minuten</div>
-          <button class="btn btn-primary" style="width:100%;" onclick="bookDryer('${id}')">Buchen</button>
-          <button class="btn btn-danger" style="width:100%;" onclick="reportDefect('${id}')">Defekt melden</button>
-        </div>`;
-    }
-
-    // status → badge + pastel tint
-    const locked = Boolean(m.locked || m.blocked || m.isLocked);
-    const defect = Boolean(m.defect || m.isDefect);
-    const wc = Boolean(m.whitecard || m.isWhitecard);
-    let cls = "free";
-    let badge = "FREI";
-    if(locked){ cls="locked"; badge="GESPERRT"; }
-    else if(defect){ cls="defect"; badge="DEFEKT"; }
-    else if(current){ cls="booked"; badge="LÄUFT"; }
-    else if(next){ cls="booked"; badge="GEBUCHT"; }
-    if(wc){ cls="whitecard"; badge="WHITECARD"; }
-
-
-    return `
-      <div class="mcard ${cls}">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <div style="font-weight:700">${escapeHtml(machineLabel(m) || 'Maschine')}</div>
-          ${statusBadge(state,m,{last,current,next})}
-        </div>
-        <div class="muted" style="margin-top:8px">
-          <div><span class="muted">Zuletzt:</span> ${last ? escapeHtml((last.room?('Zimmer '+last.room+' · '):'')) + escapeHtml(bookingTimeRange(last)) : '—'}</div>
-          <div><span class="muted">Aktuell:</span> ${current ? escapeHtml((current.room?('Zimmer '+current.room+' · '):'')) + escapeHtml(bookingTimeRange(current)) : '—'}</div>
-          <div><span class="muted">Als nächstes:</span> ${next ? escapeHtml((next.room?('Zimmer '+next.room+' · '):'')) + escapeHtml(bookingTimeRange(next)) : '—'}</div>
-        </div>
-        ${actions}
-      </div>`;
-  }
-
-  let html = '';
-  if(washers.length){
-    html += washers.map(cardHtml).join('');
-  }
-  if(dryers.length){
-    html += dryers.map(cardHtml).join('');
-  } else {
-    // If no dryers in response, keep section hint (matches your expectation)
-    html += `<div class="muted">Keine Trockner im Worker-Response.</div>`;
-  }
-  root.innerHTML = html;
-}
-
-// Global booking panel currently optional in oldstyle build.
-// Keep it as a safe no-op so refresh doesn't crash.
-function updateGlobalBookPanel(state){
-  // implemented in newer portal versions; oldstyle keeps machine-only view for now
-}
-
-// --------------------------------
-
-function escapeHtml(s){
-  return String(s??"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-}
-
-function fmtTime(ts){
-  const d=new Date(Number(ts));
-  const hh=String(d.getHours()).padStart(2,"0");
-  const mm=String(d.getMinutes()).padStart(2,"0");
-  return `${hh}:${mm}`;
-}
-
-function findLastNext(bookings, kind, machineId){
-  const now = Date.now();
-  const list = (Array.isArray(bookings)?bookings:[])
-    .filter(b=>String(b.kind)===String(kind) && String(b.machineId)===String(machineId) && (b.status==="booked"||b.status==="active"||b.status==="released"));
-  const current = list.find(b => Number(b.startAt)<=now && now<Number(b.endAt) && (b.status==="active" || b.status==="booked"));
-  const past = list.filter(b => Number(b.endAt)<=now).sort((a,b)=>Number(b.endAt)-Number(a.endAt));
-  const last = past[0] || null;
-  const future = list.filter(b => Number(b.startAt)>now && (b.status==="booked"||b.status==="active")).sort((a,b)=>Number(a.startAt)-Number(b.startAt));
-  const next = future[0] || null;
-  return {current,last,next};
-}
-
-const HIDDEN_KEY="wp_hidden_bookings_v1";
-function getHiddenBookings(){
-  try{ return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY)||"[]")); }catch{ return new Set(); }
-}
-function hideBooking(id){
-  const set=getHiddenBookings();
-  set.add(String(id));
-  localStorage.setItem(HIDDEN_KEY, JSON.stringify([...set]));
-}
-
-async function cancelBooking(b){
-  return jpost("/api/booking/cancel", { bookingId: b.id, room: String($("room").value||""), pin: String($("pin").value||""), stationPin: String($("stationPin").value||"") });
-}
-async function releaseBooking(b){
-  return jpost("/api/booking/release", { bookingId: b.id, room: String($("room").value||""), pin: String($("pin").value||""), stationPin: String($("stationPin").value||"") });
-}
-
-function renderMyBookings(state){
-  const box=$("myBookings");
-  const hidden=getHiddenBookings();
-  const bookings=Array.isArray(state?.bookings)?state.bookings:[];
-  const roomNow=String(state?.room || $("room").value || "");
-  const mine=bookings.filter(b=>String(b.room)===roomNow).sort((a,b)=>Number(a.startAt)-Number(b.startAt));
-  const now=Date.now();
-  box.innerHTML="";
-  if(!roomNow){ box.innerHTML = `<div class="muted">Bitte Zimmer eingeben und aktualisieren.</div>`; return; }
-  if(mine.length===0){ box.innerHTML = `<div class="muted">Keine Buchungen gefunden.</div>`; return; }
-
-  for(const b of mine){
-    const id=String(b.id ?? `${b.kind}-${b.machineId}-${b.startAt}`);
-    if(hidden.has(id)) continue;
-    const card=document.createElement("div");
-    card.className="card booking";
-    const title = `${b.kind==="dryer"?"Trockner":"Waschmaschine"} ${b.machineId}`;
-    const range = `${fmtDateTime(b.startAt)}–${fmtTime(b.endAt)}`;
-    const status = b.status || "—";
-    const expired = Number(b.endAt) <= now;
-    const top = document.createElement("div");
-    top.className="btop";
-    top.innerHTML = `<div><strong>${escapeHtml(title)}</strong><div class="muted">${escapeHtml(range)}</div></div><span class="pill2">${escapeHtml(status)}</span>`;
-    card.appendChild(top);
-
-    const actions=document.createElement("div");
-    actions.className="bactions";
-
-    if(expired){
-      const hide=document.createElement("button");
-      hide.className="btn ghost";
-      hide.textContent="Ausblenden";
-      hide.onclick=()=>{ hideBooking(id); renderMyBookings(data); };
-      actions.appendChild(hide);
-      const note=document.createElement("div");
-      note.className="muted";
-      note.style.marginTop="6px";
-      note.textContent="Abgelaufen – keine Aktion möglich.";
-      card.appendChild(actions);
-      card.appendChild(note);
-    }else{
-      if((b.status==="active"||b.status==="released") && Number(b.startAt)<=now){
-        const rel=document.createElement("button");
-        rel.className="btn";
-        rel.textContent="Freigeben";
-        rel.onclick=async()=>{ try{ await releaseBooking(b); await refreshAll(); }catch(e){ showErr("⛔ "+e.message); } };
-        actions.appendChild(rel);
-      }
-      if(b.status==="booked" && Number(b.startAt)>now){
-        const canc=document.createElement("button");
-        canc.className="btn ghost";
-        canc.textContent="Stornieren";
-        canc.onclick=async()=>{ 
-          try{ await cancelBooking(b); await refreshAll(); }
-          catch(e){ showErr("⛔ Stornieren nicht möglich: "+e.message); }
-        };
-        actions.appendChild(canc);
-      }
-      const hide=document.createElement("button");
-      hide.className="btn ghost";
-      hide.textContent="Ausblenden";
-      hide.onclick=()=>{ hideBooking(id); renderMyBookings(data); };
-      actions.appendChild(hide);
-      card.appendChild(actions);
-    }
-    box.appendChild(card);
-  }
-}
-
-// ---- Zeit/Format-Helpers (global) ----
-function pad2(n){ return String(n).padStart(2,"0"); }
-function fmtHM(ts){
-  const d=new Date(Number(ts));
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-function fmtDate(dayTs){
-  const d=new Date(Number(dayTs));
-  return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}`;
-}
-function fmtDateTime(ts){
-  const d=new Date(Number(ts));
-  return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-function startOfDay(ts){
-  const d = new Date(Number(ts||Date.now()));
-  d.setHours(0,0,0,0);
-  return d.getTime();
-}
-
-
-  const API = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  const $ = (id) => document.getElementById(id);
-
-  function showOk(msg){
-    const el = $("err");
-    el.style.display = msg ? "block" : "none";
-    el.style.borderColor = "rgba(45,212,191,.35)";
-    el.style.background = "rgba(45,212,191,.10)";
-    el.style.color = "#c7fffb";
-    el.textContent = msg || "";
-  }
-
-  function showErr(msg){
-    const el = $("err");
-    el.style.display = msg ? "block" : "none";
-    el.style.borderColor = "rgba(239,68,68,.35)";
-    el.style.background = "rgba(239,68,68,.10)";
-    el.style.color = "#ffd5d5";
-    el.textContent = msg || "";
-  }
-
-
-function showToast(msg){
-  try{
-    const el = document.getElementById("toast");
-    if(!el) return;
-    el.textContent = msg || "";
-    el.style.display = msg ? "block" : "none";
-    if(msg){
-      clearTimeout(window.__toastT);
-      window.__toastT = setTimeout(()=>{ el.style.display="none"; }, 1800);
-    }
-  }catch{}
-}
-
-
-  function fmtDT(ts){
-    const d = new Date(Number(ts));
-    if (isNaN(d.getTime())) return "—";
-    return d.toLocaleString("de-DE", { weekday:"short", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
-  }
-
-  function loadCreds(){ /* disabled (no persistence) */ }
-  function saveCreds(){ /* disabled (no persistence) */ }
-
-  // Global runtime state (NOT persisted)
-  const state = {
-    build: "",
-    config: {},
-    machines: [],
-    bookings: [],
-    room: "",
-    pin: "",
-    stationPin: "",
+  const el = (id) => document.getElementById(id);
+  const showErr = (msg) => {
+    const b = el("errBanner");
+    b.textContent = msg;
+    b.style.display = msg ? "block" : "none";
   };
-  window.__WASH_STATE__ = state;
+  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtTime = (ms) => {
+    const d = new Date(ms);
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mi = String(d.getMinutes()).padStart(2,"0");
+    return `${dd}.${mm} ${hh}:${mi}`;
+  };
+  const fmtDow = (ms) => ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(ms).getDay()];
+  const currentCreds = () => ({
+    room: String(el("room").value || "").trim(),
+    pin: String(el("pin").value || "").trim(),
+    stationPin: String(el("stationPin").value || "").trim()
+  });
 
-  function currentCreds(){
-    return {
-      room: $("room")?.value?.trim() || "",
-      pin: $("pin")?.value?.trim() || "",
-      stationPin: $("stationPin")?.value?.trim() || ""
-    };
+  async function jpost(path, body){
+    const res = await fetch(apiBase + path, {
+      method:"POST",
+      headers:{ "content-type":"application/json" },
+      body: JSON.stringify(body ?? {})
+    });
+    const ct = res.headers.get("content-type")||"";
+    const data = ct.includes("application/json") ? await res.json() : { ok:false, error:"bad_response", message: await res.text() };
+    if (!res.ok || data?.ok === false) throw data;
+    return data;
+  }
+  async function jget(path){
+    const res = await fetch(apiBase + path, { method:"GET" });
+    const ct = res.headers.get("content-type")||"";
+    const data = ct.includes("application/json") ? await res.json() : { ok:false, error:"bad_response", message: await res.text() };
+    if (!res.ok || data?.ok === false) throw data;
+    return data;
   }
 
+  // global state
+  window.__WASH_STATE__ = { config:null, machines:[], bookings:[], myBookings:[] };
 
-async function refreshAll(){
+  function badgeFor(m){
+    const st = (m?.status || "").toLowerCase();
+    const isDef = !!m?.defect || st.includes("defect");
+    const isLocked = !!m?.locked || st.includes("lock") || st.includes("blocked");
+    const isWhite = !!(m?.whitecard || m?.flags?.whitecard);
+    const isBusy = !!m?.current || st.includes("busy") || st.includes("booked") || st.includes("running");
+    if (isDef) return { txt:"DEFEKT", cls:"tint-def" };
+    if (isLocked) return { txt:"GESPERRT", cls:"tint-lock" };
+    if (isWhite) return { txt:"WHITE", cls:"tint-white" };
+    if (isBusy) return { txt:"LÄUFT", cls:"tint-busy" };
+    return { txt:"FREI", cls:"tint-free" };
+  }
 
-    showErr("");
-    saveCreds();
-    const room = $("room").value.trim();
-    const pin = $("pin").value.trim();
-    const stationPin = $("stationPin").value.trim();
-    $("roomPill").textContent = room || "-";
+  function machineLabel(m){
+    const t = (m?.type || "washer").toLowerCase();
+    const n = m?.num ?? m?.number ?? m?.index ?? m?.id ?? "";
+    if (t === "dryer") return `Trockner ${n || ""}`.trim();
+    return `Waschmaschine ${n || ""}`.trim();
+  }
 
-    if(!room || !pin || !stationPin){
-      showErr("Bitte Zimmer, persönlichen PIN und Stations-PIN eintragen.");
+  function overlaps(aStart,aEnd,bStart,bEnd){
+    if (![aStart,aEnd,bStart,bEnd].every(v => Number.isFinite(v))) return false;
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  function getWasherSlots(cfg){
+    const hours = (cfg?.washerHours || cfg?.washer_hours || []).slice().map(x=>Number(x)).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
+    const daysFuture = Number(cfg?.daysFuture ?? cfg?.days_future ?? 6);
+    const now = Date.now();
+    const out = [];
+    for (let d=0; d<=daysFuture; d++){
+      const base = new Date(now + d*86400000);
+      base.setHours(0,0,0,0);
+      for (let i=0; i<hours.length; i++){
+        const h0 = hours[i];
+        const h1 = hours[i+1] ?? (h0+2); // fallback 2h
+        const start = base.getTime() + h0*3600000;
+        const end = base.getTime() + h1*3600000;
+        // include future + currently running (end > now-5min)
+        if (end > now - 5*60000) out.push({start,end});
+      }
+    }
+    return out;
+  }
+
+  function renderGlobalSlotPicker(state){
+    const sel = el("globalSlot");
+    sel.innerHTML = `<option value="">Bitte auswählen…</option>`;
+    const cfg = state.config || {};
+    const slots = getWasherSlots(cfg);
+    // assume washers are type washer, num 1..4, or first 4 washers
+    const washers = state.machines.filter(m => (m.type||"washer").toLowerCase()==="washer");
+    const listWashers = washers.length ? washers : [{num:1,id:1,type:"washer"},{num:2,id:2,type:"washer"},{num:3,id:3,type:"washer"},{num:4,id:4,type:"washer"}];
+
+    // bookings used to mark occupied
+    const bookings = (state.bookings||[]).map(b => ({
+      machine: b.machine ?? b.machineId ?? b.machine_id ?? b.machineNo ?? b.machine_no ?? b.machineNum ?? b.machine_num,
+      start: Number(b.start ?? b.startAt ?? b.start_at),
+      end: Number(b.end ?? b.endAt ?? b.end_at),
+      room: b.room ?? b.zimmer ?? b.user ?? ""
+    }));
+
+    const makeOpt = (m, s) => {
+      const mNum = m.num ?? m.number ?? m.index ?? m.id;
+      const mId = m.id ?? mNum;
+      const occ = bookings.find(b => String(b.machine)===String(mNum) && overlaps(s.start,s.end,b.start,b.end));
+      const dow = fmtDow(s.start);
+      const label = `${dow}, ${fmtTime(s.start)}–${fmtTime(s.end)}  WM ${mNum}` + (occ ? `  •  BELEGT (Zimmer ${occ.room||"?"})` : "");
+      const v = JSON.stringify({machineId:mId, machineNum:mNum, start:s.start, end:s.end});
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = label;
+      if (occ) o.disabled = true;
+      return o;
+    };
+
+    // grouped by day for readability
+    let lastDay = "";
+    for (const s of slots){
+      const d = new Date(s.start);
+      const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (dayKey !== lastDay){
+        lastDay = dayKey;
+        const og = document.createElement("optgroup");
+        og.label = `${fmtDow(s.start)} ${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}`;
+        // add one per washer into group
+        for (const m of listWashers) og.appendChild(makeOpt(m,s));
+        sel.appendChild(og);
+      } else {
+        // find last optgroup and add options
+        const og = sel.lastElementChild;
+        for (const m of listWashers) og.appendChild(makeOpt(m,s));
+      }
+    }
+  }
+
+  function renderMachines(state){
+    const grid = el("machinesGrid");
+    grid.innerHTML = "";
+    const dryers = state.machines.filter(m => (m.type||"washer").toLowerCase()==="dryer");
+    el("dryerHint").textContent = dryers.length ? "" : "Keine Trockner im Worker-Response.";
+
+    for (const m of state.machines){
+      const b = badgeFor(m);
+      const card = document.createElement("div");
+      card.className = `machine ${b.cls}`;
+      const title = machineLabel(m);
+      const last = m.last ? `Zimmer ${m.last.room ?? m.lastRoom ?? "?"} bis ${fmtTime(m.last.end ?? m.lastEnd ?? m.last.endAt ?? m.lastEndAt ?? Date.now())}` : "—";
+      const cur = m.current ? `Zimmer ${m.current.room ?? m.currentRoom ?? "?"} bis ${fmtTime(m.current.end ?? m.currentEnd ?? m.current.endAt ?? m.currentEndAt ?? Date.now())}` : "—";
+      const next = m.next ? `Zimmer ${m.next.room ?? m.nextRoom ?? "?"} ab ${fmtTime(m.next.start ?? m.nextStart ?? m.next.startAt ?? m.nextStartAt ?? Date.now())}` : "—";
+
+      card.innerHTML = `
+        <div class="mhead">
+          <div class="mtitle">${escapeHtml(title)}</div>
+          <div class="badge">${escapeHtml(b.txt)}</div>
+        </div>
+        <div class="sub">
+          <div>Zuletzt: <span class="muted">${escapeHtml(last)}</span></div>
+          <div>Aktuell: <span class="muted">${escapeHtml(cur)}</span></div>
+          <div>Als nächstes: <span class="muted">${escapeHtml(next)}</span></div>
+        </div>
+      `;
+
+      const t = (m.type||"washer").toLowerCase();
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      if (t === "washer"){
+        const sel = document.createElement("select");
+        sel.style.flex = "1 1 240px";
+        sel.innerHTML = `<option value="">Bitte Slot wählen…</option>`;
+        // fill with same slots but just this washer
+        const cfg = state.config || {};
+        const slots = getWasherSlots(cfg);
+        const bookings = (state.bookings||[]).map(b => ({
+          machine: b.machine ?? b.machineId ?? b.machine_id ?? b.machineNo ?? b.machine_no ?? b.machineNum ?? b.machine_num,
+          start: Number(b.start ?? b.startAt ?? b.start_at),
+          end: Number(b.end ?? b.endAt ?? b.end_at),
+          room: b.room ?? b.zimmer ?? b.user ?? ""
+        }));
+        const mNum = m.num ?? m.number ?? m.index ?? m.id;
+        const mId = m.id ?? mNum;
+        for (const s of slots){
+          const occ = bookings.find(b => String(b.machine)===String(mNum) && overlaps(s.start,s.end,b.start,b.end));
+          const o = document.createElement("option");
+          o.value = JSON.stringify({machineId:mId, machineNum:mNum, start:s.start, end:s.end});
+          o.textContent = `${fmtDow(s.start)} ${fmtTime(s.start)}–${fmtTime(s.end)}` + (occ ? ` • BELEGT (Zimmer ${occ.room||"?"})` : "");
+          if (occ) o.disabled = true;
+          sel.appendChild(o);
+        }
+
+        const btn = document.createElement("button");
+        btn.textContent = "Buchen";
+        btn.onclick = async () => {
+          try{
+            const v = sel.value;
+            if (!v) return showErr("Bitte Slot auswählen.");
+            const slot = JSON.parse(v);
+            const creds = currentCreds();
+            showErr("");
+            await jpost("/api/washer/book", {
+              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
+              machineId: slot.machineId, machineNum: slot.machineNum,
+              startAt: slot.start, endAt: slot.end
+            });
+            await refreshAll();
+          }catch(e){
+            showErr(e?.message || e?.error || JSON.stringify(e));
+          }
+        };
+
+        const def = document.createElement("button");
+        def.className="danger";
+        def.textContent="Defekt melden";
+        def.onclick = async () => {
+          try{
+            const creds = currentCreds();
+            const mNum = m.num ?? m.number ?? m.index ?? m.id;
+            showErr("");
+            await jpost("/api/defect/report", { room: creds.room, pin: creds.pin, stationPin: creds.stationPin, type:"washer", machineNum:mNum, text:"defekt" });
+            await refreshAll();
+          }catch(e){
+            showErr(e?.message || e?.error || JSON.stringify(e));
+          }
+        };
+
+        actions.appendChild(sel);
+        actions.appendChild(btn);
+        actions.appendChild(def);
+      } else {
+        const btn = document.createElement("button");
+        btn.textContent = "Buchen";
+        btn.onclick = async () => {
+          try{
+            const creds = currentCreds();
+            const mNum = m.num ?? m.number ?? m.index ?? m.id;
+            const mId = m.id ?? mNum;
+            showErr("");
+            await jpost("/api/dryer/book", {
+              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
+              machineId: mId, machineNum: mNum
+            });
+            await refreshAll();
+          }catch(e){
+            showErr(e?.message || e?.error || JSON.stringify(e));
+          }
+        };
+
+        const over = document.createElement("button");
+        over.className="secondary";
+        over.textContent="Überbuchen";
+        over.onclick = async () => {
+          try{
+            const creds = currentCreds();
+            const mNum = m.num ?? m.number ?? m.index ?? m.id;
+            const mId = m.id ?? mNum;
+            showErr("");
+            await jpost("/api/dryer/book", {
+              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
+              machineId: mId, machineNum: mNum, overbook:true
+            });
+            await refreshAll();
+          }catch(e){
+            showErr(e?.message || e?.error || JSON.stringify(e));
+          }
+        };
+
+        const def = document.createElement("button");
+        def.className="danger";
+        def.textContent="Defekt melden";
+        def.onclick = async () => {
+          try{
+            const creds = currentCreds();
+            const mNum = m.num ?? m.number ?? m.index ?? m.id;
+            showErr("");
+            await jpost("/api/defect/report", { room: creds.room, pin: creds.pin, stationPin: creds.stationPin, type:"dryer", machineNum:mNum, text:"defekt" });
+            await refreshAll();
+          }catch(e){
+            showErr(e?.message || e?.error || JSON.stringify(e));
+          }
+        };
+
+        actions.appendChild(btn);
+        actions.appendChild(over);
+        actions.appendChild(def);
+      }
+
+      card.appendChild(actions);
+      grid.appendChild(card);
+    }
+  }
+
+  function bookingId(b, i){
+    return String(b.id ?? b.bookingId ?? `${b.room||""}-${b.machine||b.machineNum||""}-${b.start||b.startAt||""}-${i}`);
+  }
+
+  function renderMyBookings(state){
+    const wrap = el("myBookings");
+    wrap.innerHTML = "";
+    const creds = currentCreds();
+    const room = creds.room;
+    const hidden = new Set(JSON.parse(localStorage.getItem("hiddenBookings")||"[]"));
+    const now = Date.now();
+
+    const mine = (state.myBookings && state.myBookings.length) ? state.myBookings
+      : (state.bookings||[]).filter(b => String(b.room ?? b.zimmer ?? "") === String(room));
+
+    if (!room){
+      wrap.innerHTML = `<div class="muted mini">Bitte Zimmer + PIN eingeben und „Aktualisieren“ drücken.</div>`;
       return;
     }
-    try{
-      const data = await jpost("/api/user/refresh",{ room, pin, stationPin });
-      state.build = data.build || "";
-      state.config = data.config || data.cfg || {};
-      state.machines = data.machines || data.machineList || [];
-      state.bookings = data.bookings || data.myBookings || data.items || [];
-      state.room = room; state.pin = pin; state.stationPin = stationPin;
-      $("workerBuild").textContent = data.build || "-";
-      renderMachines(data);
-      renderGlobalSlots(data);
-      renderMyBookings(data);
-      renderFeedback(data);
-    }catch(e){
-      showErr("⛔ " + e.message);
+
+    const list = mine.slice().sort((a,b)=>Number(a.start??a.startAt??0)-Number(b.start??b.startAt??0));
+    if (!list.length){
+      wrap.innerHTML = `<div class="muted mini">Keine Buchungen gefunden.</div>`;
+      return;
     }
-  }
 
-    const _sb = $("saveBtn"); if(_sb) _sb.onclick = ()=>{ saveCreds(); showErr(""); };
-  const _rb = $("refreshBtn"); if(_rb) _rb.onclick = refreshAll;
+    list.forEach((b,i)=>{
+      const id = bookingId(b,i);
+      if (hidden.has(id)) return;
 
-  loadCreds();
-  refreshAll();
+      const start = Number(b.start ?? b.startAt ?? b.start_at);
+      const end = Number(b.end ?? b.endAt ?? b.end_at);
+      const expired = Number.isFinite(end) && end < now;
+      const title = b.label ?? b.machineLabel ?? (b.type==="dryer" ? "Trockner" : "Waschmaschine") + " " + (b.machineNum ?? b.machine ?? "");
+      const status = (b.status ?? "").toLowerCase() || (expired ? "expired" : "gebucht");
 
-// ===== booking helpers (added v7) =====
-function parseWasherHours(cfg){
-  let wh = cfg?.washerHours ?? cfg?.washer_hours ?? cfg?.washerHoursText;
-  if (Array.isArray(wh)) return wh.map(n=>Number(n)).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
-  if (typeof wh === "string") {
-    return wh.split(/[,;\s]+/).map(s=>Number(s.trim())).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
-  }
-  return [6,8,10,12,14,16,18,20]; // default
-}
-function pad2(n){ return String(n).padStart(2,"0"); }
-function fmtSlotLabel(startMs, endMs){
-  const d = new Date(startMs);
-  const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
-  const dd = pad2(d.getDate());
-  const mm = pad2(d.getMonth()+1);
-  const sH = pad2(d.getHours()), sM = pad2(d.getMinutes());
-  const e = new Date(endMs);
-  const eH = pad2(e.getHours()), eM = pad2(e.getMinutes());
-  return `${wd} ${dd}.${mm} ${sH}:${sM}–${eH}:${eM}`;
-}
-function buildWasherSlotsForDays(cfg){
-  const hours = parseWasherHours(cfg);
-  if (!hours.length) return [];
-  const daysFuture = Number(cfg?.daysFuture ?? cfg?.days_future ?? 6);
-  const slots = [];
-  const now = Date.now();
-  const today = new Date(); today.setHours(0,0,0,0);
-  for (let d=0; d<=daysFuture; d++){
-    const day = new Date(today.getTime() + d*86400000);
-    for (let i=0;i<hours.length;i++){
-      const h = hours[i];
-      const start = new Date(day.getTime()); start.setHours(h,0,0,0);
-      let end;
-      if (i < hours.length-1){
-        end = new Date(day.getTime()); end.setHours(hours[i+1],0,0,0);
+      const item = document.createElement("div");
+      item.className = "myitem";
+      item.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <div style="font-weight:900">${escapeHtml(title)}</div>
+            <div class="muted mini">${Number.isFinite(start)?fmtTime(start):"—"}–${Number.isFinite(end)?fmtTime(end):"—"}</div>
+            <div class="muted mini">${escapeHtml(status)}</div>
+          </div>
+          <div class="badge">${expired ? "ABGELAUFEN" : "AKTIV"}</div>
+        </div>
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const hideBtn = document.createElement("button");
+      hideBtn.className = "secondary";
+      hideBtn.textContent = "Ausblenden";
+      hideBtn.onclick = () => {
+        hidden.add(id);
+        localStorage.setItem("hiddenBookings", JSON.stringify([...hidden]));
+        renderMyBookings(state);
+      };
+      actions.appendChild(hideBtn);
+
+      if (!expired){
+        const relBtn = document.createElement("button");
+        relBtn.className = "secondary";
+        relBtn.textContent = "Freigeben";
+        relBtn.onclick = async () => {
+          try{
+            showErr("");
+            await jpost("/api/booking/release", {
+              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
+              bookingId: b.id ?? b.bookingId,
+              machineNum: b.machineNum ?? b.machine,
+              type: b.type
+            });
+            await refreshAll();
+          }catch(e){
+            showErr(e?.message || e?.error || JSON.stringify(e));
+          }
+        };
+        actions.appendChild(relBtn);
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "danger";
+        cancelBtn.textContent = "Stornieren";
+        cancelBtn.onclick = async () => {
+          try{
+            showErr("");
+            await jpost("/api/booking/cancel", {
+              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
+              bookingId: b.id ?? b.bookingId,
+              machineNum: b.machineNum ?? b.machine,
+              type: b.type
+            });
+            await refreshAll();
+          }catch(e){
+            showErr(e?.message || e?.error || JSON.stringify(e));
+          }
+        };
+        actions.appendChild(cancelBtn);
       } else {
-        // last -> next day first hour
-        const nextDay = new Date(day.getTime()+86400000);
-        end = new Date(nextDay.getTime()); end.setHours(hours[0],0,0,0);
+        const note = document.createElement("div");
+        note.className = "help";
+        note.textContent = "Abgelaufen – keine Aktion möglich.";
+        item.appendChild(note);
       }
-      const startMs = start.getTime(), endMs = end.getTime();
-      // include future slots and also currently running (end in future)
-      if (endMs > now) slots.push({ startAt:startMs, endAt:endMs, label: fmtSlotLabel(startMs,endMs), minutes: Math.round((endMs-startMs)/60000) });
+
+      item.appendChild(actions);
+      wrap.appendChild(item);
+    });
+  }
+
+  async function refreshAll(){
+    try{
+      const creds = currentCreds();
+      if (!creds.room || !creds.pin || !creds.stationPin){
+        showErr("Bitte Zimmer, PIN und Stations-PIN eingeben.");
+        return;
+      }
+      showErr("");
+      const data = await jpost("/api/user/refresh", creds);
+      window.__WASH_STATE__.config = data.config || data.cfg || null;
+      window.__WASH_STATE__.machines = data.machines || [];
+      window.__WASH_STATE__.bookings = data.bookings || data.allBookings || [];
+      window.__WASH_STATE__.myBookings = data.myBookings || data.mine || [];
+
+      // pills
+      el("workerPill").textContent = "Worker: " + (data.build || data.workerBuild || "OK");
+      el("roomPill").textContent = "Zimmer: " + creds.room;
+
+      renderGlobalSlotPicker(window.__WASH_STATE__);
+      renderMachines(window.__WASH_STATE__);
+      renderMyBookings(window.__WASH_STATE__);
+
+      // feedback show/hide
+      const cfg = window.__WASH_STATE__.config || {};
+      const fbEnabled = !!(cfg.feedbackEnabled || cfg.feedback_enabled || cfg.feedbackPsEnabled || cfg.feedbackSvEnabled || cfg.feedbackAdminEnabled);
+      el("feedbackCard").classList.toggle("hidden", !fbEnabled);
+
+    }catch(e){
+      showErr(e?.message || e?.error || JSON.stringify(e));
     }
   }
-  // sort by start
-  slots.sort((a,b)=>a.startAt-b.startAt);
-  return slots;
-}
-function overlaps(aStart,aEnd,bStart,bEnd){
-  return !(aEnd<=bStart || aStart>=bEnd);
-}
-function machineBookings(state, kind, machineId){
-  const all = Array.isArray(state?.bookings) ? state.bookings : [];
-  return all.filter(b=>{
-    const t = String(b.type||b.kind||"");
-    const m = String(b.machine||b.machineId||b.machine_id||"");
-    return normalizeType({kind:t,type:t})===kind && m===String(machineId) && ["booked","active","running","in_use","reserved"].includes(String(b.status||""));
-  });
-}
-function slotIsOccupied(state, kind, machineId, slot){
-  const bs = machineBookings(state, kind, machineId);
-  return bs.some(b=>{
-    const bsStart = Number(b.start ?? b.startAt ?? b.start_at);
-    const bsEnd   = Number(b.end ?? b.endAt ?? b.end_at);
-    if(!Number.isFinite(bsStart) || !Number.isFinite(bsEnd)) return false;
-    return overlaps(slot.startAt, slot.endAt, bsStart, bsEnd);
-  });
-}
 
-
-async function reportDefect(machineId){
-  const c = currentCreds();
-  if(!c.room || !c.pin || !c.stationPin) return toast("Bitte Zimmer, PIN und Stations-PIN eintragen");
-  const text = prompt("Defektbeschreibung (optional):", "");
-  if (text === null) return; // canceled
-  const res = await jpost("/api/defect/report", { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), text: text || "" });
-  if (!res.ok) return toast(res.message || res.error || "Defekt melden fehlgeschlagen");
-  toast("Defekt gemeldet ✓");
-  await refreshAll();
-}
-async function bookWasher(machineId){
-  const sel = document.getElementById(`slot_${machineId}`);
-  if (!sel || !sel.value) return toast("Bitte Slot auswählen");
-  const startAt = Number(sel.value);
-  const endAt = Number(sel.selectedOptions?.[0]?.dataset?.endAt || 0);
-  const minutes = endAt && startAt ? Math.round((endAt-startAt)/60000) : 60;
-  const c = currentCreds();
-  const body = { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), startAt, minutes };
-  const res = await jpost("/api/washer/book", body);
-  if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
-  toast("Gebucht ✓");
-  await refreshAll();
-}
-async function bookDryer(machineId){
-  const minutes = Number((window.__WASH_STATE__||{}).config?.dryerMinutes ?? 150);
-  const c = currentCreds();
-  const body = { room: c.room, pin: c.pin, stationPin: c.stationPin, machineId: String(machineId), minutes };
-  const res = await jpost("/api/dryer/book", body);
-  if (!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
-  await refreshAll();
-}
-
-function renderGlobalSlots(state){
-  const sel = $("globalSlotSel");
-  if(!sel) return;
-  const cfg = state.config || {};
-  const machines = Array.isArray(state.machines)?state.machines:[];
-  const washers = machines.filter(m=>normalizeType(m)==="washer");
-  const slots = buildWasherSlotsForDays(cfg);
-  const opts = [];
-  opts.push(`<option value="">Bitte Waschmaschine + Slot auswählen…</option>`);
-  for(const m of washers){
-    const id = String(m.machineId || m.id || "");
-    const labelM = machineLabel(m);
-    for(const s of slots){
-      const occ = slotIsOccupied(state,"washer",id,s);
-      const txt = `${s.label}  •  ${labelM}` + (occ ? "  •  BELEGT" : "");
-      opts.push(`<option value="${encodeURIComponent(JSON.stringify({machineId:id,startAt:s.startAt,endAt:s.endAt}))}" ${occ?"disabled":""}>${escapeHtml(txt)}</option>`);
+  async function bookGlobal(){
+    try{
+      const v = el("globalSlot").value;
+      if (!v) return showErr("Bitte Waschmaschine + Slot auswählen.");
+      const slot = JSON.parse(v);
+      const creds = currentCreds();
+      showErr("");
+      await jpost("/api/washer/book", {
+        room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
+        machineId: slot.machineId, machineNum: slot.machineNum,
+        startAt: slot.start, endAt: slot.end
+      });
+      await refreshAll();
+    }catch(e){
+      showErr(e?.message || e?.error || JSON.stringify(e));
     }
   }
-  sel.innerHTML = opts.join("");
-}
-async function bookGlobalWasher(){
-  const sel = $("globalSlotSel");
-  if(!sel) return;
-  if(!sel.value) return toast("Bitte Slot auswählen");
-  let payload;
-  try{ payload = JSON.parse(decodeURIComponent(sel.value)); }catch{ return toast("Ungültige Auswahl"); }
-  const c = currentCreds();
-  const body = { room:c.room, pin:c.pin, stationPin:c.stationPin, machineId:String(payload.machineId), startAt:Number(payload.startAt), endAt:Number(payload.endAt) };
-  const res = await jpost("/api/washer/book", body);
-  if(!res.ok) return toast(res.message || res.error || "Buchen fehlgeschlagen");
-  toast("Gebucht ✓");
-  await refreshAll();
-}
 
-function feedbackEnabled(cfg){
-  return !!(cfg.feedbackEnabled || cfg.feedback || cfg.feedbackPsEnabled || cfg.feedbackSvEnabled || cfg.feedbackAdminEnabled);
-}
-function renderFeedback(state){
-  const card = $("feedbackCard");
-  if(!card) return;
-  const cfg = state.config || {};
-  if(!feedbackEnabled(cfg)){ card.style.display="none"; return; }
-  card.style.display = "";
-}
-async function sendFeedback(){
-  const c = currentCreds();
-  const txt = ($("fbText")?.value||"").trim();
-  if(!txt) return toast("Bitte Text eingeben");
-  const res = await jpost("/api/feedback/submit", { room:c.room, pin:c.pin, stationPin:c.stationPin, text:txt });
-  if(!res.ok) return toast(res.message || res.error || "Feedback fehlgeschlagen");
-  $("fbText").value="";
-  toast("Danke! Feedback gesendet ✓");
-}
-  await refreshAll();
-}
+  async function sendFeedback(){
+    try{
+      const creds = currentCreds();
+      const text = String(el("fbText").value||"").trim();
+      if (!text) return showErr("Bitte Feedback-Text eingeben.");
+      showErr("");
+      await jpost("/api/feedback/submit", { room: creds.room, pin: creds.pin, stationPin: creds.stationPin, text });
+      el("fbText").value = "";
+      showErr("Feedback gesendet ✅");
+      setTimeout(()=>showErr(""), 1500);
+    }catch(e){
+      showErr(e?.message || e?.error || JSON.stringify(e));
+    }
+  }
 
+  // init UI
+  el("buildPill").textContent = "PORTAL BUILD: oldstyle_v11";
+  el("workerPill").textContent = "Worker: " + apiBase.replace(/^https?:\/\//,"");
+  el("btnRefresh").addEventListener("click", refreshAll);
+  el("btnBookGlobal").addEventListener("click", bookGlobal);
+  el("btnSendFb").addEventListener("click", sendFeedback);
+
+  // do NOT persist creds (as requested)
+})();
 </script>
-<div id="toast" style="display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,.18);font-weight:700;z-index:9999"></div>
 </body>
 </html>
