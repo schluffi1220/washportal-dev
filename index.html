@@ -79,7 +79,12 @@
 
     .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
     .mtitle{font-weight:800}
-    .badge{font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:rgba(0,0,0,.15)}
+    .badge{font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.15); font-weight:700; letter-spacing:.2px}
+    .badge.b-free{color:#052016; background:rgba(34,197,94,.18); border-color:rgba(34,197,94,.35)}
+    .badge.b-busy{color:#061427; background:rgba(59,130,246,.20); border-color:rgba(59,130,246,.40)}
+    .badge.b-defect{color:#2a0608; background:rgba(239,68,68,.20); border-color:rgba(239,68,68,.45)}
+    .badge.b-locked{color:rgba(255,255,255,.92); background:linear-gradient(180deg, rgba(239,68,68,.22), rgba(148,163,184,.18)); border-color:rgba(239,68,68,.35)}
+    .badge.b-whitecard{color:#111827; background:rgba(255,255,255,.92); border-color:rgba(255,255,255,.55)}
     .badge.ok{color:#c7fffb; border-color:rgba(45,212,191,.35); background:rgba(45,212,191,.10)}
     .badge.busy{color:#dbeafe; border-color:rgba(96,165,250,.35); background:rgba(96,165,250,.10)}
     .badge.bad{color:#ffd5d5; border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.10)}
@@ -134,7 +139,7 @@
 
       <div class="card">
         <h2>Maschinen</h2>
-        <div class="muted" id="legend">Grün = frei · Blau = läuft/gebucht · Rot = gesperrt/defekt</div>
+        <div class="muted" id="legend">Grün = frei · Blau = gebucht/läuft · Weiß = Whitecard · Rot = defekt · Rot/Grau = gesperrt</div>
         <div class="divider"></div>
         <div class="machines" id="machines"></div>
       </div>
@@ -219,14 +224,21 @@ function bookingsForMachine(state, m){
   });
 }
 function statusBadge(state, m, info){
-  // info: {current,last,next}
-  const now = Date.now();
   const defect = !!(m.defect || m.isDefect || m.broken || m.status==='defect');
   const locked = !!(m.locked || m.isLocked || m.blocked || m.status==='locked');
-  if(defect || locked) return `<span class="badge bad">${defect?'DEFEKT':'GESPERRT'}</span>`;
-  if(info?.current) return `<span class="badge warn">LÄUFT</span>`;
-  if(info?.next && ( (info.next.startAt ?? info.next.start) > now)) return `<span class="badge ok">FREI</span>`;
-  return `<span class="badge ok">FREI</span>`;
+
+  if(defect) return `<span class="badge b-defect">DEFEKT</span>`;
+  if(locked) return `<span class="badge b-locked">GESPERRT</span>`;
+
+  const cur = info?.current;
+  const nxt = info?.next;
+
+  const curWhite = !!(cur && (cur.whitecard || cur.isWhitecard || cur.flags?.whitecard));
+  if(curWhite) return `<span class="badge b-whitecard">WHITE</span>`;
+
+  if(cur) return `<span class="badge b-busy">LÄUFT</span>`;
+  if(nxt) return `<span class="badge b-busy">GEBUCHT</span>`;
+  return `<span class="badge b-free">FREI</span>`;
 }
 
 function renderMachines(state){
