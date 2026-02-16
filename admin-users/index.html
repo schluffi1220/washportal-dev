@@ -107,10 +107,16 @@
         <div style="flex:1;min-width:260px">
           <div class="muted">Washer popup image (URL or DataURL)</div>
           <input id="washerPopupImageUrl" placeholder="https://... or data:image/..."/>
+          <input type="file" id="washerPopupFile" accept="image/*" />
+          <img id="washerPopupPreview" style="margin-top:6px;max-height:120px;max-width:100%;border-radius:10px;display:none"/>
+
         </div>
         <div style="flex:1;min-width:260px">
           <div class="muted">Dryer popup image (URL or DataURL)</div>
           <input id="dryerPopupImageUrl" placeholder="https://... or data:image/..."/>
+          <input type="file" id="dryerPopupFile" accept="image/*" />
+          <img id="dryerPopupPreview" style="margin-top:6px;max-height:120px;max-width:100%;border-radius:10px;display:none"/>
+
         </div>
       </div>
 
@@ -252,6 +258,9 @@
     $("#showDryerPopup").checked = String(cfg.showDryerPopup||"false")==="true";
     $("#washerPopupImageUrl").value = cfg.washerPopupImageUrl || "";
     $("#dryerPopupImageUrl").value = cfg.dryerPopupImageUrl || "";
+    // previews for embedded DataURLs
+    if (String(cfg.washerPopupImageUrl||"").startsWith("data:image/")) { const img=$("#washerPopupPreview"); img.src=cfg.washerPopupImageUrl; img.style.display="block"; } else { $("#washerPopupPreview").style.display="none"; }
+    if (String(cfg.dryerPopupImageUrl||"").startsWith("data:image/")) { const img=$("#dryerPopupPreview"); img.src=cfg.dryerPopupImageUrl; img.style.display="block"; } else { $("#dryerPopupPreview").style.display="none"; }
     $("#newsText").value = cfg.newsText || "";
 
     const hours = String(cfg.washerHours||"6,8,10,12,14,16,18,20,22").split(/[,;\s]+/).map(x=>Number(x)).filter(n=>Number.isFinite(n)&&n>=0&&n<=23);
@@ -429,6 +438,27 @@
     $("#meBtn").addEventListener("click", ()=>me().catch(e=>toast(e.message)));
 
     $("#cfgRefresh").addEventListener("click", ()=>refreshConfig().catch(e=>toast(e.message)));
+    // Popup image uploads (store as DataURL in DB via config)
+    $("#washerPopupFile").addEventListener("change", (ev)=>{
+      const f = ev.target.files && ev.target.files[0];
+      if(!f) return;
+      const rd = new FileReader();
+      rd.onload = ()=>{ 
+        $("#washerPopupImageUrl").value = String(rd.result||"");
+        const img = $("#washerPopupPreview"); img.src = $("#washerPopupImageUrl").value; img.style.display = "block";
+      };
+      rd.readAsDataURL(f);
+    });
+    $("#dryerPopupFile").addEventListener("change", (ev)=>{
+      const f = ev.target.files && ev.target.files[0];
+      if(!f) return;
+      const rd = new FileReader();
+      rd.onload = ()=>{ 
+        $("#dryerPopupImageUrl").value = String(rd.result||"");
+        const img = $("#dryerPopupPreview"); img.src = $("#dryerPopupImageUrl").value; img.style.display = "block";
+      };
+      rd.readAsDataURL(f);
+    });
     $("#cfgSave").addEventListener("click", ()=>saveConfig().catch(e=>toast(e.message)));
 
     $("#rbacSnapshot").addEventListener("click", ()=>loadSnapshot().catch(e=>toast(e.message)));
