@@ -1,216 +1,409 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Washportal Admin</title>
-<style>
-  :root{--bg:#0b1220;--card:#0f1a2e;--muted:#9fb0cc;--text:#e8f0ff;--line:rgba(255,255,255,.08);
-        --btn:#2b6cff;--btn2:#21c37a;--danger:#ff4d4d;}
-  *{box-sizing:border-box;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
-  body{margin:0;background:linear-gradient(180deg,#071021,#0b1220);color:var(--text);}
-  .wrap{max-width:1100px;margin:24px auto;padding:0 16px;}
-  .top{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
-  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-  input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text)}
-  .field{flex:1;min-width:240px}
-  .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--btn);color:white;cursor:pointer;font-weight:600}
-  .btn.secondary{background:rgba(255,255,255,.06)}
-  .btn.good{background:var(--btn2)}
-  .btn.danger{background:rgba(255,77,77,.15);color:#ffd0d0}
-  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-  .card{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px}
-  .msg{margin-top:10px;color:var(--muted);white-space:pre-wrap}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
-  select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text)}
-  .small{font-size:12px;color:var(--muted)}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin – Washportal</title>
+  <style>
+    :root{
+      --bg0:#07131f; --bg1:#0b1b2b; --card:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.10); --txt:#e8f1ff; --muted:rgba(232,241,255,.70);
+      --good:#23c58a; --bad:#ff5b73; --info:#4aa3ff; --warn:#ffc857;
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--txt);
+      background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
+                  radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
+                  linear-gradient(180deg,var(--bg0),var(--bg1)); min-height:100vh;}
+    .top{position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(7,19,31,.88), rgba(7,19,31,.60));
+      backdrop-filter: blur(10px); border-bottom:1px solid rgba(255,255,255,.08);}
+    .bar{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .brand{font-weight:900;display:flex;align-items:center;gap:10px}
+    .dot{width:10px;height:10px;border-radius:999px;background:#2ff2cc;box-shadow:0 0 18px rgba(47,242,204,.55)}
+    .pill{padding:7px 10px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:rgba(255,255,255,.05);
+      color:var(--muted);font-size:12px;white-space:nowrap}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
+    h2{margin:0 0 10px 0;font-size:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .field{flex:1 1 220px}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    input,select,textarea{width:100%;border-radius:14px;padding:12px 12px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(6,12,20,.55);color:var(--txt);outline:none}
+    textarea{min-height:88px;resize:vertical}
+    button{border:0;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;color:white;
+      background:linear-gradient(135deg,#2a76ff,#28c6b2);box-shadow:0 10px 20px rgba(25,92,255,.20)}
+    button.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:none;color:var(--txt)}
+    button.danger{background:linear-gradient(135deg,#ff5b73,#ff9aa9)}
+    .help{color:var(--muted);font-size:12px;margin-top:8px;white-space:pre-wrap}
+    .banner{display:none;padding:10px 12px;border-radius:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,.14);white-space:pre-wrap}
+    .banner.ok{background:rgba(35,197,138,.12);border-color:rgba(35,197,138,.35);color:#c8ffe8}
+    .banner.err{background:rgba(255,91,115,.12);border-color:rgba(255,91,115,.35);color:#ffd0d7}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+      color:var(--txt);cursor:pointer;font-weight:900}
+    .tab.active{background:rgba(42,118,255,.18);border-color:rgba(42,118,255,.45)}
+    table{width:100%;border-collapse:separate;border-spacing:0 10px}
+    th{color:var(--muted);font-size:12px;text-align:left;padding:0 10px}
+    td{padding:12px 10px;background:rgba(255,255,255,.05);border-top:1px solid rgba(255,255,255,.10);
+      border-bottom:1px solid rgba(255,255,255,.10)}
+    tr td:first-child{border-left:1px solid rgba(255,255,255,.10);border-top-left-radius:14px;border-bottom-left-radius:14px}
+    tr td:last-child{border-right:1px solid rgba(255,255,255,.10);border-top-right-radius:14px;border-bottom-right-radius:14px}
+    .gridChecks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+    @media(max-width:820px){.gridChecks{grid-template-columns:repeat(3,minmax(0,1fr));}}
+    .chk{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;padding:10px}
+    .chk input{width:auto}
+    code{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.10);padding:2px 6px;border-radius:10px}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <h1 style="margin:0 0 10px 0;font-size:20px;">Admin</h1>
-  <div class="top card">
-    <div class="field">
-      <label>Worker Base URL (.workers.dev)</label>
-      <input id="worker" placeholder="https://washportal-dev-worker.schluffi1220.workers.dev"/>
-      <div class="small">Wird lokal gespeichert. Keine .workers.de / .worker.de.</div>
+  <div class="top">
+    <div class="bar">
+      <div class="brand"><span class="dot"></span> Admin</div>
+      <div class="pill" id="buildPill">Worker: —</div>
+      <div class="pill">Hinweis: Zugriff nur mit <code>x-sa-password</code></div>
     </div>
-    <div class="field">
-      <label>SA Password (optional)</label>
-      <input id="sa" type="password" placeholder="x-sa-password"/>
-      <div class="small">Wenn gesetzt, nutzt Admin SA-Header (ohne Login-Token).</div>
-    </div>
-    <div class="field">
-      <label>Bearer Token (optional)</label>
-      <input id="token" type="password" placeholder="wird nach Login gesetzt"/>
-      <div class="small">Oder per /api/ps/login aus früheren Versionen.</div>
-    </div>
-    <div class="row">
-      <button class="btn secondary" id="save">Speichern</button>
-      <button class="btn" id="me">/api/auth/me</button>
-      <button class="btn good" id="load">Users laden</button>
-      <button class="btn secondary" id="snap">RBAC Snapshot</button>
-    </div>
-    <div id="msg" class="msg"></div>
   </div>
 
-  <div class="card">
-    <h2 style="margin:0;font-size:16px;">Users</h2>
-    <div class="small">Rollenliste kommt aus der DB (Snapshot). Du kannst Rollen setzen, auch als SA.</div>
-    <div id="users"></div>
+  <div class="wrap">
+    <div class="card">
+      <h2>Verbindung</h2>
+      <div class="row">
+        <div class="field">
+          <label>Worker Base URL</label>
+          <input id="workerBase" placeholder="https://…workers.dev" />
+          <div class="help">Wird lokal gespeichert (nur in deinem Browser). Änderbar + speicherbar.</div>
+        </div>
+        <div class="field">
+          <label>SA Password</label>
+          <input id="saPass" type="password" placeholder="••••••••" />
+          <div class="help">Wird lokal gespeichert. Wenn falsch → 403.</div>
+        </div>
+        <div class="field" style="flex:0 0 220px;align-self:flex-end">
+          <button id="btnConnect" style="width:100%">Connect</button>
+        </div>
+      </div>
+      <div class="banner" id="banner"></div>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" data-tab="config">Config</div>
+        <div class="tab" data-tab="users">Users</div>
+        <div class="tab" data-tab="rbac">RBAC</div>
+      </div>
+    </div>
+
+    <div class="card" id="tabConfig">
+      <h2>Config</h2>
+
+      <div class="row">
+        <div class="field">
+          <label>Stations-PIN (Klartext Anzeige nach Laden)</label>
+          <input id="stationPin" type="password" placeholder="••••" />
+          <div class="help">Hinweis: Eingabe verdeckt. Nach “Load Config” zeigen wir unten Klartext an (nur Admin-Ansicht).</div>
+        </div>
+        <div class="field">
+          <label>Trockner Minuten (Slot läuft danach ab)</label>
+          <input id="dryerMinutes" type="number" min="1" step="1" placeholder="90" />
+        </div>
+        <div class="field">
+          <label>Retention Days</label>
+          <input id="retentionDays" type="number" min="1" step="1" placeholder="30" />
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label>Waschslotzeiten (Haken)</label>
+        <div class="gridChecks" id="washerChecks"></div>
+        <div class="help" id="washerHuman"></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Features</label>
+        <div class="gridChecks">
+          <div class="chk"><input type="checkbox" id="f_news"><div>News aktiv</div></div>
+          <div class="chk"><input type="checkbox" id="f_feedback"><div>Feedback aktiv</div></div>
+          <div class="chk"><input type="checkbox" id="f_defect"><div>User darf Defekt melden</div></div>
+          <div class="chk"><input type="checkbox" id="f_overbook"><div>Trockner überbuchen</div></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>News Text</label>
+        <textarea id="newsText" placeholder="Nur sichtbar wenn News aktiv"></textarea>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div class="field" style="flex:0 0 220px"><button id="btnLoadCfg" style="width:100%">Load Config</button></div>
+        <div class="field" style="flex:0 0 220px"><button id="btnSaveCfg" style="width:100%">Save Config</button></div>
+      </div>
+
+      <div class="help" id="stationPinPlain"></div>
+    </div>
+
+    <div class="card" id="tabUsers" style="display:none">
+      <h2>Users</h2>
+      <div class="help">Rollen werden direkt aus der DB geladen. Du siehst also z.B. <code>PS</code>, <code>ps_deputy</code>, <code>admin</code> etc.</div>
+      <div class="row" style="margin-top:10px">
+        <div class="field" style="flex:0 0 220px">
+          <button id="btnLoadUsers" style="width:100%">Load Users</button>
+        </div>
+      </div>
+      <div id="usersTable"></div>
+    </div>
+
+    <div class="card" id="tabRbac" style="display:none">
+      <h2>RBAC Snapshot</h2>
+      <div class="row">
+        <div class="field" style="flex:0 0 220px">
+          <button id="btnLoadRbac" style="width:100%">Load RBAC</button>
+        </div>
+      </div>
+      <pre id="rbacBox" style="white-space:pre-wrap;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.10);padding:12px;border-radius:14px;margin-top:12px"></pre>
+    </div>
   </div>
-</div>
 
 <script>
-const $ = (id)=>document.getElementById(id);
-const LS = {
-  get:(k,d="")=>{try{return localStorage.getItem(k)??d}catch{return d}},
-  set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}
-};
-function normBase(u){
-  u = String(u||"").trim();
-  if(!u) return "";
-  u = u.replace(/\/+$/,"");
-  return u;
-}
-function assertWorkersDev(base){
-  if(!base) return "Worker URL fehlt";
-  try{
-    const u=new URL(base);
-    if(!u.hostname.endsWith(".workers.dev")) return "Worker URL muss auf .workers.dev enden";
-  }catch(e){ return "Worker URL ungültig"; }
-  return "";
-}
-function headers(){
-  const h={"Content-Type":"application/json"};
-  const sa = $("sa").value.trim();
-  const tok = $("token").value.trim();
-  if(sa) h["X-SA-Password"]=sa;
-  else if(tok) h["Authorization"]="Bearer "+tok;
-  return h;
-}
-async function j(method,path,body){
-  const base = normBase($("worker").value);
-  const err = assertWorkersDev(base);
-  if(err) throw new Error(err);
-  const url = base + path;
-  const opt={method,headers:headers()};
-  if(body!==undefined) opt.body=JSON.stringify(body);
-  const res = await fetch(url,opt);
-  const txt = await res.text();
-  let data; try{data=JSON.parse(txt)}catch{data={ok:false,error:"non_json",status:res.status,text:txt.slice(0,500)}}
-  if(!res.ok || data?.ok===false) {
-    const m = data?.message || data?.error || res.statusText;
-    throw new Error(`${res.status} ${m}`);
-  }
-  return data;
-}
-function setMsg(s){ $("msg").textContent = s || ""; }
-let roleOptions = [];
-function roleSelect(current){
-  const sel=document.createElement("select");
-  for(const r of roleOptions){
-    const o=document.createElement("option");
-    o.value=r; o.textContent=r;
-    if(String(current||"")===r) o.selected=true;
-    sel.appendChild(o);
-  }
-  // If current role not in options, include it
-  if(current && !roleOptions.includes(current)){
-    const o=document.createElement("option");
-    o.value=current; o.textContent=current+" (db)";
-    o.selected=true;
-    sel.insertBefore(o, sel.firstChild);
-  }
-  return sel;
-}
-async function loadSnapshot(){
-  const snap = await j("POST","/api/auth/admin/rbac/snapshot",{});
-  // Worker returns roles array or rolesFromUsers etc; be tolerant
-  const roles = snap.roles || snap?.data?.roles || snap?.rolesAll || [];
-  if(Array.isArray(roles) && roles.length){
-    roleOptions = roles.map(x=>String(x)).filter(Boolean);
-  } else if (Array.isArray(snap?.rolesFromUsers?.results)){
-    roleOptions = snap.rolesFromUsers.results.map(r=>String(r.role||"")).filter(Boolean);
-  } else {
-    roleOptions = [];
-  }
-  setMsg(`RBAC Snapshot ok. Rollen: ${roleOptions.join(", ") || "(keine gefunden)"}`);
-}
-async function loadUsers(){
-  if(!roleOptions.length) await loadSnapshot().catch(()=>{});
-  const out = await j("POST","/api/auth/admin/users/list",{});
-  const users = out.users || out.results || out?.data?.users || [];
-  const div=$("users"); div.innerHTML="";
-  if(!users.length){ div.innerHTML="<div class='small'>Keine Users gefunden.</div>"; return; }
-  const table=document.createElement("table");
-  table.innerHTML="<thead><tr><th>Email</th><th>Status</th><th>Rolle</th><th>Aktion</th></tr></thead>";
-  const tb=document.createElement("tbody");
-  for(const u of users){
-    const tr=document.createElement("tr");
-    const email=String(u.email||"");
-    const status=String(u.status||"");
-    const role=String(u.role||"");
-    const id=String(u.id||u.userId||"");
-    tr.innerHTML=`<td>${email}</td><td>${status}</td><td></td><td></td>`;
-    const sel = roleSelect(role);
-    tr.children[2].appendChild(sel);
-    const btn=document.createElement("button");
-    btn.className="btn secondary";
-    btn.textContent="Rolle setzen";
-    btn.onclick=async()=>{
-      try{
-        await j("POST","/api/auth/admin/users/set-role",{userId:id, role:sel.value});
-        setMsg(`Rolle gesetzt: ${email} → ${sel.value}`);
-        await loadUsers();
-      }catch(e){ setMsg("Fehler: "+e.message); }
-    };
-    tr.children[3].appendChild(btn);
-    tb.appendChild(tr);
-  }
-  table.appendChild(tb);
-  div.appendChild(table);
-}
-function loadSaved(){
-  $("worker").value = LS.get("wp_admin_worker","https://washportal-dev-worker.schluffi1220.workers.dev");
-  $("sa").value = LS.get("wp_admin_sa","");
-  $("token").value = LS.get("wp_admin_token","");
-}
-function save(){
-  const base = normBase($("worker").value);
-  const err = assertWorkersDev(base);
-  if(err){ setMsg(err); return; }
-  LS.set("wp_admin_worker",base);
-  LS.set("wp_admin_sa",$("sa").value.trim());
-  LS.set("wp_admin_token",$("token").value.trim());
-  setMsg("Gespeichert.");
-}
-document.addEventListener("DOMContentLoaded", ()=>{
-  loadSaved();
-  $("save").onclick=save;
-  $("snap").onclick=()=>loadSnapshot().catch(e=>setMsg("Fehler: "+e.message));
-  $("load").onclick=()=>loadUsers().catch(e=>setMsg("Fehler: "+e.message));
-  $("me").onclick=async()=>{
-    try{
-      const me = await j("GET","/api/auth/me");
-      setMsg("ME: "+JSON.stringify(me,null,2));
-    }catch(e){ setMsg("Fehler: "+e.message); }
+(() => {
+  const DEFAULT_WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  const LS_WORKER = "wash_admin_worker_base";
+  const LS_SA = "wash_admin_sa";
+
+  const $ = (id)=>document.getElementById(id);
+
+  const state = {
+    roles: [],
+    users: []
   };
-  // autosave on change
-  ["worker","sa","token"].forEach(id=>{
-    $(id).addEventListener("change", save);
-    $(id).addEventListener("blur", save);
-  });
-});
-</script>
 
-<!-- Added Config Tab -->
-<script>
-(function(){
-  const $=(s)=>document.querySelector(s);
+  function banner(msg, ok=true){
+    const b = $("banner");
+    if(!msg){ b.style.display="none"; b.textContent=""; b.className="banner"; return; }
+    b.style.display="block";
+    b.textContent=msg;
+    b.className="banner " + (ok ? "ok":"err");
+  }
+
+  function apiBase(){
+    return String($("workerBase").value||"").trim().replace(/\/$/,"");
+  }
+  function saPass(){
+    return String($("saPass").value||"").trim();
+  }
+
+  async function jpost(path, body){
+    const res = await fetch(apiBase()+path, {
+      method:"POST",
+      headers:{
+        "content-type":"application/json",
+        "x-sa-password": saPass()
+      },
+      body: JSON.stringify(body||{})
+    });
+    const data = await res.json().catch(async()=>({ok:false,message:await res.text()}));
+    if(!res.ok || data.ok===false) throw data;
+    return data;
+  }
+
+  function setActive(tab){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===tab));
+    $("tabConfig").style.display = (tab==="config") ? "" : "none";
+    $("tabUsers").style.display  = (tab==="users") ? "" : "none";
+    $("tabRbac").style.display   = (tab==="rbac") ? "" : "none";
+  }
+
+  function buildWasherChecks(selected){
+    const wrap = $("washerChecks");
+    wrap.innerHTML="";
+    // Hours 0..23 as checkboxes, but visually we focus on typical times.
+    for(let h=0; h<24; h++){
+      const id = "wh_"+h;
+      const div = document.createElement("div");
+      div.className="chk";
+      div.innerHTML = `<input type="checkbox" id="${id}"><div>${String(h).padStart(2,"0")}:00</div>`;
+      wrap.appendChild(div);
+      const cb = div.querySelector("input");
+      cb.checked = selected.includes(h);
+      cb.addEventListener("change", updateWasherHuman);
+    }
+    updateWasherHuman();
+  }
+
+  function getWasherHours(){
+    const out=[];
+    for(let h=0; h<24; h++){
+      const cb = document.getElementById("wh_"+h);
+      if(cb && cb.checked) out.push(h);
+    }
+    out.sort((a,b)=>a-b);
+    return out;
+  }
+
+  function updateWasherHuman(){
+    const hours = getWasherHours();
+    const parts = hours.map(h=>String(h).padStart(2,"0")+":00");
+    $("washerHuman").textContent = "Gesetzt: " + (parts.length ? parts.join(", ") : "— (keine)");
+  }
+
+  async function connect(){
+    try{
+      banner("");
+      const base = apiBase();
+      if(!base) return banner("Bitte Worker URL eintragen.", false);
+      if(!saPass()) return banner("Bitte SA Password eintragen.", false);
+
+      localStorage.setItem(LS_WORKER, base);
+      localStorage.setItem(LS_SA, saPass());
+
+      // ping routes
+      const r = await fetch(base+"/api/_routes");
+      const data = await r.json();
+      $("buildPill").textContent = "Worker: " + (data.build || "—");
+      banner("Verbunden. Worker Build: "+(data.build||"—"), true);
+    }catch(e){
+      banner(e.message || e.error || JSON.stringify(e), false);
+    }
+  }
+
+  async function loadCfg(){
+    try{
+      banner("");
+      const r = await jpost("/api/auth/admin/config/get", {});
+      const cfg = r.config || {};
+      $("dryerMinutes").value = cfg.dryerMinutes ?? 90;
+      $("retentionDays").value = cfg.retentionDays ?? 30;
+
+      // station pin -> input remains masked but we show plain below
+      $("stationPin").value = cfg.stationPin || "";
+      $("stationPinPlain").textContent = "Stations-PIN (Klartext): " + (cfg.stationPin || "—");
+
+      const hours = (cfg.washerHours||[]).map(Number).filter(n=>Number.isFinite(n));
+      buildWasherChecks(hours);
+
+      $("f_news").checked = !!cfg.features?.newsEnabled;
+      $("f_feedback").checked = !!cfg.features?.feedbackEnabled;
+      $("f_defect").checked = cfg.features?.userCanReportDefect !== false;
+      $("f_overbook").checked = !!cfg.features?.allowOverbook;
+
+      $("newsText").value = cfg.newsText || "";
+
+      banner("Config geladen.", true);
+    }catch(e){
+      banner(e.message || e.error || JSON.stringify(e), false);
+    }
+  }
+
+  async function saveCfg(){
+    try{
+      banner("");
+      const cfg = {
+        stationPin: String($("stationPin").value||"").trim(),
+        dryerMinutes: Number($("dryerMinutes").value||90),
+        retentionDays: Number($("retentionDays").value||30),
+        washerHours: getWasherHours(),
+        features: {
+          newsEnabled: $("f_news").checked,
+          feedbackEnabled: $("f_feedback").checked,
+          userCanReportDefect: $("f_defect").checked,
+          allowOverbook: $("f_overbook").checked,
+        },
+        newsText: String($("newsText").value||"")
+      };
+      const r = await jpost("/api/auth/admin/config/set", { config: cfg });
+      $("stationPinPlain").textContent = "Stations-PIN (Klartext): " + (r.config?.stationPin || "—");
+      banner("Config gespeichert.", true);
+    }catch(e){
+      banner(e.message || e.error || JSON.stringify(e), false);
+    }
+  }
+
+  function renderUsers(){
+    const roles = state.roles.map(x=>x.role);
+    const rows = state.users;
+
+    let html = `<table>
+      <thead><tr>
+        <th>Email</th><th>Name</th><th>Rolle</th><th>Status</th><th>Aktion</th>
+      </tr></thead><tbody>`;
+
+    for(const u of rows){
+      const name = `${u.firstName||""} ${u.lastName||""}`.trim();
+      const opt = roles.map(r=>`<option value="${escapeHtml(r)}" ${String(u.role)===String(r)?"selected":""}>${escapeHtml(r)}</option>`).join("");
+      html += `<tr>
+        <td>${escapeHtml(u.email||"")}</td>
+        <td>${escapeHtml(name||"")}</td>
+        <td><select data-email="${escapeHtml(u.email||"")}" class="roleSel">${opt}</select></td>
+        <td>${escapeHtml(u.status||"")}</td>
+        <td><button class="secondary btnSetRole" data-email="${escapeHtml(u.email||"")}">Set</button></td>
+      </tr>`;
+    }
+    html += `</tbody></table>`;
+    $("usersTable").innerHTML = html;
+
+    document.querySelectorAll(".btnSetRole").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const email = btn.dataset.email;
+        const sel = document.querySelector(`select.roleSel[data-email="${cssEscape(email)}"]`);
+        const role = sel ? sel.value : "";
+        try{
+          banner("");
+          await jpost("/api/auth/admin/users/role/set", { email, role });
+          banner(`Role gesetzt: ${email} -> ${role}`, true);
+        }catch(e){
+          banner(e.message || e.error || JSON.stringify(e), false);
+        }
+      });
+    });
+  }
+
+  async function loadUsers(){
+    try{
+      banner("");
+      const r = await jpost("/api/auth/admin/users/list", {});
+      state.users = r.users || [];
+      state.roles = r.roles || [];
+      renderUsers();
+      banner("Users geladen.", true);
+    }catch(e){
+      banner(e.message || e.error || JSON.stringify(e), false);
+    }
+  }
+
+  async function loadRbac(){
+    try{
+      banner("");
+      const r = await jpost("/api/auth/admin/rbac/snapshot", {});
+      $("rbacBox").textContent = JSON.stringify(r, null, 2);
+      banner("RBAC geladen.", true);
+    }catch(e){
+      banner(e.message || e.error || JSON.stringify(e), false);
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function cssEscape(s){
+    // minimal
+    return String(s).replace(/"/g,'\\"');
+  }
+
+  // Init
+  $("workerBase").value = localStorage.getItem(LS_WORKER) || DEFAULT_WORKER;
+  $("saPass").value = localStorage.getItem(LS_SA) || "";
+
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>setActive(t.dataset.tab)));
+  $("btnConnect").addEventListener("click", connect);
+  $("btnLoadCfg").addEventListener("click", loadCfg);
+  $("btnSaveCfg").addEventListener("click", saveCfg);
+  $("btnLoadUsers").addEventListener("click", loadUsers);
+  $("btnLoadRbac").addEventListener("click", loadRbac);
+
 })();
 </script>
-
 </body>
 </html>
