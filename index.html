@@ -399,7 +399,58 @@
       });
     });
 
-    document.querySelectorAll('[data-act="release"]').forEach(btn=>{
+    
+    // Populate per-washer slot selects
+    document.querySelectorAll('[data-act="washerSlotSel"]').forEach(sel=>{
+      const mid = String(sel.dataset.mid);
+      sel.innerHTML = `<option value="">Slot…</option>`;
+      const cfg = state.config;
+      if(!cfg) return;
+      const now = Date.now();
+      const daysFuture = Number(cfg.daysFuture ?? 6);
+      const hours = (cfg.washerHours||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+
+      const opts = [];
+      for(let di=0; di<=daysFuture; di++){
+        const day = new Date(now + di*86400000);
+        day.setHours(0,0,0,0);
+        for(const h of hours){
+          const startAt = day.getTime() + h*3600000;
+          const endAt = computeWasherEnd(cfg, startAt);
+          if(endAt <= now) continue;
+          const taken = isTaken("washer", Number(mid), startAt, endAt);
+          opts.push({startAt, endAt, taken});
+        }
+      }
+      opts.sort((a,b)=>a.startAt-b.startAt);
+      for(const o of opts){
+        const opt = document.createElement("option");
+        opt.value = JSON.stringify({machine:Number(mid), startAt:o.startAt});
+        opt.textContent = `${fmtDate(o.startAt)} ${fmtTime(o.startAt)}-${fmtTime(o.endAt)}` + (o.taken ? " — BELEGT" : "");
+        opt.disabled = !!o.taken;
+        sel.appendChild(opt);
+      }
+    });
+
+    document.querySelectorAll('[data-act="washerBookFromTile"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const mid = String(btn.dataset.mid);
+          const sel = document.querySelector(`select[data-act="washerSlotSel"][data-mid="${mid}"]`);
+          if(!sel || !sel.value) return showErr("Bitte Slot auswählen.");
+          const v = JSON.parse(sel.value);
+          await jpost("/api/washer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: v.machine, startAt: v.startAt });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+document.querySelectorAll('[data-act="release"]').forEach(btn=>{
       btn.addEventListener("click", async ()=>{
         try{
           showErr("");
@@ -411,13 +462,7 @@
         }
       });
     });
-
-    document.querySelectorAll('[data-act="defectClear"]').forEach(btn=>{
-      btn.addEventListener("click", async ()=>{
-        if(!confirm("Defekt zurücknehmen?")) return;
-        try{
-          showErr("");
-          const c = creds();
+const c = creds();
           await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind: btn.dataset.kind, machine: Number(btn.dataset.mid) });
           await refreshAll();
         }catch(e){
@@ -426,21 +471,36 @@
       });
     });
 
-document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
+
+    document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
       btn.addEventListener("click", async ()=>{
-        const msg = prompt("Was ist defekt? (kurz)");
-        if(!msg) return;
         try{
           showErr("");
           const c = creds();
-          await jpost("/api/defect/report", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind: btn.dataset.kind, machine: Number(btn.dataset.mid), text: msg });
-          showErr("Defekt gemeldet.");
-          setTimeout(()=>showErr(""),1200);
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+
+          const kind = btn.dataset.kind;
+          const mid  = Number(btn.dataset.mid);
+
+          // Toggle: if already defective -> clear, else -> report
+          const mm = (state.machines||[]).find(x => x.kind===kind && String(x.machineId)===String(mid));
+          const isDef = mm && Number(mm.defective||0)===1;
+
+          if(isDef){
+            if(!confirm("Defekt zurücknehmen?")) return;
+            await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid });
+          } else {
+            const msg = prompt("Was ist defekt? (kurz)");
+            if(!msg) return;
+            await jpost("/api/defect/report", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid, text: msg });
+          }
+          await refreshAll();
         }catch(e){
           showErr(e.message || e.error || JSON.stringify(e));
         }
       });
     });
+
   }
 
   function rebuildMyBookings(){
