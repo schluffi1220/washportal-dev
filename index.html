@@ -3,147 +3,80 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Washportal (Oldstyle v11)</title>
+  <title>Washportal</title>
   <style>
     :root{
       --bg0:#07131f; --bg1:#0b1b2b; --card:rgba(255,255,255,.06);
       --stroke:rgba(255,255,255,.10); --txt:#e8f1ff; --muted:rgba(232,241,255,.70);
-      --good:#23c58a; --bad:#ff5b73; --info:#4aa3ff; --lock:#8e95a1; --white:#f3f6ff;
-      --btn:#2a76ff; --btn2:#28c6b2;
+      --green:#23c58a; --blue:#4aa3ff; --red:#ff5b73; --lock:#8e95a1; --white:#f3f6ff;
       --r:18px;
     }
     *{box-sizing:border-box}
-    body{
-      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial;
-      color:var(--txt);
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--txt);
       background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
                   radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
-                  linear-gradient(180deg, var(--bg0), var(--bg1));
-      min-height:100vh;
-    }
-    .topbar{
-      display:flex; gap:10px; align-items:center; padding:14px 16px; position:sticky; top:0;
-      background:linear-gradient(180deg, rgba(7,19,31,.85), rgba(7,19,31,.55));
-      backdrop-filter: blur(10px);
-      border-bottom:1px solid rgba(255,255,255,.08);
-      z-index:20;
-    }
-    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
-    .dot{width:10px;height:10px;border-radius:999px;background:#2ff2cc; box-shadow:0 0 18px rgba(47,242,204,.55)}
-    .pill{
-      padding:7px 10px; border:1px solid rgba(255,255,255,.10); border-radius:999px;
-      background:rgba(255,255,255,.05); color:var(--muted); font-size:12px;
-      white-space:nowrap;
-    }
-    .wrap{max-width:1080px; margin:0 auto; padding:16px}
-    .card{
-      background:var(--card);
-      border:1px solid var(--stroke);
-      border-radius:var(--r);
-      padding:16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.28);
-      backdrop-filter: blur(10px);
-      margin-bottom:14px;
-    }
-    h2{margin:0 0 10px 0; font-size:18px}
-    .row{display:flex; gap:12px; flex-wrap:wrap}
+                  linear-gradient(180deg,var(--bg0),var(--bg1)); min-height:100vh;}
+    .topbar{position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(7,19,31,.88), rgba(7,19,31,.60));
+      backdrop-filter: blur(10px);border-bottom:1px solid rgba(255,255,255,.08);}
+    .bar{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .brand{font-weight:900;display:flex;align-items:center;gap:10px}
+    .dot{width:10px;height:10px;border-radius:999px;background:#2ff2cc;box-shadow:0 0 18px rgba(47,242,204,.55)}
+    .pill{padding:7px 10px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:rgba(255,255,255,.05);
+      color:var(--muted);font-size:12px;white-space:nowrap}
+    .wrap{max-width:1080px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
+    h2{margin:0 0 10px 0;font-size:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
     .field{flex:1 1 180px}
-    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px}
-    input, select, textarea{
-      width:100%; border-radius:14px; padding:12px 12px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(6,12,20,.55);
-      color:var(--txt);
-      outline:none;
-    }
-    textarea{min-height:92px; resize:vertical}
-    button{
-      border:0; border-radius:14px; padding:12px 14px; font-weight:700; cursor:pointer; color:white;
-      background:linear-gradient(135deg, var(--btn), var(--btn2));
-      box-shadow: 0 10px 20px rgba(25,92,255,.20);
-    }
-    button.secondary{
-      background:rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow:none;
-      color:var(--txt);
-      font-weight:700;
-    }
-    button.danger{
-      background: rgba(255,91,115,.18);
-      border:1px solid rgba(255,91,115,.45);
-      color: #ffd0d7;
-      box-shadow:none;
-    }
-    .help{color:var(--muted); font-size:12px; margin-top:8px}
-    .banner{
-      display:none;
-      padding:10px 12px; border-radius:14px;
-      background: rgba(255,91,115,.12);
-      border:1px solid rgba(255,91,115,.35);
-      margin-bottom:12px;
-      color:#ffd0d7;
-      font-weight:700;
-    }
-    .privacyline{
-      font-size:12px; color:var(--muted);
-    }
-    .privacyline a{color:var(--txt); text-decoration:underline; text-underline-offset:3px}
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap:12px;
-    }
-    @media (max-width:760px){
-      .grid{grid-template-columns: repeat(2, minmax(0,1fr));}
-    }
-    @media (max-width:420px){
-      .grid{grid-template-columns: 1fr;}
-    }
-    .machine{
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.12);
-      padding:14px;
-      background: rgba(255,255,255,.05);
-      position:relative;
-      overflow:hidden;
-    }
-    .mhead{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    input,select,textarea{width:100%;border-radius:14px;padding:12px 12px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(6,12,20,.55);color:var(--txt);outline:none}
+    input[type="password"]{letter-spacing:.12em}
+    textarea{min-height:92px;resize:vertical}
+    button{border:0;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;color:white;
+      background:linear-gradient(135deg,#2a76ff,#28c6b2);box-shadow:0 10px 20px rgba(25,92,255,.20)}
+    button.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:none;color:var(--txt)}
+    .help{color:var(--muted);font-size:12px;margin-top:8px;white-space:pre-wrap}
+    .banner{display:none;padding:10px 12px;border-radius:14px;background:rgba(255,91,115,.12);
+      border:1px solid rgba(255,91,115,.35);margin-bottom:12px;color:#ffd0d7;font-weight:900;white-space:pre-wrap}
+
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    .machine{border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:14px;background:rgba(255,255,255,.05)}
+    .mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
     .mtitle{font-weight:900}
-    .badge{
-      font-size:11px; font-weight:900; padding:6px 9px; border-radius:999px; border:1px solid rgba(255,255,255,.16);
-      background:rgba(0,0,0,.15);
-      color:var(--txt);
-    }
-    .tint-free{background:linear-gradient(180deg, rgba(35,197,138,.18), rgba(255,255,255,.05));}
-    .tint-busy{background:linear-gradient(180deg, rgba(74,163,255,.18), rgba(255,255,255,.05));}
-    .tint-def{background:linear-gradient(180deg, rgba(255,91,115,.18), rgba(255,255,255,.05));}
-    .tint-lock{background:linear-gradient(180deg, rgba(142,149,161,.18), rgba(255,255,255,.05));}
-    .tint-white{background:linear-gradient(180deg, rgba(243,246,255,.35), rgba(255,255,255,.05));}
-    .sub{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.4}
-    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    .badge{font-size:11px;font-weight:900;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.15);color:var(--txt)}
+    .t-free{background:linear-gradient(180deg, rgba(35,197,138,.22), rgba(255,255,255,.05));}
+    .t-busy{background:linear-gradient(180deg, rgba(74,163,255,.22), rgba(255,255,255,.05));}
+    .t-def{background:linear-gradient(180deg, rgba(255,91,115,.22), rgba(255,255,255,.05));}
+    .t-lock{background:linear-gradient(180deg, rgba(142,149,161,.22), rgba(255,255,255,.05));}
+    .t-white{background:linear-gradient(180deg, rgba(243,246,255,.40), rgba(255,255,255,.05));}
+
+    .sub{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.4}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
     .actions button{flex:1 1 120px}
-    .myitem{
-      border-radius:16px; border:1px solid rgba(255,255,255,.12);
-      padding:14px; background:rgba(255,255,255,.05); margin-top:10px;
-    }
-    .right{float:right}
-    .muted{color:var(--muted)}
-    .mini{font-size:12px}
-    .hidden{display:none !important}
+
+    .myitem{border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:14px;background:rgba(255,255,255,.05);margin-top:10px}
+    .inlinecb{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+    .inlinecb input{width:auto}
+    .divider{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
+    a{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
   </style>
 </head>
 <body>
   <div class="topbar">
-    <div class="brand"><span class="dot"></span> Washportal</div>
-    <div class="pill" id="buildPill">PORTAL BUILD: oldstyle_v15</div>
-    <div class="pill" id="workerPill">Worker: —</div>
-    <div class="pill" id="roomPill">Zimmer: —</div>
+    <div class="bar">
+      <div class="brand"><span class="dot"></span> Washportal</div>
+      <div class="pill" id="buildPill">Worker: —</div>
+      <div class="pill" id="roomPill">Zimmer: —</div>
+    </div>
   </div>
 
   <div class="wrap">
     <div class="card">
-      <div class="privacyline">
+      <div class="help" style="margin:0">
         Mit der Benutzung dieser Seite erklärst du dich mit der aktuellen
         <a href="https://schluffi1220.github.io/washportal-dev/privacy/" target="_blank" rel="noopener">Datenschutzvereinbarung</a>
         einverstanden.
@@ -152,604 +85,409 @@
 
     <div class="banner" id="errBanner"></div>
 
+    <div class="card" id="newsCard" style="display:none">
+      <h2>News</h2>
+      <div id="newsText" class="sub"></div>
+    </div>
+
     <div class="card">
       <h2>Login</h2>
       <div class="row">
-        <div class="field">
-          <label>Zimmer</label>
-          <input id="room" inputmode="numeric" autocomplete="off" placeholder="z.B. 203"/>
-        </div>
-        <div class="field">
-          <label>Persönlicher PIN</label>
-          <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/>
-        </div>
-        <div class="field">
-          <label>Stations-PIN</label>
-          <input id="stationPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/>
-        </div>
-        <div class="field" style="flex:0 0 180px; align-self:flex-end">
+        <div class="field"><label>Zimmer</label><input id="room" inputmode="numeric" autocomplete="off" placeholder="z.B. 316"/></div>
+        <div class="field"><label>Persönlicher PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
+        <div class="field"><label>Stations-PIN</label><input id="stationPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
+        <div class="field" style="flex:0 0 200px;align-self:flex-end">
           <button id="btnRefresh" style="width:100%">Aktualisieren</button>
         </div>
       </div>
-      <div class="help">
-        Hinweis: Slot-Buchung nutzt deinen persönlichen PIN (Storno/Freigabe nur für dich). Stations-PIN wird zusätzlich geprüft.
-      </div>
+      <div class="help">PIN ist persönlich: 316/1111 ≠ 316/2222.</div>
     </div>
 
-    <div class="card" id="bookPanel">
+    <div class="card">
       <h2>Waschmaschine + Slot auswählen</h2>
       <div class="row">
-        <div class="field" style="flex:1 1 420px">
-          <label>Waschmaschine + Slot auswählen</label>
-          <select id="globalSlot">
+        <div class="field">
+          <label>Slot (WM 1–4)</label>
+          <select id="slotSelect">
             <option value="">Bitte auswählen…</option>
           </select>
-          <div class="help" id="globalSlotHint">Belegte Slots sind als „BELEGT“ markiert und nicht auswählbar.</div>
+          <div class="help">Belegte Slots sind als „BELEGT“ markiert.</div>
         </div>
-      </div>
-      <div class="row">
-        <div class="field" style="flex:0 0 220px">
-          <button id="btnBookGlobal" style="width:100%">Buchen</button>
+        <div class="field" style="flex:0 0 200px;align-self:flex-end">
+          <button id="btnBookWasher" style="width:100%">Buchen</button>
         </div>
       </div>
     </div>
 
     <div class="card">
       <h2>Maschinenübersicht</h2>
-      <div class="help">Grün = frei · Blau = läuft/gebucht · Rot = defekt · Rot/Grau = gesperrt · Weiß = Whitecard</div>
-      <div class="help" id="dryerHint" style="margin-top:8px"></div>
-      <div class="grid" id="machinesGrid"></div>
+
+      <div class="divider"></div>
+      <div class="help" style="margin:0 0 8px 0">Waschmaschinen</div>
+      <div class="grid" id="washerGrid"></div>
+
+      <div class="divider"></div>
+      <div class="help" style="margin:0 0 8px 0">Trockner</div>
+      <div class="grid" id="dryerGrid"></div>
     </div>
 
     <div class="card">
       <h2>Meine Buchungen</h2>
       <div id="myBookings"></div>
+      <div class="help">Abgelaufene Einträge: nur ausblenden (nicht löschen).</div>
     </div>
 
-    <div class="card" id="feedbackCard">
+    <div class="card" id="feedbackCard" style="display:none">
       <h2>Feedback</h2>
-      <div class="row">
-        <div class="field">
-          <label>Nachricht</label>
-          <textarea id="fbText" placeholder="Kurzer Hinweis…"></textarea>
-          <div class="help muted mini">Wird nur angezeigt, wenn Feedback in der Config aktiviert ist.</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field" style="flex:0 0 220px">
-          <button id="btnSendFb" style="width:100%">Senden</button>
-        </div>
+      <label>Nachricht</label>
+      <textarea id="feedbackText" placeholder="Kurzer Hinweis…"></textarea>
+      <div class="row" style="margin-top:10px">
+        <div class="field" style="flex:0 0 220px"><button id="btnSendFeedback" style="width:100%">Senden</button></div>
       </div>
     </div>
-
   </div>
 
 <script>
 (() => {
-  const WORKER_DEFAULT = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  const apiBase = (() => {
-    const u = new URL(location.href);
-    const q = u.searchParams.get("worker");
-    if (q && q.startsWith("http")) return q.replace(/\/+$/,"");
-    return WORKER_DEFAULT;
-  })();
+  const WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  const API = WORKER.replace(/\/$/,"");
+  const $ = (id)=>document.getElementById(id);
 
-  const el = (id) => document.getElementById(id);
-  const showErr = (msg) => {
-    const b = el("errBanner");
-    b.textContent = msg;
+  const state = {
+    config:null,
+    machines:[],
+    bookings:[],
+    myBookings:[],
+    hiddenMy: new Set(JSON.parse(localStorage.getItem("wash_hidden_my")||"[]")),
+  };
+
+  function showErr(msg){
+    const b = $("errBanner");
+    b.textContent = msg || "";
     b.style.display = msg ? "block" : "none";
-  };
-  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const fmtTime = (ms) => {
-    const d = new Date(ms);
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mi = String(d.getMinutes()).padStart(2,"0");
-    return `${dd}.${mm} ${hh}:${mi}`;
-  };
-  const fmtDow = (ms) => ["So","Mo","Di","Mi","Do","Fr","Sa"][new Date(ms).getDay()];
-  const fmtDateShort = (ms) => {
-    const d = new Date(ms);
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    return `${dd}.${mm}`;
-  };
-  const fmtHM = (ms) => {
-    const d = new Date(ms);
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mi = String(d.getMinutes()).padStart(2,"0");
-    return `${hh}:${mi}`;
-  };
-  const slotLine = (start,end,mNum) => `${fmtDow(start)} ${fmtDateShort(start)} ${fmtHM(start)}–${fmtHM(end)} WM ${mNum}`;
+  }
 
-  const currentCreds = () => ({
-    room: String(el("room").value || "").trim(),
-    pin: String(el("pin").value || "").trim(),
-    stationPin: String(el("stationPin").value || "").trim()
-  });
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function fmtDate(ms){
+    const d = new Date(ms);
+    const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
+    return `${wd} ${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.`;
+  }
+  function fmtTime(ms){
+    const d = new Date(ms);
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
 
   async function jpost(path, body){
-    const res = await fetch(apiBase + path, {
+    const res = await fetch(API+path, {
       method:"POST",
-      headers:{ "content-type":"application/json" },
-      body: JSON.stringify(body ?? {})
+      headers:{"content-type":"application/json"},
+      body: JSON.stringify(body||{})
     });
-    const ct = res.headers.get("content-type")||"";
-    const data = ct.includes("application/json")
-      ? await res.json()
-      : { ok:false, error:"bad_response", message: await res.text() };
-    if (!res.ok || data?.ok === false) throw data;
-    return data;
-  }
-  async function jget(path){
-    const res = await fetch(apiBase + path, { method:"GET" });
-    const ct = res.headers.get("content-type")||"";
-    const data = ct.includes("application/json") ? await res.json() : { ok:false, error:"bad_response", message: await res.text() };
-    if (!res.ok || data?.ok === false) throw data;
+    const data = await res.json().catch(async()=>({ok:false,message:await res.text()}));
+    if(!res.ok || data.ok===false) throw data;
     return data;
   }
 
-  // global state
-  window.__WASH_STATE__ = { config:null, machines:[], bookings:[], myBookings:[] };
-
-  function badgeFor(m){
-    const st = (m?.status || "").toLowerCase();
-    const isDef = !!m?.defect || st.includes("defect");
-    const isLocked = !!m?.locked || st.includes("lock") || st.includes("blocked");
-    const isWhite = !!(m?.whitecard || m?.flags?.whitecard);
-    const isBusy = !!m?.current || st.includes("busy") || st.includes("booked") || st.includes("running");
-    if (isDef) return { txt:"DEFEKT", cls:"tint-def" };
-    if (isLocked) return { txt:"GESPERRT", cls:"tint-lock" };
-    if (isWhite) return { txt:"WHITE", cls:"tint-white" };
-    if (isBusy) return { txt:"LÄUFT", cls:"tint-busy" };
-    return { txt:"FREI", cls:"tint-free" };
-  }
-
-  function machineLabel(m){
-    const t = (m?.type || "washer").toLowerCase();
-    const n = m?._dispNum ?? m?.num ?? m?.number ?? m?.index ?? m?.machineNum ?? m?.machine ?? m?.id ?? "";
-    if (t === "dryer") return `Trockner ${n || ""}`.trim();
-    return `Waschmaschine ${n || ""}`.trim();
-  }
-
-  function overlaps(aStart,aEnd,bStart,bEnd){
-    if (![aStart,aEnd,bStart,bEnd].every(v => Number.isFinite(v))) return false;
-    return aStart < bEnd && bStart < aEnd;
-  }
-
-  function getWasherSlots(cfg){
-    const hours = (cfg?.washerHours || cfg?.washer_hours || []).slice().map(x=>Number(x)).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
-    const daysFuture = Number(cfg?.daysFuture ?? cfg?.days_future ?? 6);
-    const now = Date.now();
-    const out = [];
-    for (let d=0; d<=daysFuture; d++){
-      const base = new Date(now + d*86400000);
-      base.setHours(0,0,0,0);
-      for (let i=0; i<hours.length; i++){
-        const h0 = hours[i];
-        const h1 = hours[i+1] ?? (h0+2); // fallback 2h
-        const start = base.getTime() + h0*3600000;
-        const end = base.getTime() + h1*3600000;
-        // include future + currently running (end > now-5min)
-        if (end > now - 5*60000) out.push({start,end});
-      }
-    }
-    return out;
-  }
-
-  function renderGlobalSlotPicker(state){
-    const sel = el("globalSlot");
-    sel.innerHTML = `<option value="">Bitte auswählen…</option>`;
-    const cfg = state.config || {};
-    const slots = getWasherSlots(cfg);
-    // assume washers are type washer, num 1..4, or first 4 washers
-    const washers = state.machines.filter(m => (m.type||"washer").toLowerCase()==="washer");
-    const listWashers = washers.length ? washers : [{num:1,id:1,type:"washer"},{num:2,id:2,type:"washer"},{num:3,id:3,type:"washer"},{num:4,id:4,type:"washer"}];
-
-    // bookings used to mark occupied
-    const bookings = (state.bookings||[]).map(b => ({
-      machine: b.machine ?? b.machineId ?? b.machine_id ?? b.machineNo ?? b.machine_no ?? b.machineNum ?? b.machine_num,
-      start: Number(b.start ?? b.startAt ?? b.start_at),
-      end: Number(b.end ?? b.endAt ?? b.end_at),
-      room: b.room ?? b.zimmer ?? b.user ?? ""
-    }));
-
-    const makeOpt = (m, s) => {
-      const mNum = m.num ?? m.number ?? m.index ?? m.id;
-      const mId = m.id ?? mNum;
-      const occ = bookings.find(b => String(b.machine)===String(mNum) && overlaps(s.start,s.end,b.start,b.end));
-      const dow = fmtDow(s.start);
-      const label = slotLine(s.start, s.end, mNum) + (occ ? ` • BELEGT` : "");
-      const v = JSON.stringify({machineId:mId, machineNum:mNum, start:s.start, end:s.end});
-      const o = document.createElement("option");
-      o.value = v;
-      o.textContent = label;
-      if (occ) o.disabled = true;
-      return o;
+  function creds(){
+    return {
+      room: String($("room").value||"").trim(),
+      pin: String($("pin").value||"").trim(),
+      stationPin: String($("stationPin").value||"").trim(),
     };
+  }
 
-    // grouped by day for readability
-    let lastDay = "";
-    for (const s of slots){
-      const d = new Date(s.start);
-      const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      if (dayKey !== lastDay){
-        lastDay = dayKey;
-        const og = document.createElement("optgroup");
-        og.label = `${fmtDow(s.start)} ${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}`;
-        // add one per washer into group
-        for (const m of listWashers) og.appendChild(makeOpt(m,s));
-        sel.appendChild(og);
-      } else {
-        // find last optgroup and add options
-        const og = sel.lastElementChild;
-        for (const m of listWashers) og.appendChild(makeOpt(m,s));
+  function computeWasherEnd(cfg, startAt){
+    const hours = (cfg.washerHours||[]).map(Number).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
+    const d = new Date(startAt);
+    const day0 = new Date(startAt); day0.setHours(0,0,0,0);
+    const h = d.getHours();
+    const idx = hours.indexOf(h);
+    const nextH = (idx>=0 && idx < hours.length-1) ? hours[idx+1] : h+2;
+    return day0.getTime() + nextH*3600000;
+  }
+
+  function rebuildNews(){
+    const cfg = state.config || {};
+    const enabled = !!cfg.features?.newsEnabled;
+    const txt = String(cfg.newsText||"").trim();
+    if(enabled && txt){
+      $("newsText").textContent = txt;
+      $("newsCard").style.display = "";
+    } else {
+      $("newsCard").style.display = "none";
+    }
+  }
+  function rebuildFeedback(){
+    const cfg = state.config || {};
+    $("feedbackCard").style.display = cfg.features?.feedbackEnabled ? "" : "none";
+  }
+
+  function isTaken(kind, machine, startAt, endAt){
+    return (state.bookings||[]).some(b =>
+      b.kind===kind && Number(b.machine)===Number(machine) &&
+      (b.status==="booked" || b.status==="running") &&
+      b.startAt < endAt && b.endAt > startAt
+    );
+  }
+
+  function slotLine(machine, startAt, endAt){
+    return `${fmtDate(startAt)} ${fmtTime(startAt)}-${fmtTime(endAt)} Waschmaschine ${machine}`;
+  }
+
+  function rebuildSlotDropdown(){
+    const sel = $("slotSelect");
+    sel.innerHTML = `<option value="">Bitte auswählen…</option>`;
+    const cfg = state.config;
+    if(!cfg) return;
+
+    const now = Date.now();
+    const daysFuture = Number(cfg.daysFuture ?? 6);
+    const hours = (cfg.washerHours||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+
+    const opts = [];
+    for(let di=0; di<=daysFuture; di++){
+      const day = new Date(now + di*86400000);
+      day.setHours(0,0,0,0);
+      for(const h of hours){
+        const startAt = day.getTime() + h*3600000;
+        const endAt = computeWasherEnd(cfg, startAt);
+        if(endAt <= now) continue;
+        for(let m=1;m<=4;m++){
+          const taken = isTaken("washer", m, startAt, endAt);
+          opts.push({machine:m, startAt, endAt, taken});
+        }
       }
+    }
+    opts.sort((a,b)=>a.startAt-b.startAt || a.machine-b.machine);
+
+    for(const o of opts){
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({machine:o.machine, startAt:o.startAt});
+      opt.textContent = slotLine(o.machine, o.startAt, o.endAt) + (o.taken ? " — BELEGT" : "");
+      opt.disabled = !!o.taken;
+      sel.appendChild(opt);
     }
   }
 
-  function renderMachines(state){
-    const grid = el("machinesGrid");
-    grid.innerHTML = "";
-    const dryers = state.machines.filter(m => (m.type||"washer").toLowerCase()==="dryer");
-    el("dryerHint").textContent = dryers.length ? "" : "Keine Trockner im Worker-Response.";
+  function machineTint(m){
+    const defect = Number(m.defective||0)===1;
+    const busy = !!m.current || !!m.next;
+    const white = (m.current && m.current.whitecard) || (m.next && m.next.whitecard);
+    if(defect) return ["t-def","DEFEKT"];
+    if(white) return ["t-white","WHITECARD"];
+    if(busy) return ["t-busy","GEBUCHT/LÄUFT"];
+    return ["t-free","FREI"];
+  }
 
-    let w=0,d=0;
-    for (const m of state.machines){
-      const t0=(m.type||"washer").toLowerCase();
-      if(t0==="dryer") d++; else w++;
-      m._dispNum = (m.num ?? m.number ?? m.index ?? m.machineNum ?? m.machine_no ?? m.machine ?? m.id ?? (t0==="dryer"?d:w));
-      const b = badgeFor(m);
-      const card = document.createElement("div");
-      card.className = `machine ${b.cls}`;
-      const title = machineLabel(m);
-      const last = m.last ? `Zimmer ${m.last.room ?? m.lastRoom ?? "?"} bis ${fmtTime(m.last.end ?? m.lastEnd ?? m.last.endAt ?? m.lastEndAt ?? Date.now())}` : "—";
-      const cur = m.current ? `Zimmer ${m.current.room ?? m.currentRoom ?? "?"} bis ${fmtTime(m.current.end ?? m.currentEnd ?? m.current.endAt ?? m.currentEndAt ?? Date.now())}` : "—";
-      const next = m.next ? `Zimmer ${m.next.room ?? m.nextRoom ?? "?"} ab ${fmtTime(m.next.start ?? m.nextStart ?? m.next.startAt ?? m.nextStartAt ?? Date.now())}` : "—";
+  function fmtOcc(x){
+    if(!x) return "—";
+    const r = x.room ? `Zimmer ${x.room}` : "Zimmer —";
+    return `${r} ${fmtTime(x.startAt)}-${fmtTime(x.endAt)}`;
+  }
 
-      card.innerHTML = `
+  function escapeHtml(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function renderMachineCard(m){
+    const [tint, badge] = machineTint(m);
+    const kindLabel = (m.kind==="washer") ? `Waschmaschine ${m.machineId}` : `Trockner ${m.machineId}`;
+    const label = m.label || kindLabel;
+
+    const isDryer = m.kind==="dryer";
+    const bookBtn = isDryer ? `<button class="secondary" data-act="bookDryer" data-mid="${m.machineId}">Buchen</button>` : "";
+    const defectBtn = state.config?.features?.userCanReportDefect ? `<button class="secondary" data-act="defect" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt</button>` : "";
+    return `
+      <div class="machine ${tint}">
         <div class="mhead">
-          <div class="mtitle">${escapeHtml(title)}</div>
-          <div class="badge">${escapeHtml(b.txt)}</div>
+          <div class="mtitle">${escapeHtml(label)}</div>
+          <div class="badge">${badge}</div>
         </div>
         <div class="sub">
-          <div>Zuletzt: <span class="muted">${escapeHtml(last)}</span></div>
-          <div>Aktuell: <span class="muted">${escapeHtml(cur)}</span></div>
-          <div>Als nächstes: <span class="muted">${escapeHtml(next)}</span></div>
+          <div>Zuletzt: ${fmtOcc(m.last)}</div>
+          <div>Aktuell: ${fmtOcc(m.current)}</div>
+          <div>Als nächstes: ${fmtOcc(m.next)}</div>
         </div>
-      `;
+        <div class="actions">
+          ${bookBtn}
+          ${defectBtn}
+        </div>
+      </div>
+    `;
+  }
 
-      const t = (m.type||"washer").toLowerCase();
-      const actions = document.createElement("div");
-      actions.className = "actions";
+  function rebuildMachines(){
+    const washers = state.machines.filter(m=>m.kind==="washer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    const dryers  = state.machines.filter(m=>m.kind==="dryer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    $("washerGrid").innerHTML = washers.map(renderMachineCard).join("");
+    $("dryerGrid").innerHTML  = dryers.map(renderMachineCard).join("");
 
-      if (t === "washer"){
-        const sel = document.createElement("select");
-        sel.style.flex = "1 1 240px";
-        sel.innerHTML = `<option value="">Bitte Slot wählen…</option>`;
-        // fill with same slots but just this washer
-        const cfg = state.config || {};
-        const slots = getWasherSlots(cfg);
-        const bookings = (state.bookings||[]).map(b => ({
-          machine: b.machine ?? b.machineId ?? b.machine_id ?? b.machineNo ?? b.machine_no ?? b.machineNum ?? b.machine_num,
-          start: Number(b.start ?? b.startAt ?? b.start_at),
-          end: Number(b.end ?? b.endAt ?? b.end_at),
-          room: b.room ?? b.zimmer ?? b.user ?? ""
-        }));
-        const mNum = m.num ?? m.number ?? m.index ?? m.id;
-        const mId = m.id ?? mNum;
-        for (const s of slots){
-          const occ = bookings.find(b => String(b.machine)===String(mNum) && overlaps(s.start,s.end,b.start,b.end));
-          const o = document.createElement("option");
-          o.value = JSON.stringify({machineId:mId, machineNum:mNum, start:s.start, end:s.end});
-          o.textContent = slotLine(s.start, s.end, mNum) + (occ ? ` • BELEGT` : "");
-          if (occ) o.disabled = true;
-          sel.appendChild(o);
+    document.querySelectorAll('[data-act="bookDryer"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const mid = Number(btn.dataset.mid);
+          await jpost("/api/dryer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: mid });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
         }
+      });
+    });
 
-        const btn = document.createElement("button");
-        btn.textContent = "Buchen";
-        btn.onclick = async () => {
-          try{
-            const v = sel.value;
-            if (!v) return showErr("Bitte Slot auswählen.");
-            const slot = JSON.parse(v);
-            const creds = currentCreds();
-            showErr("");
-            await jpost("/api/washer/book", {
-              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-              machineId: String(slot.machineNum ?? slot.machineId),
-              startAt: Number(slot.start),
-              minutes: Math.max(1, Math.round((Number(slot.end)-Number(slot.start))/60000))
-            });
-            await refreshAll();
-          }catch(e){
-            showErr(e?.message || e?.error || JSON.stringify(e));
-          }
-        };
-
-        const def = document.createElement("button");
-        def.className="danger";
-        def.textContent="Defekt melden";
-        def.onclick = async () => {
-          try{
-            const creds = currentCreds();
-            const mNum = m.num ?? m.number ?? m.index ?? m.id;
-            showErr("");
-            await jpost("/api/defect/report", { room: creds.room, pin: creds.pin, stationPin: creds.stationPin, type:"washer", machineNum:mNum, text:"defekt" });
-            await refreshAll();
-          }catch(e){
-            showErr(e?.message || e?.error || JSON.stringify(e));
-          }
-        };
-
-        actions.appendChild(sel);
-        actions.appendChild(btn);
-        actions.appendChild(def);
-      } else {
-        const btn = document.createElement("button");
-        btn.textContent = "Buchen";
-        btn.onclick = async () => {
-          try{
-            const creds = currentCreds();
-            const mNum = m.num ?? m.number ?? m.index ?? m.id;
-            const mId = m.id ?? mNum;
-            showErr("");
-            await jpost("/api/dryer/book", {
-              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-              machineId: mId, machineNum: mNum
-            });
-            await refreshAll();
-          }catch(e){
-            showErr(e?.message || e?.error || JSON.stringify(e));
-          }
-        };
-
-        const over = document.createElement("button");
-        over.className="secondary";
-        over.textContent="Überbuchen";
-        over.onclick = async () => {
-          try{
-            const creds = currentCreds();
-            const mNum = m.num ?? m.number ?? m.index ?? m.id;
-            const mId = m.id ?? mNum;
-            showErr("");
-            await jpost("/api/dryer/book", {
-              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-              machineId: mId, machineNum: mNum, overbook:true
-            });
-            await refreshAll();
-          }catch(e){
-            showErr(e?.message || e?.error || JSON.stringify(e));
-          }
-        };
-
-        const def = document.createElement("button");
-        def.className="danger";
-        def.textContent="Defekt melden";
-        def.onclick = async () => {
-          try{
-            const creds = currentCreds();
-            const mNum = m.num ?? m.number ?? m.index ?? m.id;
-            showErr("");
-            await jpost("/api/defect/report", { room: creds.room, pin: creds.pin, stationPin: creds.stationPin, type:"dryer", machineNum:mNum, text:"defekt" });
-            await refreshAll();
-          }catch(e){
-            showErr(e?.message || e?.error || JSON.stringify(e));
-          }
-        };
-
-        actions.appendChild(btn);
-        actions.appendChild(over);
-        actions.appendChild(def);
-      }
-
-      card.appendChild(actions);
-      grid.appendChild(card);
-    }
+    document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const msg = prompt("Was ist defekt? (kurz)");
+        if(!msg) return;
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/defect/report", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind: btn.dataset.kind, machine: Number(btn.dataset.mid), text: msg });
+          showErr("Defekt gemeldet.");
+          setTimeout(()=>showErr(""),1200);
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
   }
 
-  function bookingId(b, i){
-    return String(b.id ?? b.bookingId ?? `${b.room||""}-${b.machine||b.machineNum||""}-${b.start||b.startAt||""}-${i}`);
-  }
-
-  function renderMyBookings(state){
-    const wrap = el("myBookings");
+  function rebuildMyBookings(){
+    const wrap = $("myBookings");
     wrap.innerHTML = "";
-    const creds = currentCreds();
-    const room = creds.room;
-    const hidden = new Set(JSON.parse(localStorage.getItem("hiddenBookings")||"[]"));
     const now = Date.now();
+    const list = (state.myBookings||[]).slice().sort((a,b)=>a.startAt-b.startAt);
 
-    const mine = (state.myBookings && state.myBookings.length) ? state.myBookings
-      : (state.bookings||[]).filter(b => String(b.room ?? b.zimmer ?? "") === String(room));
-
-    if (!room){
-      wrap.innerHTML = `<div class="muted mini">Bitte Zimmer + PIN eingeben und „Aktualisieren“ drücken.</div>`;
+    if(!list.length){
+      wrap.innerHTML = `<div class="help">Keine Buchungen.</div>`;
       return;
     }
 
-    const list = mine.slice().sort((a,b)=>Number(a.start??a.startAt??0)-Number(b.start??b.startAt??0));
-    if (!list.length){
-      wrap.innerHTML = `<div class="muted mini">Keine Buchungen gefunden.</div>`;
-      return;
-    }
+    for(const b of list){
+      if(state.hiddenMy.has(b.id)) continue;
+      const expired = b.endAt <= now;
+      const title = (b.kind==="washer" ? `Waschmaschine ${b.machine}` : `Trockner ${b.machine}`);
+      const time = `${fmtDate(b.startAt)} ${fmtTime(b.startAt)}-${fmtTime(b.endAt)}`;
 
-    list.forEach((b,i)=>{
-      const id = bookingId(b,i);
-      if (hidden.has(id)) return;
+      const canCancel = (!expired && now < b.startAt);
+      const canRelease = (!expired && now >= b.startAt && now < b.endAt);
 
-      const start = Number(b.start ?? b.startAt ?? b.start_at);
-      const end = Number(b.end ?? b.endAt ?? b.end_at);
-      const expired = Number.isFinite(end) && end < now;
-      const title = b.label ?? b.machineLabel ?? (b.type==="dryer" ? "Trockner" : "Waschmaschine") + " " + (b.machineNum ?? b.machine ?? "");
-      const status = (b.status ?? "").toLowerCase() || (expired ? "expired" : "gebucht");
+      const btns = [];
+      if(canRelease) btns.push(`<button class="secondary" data-act="release" data-id="${b.id}">freigeben</button>`);
+      if(canCancel) btns.push(`<button class="secondary" data-act="cancel" data-id="${b.id}">stornieren</button>`);
+      btns.push(`<label class="inlinecb"><input type="checkbox" data-act="hide" data-id="${b.id}"/> ausblenden</label>`);
 
-      const item = document.createElement("div");
-      item.className = "myitem";
-      item.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-          <div>
-            <div style="font-weight:900">${escapeHtml(title)}</div>
-            <div class="muted mini">${Number.isFinite(start)?fmtTime(start):"—"}–${Number.isFinite(end)?fmtTime(end):"—"}</div>
-            <div class="muted mini">${escapeHtml(status)}</div>
-          </div>
-          <div class="badge">${expired ? "ABGELAUFEN" : "AKTIV"}</div>
+      const el = document.createElement("div");
+      el.className="myitem";
+      el.innerHTML = `
+        <div class="mhead">
+          <div class="mtitle">${title}</div>
+          <div class="badge">${expired ? "abgelaufen" : (b.status||"booked")}</div>
         </div>
+        <div class="sub">${time}</div>
+        <div class="actions">${btns.join("")}</div>
       `;
+      wrap.appendChild(el);
+    }
 
-      const actions = document.createElement("div");
-      actions.className = "actions";
+    wrap.querySelectorAll('[data-act="hide"]').forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        state.hiddenMy.add(cb.dataset.id);
+        localStorage.setItem("wash_hidden_my", JSON.stringify(Array.from(state.hiddenMy)));
+        rebuildMyBookings();
+      });
+    });
 
-      const hideWrap = document.createElement("label");
-      hideWrap.style.display="flex";
-      hideWrap.style.alignItems="center";
-      hideWrap.style.gap="8px";
-      hideWrap.style.cursor="pointer";
-      hideWrap.className="mini muted";
-      const cb = document.createElement("input");
-      cb.type="checkbox";
-      cb.checked=false;
-      cb.onchange = () => {
-        if(cb.checked){
-          hidden.add(id);
-          localStorage.setItem("hiddenBookings", JSON.stringify([...hidden]));
-          renderMyBookings(state);
+    wrap.querySelectorAll('[data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
         }
-      };
-      const span = document.createElement("span");
-      span.textContent="Ausblenden";
-      hideWrap.appendChild(cb);
-      hideWrap.appendChild(span);
-      actions.appendChild(hideWrap);
+      });
+    });
 
-      if (!expired){
-        const relBtn = document.createElement("button");
-        relBtn.className = "secondary";
-        relBtn.textContent = "Freigeben";
-        relBtn.onclick = async () => {
-          try{
-            showErr("");
-            await jpost("/api/booking/release", {
-              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-              bookingId: b.id ?? b.bookingId,
-              machineNum: b.machineNum ?? b.machine,
-              type: b.type
-            });
-            await refreshAll();
-          }catch(e){
-            showErr(e?.message || e?.error || JSON.stringify(e));
-          }
-        };
-        actions.appendChild(relBtn);
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "danger";
-        cancelBtn.textContent = "Stornieren";
-        cancelBtn.onclick = async () => {
-          try{
-            showErr("");
-            await jpost("/api/booking/cancel", {
-              room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-              bookingId: b.id ?? b.bookingId,
-              machineNum: b.machineNum ?? b.machine,
-              type: b.type
-            });
-            await refreshAll();
-          }catch(e){
-            showErr(e?.message || e?.error || JSON.stringify(e));
-          }
-        };
-        actions.appendChild(cancelBtn);
-      } else {
-        const note = document.createElement("div");
-        note.className = "help";
-        note.textContent = "Abgelaufen – keine Aktion möglich.";
-        item.appendChild(note);
-      }
-
-      item.appendChild(actions);
-      wrap.appendChild(item);
+    wrap.querySelectorAll('[data-act="cancel"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/cancel", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
     });
   }
 
   async function refreshAll(){
     try{
-      const creds = currentCreds();
-      if (!creds.room || !creds.pin || !creds.stationPin){
-        showErr("Bitte Zimmer, PIN und Stations-PIN eingeben.");
-        return;
-      }
       showErr("");
-      const data = await jpost("/api/user/refresh", creds);
-      window.__WASH_STATE__.config = data.config || data.cfg || null;
-      window.__WASH_STATE__.machines = data.machines || [];
-      window.__WASH_STATE__.bookings = data.bookings || data.allBookings || [];
-      window.__WASH_STATE__.myBookings = data.myBookings || data.mine || [];
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const data = await jpost("/api/user/refresh", c);
 
-      // pills
-      el("workerPill").textContent = "Worker: " + (data.build || data.workerBuild || "OK");
-      el("roomPill").textContent = "Zimmer: " + creds.room;
+      state.config = data.config;
+      state.machines = data.machines || [];
+      state.bookings = data.bookings || [];
+      state.myBookings = data.myBookings || [];
 
-      renderGlobalSlotPicker(window.__WASH_STATE__);
-      renderMachines(window.__WASH_STATE__);
-      renderMyBookings(window.__WASH_STATE__);
+      $("buildPill").textContent = "Worker: " + (data.build || "—");
+      $("roomPill").textContent = "Zimmer: " + c.room;
 
-      // feedback show/hide
-      const cfg = window.__WASH_STATE__.config || {};
-      const fbEnabled = !!(cfg.feedbackEnabled || cfg.feedback_enabled || cfg.feedbackPsEnabled || cfg.feedbackSvEnabled || cfg.feedbackAdminEnabled);
-      el("feedbackCard").classList.toggle("hidden", !fbEnabled);
-
+      rebuildNews();
+      rebuildFeedback();
+      rebuildSlotDropdown();
+      rebuildMachines();
+      rebuildMyBookings();
     }catch(e){
-      showErr(e?.message || e?.error || JSON.stringify(e));
+      showErr(e.message || e.error || JSON.stringify(e));
     }
   }
 
-  async function bookGlobal(){
+  async function bookWasher(){
     try{
-      const v = el("globalSlot").value;
-      if (!v) return showErr("Bitte Waschmaschine + Slot auswählen.");
-      const slot = JSON.parse(v);
-      const creds = currentCreds();
       showErr("");
-      await jpost("/api/washer/book", {
-        room: creds.room, pin: creds.pin, stationPin: creds.stationPin,
-        machineId: String(slot.machineNum ?? slot.machineId),
-        startAt: Number(slot.start),
-        minutes: Math.max(1, Math.round((Number(slot.end)-Number(slot.start))/60000))
-      });
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const val = $("slotSelect").value;
+      if(!val) return showErr("Bitte Slot auswählen.");
+      const sel = JSON.parse(val);
+      await jpost("/api/washer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: sel.machine, startAt: sel.startAt });
       await refreshAll();
     }catch(e){
-      showErr(e?.message || e?.error || JSON.stringify(e));
+      showErr(e.message || e.error || JSON.stringify(e));
     }
   }
 
   async function sendFeedback(){
     try{
-      const creds = currentCreds();
-      const text = String(el("fbText").value||"").trim();
-      if (!text) return showErr("Bitte Feedback-Text eingeben.");
       showErr("");
-      await jpost("/api/feedback/submit", { room: creds.room, pin: creds.pin, stationPin: creds.stationPin, text });
-      el("fbText").value = "";
-      showErr("Feedback gesendet ✅");
-      setTimeout(()=>showErr(""), 1500);
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const t = String($("feedbackText").value||"").trim();
+      if(!t) return showErr("Bitte Text eingeben.");
+      await jpost("/api/feedback/submit", { room:c.room, pin:c.pin, text:t });
+      $("feedbackText").value="";
+      showErr("Danke! Feedback gesendet.");
+      setTimeout(()=>showErr(""),1200);
     }catch(e){
-      showErr(e?.message || e?.error || JSON.stringify(e));
+      showErr(e.message || e.error || JSON.stringify(e));
     }
   }
 
-  // init UI
-  el("buildPill").textContent = "PORTAL BUILD: oldstyle_v16";
-  // wire buttons
-  el("btnRefresh").addEventListener("click", () => refreshAll());
-  const _btnSave = document.getElementById("btnSave");
-  if (_btnSave) _btnSave.addEventListener("click", () => { /* local only in future */ });
-  // initial load only if fields filled
-  try { } catch(e) {}
-  
+  $("btnRefresh").addEventListener("click", refreshAll);
+  $("btnBookWasher").addEventListener("click", bookWasher);
+  $("btnSendFeedback").addEventListener("click", sendFeedback);
+
 })();
 </script>
 </body>
