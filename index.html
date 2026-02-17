@@ -382,6 +382,50 @@
       });
     });
 
+
+    document.querySelectorAll('[data-act="pickSlot"]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const mid = String(btn.dataset.mid);
+        const sel = $("slotSelect");
+        // pick first non-disabled option that matches this washer machine
+        for (const opt of sel.options) {
+          if (!opt.value) continue;
+          try {
+            const v = JSON.parse(opt.value);
+            if (String(v.machine) === String(mid) && !opt.disabled) { sel.value = opt.value; break; }
+          } catch (_) {}
+        }
+        sel.scrollIntoView({behavior:"smooth", block:"center"});
+      });
+    });
+
+    document.querySelectorAll('[data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-act="defectClear"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        if(!confirm("Defekt zurücknehmen?")) return;
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind: btn.dataset.kind, machine: Number(btn.dataset.mid) });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
 document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
       btn.addEventListener("click", async ()=>{
         const msg = prompt("Was ist defekt? (kurz)");
