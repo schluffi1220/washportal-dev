@@ -139,6 +139,18 @@
 
     <div class="card" id="feedbackCard" style="display:none">
       <h2>Feedback</h2>
+      <div class="row">
+        <div class="field">
+          <label>Empfänger</label>
+          <select id="feedbackTarget">
+            <option value="psvs">PS/SV (Standard)</option>
+            <option value="ps">Nur PS</option>
+            <option value="sv">Nur SV</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div style="height:10px"></div>
       <label>Nachricht</label>
       <textarea id="feedbackText" placeholder="Kurzer Hinweis…"></textarea>
       <div class="row" style="margin-top:10px">
@@ -348,7 +360,7 @@
 
     
     document.querySelectorAll('[data-act="pickWasher"]').forEach(btn=>{
-      btn.addEventListener("click", ()=>{
+      btn.addEventListener("click", async ()=>{
         try{
           showErr("");
           const mid = String(btn.dataset.mid);
@@ -384,7 +396,7 @@
 
 
     document.querySelectorAll('[data-act="pickSlot"]').forEach(btn=>{
-      btn.addEventListener("click", ()=>{
+      btn.addEventListener("click", async ()=>{
         const mid = String(btn.dataset.mid);
         const sel = $("slotSelect");
         // pick first non-disabled option that matches this washer machine
@@ -542,7 +554,7 @@ const c = creds();
     }
 
     wrap.querySelectorAll('[data-act="hide"]').forEach(cb=>{
-      cb.addEventListener("change", ()=>{
+      cb.addEventListener("change", async ()=>{
         state.hiddenMy.add(cb.dataset.id);
         localStorage.setItem("wash_hidden_my", JSON.stringify(Array.from(state.hiddenMy)));
         rebuildMyBookings();
@@ -623,7 +635,8 @@ const c = creds();
       if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
       const t = String($("feedbackText").value||"").trim();
       if(!t) return showErr("Bitte Text eingeben.");
-      await jpost("/api/feedback/submit", { room:c.room, pin:c.pin, text:t });
+      const target = String(document.getElementById("feedbackTarget")?.value || "psvs");
+      await jpost("/api/feedback/submit", { room:c.room, pin:c.pin, text:t, target });
       $("feedbackText").value="";
       showErr("Danke! Feedback gesendet.");
       setTimeout(()=>showErr(""),1200);
