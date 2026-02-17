@@ -276,7 +276,7 @@
     const white = (m.current && m.current.whitecard) || (m.next && m.next.whitecard);
     if(defect) return ["t-def","DEFEKT"];
     if(white) return ["t-white","WHITECARD"];
-    if(busy) return ["t-busy","GEBUCHT/LÄUFT"];
+    if(busy) return ["t-busy", (m.current ? "LÄUFT" : "GEBUCHT")];
     return ["t-free","FREI"];
   }
 
@@ -293,10 +293,16 @@
   function renderMachineCard(m){
     const [tint, badge] = machineTint(m);
     const kindLabel = (m.kind==="washer") ? `Waschmaschine ${m.machineId}` : `Trockner ${m.machineId}`;
-    const label = m.label || kindLabel;
+    const rawLabel = (m.label==null? "" : String(m.label)).trim();
+    const label = (!rawLabel || /^\d+$/.test(rawLabel)) ? kindLabel : rawLabel;
 
     const isDryer = m.kind==="dryer";
+    const isWasher = m.kind==="washer";
+    const cRoom = String(document.getElementById("room").value||"").trim();
+    const mineCurrent = (m.current && m.current.room && String(m.current.room)===cRoom && m.current.id);
+    const pickBtn = isWasher ? `<button class="secondary" data-act="pickWasher" data-mid="${m.machineId}">Slot wählen</button>` : "";
     const bookBtn = isDryer ? `<button class="secondary" data-act="bookDryer" data-mid="${m.machineId}">Buchen</button>` : "";
+    const releaseBtn = mineCurrent ? `<button class="secondary" data-act="release" data-id="${m.current.id}">Freigeben</button>` : "";
     const defectBtn = state.config?.features?.userCanReportDefect ? `<button class="secondary" data-act="defect" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt</button>` : "";
     return `
       <div class="machine ${tint}">
@@ -310,7 +316,9 @@
           <div>Als nächstes: ${fmtOcc(m.next)}</div>
         </div>
         <div class="actions">
+          ${pickBtn}
           ${bookBtn}
+          ${releaseBtn}
           ${defectBtn}
         </div>
       </div>
@@ -338,7 +346,43 @@
       });
     });
 
-    document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
+    
+    document.querySelectorAll('[data-act="pickWasher"]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        try{
+          showErr("");
+          const mid = String(btn.dataset.mid);
+          const sel = $("slotSelect");
+          const opts = Array.from(sel.options).filter(o=>{
+            if(!o.value) return false;
+            try{ const v = JSON.parse(o.value); return String(v.machine)===String(mid); }catch{ return false; }
+          });
+          const firstFree = opts.find(o=>!o.disabled) || opts[0];
+          if(!firstFree) return showErr("Kein Slot verfügbar.");
+          sel.value = firstFree.value;
+          sel.scrollIntoView({behavior:"smooth", block:"center"});
+        }catch(e){
+          showErr(e.message || String(e));
+        }
+      });
+    });
+
+
+    // Release buttons inside machine cards (only for own current booking)
+    document.querySelectorAll('#washerGrid [data-act="release"], #dryerGrid [data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
       btn.addEventListener("click", async ()=>{
         const msg = prompt("Was ist defekt? (kurz)");
         if(!msg) return;
