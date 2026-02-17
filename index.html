@@ -474,16 +474,6 @@ document.querySelectorAll('[data-act="release"]').forEach(btn=>{
         }
       });
     });
-const c = creds();
-          await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind: btn.dataset.kind, machine: Number(btn.dataset.mid) });
-          await refreshAll();
-        }catch(e){
-          showErr(e.message || e.error || JSON.stringify(e));
-        }
-      });
-    });
-
-
     document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
       btn.addEventListener("click", async ()=>{
         try{
