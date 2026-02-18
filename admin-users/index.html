@@ -391,7 +391,7 @@ let ROLE_OPTIONS = [];
 
     const editable = canEditRbacPerms();
 
-    for (const p of ALL_PERMS){
+    for (const p of RBAC_MATRIX_PERMS){
       const tr = document.createElement("tr");
       const cells = [];
       cells.push(`<td>${escapeHtml(p.label)}</td>`);
@@ -776,7 +776,7 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
   }
 
   
-  const ALL_PERMS = [
+  const RBAC_MATRIX_PERMS = [
     { key:"users.list", label:"Userliste sehen" },
     { key:"users.approve", label:"User freischalten" },
     { key:"users.role.set", label:"Rolle setzen (direkt)" },
