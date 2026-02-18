@@ -345,7 +345,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
   }
 let ROLE_OPTIONS = [];
 
-  const ALL_PERMS = [
+  const RBAC_PERMS = [
     { key:"users.list", label:"users.list – Userliste sehen" },
     { key:"users.approve", label:"users.approve – User freischalten" },
     { key:"users.role.set", label:"users.role.set – Rollen setzen (SA only)" },
@@ -386,8 +386,10 @@ let ROLE_OPTIONS = [];
 
     const roles = ["admin","ps","sv","user"];
     const body = el("rbacMatrixBody");
-    if (!body) return;
+    if (!body) { msg("RBAC MatrixBody fehlt im DOM.", "bad"); return; }
     body.innerHTML = "";
+    // debug
+    // console.log("renderRbacMatrix", snap);
 
     const editable = canEditRbacPerms();
 
@@ -658,6 +660,8 @@ let ROLE_OPTIONS = [];
     const users = data.users || data.items || [];
     const tbody = el("usersBody");
     tbody.innerHTML = "";
+    // debug
+    // console.log("renderRbacMatrix", snap);
     for (const u of users){
       const tr = document.createElement("tr");
       const email = u.email || u.userEmail || "";
@@ -805,6 +809,8 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
 
     const body = el("rbacRolesBody");
     body.innerHTML = "";
+    // debug
+    // console.log("renderRbacMatrix", snap);
     (snap.roles || []).forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${escapeHtml(r.role)}</td><td>${escapeHtml(String(r.cnt))}</td>`;
@@ -840,8 +846,10 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
     const roles = ["admin","ps","sv","user"];
     const mbody = el("rbacMatrixBody");
     mbody.innerHTML = "";
+    // debug
+    // console.log("renderRbacMatrix", snap);
 
-    ALL_PERMS.forEach(p => {
+    RBAC_PERMS.forEach(p => {
       const tr = document.createElement("tr");
       const cells = [];
       cells.push(`<td>${escapeHtml(p.label)}</td>`);
