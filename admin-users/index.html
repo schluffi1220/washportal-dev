@@ -365,7 +365,7 @@ let ROLE_OPTIONS = [];
     await jpost("/api/auth/admin/rbac/perm/set", { scope:"role", role, perm, allowed: !!allowed });
   }
 
-  function renderRbacMatrix(snap){
+  function renderRbacMatrix(data){
     const hint = el("rbacPermHint");
     if (hint){
       const active = ROUTES.has("/api/auth/admin/rbac/perm/set");
@@ -377,7 +377,7 @@ let ROLE_OPTIONS = [];
     }
 
     const roleMap = new Map(); // role -> perm -> allowed
-    (snap.rolePermissions || []).forEach(rp => {
+    (data.rolePermissions || []).forEach(rp => {
       const role = String(rp.role||"").toLowerCase();
       const perm = String(rp.perm||"");
       if (!roleMap.has(role)) roleMap.set(role, new Map());
@@ -747,7 +747,7 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
       const txt = JSON.stringify(data);
       // crude: roles: [...] already handled
     }
-    try { if (typeof renderRbacMatrix==="function") renderRbacMatrix(snap); } catch(e){ msg("RBAC Matrix Fehler: "+(e.message||e), "bad"); console.error(e);} 
+    try { if (typeof renderRbacMatrix==="function") renderRbacMatrix(data); } catch(e){ msg("RBAC Matrix Fehler: "+(e.message||e), "bad"); console.error(e);} 
     msg("RBAC Snapshot ok.", "ok");
     return data;
   }
@@ -807,14 +807,14 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
     msg("");
     const snap = await jpost("/api/auth/admin/rbac/snapshot", {});
     
-    window.__lastRbacSnap = snap;
+    window.__lastRbacSnap = data;
 setText("rbacRaw", JSON.stringify(snap, null, 2));
 
     const body = el("rbacRolesBody");
     body.innerHTML = "";
     // debug
     // console.log("renderRbacMatrix", snap);
-    (snap.roles || []).forEach(r => {
+    (data.roles || []).forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${escapeHtml(r.role)}</td><td>${escapeHtml(String(r.cnt))}</td>`;
       body.appendChild(tr);
@@ -828,7 +828,7 @@ setText("rbacRaw", JSON.stringify(snap, null, 2));
     setText("rbacSv", sv ? sv.email : "—");
 
     const roleMap = new Map();
-    (snap.rolePermissions || []).forEach(rp => {
+    (data.rolePermissions || []).forEach(rp => {
       const role = String(rp.role||"").toLowerCase();
       const perm = String(rp.perm||"");
       if (!roleMap.has(role)) roleMap.set(role, new Map());
@@ -836,7 +836,7 @@ setText("rbacRaw", JSON.stringify(snap, null, 2));
     });
 
     const userMap = new Map();
-    (snap.userOverrides || []).forEach(up => {
+    (data.userOverrides || []).forEach(up => {
       const em = String(up.email||"").toLowerCase();
       const perm = String(up.perm||"");
       if (!userMap.has(em)) userMap.set(em, new Map());
