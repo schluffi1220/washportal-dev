@@ -684,6 +684,29 @@ let ROLE_OPTIONS = [];
     if (x) x.textContent = (v === null || typeof v === "undefined" || v === "") ? "—" : String(v);
   }
 
+  
+  const ALL_PERMS = [
+    { key:"users.list", label:"Userliste sehen" },
+    { key:"users.approve", label:"User freischalten" },
+    { key:"users.role.set", label:"Rolle setzen (direkt)" },
+    { key:"role.transfer.accept", label:"PS/SV Übergabe" },
+    { key:"rbac.snapshot", label:"RBAC Snapshot lesen" },
+    { key:"rbac.perm.set", label:"RBAC bearbeiten" }
+  ];
+
+  function bool(v){ return String(v) === "1" || v === 1 || v === true; }
+
+  async function setPerm(scope, target, perm, allowed){
+    // RBAC ändern: nur SA
+    const sa = (el("sa")?.value || el("saPassword")?.value || "").trim();
+    if (!sa) { msg("RBAC ändern: nur SA (SA-Passwort oben eingeben).", "bad"); throw new Error("sa_required"); }
+  
+    const payload = { scope, perm, allowed: !!allowed };
+    if (scope === "role") payload.role = target;
+    else payload.email = target;
+    await jpost("/api/auth/admin/rbac/perm/set", payload);
+  }
+
   async function loadRbacSnapshot() {
     msg("");
     const snap = await jpost("/api/auth/admin/rbac/snapshot", {});
@@ -704,24 +727,73 @@ let ROLE_OPTIONS = [];
     setText("rbacPs", ps ? ps.email : "—");
     setText("rbacSv", sv ? sv.email : "—");
 
-    const rows = [
-      ["Userliste sehen", 1,1,0,0,0],
-      ["User freischalten", 1,1,0,0,0],
-      ["Rolle setzen (direkt)", 1,1,0,0,0],
-      ["PS/SV Übergabe", 1,1,1,1,0],
-      ["Config ändern", 1,0,0,0,0]
-    ];
+    const roleMap = new Map();
+    (snap.rolePermissions || []).forEach(rp => {
+      const role = String(rp.role||"").toLowerCase();
+      const perm = String(rp.perm||"");
+      if (!roleMap.has(role)) roleMap.set(role, new Map());
+      roleMap.get(role).set(perm, bool(rp.allowed));
+    });
 
+    const userMap = new Map();
+    (snap.userOverrides || []).forEach(up => {
+      const em = String(up.email||"").toLowerCase();
+      const perm = String(up.perm||"");
+      if (!userMap.has(em)) userMap.set(em, new Map());
+      userMap.get(em).set(perm, bool(up.allowed));
+    });
+
+    const scope = (el("rbacScope")?.value || "role");
+    const target = scope === "user" ? String(el("rbacUserEmail")?.value||"").trim().toLowerCase() : null;
+
+    const roles = ["admin","ps","sv","user"];
     const mbody = el("rbacMatrixBody");
     mbody.innerHTML = "";
-    const yes = (v)=> v? "✅":"—";
-    rows.forEach(r => {
+
+    ALL_PERMS.forEach(p => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(r[0])}</td>
-        <td>${yes(r[1])}</td><td>${yes(r[2])}</td><td>${yes(r[3])}</td><td>${yes(r[4])}</td><td>${yes(r[5])}</td>`;
+      const cells = [];
+      cells.push(`<td>${escapeHtml(p.label)}</td>`);
+      cells.push(`<td>✅</td>`); // SA
+
+      roles.forEach(role => {
+        const allowed = scope === "role"
+          ? (roleMap.get(role)?.get(p.key) || false)
+          : (target ? (userMap.get(target)?.get(p.key) || false) : false);
+
+        const disabled = (scope === "user" && !target) ? "disabled" : "";
+        const checked = allowed ? "checked" : "";
+        const saPresent = ((el("sa")?.value||el("saPassword")?.value||"").trim().length>0);
+        const dis2 = (!saPresent) ? "disabled" : disabled;
+        cells.push(`<td><input type="checkbox" ${checked} ${dis2} data-role="${role}" data-perm="${escapeHtml(p.key)}"/></td>`);
+      });
+
+      tr.innerHTML = cells.join("");
       mbody.appendChild(tr);
     });
+
+    mbody.querySelectorAll("input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", async () => {
+        try{
+          const perm = cb.getAttribute("data-perm");
+          const sc = el("rbacScope").value;
+          if (sc === "role") {
+            const role = cb.getAttribute("data-role");
+            await setPerm("role", role, perm, cb.checked);
+          } else {
+            const email = String(el("rbacUserEmail").value||"").trim().toLowerCase();
+            if (!email) { msg("Bitte User Email für Override angeben.", "bad"); cb.checked = !cb.checked; return; }
+            await setPerm("user", email, perm, cb.checked);
+          }
+          msg("Gespeichert.", "ok");
+        } catch(e){
+          msg("Fehler Speichern: " + (e.data?.message || e.message), "bad");
+          cb.checked = !cb.checked;
+        }
+      });
+    });
   }
+
 
 
   // wire
