@@ -1,161 +1,644 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Datenschutz – Washportal</title>
-<style>
-  :root{--bg0:#07131f;--bg1:#0b1b2b;--card:rgba(255,255,255,.06);--stroke:rgba(255,255,255,.10);--txt:#e8f1ff;--muted:rgba(232,241,255,.70);--r:18px;}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial;color:var(--txt);
-    background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
-                radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
-                linear-gradient(180deg,var(--bg0),var(--bg1));
-    min-height:100vh;}
-  .wrap{max-width:980px;margin:0 auto;padding:16px}
-  .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
-    box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter: blur(10px);}
-  h1{margin:0 0 6px 0;font-size:22px}
-  h2{margin:18px 0 8px 0;font-size:16px}
-  .muted{color:var(--muted)}
-  code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:8px}
-  pre{background:rgba(0,0,0,.25);padding:12px;border-radius:14px;overflow:auto;border:1px solid rgba(255,255,255,.10)}
-  .kv{display:grid;grid-template-columns:220px 1fr;gap:8px 12px}
-  @media (max-width:720px){.kv{grid-template-columns:1fr}}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Washportal</title>
+  <style>
+    :root{
+      --bg0:#07131f; --bg1:#0b1b2b; --card:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.10); --txt:#e8f1ff; --muted:rgba(232,241,255,.70);
+      --green:#23c58a; --blue:#4aa3ff; --red:#ff5b73; --lock:#8e95a1; --white:#f3f6ff;
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--txt);
+      background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
+                  radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
+                  linear-gradient(180deg,var(--bg0),var(--bg1)); min-height:100vh;}
+    .topbar{position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(7,19,31,.88), rgba(7,19,31,.60));
+      backdrop-filter: blur(10px);border-bottom:1px solid rgba(255,255,255,.08);}
+    .bar{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .brand{font-weight:900;display:flex;align-items:center;gap:10px}
+    .dot{width:10px;height:10px;border-radius:999px;background:#2ff2cc;box-shadow:0 0 18px rgba(47,242,204,.55)}
+    .pill{padding:7px 10px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:rgba(255,255,255,.05);
+      color:var(--muted);font-size:12px;white-space:nowrap}
+    .wrap{max-width:1080px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
+    h2{margin:0 0 10px 0;font-size:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .field{flex:1 1 180px}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    input,select,textarea{width:100%;border-radius:14px;padding:12px 12px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(6,12,20,.55);color:var(--txt);outline:none}
+    input[type="password"]{letter-spacing:.12em}
+    textarea{min-height:92px;resize:vertical}
+    button{border:0;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;color:white;
+      background:linear-gradient(135deg,#2a76ff,#28c6b2);box-shadow:0 10px 20px rgba(25,92,255,.20)}
+    button.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:none;color:var(--txt)}
+    .help{color:var(--muted);font-size:12px;margin-top:8px;white-space:pre-wrap}
+    .banner{display:none;padding:10px 12px;border-radius:14px;background:rgba(255,91,115,.12);
+      border:1px solid rgba(255,91,115,.35);margin-bottom:12px;color:#ffd0d7;font-weight:900;white-space:pre-wrap}
+
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    .machine{border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:14px;background:rgba(255,255,255,.05)}
+    .mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .mtitle{font-weight:900}
+    .badge{font-size:11px;font-weight:900;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.15);color:var(--txt)}
+    .t-free{background:linear-gradient(180deg, rgba(35,197,138,.22), rgba(255,255,255,.05));}
+    .t-busy{background:linear-gradient(180deg, rgba(74,163,255,.22), rgba(255,255,255,.05));}
+    .t-def{background:linear-gradient(180deg, rgba(255,91,115,.22), rgba(255,255,255,.05));}
+    .t-lock{background:linear-gradient(180deg, rgba(142,149,161,.22), rgba(255,255,255,.05));}
+    .t-white{background:linear-gradient(180deg, rgba(243,246,255,.40), rgba(255,255,255,.05));}
+
+    .sub{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.4}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .actions button{flex:1 1 120px}
+
+    .myitem{border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:14px;background:rgba(255,255,255,.05);margin-top:10px}
+    .inlinecb{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+    .inlinecb input{width:auto}
+    .divider{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
+    a{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="card">
-    <h1>Datenschutz</h1>
-    <div class="muted">Diese Seite lädt die Meta-Infos live aus dem Worker.</div>
-    <div class="muted" style="margin-top:6px">Worker: <code id="w"></code></div>
-  </div>
-
-  <div class="card" id="metaCard">
-    <h2>Meta</h2>
-    <div class="kv">
-      <div class="muted">Build</div><div id="build">—</div>
-      <div class="muted">Aufbewahrung (Tage)</div><div id="ret">—</div>
-      <div class="muted">Löschgrenze (alles davor wird gelöscht)</div><div id="delBefore">—</div>
-      <div class="muted">Nächster Löschlauf spätestens</div><div id="delAt">—</div>
-      <div class="muted">Patientensprecher</div><div id="ps">—</div>
-      <div class="muted">Datenarten</div><div id="types">—</div>
+  <div class="topbar">
+    <div class="bar">
+      <div class="brand"><span class="dot"></span> Washportal</div>
+      <div class="pill" id="buildPill">Worker: —</div>
+      <div class="pill" id="roomPill">Zimmer: —</div>
     </div>
-    <h2 style="margin-top:16px">Debug</h2>
-    <pre id="raw">lädt…</pre>
   </div>
 
-  <div class="card">
-    <pre style="white-space:pre-wrap;line-height:1.5" id="text">
-Datenschutzerklärung
+  <div class="wrap">
+    <div class="card">
+      <div class="help" style="margin:0">
+        Mit der Benutzung dieser Seite erklärst du dich mit der aktuellen
+        <a href="https://schluffi1220.github.io/washportal-dev/privacy/" target="_blank" rel="noopener">Datenschutzvereinbarung</a>
+        einverstanden.
+      </div>
+    </div>
 
-1. Verantwortlicher
-Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
+    <div class="banner" id="errBanner"></div>
 
-[HIER KOMMT DER VORNAME UND NACHNAME DES PATIENTENSPRECHERS REIN!!!]
-Salzburgweg 7, 97616 Bad Neustadt an der Saale
+    <div class="card" id="newsCard" style="display:none">
+      <h2>News</h2>
+      <div id="newsText" class="sub"></div>
+    </div>
 
-Kontakt: HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHERS REIN!!!
+    <div class="card">
+      <h2>Login</h2>
+      <div class="row">
+        <div class="field"><label>Zimmer</label><input id="room" inputmode="numeric" autocomplete="off" placeholder="z.B. 316"/></div>
+        <div class="field"><label>Persönlicher PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
+        <div class="field"><label>Stations-PIN</label><input id="stationPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
+        <div class="field" style="flex:0 0 200px;align-self:flex-end">
+          <button id="btnRefresh" style="width:100%">Aktualisieren</button>
+        </div>
+      </div>
+      <div class="help">PIN ist persönlich: 316/1111 ≠ 316/2222.</div>
+    </div>
 
-Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
+    <div class="card">
+      <h2>Waschmaschine + Slot auswählen</h2>
+      <div class="row">
+        <div class="field">
+          <label>Slot (WM 1–4)</label>
+          <select id="slotSelect">
+            <option value="">Bitte auswählen…</option>
+          </select>
+          <div class="help">Belegte Slots sind als „BELEGT“ markiert.</div>
+        </div>
+        <div class="field" style="flex:0 0 200px;align-self:flex-end">
+          <button id="btnBookWasher" style="width:100%">Buchen</button>
+        </div>
+      </div>
+    </div>
 
-2. Zweck der Website
-Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.
+    <div class="card">
+      <h2>Maschinenübersicht</h2>
 
-3. Welche Daten werden verarbeitet?
-Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:
-• Zimmernummer (als Benutzerkennung)
-• selbstgewählter PIN-Code
-• gebuchte Waschmaschinen-Zeiten
-• technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)
+      <div class="divider"></div>
+      <div class="help" style="margin:0 0 8px 0">Waschmaschinen</div>
+      <div class="grid" id="washerGrid"></div>
 
-Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
+      <div class="divider"></div>
+      <div class="help" style="margin:0 0 8px 0">Trockner</div>
+      <div class="grid" id="dryerGrid"></div>
+    </div>
 
-4. Zweck der Datenverarbeitung:
-Die Verarbeitung erfolgt ausschließlich zum Zweck:
-• der Identifikation der jeweiligen Nutzer bei der Buchung
-• der Verwaltung der Waschmaschinenbelegung
-• der technischen Bereitstellung und Sicherheit der Website
-Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.
+    <div class="card">
+      <h2>Meine Buchungen</h2>
+      <div id="myBookings"></div>
+      <div class="help">Abgelaufene Einträge: nur ausblenden (nicht löschen).</div>
+    </div>
 
-5. Rechtsgrundlage
-Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).
-
-6. Speicherung und Löschung
-Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. (Siehe oben „Löschgrenze“)
-Server-Logdaten werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
-
-7. Datensicherheit:
-Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch nicht garantiert werden.
-
-8. Rechte der betroffenen Personen:
-Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch.
-
-9. Beschwerderecht:
-Bayerisches Landesamt für Datenschutzaufsicht.
-
-10. Änderungen:
-Diese Datenschutzerklärung kann angepasst werden.
-Stand: <span id="stand"></span>
-    </pre>
+    <div class="card" id="feedbackCard" style="display:none">
+      <h2>Feedback</h2>
+      <div class="row">
+        <div class="field">
+          <label>Empfänger</label>
+          <select id="feedbackTarget">
+            <option value="psvs">PS/SV (Standard)</option>
+            <option value="ps">Nur PS</option>
+            <option value="sv">Nur SV</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div style="height:10px"></div>
+      <label>Nachricht</label>
+      <textarea id="feedbackText" placeholder="Kurzer Hinweis…"></textarea>
+      <div class="row" style="margin-top:10px">
+        <div class="field" style="flex:0 0 220px"><button id="btnSendFeedback" style="width:100%">Senden</button></div>
+      </div>
+    </div>
   </div>
-</div>
 
 <script>
 (() => {
   const WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  document.getElementById("w").textContent = WORKER;
+  const API = WORKER.replace(/\/$/,"");
+  const $ = (id)=>document.getElementById(id);
 
-  const fmt = (ms) => {
-    const d = new Date(Number(ms));
-    if (!Number.isFinite(d.getTime())) return "—";
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const yy = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mi = String(d.getMinutes()).padStart(2,"0");
-    return `${dd}.${mm}.${yy} ${hh}:${mi}`;
+  const state = {
+    config:null,
+    machines:[],
+    bookings:[],
+    myBookings:[],
+    hiddenMy: new Set(JSON.parse(localStorage.getItem("wash_hidden_my")||"[]")),
   };
 
-  document.getElementById("stand").textContent = (() => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const yy = d.getFullYear();
-    return `${dd}.${mm}.${yy}`;
-  })();
+  function showErr(msg){
+    const b = $("errBanner");
+    b.textContent = msg || "";
+    b.style.display = msg ? "block" : "none";
+  }
 
-  fetch(WORKER + "/api/privacy/meta").then(r => r.json()).then(meta => {
-    document.getElementById("raw").textContent = JSON.stringify(meta, null, 2);
-    if(!meta.ok) throw new Error(meta.message || meta.error || "meta not ok");
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function fmtDate(ms){
+    const d = new Date(ms);
+    const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
+    return `${wd} ${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.`;
+  }
+  function fmtTime(ms){
+    const d = new Date(ms);
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
 
-    document.getElementById("build").textContent = meta.build || "—";
-    document.getElementById("ret").textContent = String(meta.retentionDays ?? "—");
-    document.getElementById("delBefore").textContent = fmt(meta.deleteBefore);
-    document.getElementById("delAt").textContent = fmt(meta.deleteAt);
+  async function jpost(path, body){
+    const res = await fetch(API+path, {
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body: JSON.stringify(body||{})
+    });
+    const data = await res.json().catch(async()=>({ok:false,message:await res.text()}));
+    if(!res.ok || data.ok===false) throw data;
+    return data;
+  }
 
-    const ps = [meta.psName, meta.psEmail].filter(Boolean).join(" – ");
-    document.getElementById("ps").textContent = ps || "—";
+  function creds(){
+    return {
+      room: String($("room").value||"").trim(),
+      pin: String($("pin").value||"").trim(),
+      stationPin: String($("stationPin").value||"").trim(),
+    };
+  }
 
-    document.getElementById("types").innerHTML = (meta.dataTypes||[]).map(t => "• " + t).join("<br>");
+  function computeWasherEnd(cfg, startAt){
+    const hours = (cfg.washerHours||[]).map(Number).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
+    const d = new Date(startAt);
+    const day0 = new Date(startAt); day0.setHours(0,0,0,0);
+    const h = d.getHours();
+    const idx = hours.indexOf(h);
+    const nextH = (idx>=0 && idx < hours.length-1) ? hours[idx+1] : h+2;
+    return day0.getTime() + nextH*3600000;
+  }
 
-    // Platzhalter im Text ersetzen
-    const tEl = document.getElementById("text");
-    if (tEl){
-      const name = meta.psName || "[Patientensprecher]";
-      const mail = meta.psEmail || "[E-Mail]";
-      const delDate = fmt(meta.deleteBefore); // "alles davor wird gelöscht"
-      tEl.innerHTML = tEl.innerHTML
-        .replaceAll("[HIER KOMMT DER VORNAME UND NACHNAME DES PATIENTENSPRECHERS REIN!!!]", name)
-        .replaceAll("HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHERS REIN!!!", mail)
-        .replaceAll("HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHER REIN!!!", mail)
-        .replaceAll("„Löschgrenze“", `„Löschgrenze (alles vor ${delDate})“`);
+  function rebuildNews(){
+    const cfg = state.config || {};
+    const enabled = !!cfg.features?.newsEnabled;
+    const txt = String(cfg.newsText||"").trim();
+    if(enabled && txt){
+      $("newsText").textContent = txt;
+      $("newsCard").style.display = "";
+    } else {
+      $("newsCard").style.display = "none";
+    }
+  }
+  function rebuildFeedback(){
+    const cfg = state.config || {};
+    $("feedbackCard").style.display = cfg.features?.feedbackEnabled ? "" : "none";
+  }
+
+  function isTaken(kind, machine, startAt, endAt){
+    return (state.bookings||[]).some(b =>
+      b.kind===kind && Number(b.machine)===Number(machine) &&
+      (b.status==="booked" || b.status==="running") &&
+      b.startAt < endAt && b.endAt > startAt
+    );
+  }
+
+  function slotLine(machine, startAt, endAt){
+    return `${fmtDate(startAt)} ${fmtTime(startAt)}-${fmtTime(endAt)} Waschmaschine ${machine}`;
+  }
+
+  function rebuildSlotDropdown(){
+    const sel = $("slotSelect");
+    sel.innerHTML = `<option value="">Bitte auswählen…</option>`;
+    const cfg = state.config;
+    if(!cfg) return;
+
+    const now = Date.now();
+    const daysFuture = Number(cfg.daysFuture ?? 6);
+    const hours = (cfg.washerHours||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+
+    const opts = [];
+    for(let di=0; di<=daysFuture; di++){
+      const day = new Date(now + di*86400000);
+      day.setHours(0,0,0,0);
+      for(const h of hours){
+        const startAt = day.getTime() + h*3600000;
+        const endAt = computeWasherEnd(cfg, startAt);
+        if(endAt <= now) continue;
+        for(let m=1;m<=4;m++){
+          const taken = isTaken("washer", m, startAt, endAt);
+          opts.push({machine:m, startAt, endAt, taken});
+        }
+      }
+    }
+    opts.sort((a,b)=>a.startAt-b.startAt || a.machine-b.machine);
+
+    for(const o of opts){
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({machine:o.machine, startAt:o.startAt});
+      opt.textContent = slotLine(o.machine, o.startAt, o.endAt) + (o.taken ? " — BELEGT" : "");
+      opt.disabled = !!o.taken;
+      sel.appendChild(opt);
+    }
+  }
+
+  function machineTint(m){
+    const defect = Number(m.defective||0)===1;
+    const busy = !!m.current || !!m.next;
+    const white = (m.current && m.current.whitecard) || (m.next && m.next.whitecard);
+    if(defect) return ["t-def","DEFEKT"];
+    if(white) return ["t-white","WHITECARD"];
+    if(busy) return ["t-busy", (m.current ? "LÄUFT" : "GEBUCHT")];
+    return ["t-free","FREI"];
+  }
+
+  function fmtOcc(x){
+    if(!x) return "—";
+    const r = x.room ? `Zimmer ${x.room}` : "Zimmer —";
+    return `${r} ${fmtTime(x.startAt)}-${fmtTime(x.endAt)}`;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function renderMachineCard(m){
+    const [tint, badge] = machineTint(m);
+    const kindLabel = (m.kind==="washer") ? `Waschmaschine ${m.machineId}` : `Trockner ${m.machineId}`;
+    const rawLabel = (m.label==null? "" : String(m.label)).trim();
+    const label = (!rawLabel || /^\d+$/.test(rawLabel)) ? kindLabel : rawLabel;
+
+    const isDryer = m.kind==="dryer";
+    const isWasher = m.kind==="washer";
+    const cRoom = String(document.getElementById("room").value||"").trim();
+    const mineCurrent = (m.current && m.current.room && String(m.current.room)===cRoom && m.current.id);
+    const pickBtn = isWasher ? `<button class="secondary" data-act="pickWasher" data-mid="${m.machineId}">Slot wählen</button>` : "";
+    const bookBtn = isDryer ? `<button class="secondary" data-act="bookDryer" data-mid="${m.machineId}">Buchen</button>` : "";
+    const releaseBtn = mineCurrent ? `<button class="secondary" data-act="release" data-id="${m.current.id}">Freigeben</button>` : "";
+    const defectBtn = state.config?.features?.userCanReportDefect ? `<button class="secondary" data-act="defect" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt</button>` : "";
+    return `
+      <div class="machine ${tint}">
+        <div class="mhead">
+          <div class="mtitle">${escapeHtml(label)}</div>
+          <div class="badge">${badge}</div>
+        </div>
+        <div class="sub">
+          <div>Zuletzt: ${fmtOcc(m.last)}</div>
+          <div>Aktuell: ${fmtOcc(m.current)}</div>
+          <div>Als nächstes: ${fmtOcc(m.next)}</div>
+        </div>
+        <div class="actions">
+          ${pickBtn}
+          ${bookBtn}
+          ${releaseBtn}
+          ${defectBtn}
+        </div>
+      </div>
+    `;
+  }
+
+  function rebuildMachines(){
+    const washers = state.machines.filter(m=>m.kind==="washer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    const dryers  = state.machines.filter(m=>m.kind==="dryer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    $("washerGrid").innerHTML = washers.map(renderMachineCard).join("");
+    $("dryerGrid").innerHTML  = dryers.map(renderMachineCard).join("");
+
+    document.querySelectorAll('[data-act="bookDryer"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const mid = Number(btn.dataset.mid);
+          await jpost("/api/dryer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: mid });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+    
+    document.querySelectorAll('[data-act="pickWasher"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const mid = String(btn.dataset.mid);
+          const sel = $("slotSelect");
+          const opts = Array.from(sel.options).filter(o=>{
+            if(!o.value) return false;
+            try{ const v = JSON.parse(o.value); return String(v.machine)===String(mid); }catch{ return false; }
+          });
+          const firstFree = opts.find(o=>!o.disabled) || opts[0];
+          if(!firstFree) return showErr("Kein Slot verfügbar.");
+          sel.value = firstFree.value;
+          sel.scrollIntoView({behavior:"smooth", block:"center"});
+        }catch(e){
+          showErr(e.message || String(e));
+        }
+      });
+    });
+
+
+    // Release buttons inside machine cards (only for own current booking)
+    document.querySelectorAll('#washerGrid [data-act="release"], #dryerGrid [data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+
+    document.querySelectorAll('[data-act="pickSlot"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const mid = String(btn.dataset.mid);
+        const sel = $("slotSelect");
+        // pick first non-disabled option that matches this washer machine
+        for (const opt of sel.options) {
+          if (!opt.value) continue;
+          try {
+            const v = JSON.parse(opt.value);
+            if (String(v.machine) === String(mid) && !opt.disabled) { sel.value = opt.value; break; }
+          } catch (_) {}
+        }
+        sel.scrollIntoView({behavior:"smooth", block:"center"});
+      });
+    });
+
+    
+    // Populate per-washer slot selects
+    document.querySelectorAll('[data-act="washerSlotSel"]').forEach(sel=>{
+      const mid = String(sel.dataset.mid);
+      sel.innerHTML = `<option value="">Slot…</option>`;
+      const cfg = state.config;
+      if(!cfg) return;
+      const now = Date.now();
+      const daysFuture = Number(cfg.daysFuture ?? 6);
+      const hours = (cfg.washerHours||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+
+      const opts = [];
+      for(let di=0; di<=daysFuture; di++){
+        const day = new Date(now + di*86400000);
+        day.setHours(0,0,0,0);
+        for(const h of hours){
+          const startAt = day.getTime() + h*3600000;
+          const endAt = computeWasherEnd(cfg, startAt);
+          if(endAt <= now) continue;
+          const taken = isTaken("washer", Number(mid), startAt, endAt);
+          opts.push({startAt, endAt, taken});
+        }
+      }
+      opts.sort((a,b)=>a.startAt-b.startAt);
+      for(const o of opts){
+        const opt = document.createElement("option");
+        opt.value = JSON.stringify({machine:Number(mid), startAt:o.startAt});
+        opt.textContent = `${fmtDate(o.startAt)} ${fmtTime(o.startAt)}-${fmtTime(o.endAt)}` + (o.taken ? " — BELEGT" : "");
+        opt.disabled = !!o.taken;
+        sel.appendChild(opt);
+      }
+    });
+
+    document.querySelectorAll('[data-act="washerBookFromTile"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const mid = String(btn.dataset.mid);
+          const sel = document.querySelector(`select[data-act="washerSlotSel"][data-mid="${mid}"]`);
+          if(!sel || !sel.value) return showErr("Bitte Slot auswählen.");
+          const v = JSON.parse(sel.value);
+          await jpost("/api/washer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: v.machine, startAt: v.startAt });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+document.querySelectorAll('[data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+    document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+
+          const kind = btn.dataset.kind;
+          const mid  = Number(btn.dataset.mid);
+
+          // Toggle: if already defective -> clear, else -> report
+          const mm = (state.machines||[]).find(x => x.kind===kind && String(x.machineId)===String(mid));
+          const isDef = mm && Number(mm.defective||0)===1;
+
+          if(isDef){
+            if(!confirm("Defekt zurücknehmen?")) return;
+            await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid });
+          } else {
+            const msg = prompt("Was ist defekt? (kurz)");
+            if(!msg) return;
+            await jpost("/api/defect/report", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid, text: msg });
+          }
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+  }
+
+  function rebuildMyBookings(){
+    const wrap = $("myBookings");
+    wrap.innerHTML = "";
+    const now = Date.now();
+    const list = (state.myBookings||[]).slice().sort((a,b)=>a.startAt-b.startAt);
+
+    if(!list.length){
+      wrap.innerHTML = `<div class="help">Keine Buchungen.</div>`;
+      return;
     }
 
-  }).catch(err => {
-    document.getElementById("raw").textContent = "Fehler: " + String(err);
-  });
+    for(const b of list){
+      if(state.hiddenMy.has(b.id)) continue;
+      const expired = b.endAt <= now;
+      const title = (b.kind==="washer" ? `Waschmaschine ${b.machine}` : `Trockner ${b.machine}`);
+      const time = `${fmtDate(b.startAt)} ${fmtTime(b.startAt)}-${fmtTime(b.endAt)}`;
+
+      const canCancel = (!expired && now < b.startAt);
+      const canRelease = (!expired && now >= b.startAt && now < b.endAt);
+
+      const btns = [];
+      if(canRelease) btns.push(`<button class="secondary" data-act="release" data-id="${b.id}">freigeben</button>`);
+      if(canCancel) btns.push(`<button class="secondary" data-act="cancel" data-id="${b.id}">stornieren</button>`);
+      btns.push(`<label class="inlinecb"><input type="checkbox" data-act="hide" data-id="${b.id}"/> ausblenden</label>`);
+
+      const el = document.createElement("div");
+      el.className="myitem";
+      el.innerHTML = `
+        <div class="mhead">
+          <div class="mtitle">${title}</div>
+          <div class="badge">${expired ? "abgelaufen" : (b.status||"booked")}</div>
+        </div>
+        <div class="sub">${time}</div>
+        <div class="actions">${btns.join("")}</div>
+      `;
+      wrap.appendChild(el);
+    }
+
+    wrap.querySelectorAll('[data-act="hide"]').forEach(cb=>{
+      cb.addEventListener("change", async ()=>{
+        state.hiddenMy.add(cb.dataset.id);
+        localStorage.setItem("wash_hidden_my", JSON.stringify(Array.from(state.hiddenMy)));
+        rebuildMyBookings();
+      });
+    });
+
+    wrap.querySelectorAll('[data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+    wrap.querySelectorAll('[data-act="cancel"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/cancel", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+  }
+
+  async function refreshAll(){
+    try{
+      showErr("");
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const data = await jpost("/api/user/refresh", c);
+
+      state.config = data.config;
+      state.machines = data.machines || [];
+      state.bookings = data.bookings || [];
+      state.myBookings = data.myBookings || [];
+
+      $("buildPill").textContent = "Worker: " + (data.build || "—");
+      $("roomPill").textContent = "Zimmer: " + c.room;
+
+      rebuildNews();
+      rebuildFeedback();
+      rebuildSlotDropdown();
+      rebuildMachines();
+      rebuildMyBookings();
+    }catch(e){
+      showErr(e.message || e.error || JSON.stringify(e));
+    }
+  }
+
+  async function bookWasher(){
+    try{
+      showErr("");
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const val = $("slotSelect").value;
+      if(!val) return showErr("Bitte Slot auswählen.");
+      const sel = JSON.parse(val);
+      await jpost("/api/washer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: sel.machine, startAt: sel.startAt });
+      await refreshAll();
+    }catch(e){
+      showErr(e.message || e.error || JSON.stringify(e));
+    }
+  }
+
+  async function sendFeedback(){
+    try{
+      showErr("");
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const t = String($("feedbackText").value||"").trim();
+      if(!t) return showErr("Bitte Text eingeben.");
+      const target = String(document.getElementById("feedbackTarget")?.value || "psvs");
+      await jpost("/api/feedback/submit", { room:c.room, pin:c.pin, text:t, target });
+      $("feedbackText").value="";
+      showErr("Danke! Feedback gesendet.");
+      setTimeout(()=>showErr(""),1200);
+    }catch(e){
+      showErr(e.message || e.error || JSON.stringify(e));
+    }
+  }
+
+  $("btnRefresh").addEventListener("click", refreshAll);
+  $("btnBookWasher").addEventListener("click", bookWasher);
+  $("btnSendFeedback").addEventListener("click", sendFeedback);
+
 })();
 </script>
 </body>
