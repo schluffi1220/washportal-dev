@@ -289,7 +289,19 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
       <div class="hr"></div>
       <div class="kv" id="rbacOut">—</div>
       <div class="hr"></div>
-      <div class="badge warn">Granulare Rechte/Perms editieren: INAKTIV (Routes fehlen)</div>
+      <div class="small">Rollenrechte (Pro Rolle). Änderungen sind <b>nur als SA</b> möglich.</div>
+      <div class="hr"></div>
+      <div style="overflow:auto">
+        <table class="table" id="rbacMatrix">
+          <thead>
+            <tr><th>Permission</th><th>SA</th><th>Admin</th><th>PS</th><th>SV</th><th>User</th></tr>
+          </thead>
+          <tbody id="rbacMatrixBody"></tbody>
+        </table>
+      </div>
+
+      <div class="hr"></div>
+      <div class="badge" id="rbacPermHint">Rechte/Perms: —</div>
     </div>
 
     <!-- PLACEHOLDER TABS -->
@@ -332,6 +344,83 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
   } catch(_){
   }
 let ROLE_OPTIONS = [];
+
+  const ALL_PERMS = [
+    { key:"users.list", label:"users.list – Userliste sehen" },
+    { key:"users.approve", label:"users.approve – User freischalten" },
+    { key:"users.role.set", label:"users.role.set – Rollen setzen (SA only)" },
+    { key:"role.transfer.accept", label:"role.transfer.accept – PS/SV Übergabe" },
+    { key:"rbac.snapshot", label:"rbac.snapshot – RBAC Snapshot lesen" },
+    { key:"rbac.perm.set", label:"rbac.perm.set – RBAC ändern (SA only)" }
+  ];
+
+  function bool(v){ return String(v)==="1" || v===1 || v===true; }
+
+  function canEditRbacPerms(){
+    return ROUTES.has("/api/auth/admin/rbac/perm/set") && !!SA;
+  }
+
+  async function setRolePerm(role, perm, allowed){
+    // Worker enforces SA-only
+    await jpost("/api/auth/admin/rbac/perm/set", { scope:"role", role, perm, allowed: !!allowed });
+  }
+
+  function renderRbacMatrix(snap){
+    const hint = el("rbacPermHint");
+    if (hint){
+      const active = ROUTES.has("/api/auth/admin/rbac/perm/set");
+      hint.classList.remove("ok","warn","bad");
+      hint.classList.add(active ? (SA ? "ok":"warn") : "warn");
+      hint.textContent = active
+        ? (SA ? "Rechte/Perms: AKTIV (SA)" : "Rechte/Perms: gesperrt (nur SA-Passwort eingeben)")
+        : "Rechte/Perms: INAKTIV (Route fehlt)";
+    }
+
+    const roleMap = new Map(); // role -> perm -> allowed
+    (snap.rolePermissions || []).forEach(rp => {
+      const role = String(rp.role||"").toLowerCase();
+      const perm = String(rp.perm||"");
+      if (!roleMap.has(role)) roleMap.set(role, new Map());
+      roleMap.get(role).set(perm, bool(rp.allowed));
+    });
+
+    const roles = ["admin","ps","sv","user"];
+    const body = el("rbacMatrixBody");
+    if (!body) return;
+    body.innerHTML = "";
+
+    const editable = canEditRbacPerms();
+
+    for (const p of ALL_PERMS){
+      const tr = document.createElement("tr");
+      const cells = [];
+      cells.push(`<td>${escapeHtml(p.label)}</td>`);
+      cells.push(`<td>✅</td>`); // SA always
+      for (const r of roles){
+        const checked = roleMap.get(r)?.get(p.key) ? "checked" : "";
+        const dis = editable ? "" : "disabled";
+        cells.push(`<td><input type="checkbox" ${checked} ${dis} data-role="${r}" data-perm="${escapeHtml(p.key)}"></td>`);
+      }
+      tr.innerHTML = cells.join("");
+      body.appendChild(tr);
+    }
+
+    // wire changes
+    body.querySelectorAll("input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", async () => {
+        try{
+          const role = cb.getAttribute("data-role");
+          const perm = cb.getAttribute("data-perm");
+          await setRolePerm(role, perm, cb.checked);
+          msg("Gespeichert.", "ok");
+        } catch(e){
+          msg("Fehler: " + (e.data?.message || e.message), "bad");
+          cb.checked = !cb.checked;
+        }
+      });
+    });
+  }
+
 
   function normBase(u){
     u = (u||"").trim();
@@ -642,11 +731,13 @@ let ROLE_OPTIONS = [];
 
   async function loadRbac(){
     const data = await jpost("/api/auth/admin/rbac/snapshot", {});
-    el("rbacOut").textContent = JSON.stringify(data, null, 2);
+    
+    window.__lastRbacSnap = data;
+el("rbacOut").textContent = JSON.stringify(data, null, 2);
     // extract roles list
     const roles = data.roles || data.roleList || data.availableRoles || [];
     if (Array.isArray(roles) && roles.length){
-      ROLE_OPTIONS = roles.map(String);
+      ROLE_OPTIONS = roles.map(r => (typeof r === "string" ? r : (r && (r.role || r.name)))).filter(Boolean).map(String);
     } else if (typeof data === "object") {
       // fallback: parse from message or keys
       const txt = JSON.stringify(data);
@@ -799,6 +890,7 @@ let ROLE_OPTIONS = [];
   // wire
   initSlotGrid();
   el("btnConnect").addEventListener("click", () => connect().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("sa")?.addEventListener("input", () => { SA = (el("sa").value||"").trim(); try { if (window.__lastRbacSnap) renderRbacMatrix(window.__lastRbacSnap); } catch(_){} });
   el("btnLogin").addEventListener("click", () => doLogin().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgLoad").addEventListener("click", () => loadConfig().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgSave").addEventListener("click", () => saveConfig().catch(e => msg(e.data?.message || e.message, "bad")));
