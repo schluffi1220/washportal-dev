@@ -324,7 +324,14 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
   let SA = "";
   let ROUTES = new Set();
   let TOKEN = localStorage.getItem('wp_admin_token') || "";
-  let ROLE_OPTIONS = [];
+  
+  // Prefill base URL
+  try {
+    const b = el("base");
+    if (b && !b.value) b.value = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  } catch(_){
+  }
+let ROLE_OPTIONS = [];
 
   function normBase(u){
     u = (u||"").trim();
@@ -668,6 +675,52 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     TOKEN = data.token || "";
     localStorage.setItem("wp_admin_token", TOKEN);
     msg("Login ok (Token gespeichert).", "ok");
+  }
+
+
+
+  function setText(id, v) {
+    const x = document.getElementById(id);
+    if (x) x.textContent = (v === null || typeof v === "undefined" || v === "") ? "—" : String(v);
+  }
+
+  async function loadRbacSnapshot() {
+    msg("");
+    const snap = await jpost("/api/auth/admin/rbac/snapshot", {});
+    setText("rbacRaw", JSON.stringify(snap, null, 2));
+
+    const body = el("rbacRolesBody");
+    body.innerHTML = "";
+    (snap.roles || []).forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(r.role)}</td><td>${escapeHtml(String(r.cnt))}</td>`;
+      body.appendChild(tr);
+    });
+
+    const ul = await jpost("/api/auth/admin/users/list", {});
+    const users = ul.users || [];
+    const ps = users.find(u => String(u.role||"").toLowerCase() === "ps" && String(u.status||"").toLowerCase()==="active");
+    const sv = users.find(u => String(u.role||"").toLowerCase() === "sv" && String(u.status||"").toLowerCase()==="active");
+    setText("rbacPs", ps ? ps.email : "—");
+    setText("rbacSv", sv ? sv.email : "—");
+
+    const rows = [
+      ["Userliste sehen", 1,1,0,0,0],
+      ["User freischalten", 1,1,0,0,0],
+      ["Rolle setzen (direkt)", 1,1,0,0,0],
+      ["PS/SV Übergabe", 1,1,1,1,0],
+      ["Config ändern", 1,0,0,0,0]
+    ];
+
+    const mbody = el("rbacMatrixBody");
+    mbody.innerHTML = "";
+    const yes = (v)=> v? "✅":"—";
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(r[0])}</td>
+        <td>${yes(r[1])}</td><td>${yes(r[2])}</td><td>${yes(r[3])}</td><td>${yes(r[4])}</td><td>${yes(r[5])}</td>`;
+      mbody.appendChild(tr);
+    });
   }
 
 
