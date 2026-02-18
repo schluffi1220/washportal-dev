@@ -105,7 +105,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     <div class="h1">Admin</div>
     <span class="pill" id="pillBuild">build: -</span>
     <span class="pill" id="pillConn">nicht verbunden</span>
-    <span class="pill">Hinweis: Zugriff nur mit <b>x-sa-password</b></span>
+    <span class="pill">Hinweis: Zugriff mit <b>x-sa-password</b> oder <b>Email-Login</b></span>
   </div>
 
   <div class="card">
@@ -120,6 +120,22 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
         <input id="saPass" type="password" placeholder="optional"/>
         <div class="small">Wenn falsch → 403. Wird lokal gespeichert.</div>
       </div>
+      
+      <div class="field" style="min-width:240px;flex:1">
+        <label>Email Login</label>
+        <input id="loginEmail" placeholder="email@domain.de"/>
+        <div class="small">Optional. Nur Admin darf User freischalten/rollen setzen.</div>
+      </div>
+      <div class="field" style="min-width:220px;flex:1">
+        <label>Passwort</label>
+        <input id="loginPass" type="password" placeholder="••••••••"/>
+        <div class="small">Token wird lokal gespeichert (24h).</div>
+      </div>
+      <div class="field" style="min-width:220px;flex:0">
+        <label>&nbsp;</label>
+        <button class="btn secondary" id="btnLogin">Login</button>
+      </div>
+
       <div class="field" style="min-width:220px;flex:0">
         <label>&nbsp;</label>
         <button class="btn" id="btnConnect">Connect</button>
@@ -255,11 +271,11 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
       <div class="small">Rollenliste kommt aus der DB (RBAC Snapshot). Du kannst Rollen setzen, auch als SA.</div>
       <div class="hr"></div>
       <table class="table">
-        <thead><tr><th>Email</th><th>Status</th><th>Role</th><th>Aktion</th></tr></thead>
+        <thead><tr><th>Email</th><th>Status</th><th>Wunsch</th><th>Role</th><th>Aktion</th></tr></thead>
         <tbody id="usersBody"></tbody>
       </table>
       <div class="hr"></div>
-      <div class="badge warn">Email-Login/Registrierung: INAKTIV (Routes fehlen im Worker)</div>
+      <div class="badge ok">Email-Login/Registrierung: AKTIV (Admin via Token oder SA)</div>
     </div>
 
     <!-- RBAC -->
@@ -307,6 +323,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
   let API = "";
   let SA = "";
   let ROUTES = new Set();
+  let TOKEN = localStorage.getItem('wp_admin_token') || "";
   let ROLE_OPTIONS = [];
 
   function normBase(u){
@@ -320,6 +337,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     if (!API) throw new Error("Kein Worker gesetzt.");
     const headers = Object.assign({}, opts.headers || {});
     if (SA) headers["x-sa-password"] = SA;
+    if (TOKEN) headers["authorization"] = "Bearer " + TOKEN;
     headers["content-type"] = headers["content-type"] || "application/json";
     const res = await fetch(API + path, Object.assign({}, opts, { headers }));
     const ct = res.headers.get("content-type") || "";
@@ -570,9 +588,45 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
           msg("Fehler Role set: " + (e.data?.message || e.message), "bad");
         } finally { btn.disabled = false; }
       });
-      tr.innerHTML = `<td>${escapeHtml(email)}</td><td>${escapeHtml(status)}</td>`;
+      const wish = (u.requestedRole || "").toString();
+      const approve = document.createElement("button");
+      approve.className = "btn secondary";
+      approve.textContent = "Approve";
+      approve.style.marginRight = "8px";
+      approve.disabled = (status||"").toLowerCase() === "active";
+      approve.addEventListener("click", async () => {
+        approve.disabled = true;
+        try{
+          await jpost("/api/auth/admin/users/approve", { email });
+          msg("Approved: " + email, "ok");
+          await loadUsers();
+        } catch(e){
+          msg("Fehler Approve: " + (e.data?.message || e.message), "bad");
+        }
+      });
+
+      const transfer = document.createElement("button");
+      transfer.className = "btn secondary";
+      transfer.textContent = "Transfer PS/SV";
+      transfer.addEventListener("click", async () => {
+        transfer.disabled = true;
+        try{
+          const r = (wish || sel.value || "").toLowerCase();
+          if (r !== "ps" && r !== "sv") throw new Error("Wunschrolle muss ps oder sv sein.");
+          await jpost("/api/auth/role/transfer/accept", { role: r, toEmail: email });
+          msg("Transfer ausgeführt: " + r + " → " + email, "ok");
+          await loadUsers();
+        } catch(e){
+          msg("Fehler Transfer: " + (e.data?.message || e.message), "bad");
+        } finally { transfer.disabled = false; }
+      });
+
+      tr.innerHTML = `<td>${escapeHtml(email)}</td><td>${escapeHtml(status)}</td><td>${escapeHtml(wish)}</td>`;
       const tdRole = document.createElement("td"); tdRole.appendChild(sel);
-      const tdAct = document.createElement("td"); tdAct.appendChild(btn);
+      const tdAct = document.createElement("td");
+      tdAct.appendChild(approve);
+      tdAct.appendChild(btn);
+      tdAct.appendChild(transfer);
       tr.appendChild(tdRole); tr.appendChild(tdAct);
       tbody.appendChild(tr);
     }
@@ -605,9 +659,22 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
+  
+  async function doLogin(){
+    const email = (el("loginEmail").value||"").trim();
+    const password = (el("loginPass").value||"").trim();
+    if (!email || !password) { msg("Email & Passwort eingeben.", "bad"); return; }
+    const data = await jpost("/api/auth/login", { email, password });
+    TOKEN = data.token || "";
+    localStorage.setItem("wp_admin_token", TOKEN);
+    msg("Login ok (Token gespeichert).", "ok");
+  }
+
+
   // wire
   initSlotGrid();
   el("btnConnect").addEventListener("click", () => connect().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("btnLogin").addEventListener("click", () => doLogin().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgLoad").addEventListener("click", () => loadConfig().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgSave").addEventListener("click", () => saveConfig().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnUsersLoad").addEventListener("click", () => loadUsers().catch(e => msg(e.data?.message || e.message, "bad")));
