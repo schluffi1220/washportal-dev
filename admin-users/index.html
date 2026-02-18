@@ -747,6 +747,7 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
       const txt = JSON.stringify(data);
       // crude: roles: [...] already handled
     }
+    try { if (typeof renderRbacMatrix==="function") renderRbacMatrix(snap); } catch(e){ msg("RBAC Matrix Fehler: "+(e.message||e), "bad"); console.error(e);} 
     msg("RBAC Snapshot ok.", "ok");
     return data;
   }
@@ -793,7 +794,7 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
 
   async function setPerm(scope, target, perm, allowed){
     // RBAC ändern: nur SA
-    const sa = (el("sa")?.value || el("saPassword")?.value || "").trim();
+    const sa = (el("saPass")?.value || el("saPassword")?.value || "").trim();
     if (!sa) { msg("RBAC ändern: nur SA (SA-Passwort oben eingeben).", "bad"); throw new Error("sa_required"); }
   
     const payload = { scope, perm, allowed: !!allowed };
@@ -805,7 +806,9 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
   async function loadRbacSnapshot() {
     msg("");
     const snap = await jpost("/api/auth/admin/rbac/snapshot", {});
-    setText("rbacRaw", JSON.stringify(snap, null, 2));
+    
+    window.__lastRbacSnap = snap;
+setText("rbacRaw", JSON.stringify(snap, null, 2));
 
     const body = el("rbacRolesBody");
     body.innerHTML = "";
@@ -862,7 +865,7 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
 
         const disabled = (scope === "user" && !target) ? "disabled" : "";
         const checked = allowed ? "checked" : "";
-        const saPresent = ((el("sa")?.value||el("saPassword")?.value||"").trim().length>0);
+        const saPresent = ((el("saPass")?.value||el("saPassword")?.value||"").trim().length>0);
         const dis2 = (!saPresent) ? "disabled" : disabled;
         cells.push(`<td><input type="checkbox" ${checked} ${dis2} data-role="${role}" data-perm="${escapeHtml(p.key)}"/></td>`);
       });
@@ -898,7 +901,7 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
   // wire
   initSlotGrid();
   el("btnConnect").addEventListener("click", () => connect().catch(e => msg(e.data?.message || e.message, "bad")));
-  el("sa")?.addEventListener("input", () => { SA = (el("sa").value||"").trim(); try { if (window.__lastRbacSnap) renderRbacMatrix(window.__lastRbacSnap); } catch(_){} });
+  el("saPass")?.addEventListener("input", () => { SA = (el("saPass").value||"").trim(); try { if (window.__lastRbacSnap) renderRbacMatrix(window.__lastRbacSnap); } catch(_){} });
   el("btnLogin").addEventListener("click", () => doLogin().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgLoad").addEventListener("click", () => loadConfig().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgSave").addEventListener("click", () => saveConfig().catch(e => msg(e.data?.message || e.message, "bad")));
