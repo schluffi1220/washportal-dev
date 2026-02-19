@@ -663,6 +663,7 @@ document.querySelectorAll('[data-act="release"]').forEach(btn=>{
           showErr(e.message || e.error || JSON.stringify(e));
         }
       });
+    });
 
     wrap.querySelectorAll('[data-act="whitecard"]').forEach(btn=>{
       btn.addEventListener("click", async ()=>{
@@ -677,7 +678,6 @@ document.querySelectorAll('[data-act="release"]').forEach(btn=>{
           showErr(e.message || e.error || JSON.stringify(e));
         }
       });
-    });
     });
   }
 
