@@ -278,7 +278,33 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
       <div class="badge ok">Email-Login/Registrierung: AKTIV (Admin via Token oder SA)</div>
     </div>
 
-    <!-- RBAC -->
+    
+    <!-- BOOKINGS -->
+    <div id="view-bookings" class="view hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="badge" id="bookingsStatus">Bookings</div>
+        <div class="row">
+          <input id="bookingsRoom" placeholder="Room (optional)" style="width:160px"/>
+          <button class="btn secondary" id="btnBookingsLoad">Load</button>
+          <button class="btn secondary" id="btnBookingsCsv">CSV</button>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="small">Stornierung nur mit Recht <b>bookings.cancel.any</b>. Storno wird im Log mit Actor gespeichert.</div>
+      <div class="hr"></div>
+      <div style="overflow:auto">
+        <table class="table" id="bookingsTable">
+          <thead>
+            <tr>
+              <th>Start</th><th>Ende</th><th>Type</th><th>Machine</th><th>Room</th><th>Status</th><th>ID</th><th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+<!-- RBAC -->
     <div id="view-rbac" class="view hidden">
       <div class="row" style="justify-content:space-between">
         <div class="badge" id="rbacStatus">RBAC</div>
@@ -308,7 +334,25 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     <div id="view-machines" class="view hidden"><div class="badge warn">Machines: INAKTIV (Worker Routes fehlen)</div></div>
     <div id="view-defects" class="view hidden"><div class="badge warn">Defects: INAKTIV (Worker Routes fehlen)</div></div>
     <div id="view-feedback" class="view hidden"><div class="badge warn">Feedback Inbox/Antworten: INAKTIV (Worker Routes fehlen)</div></div>
-    <div id="view-logs" class="view hidden"><div class="badge warn">Logs: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-logs" class="view hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="badge" id="logsStatus">Logs</div>
+        <div class="row">
+          <input id="logsAction" placeholder="action filter (optional)" style="width:200px"/>
+          <button class="btn secondary" id="btnLogsLoad">Load</button>
+          <button class="btn secondary" id="btnLogsCsv">CSV</button>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div style="overflow:auto">
+        <table class="table" id="logsTable">
+          <thead>
+            <tr><th>Zeit</th><th>Action</th><th>Actor</th><th>Role</th><th>Target</th><th>Meta</th></tr>
+          </thead>
+          <tbody id="logsBody"></tbody>
+        </table>
+      </div>
+    </div>
     <div id="view-rooms" class="view hidden"><div class="badge warn">Rooms / Room-Locks: INAKTIV (Worker Routes fehlen)</div></div>
     <div id="view-privacy" class="view hidden">
       <div class="badge">Privacy Meta</div>
@@ -483,10 +527,11 @@ let ROLE_OPTIONS = [];
     t.appendChild(tabButton("config","Config", !active("/api/auth/admin/config/get")));
     t.appendChild(tabButton("users","Users", !active("/api/auth/admin/users/list")));
     t.appendChild(tabButton("rbac","RBAC", !active("/api/auth/admin/rbac/snapshot")));
+    t.appendChild(tabButton("bookings","Bookings", !active("/api/auth/admin/bookings/list")));
     t.appendChild(tabButton("machines","Machines", true));
     t.appendChild(tabButton("defects","Defects", true));
     t.appendChild(tabButton("feedback","Feedback", true));
-    t.appendChild(tabButton("logs","Logs", true));
+    t.appendChild(tabButton("logs","Logs", !active("/api/auth/admin/logs/list")));
     t.appendChild(tabButton("rooms","Rooms", true));
     t.appendChild(tabButton("privacy","Privacy", !active("/api/privacy/meta")));
     setTab("config");
@@ -905,7 +950,136 @@ setText("rbacRaw", JSON.stringify(snap, null, 2));
   el("btnLogin").addEventListener("click", () => doLogin().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgLoad").addEventListener("click", () => loadConfig().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnCfgSave").addEventListener("click", () => saveConfig().catch(e => msg(e.data?.message || e.message, "bad")));
+  // BOOKINGS
+  async function loadBookings(){
+    try{
+      msg("", "");
+      const room = (el("bookingsRoom").value||"").trim();
+      const data = await jpost("/api/auth/admin/bookings/list", { room, limit: 200 });
+      const rows = data.rows || [];
+      const body = el("bookingsBody");
+      body.innerHTML = "";
+      for (const r of rows){
+        const tr = document.createElement("tr");
+        const d1 = r.startAt ? new Date(Number(r.startAt)).toLocaleString() : "";
+        const d2 = r.endAt ? new Date(Number(r.endAt)).toLocaleString() : "";
+        const status = String(r.status||"");
+        const canCancel = ROUTES.has("/api/auth/admin/booking/cancel");
+        tr.innerHTML = `
+          <td>${escapeHtml(d1)}</td>
+          <td>${escapeHtml(d2)}</td>
+          <td>${escapeHtml(String(r.type||""))}</td>
+          <td>${escapeHtml(String(r.machine||""))}</td>
+          <td>${escapeHtml(String(r.room||""))}</td>
+          <td>${escapeHtml(status)}</td>
+          <td class="mono">${escapeHtml(String(r.id||""))}</td>
+          <td>
+            <button class="btn secondary" data-act="cancelBooking" data-id="${escapeHtml(String(r.id||""))}">Stornieren</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      }
+      // wire cancel
+      body.querySelectorAll('[data-act="cancelBooking"]').forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          try{
+            const id = btn.dataset.id;
+            const reason = prompt("Storno-Grund (wird geloggt):", "");
+            if(reason===null) return;
+            await jpost("/api/auth/admin/booking/cancel", { id, reason: String(reason||"").trim() });
+            await loadBookings();
+            msg("Storniert & geloggt.", "ok");
+          }catch(e){
+            msg(e.data?.message || e.message, "bad");
+          }
+        });
+      });
+
+      el("bookingsStatus").textContent = "Bookings: " + rows.length;
+    }catch(e){
+      msg(e.data?.message || e.message, "bad");
+    }
+  }
+
+  async function bookingsCsv(){
+    try{
+      const room = (el("bookingsRoom").value||"").trim();
+      const r = await fetch(BASE()+"/api/auth/admin/bookings/csv", {
+        method:"POST",
+        headers: headers(),
+        body: JSON.stringify({ room, limit: 2000 })
+      });
+      if(!r.ok) throw new Error("CSV fehlgeschlagen ("+r.status+")");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "bookings.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    }catch(e){
+      msg(e.message, "bad");
+    }
+  }
+
+  // LOGS
+  async function loadLogs(){
+    try{
+      const action = (el("logsAction").value||"").trim();
+      const data = await jpost("/api/auth/admin/logs/list", { action, limit: 200 });
+      const rows = data.rows || [];
+      const body = el("logsBody");
+      body.innerHTML = "";
+      for (const r of rows){
+        const t = r.createdAt ? new Date(Number(r.createdAt)).toLocaleString() : "";
+        const meta = r.meta ? JSON.stringify(r.meta) : "";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(t)}</td>
+          <td>${escapeHtml(String(r.action||""))}</td>
+          <td>${escapeHtml(String(r.actorEmail||""))}</td>
+          <td>${escapeHtml(String(r.actorRole||""))}</td>
+          <td class="mono">${escapeHtml(String(r.targetId||""))}</td>
+          <td class="mono">${escapeHtml(meta)}</td>
+        `;
+        body.appendChild(tr);
+      }
+      el("logsStatus").textContent = "Logs: " + rows.length;
+    }catch(e){
+      msg(e.data?.message || e.message, "bad");
+    }
+  }
+
+  async function logsCsv(){
+    try{
+      const r = await fetch(BASE()+"/api/auth/admin/logs/csv", {
+        method:"POST",
+        headers: headers(),
+        body: JSON.stringify({ limit: 2000 })
+      });
+      if(!r.ok) throw new Error("CSV fehlgeschlagen ("+r.status+")");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "logs.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    }catch(e){
+      msg(e.message, "bad");
+    }
+  }
+
+
   el("btnUsersLoad").addEventListener("click", () => loadUsers().catch(e => msg(e.data?.message || e.message, "bad")));
+  el("btnBookingsLoad").addEventListener("click", () => loadBookings());
+  el("btnBookingsCsv").addEventListener("click", () => bookingsCsv());
+  el("btnLogsLoad").addEventListener("click", () => loadLogs());
+  el("btnLogsCsv").addEventListener("click", () => logsCsv());
   el("btnRbacLoad").addEventListener("click", () => loadRbac().catch(e => msg(e.data?.message || e.message, "bad")));
   el("btnPrivacyLoad").addEventListener("click", () => loadPrivacy().catch(e => msg(e.data?.message || e.message, "bad")));
 
