@@ -56,8 +56,8 @@
 
     .sub{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.4}
     .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    .slotpick{display:flex;gap:10px;align-items:center;margin-top:10px}
-    .tileSlot{flex:1;min-width:0;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.22);color:var(--txt);outline:none}
+    .slotpick{display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-top:10px}
+    .tileSlot{width:100%;min-width:0;padding:14px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.22);color:var(--txt);outline:none;font-size:16px}
     .tileSlot:disabled{opacity:.55}
     .slotpick button{white-space:nowrap}
 
@@ -345,16 +345,33 @@
     const isDryer = m.kind==="dryer";
     const isWasher = m.kind==="washer";
     const cRoom = String(document.getElementById("room").value||"").trim();
+    
     const mineCurrent = (m.current && m.current.room && String(m.current.room)===cRoom && m.current.id);
-    const pickBtn = isWasher ? `
+
+    const isDefective = Number(m.defective||0)===1;
+
+    // Washer tile: Slot dropdown ALWAYS visible in the card, with Book button underneath.
+    const pickSlots = isWasher ? `
             <div class="slotpick">
               <select class="tileSlot" data-mid="${m.machineId}">${washerTileOptions(m.machineId)}</select>
-              <button class="secondary" data-act="bookWasherTile" data-mid="${m.machineId}">Buchen</button>
             </div>
           ` : "";
-    const bookBtn = isDryer ? `<button class="secondary" data-act="bookDryer" data-mid="${m.machineId}">Buchen</button>` : "";
+
+    const bookBtn = isWasher
+      ? `<button class="secondary" data-act="bookWasherTile" data-mid="${m.machineId}">Buchen</button>`
+      : (isDryer ? `<button class="secondary" data-act="bookDryer" data-mid="${m.machineId}">Buchen</button>` : "");
+
     const releaseBtn = mineCurrent ? `<button class="secondary" data-act="release" data-id="${m.current.id}">Freigeben</button>` : "";
-    const defectBtn = state.config?.features?.userCanReportDefect ? `<button class="secondary" data-act="defect" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt</button>` : "";
+
+    // Defect: toggle (report -> clear) depending on current defect state.
+    const defectBtn = state.config?.features?.userCanReportDefect
+      ? (isDefective
+          ? `<button class="secondary" data-act="defectClear" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt freigeben</button>`
+          : `<button class="secondary" data-act="defectReport" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt</button>`)
+      : "";
+
+    // Whitecard toggle lives in "Meine Buchungen" (not in the tiles)
+
     return `
       <div class="machine ${tint}">
         <div class="mhead">
@@ -367,7 +384,7 @@
           <div>Als nächstes: ${fmtOcc(m.next)}</div>
         </div>
         <div class="actions">
-          ${pickBtn}
+          ${pickSlots}
           ${bookBtn}
           ${releaseBtn}
           ${defectBtn}
@@ -532,35 +549,44 @@ document.querySelectorAll('[data-act="release"]').forEach(btn=>{
           showErr(e.message || e.error || JSON.stringify(e));
         }
       });
-    });
-    document.querySelectorAll('[data-act="defect"]').forEach(btn=>{
+
+    document.querySelectorAll('[data-act="defectReport"]').forEach(btn=>{
       btn.addEventListener("click", async ()=>{
         try{
           showErr("");
           const c = creds();
           if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
-
-          const kind = btn.dataset.kind;
+          const kind = String(btn.dataset.kind||"").toLowerCase();
           const mid  = Number(btn.dataset.mid);
+          const text = prompt("Defekt melden – kurze Beschreibung:", "");
+          if(!text || !String(text).trim()) return;
+          await jpost("/api/defect/report", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid, text: String(text).trim() });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || e.message || JSON.stringify(e));
+        }
+      });
+    });
 
-          // Toggle: if already defective -> clear, else -> report
-          const mm = (state.machines||[]).find(x => x.kind===kind && String(x.machineId)===String(mid));
-          const isDef = mm && Number(mm.defective||0)===1;
-
-          if(isDef){
-            if(!confirm("Defekt zurücknehmen?")) return;
-            await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid });
-          } else {
-            const msg = prompt("Was ist defekt? (kurz)");
-            if(!msg) return;
-            await jpost("/api/defect/report", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid, text: msg });
-          }
+    document.querySelectorAll('[data-act="defectClear"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const kind = String(btn.dataset.kind||"").toLowerCase();
+          const mid  = Number(btn.dataset.mid);
+          const ok = confirm("Defekt freigeben? (Maschine wird wieder als nutzbar markiert)");
+          if(!ok) return;
+          await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid });
           await refreshAll();
         }catch(e){
           showErr(e.message || e.error || JSON.stringify(e));
         }
       });
     });
+    });
+        });
 
   }
 
@@ -587,6 +613,9 @@ document.querySelectorAll('[data-act="release"]').forEach(btn=>{
       const btns = [];
       if(canRelease) btns.push(`<button class="secondary" data-act="release" data-id="${b.id}">freigeben</button>`);
       if(canCancel) btns.push(`<button class="secondary" data-act="cancel" data-id="${b.id}">stornieren</button>`);
+      if(state.config?.features?.whitecardEnabled && !expired) {
+        btns.push(`<button class="secondary" data-act="whitecard" data-id="${b.id}" data-on="${b.whitecard?1:0}">${b.whitecard ? "Whitecard aus" : "Whitecard an"}</button>`);
+      }
       btns.push(`<label class="inlinecb"><input type="checkbox" data-act="hide" data-id="${b.id}"/> ausblenden</label>`);
 
       const el = document.createElement("div");
@@ -634,6 +663,21 @@ document.querySelectorAll('[data-act="release"]').forEach(btn=>{
           showErr(e.message || e.error || JSON.stringify(e));
         }
       });
+
+    wrap.querySelectorAll('[data-act="whitecard"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          const id = btn.dataset.id;
+          const on = Number(btn.dataset.on||0)===1;
+          await jpost("/api/booking/whitecard", { room:c.room, pin:c.pin, id, whitecard: !on });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
     });
   }
 
