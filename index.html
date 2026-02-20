@@ -68,7 +68,15 @@
     .inlinecb input{width:auto}
     .divider{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
     a{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
-  </style>
+  
+.modal.hidden{display:none;}
+.modal{position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;}
+.modal-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.6);}
+.modal-card{position:relative; width:min(92vw,520px); background:rgba(14,30,46,.98); border:1px solid rgba(255,255,255,.08); border-radius:18px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.modal-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;}
+.modal-title{font-weight:700;}
+
+</style>
 </head>
 <body>
   <div class="topbar">
@@ -376,7 +384,7 @@
       <div class="machine ${tint}">
         <div class="mhead">
           <div class="mtitle">${escapeHtml(label)}</div>
-          <div class="badge">${badge}</div>
+          <div class="badge">${badge}${(kind==='dryer' && state.config?.features?.showDryerPopup && state.config?.dryerPopupImage) ? `<button class="btn btn-xs" style="margin-left:8px" onclick="event.stopPropagation();showDryerPopupImg()">Bild</button>` : ''}</div>
         </div>
         <div class="sub">
           <div>Zuletzt: ${fmtOcc(m.last)}</div>
@@ -730,5 +738,17 @@
 
 })();
 </script>
+
+<div id="wpImgModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="hideWpImg()"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title">Info</div>
+      <button class="btn btn-sm" onclick="hideWpImg()">Schließen</button>
+    </div>
+    <img id="wpImgModalImg" alt="Info" style="max-width:100%; border-radius:12px;"/>
+  </div>
+</div>
+
 </body>
 </html>
