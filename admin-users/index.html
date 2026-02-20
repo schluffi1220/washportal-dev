@@ -429,8 +429,18 @@ let ROLE_OPTIONS = [];
     });
 
     const roles = ["admin","ps","sv","user"];
-    const body = el("rbacMatrixBody");
-    if (!body) { msg("RBAC MatrixBody fehlt im DOM.", "bad"); return; }
+    let body = el("rbacMatrixBody") || el("rbacRolesBody");
+    if (!body) {
+      // Create tbody dynamically if missing (older HTML)
+      const tbl = el("rbacMatrix") || document.querySelector("table#rbacMatrix");
+      if (tbl) {
+        let tb = tbl.querySelector("tbody");
+        if (!tb) { tb = document.createElement("tbody"); tbl.appendChild(tb); }
+        tb.id = "rbacMatrixBody";
+        body = tb;
+      }
+    }
+    if (!body) { msg("RBAC Matrix DOM fehlt (rbacMatrixBody).", "bad"); return; }
     body.innerHTML = "";
     // debug
     // console.log("renderRbacMatrix", snap);
@@ -826,31 +836,13 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
   }
 
   
-  // RBAC-Matrix (Checkboxes): pro Permission -> pro Rolle/User
-  // NOTE: Backend-Checks hängen an diesen Keys (siehe worker.js hasPerm).
   const RBAC_MATRIX_PERMS = [
-    // User-Verwaltung
     { key:"users.list", label:"Userliste sehen" },
     { key:"users.approve", label:"User freischalten" },
     { key:"users.role.set", label:"Rolle setzen (direkt)" },
     { key:"role.transfer.accept", label:"PS/SV Übergabe" },
-
-    // RBAC
     { key:"rbac.snapshot", label:"RBAC Snapshot lesen" },
-    { key:"rbac.perm.set", label:"RBAC bearbeiten" },
-
-    // Config
-    { key:"config.get", label:"Config lesen" },
-    { key:"config.set", label:"Config speichern" },
-
-    // Bookings
-    { key:"bookings.read", label:"Bookings ansehen" },
-    { key:"bookings.cancel.any", label:"Bookings stornieren" },
-    { key:"bookings.csv.export", label:"Bookings CSV Download" },
-
-    // Logs
-    { key:"logs.read", label:"Logs ansehen" },
-    { key:"logs.csv.export", label:"Logs CSV Download" }
+    { key:"rbac.perm.set", label:"RBAC bearbeiten" }
   ];
 
   function bool(v){ return String(v) === "1" || v === 1 || v === true; }
@@ -866,32 +858,40 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
     await jpost("/api/auth/admin/rbac/perm/set", payload);
   }
 
-  function renderRbacMatrix(snap){
-    if (!snap) return;
+  async function loadRbacSnapshot() {
+    msg("");
+    const snap = await jpost("/api/auth/admin/rbac/snapshot", {});
+    
+    window.__lastRbacSnap = data;
+setText("rbacRaw", JSON.stringify(snap, null, 2));
 
-    window.__lastRbacSnap = snap;
-    setText("rbacRaw", JSON.stringify(snap, null, 2));
-    try{ if (el("rbacOut")) el("rbacOut").textContent = JSON.stringify(snap, null, 2); }catch(_){ }
-
-    // Rollen-Counts
     const body = el("rbacRolesBody");
     body.innerHTML = "";
-    (snap.roles || []).forEach(r => {
+    // debug
+    // console.log("renderRbacMatrix", snap);
+    (data.roles || []).forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${escapeHtml(r.role)}</td><td>${escapeHtml(String(r.cnt))}</td>`;
       body.appendChild(tr);
     });
 
-    // Maps
+    const ul = await jpost("/api/auth/admin/users/list", {});
+    const users = ul.users || [];
+    const ps = users.find(u => String(u.role||"").toLowerCase() === "ps" && String(u.status||"").toLowerCase()==="active");
+    const sv = users.find(u => String(u.role||"").toLowerCase() === "sv" && String(u.status||"").toLowerCase()==="active");
+    setText("rbacPs", ps ? ps.email : "—");
+    setText("rbacSv", sv ? sv.email : "—");
+
     const roleMap = new Map();
-    (snap.rolePermissions || []).forEach(rp => {
+    (data.rolePermissions || []).forEach(rp => {
       const role = String(rp.role||"").toLowerCase();
       const perm = String(rp.perm||"");
       if (!roleMap.has(role)) roleMap.set(role, new Map());
       roleMap.get(role).set(perm, bool(rp.allowed));
     });
+
     const userMap = new Map();
-    (snap.userOverrides || []).forEach(up => {
+    (data.userOverrides || []).forEach(up => {
       const em = String(up.email||"").toLowerCase();
       const perm = String(up.perm||"");
       if (!userMap.has(em)) userMap.set(em, new Map());
@@ -904,8 +904,10 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
     const roles = ["admin","ps","sv","user"];
     const mbody = el("rbacMatrixBody");
     mbody.innerHTML = "";
+    // debug
+    // console.log("renderRbacMatrix", snap);
 
-    RBAC_MATRIX_PERMS.forEach(p => {
+    RBAC_PERMS.forEach(p => {
       const tr = document.createElement("tr");
       const cells = [];
       cells.push(`<td>${escapeHtml(p.label)}</td>`);
@@ -947,23 +949,6 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
         }
       });
     });
-  }
-
-  async function loadRbacSnapshot() {
-    msg("");
-    const snap = await jpost("/api/auth/admin/rbac/snapshot", {});
-
-    // PS/SV Anzeige kommt aus Userliste (damit wir status=active filtern können)
-    try{
-      const ul = await jpost("/api/auth/admin/users/list", {});
-      const users = ul.users || [];
-      const ps = users.find(u => String(u.role||"").toLowerCase() === "ps" && String(u.status||"").toLowerCase()==="active");
-      const sv = users.find(u => String(u.role||"").toLowerCase() === "sv" && String(u.status||"").toLowerCase()==="active");
-      setText("rbacPs", ps ? ps.email : "—");
-      setText("rbacSv", sv ? sv.email : "—");
-    }catch(_){ /* ignore */ }
-
-    renderRbacMatrix(snap);
   }
 
 
