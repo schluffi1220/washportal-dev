@@ -414,6 +414,8 @@
           const c = creds();
           if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
           const mid = Number(btn.dataset.mid);
+          const go = await maybeShowBookingPopup("dryer");
+          if(!go) return;
           await jpost("/api/dryer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: mid });
           await refreshAll();
         }catch(e){
@@ -792,6 +794,25 @@ async function maybeShowBookingPopup(kind){
     </div>
   </div>
 </div>
+
+
+  <!-- Booking Popup Modal (shown only on Book click) -->
+  <div id="bookPopup" class="modal hidden" style="position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:9999;">
+    <div style="background:#fff; border-radius:14px; max-width:520px; width:92%; max-height:86vh; overflow:auto; padding:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div class="mtitle" id="bookPopupTitle" style="font-weight:700;">Hinweis</div>
+        <button class="btn secondary" id="bookPopupClose">X</button>
+      </div>
+      <div style="margin-top:10px;">
+        <img id="bookPopupImg" src="" alt="Hinweis" style="width:100%; border-radius:12px; display:none;" />
+      </div>
+      <div id="bookPopupText" style="margin-top:10px;" class="small"></div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:14px;">
+        <button class="btn secondary" id="bookPopupCancel">Abbrechen</button>
+        <button class="btn" id="bookPopupOk">Weiter buchen</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>
