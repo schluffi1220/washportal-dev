@@ -847,13 +847,34 @@ el("rbacOut").textContent = JSON.stringify(data, null, 2);
   }
 
   
-  const RBAC_MATRIX_PERMS = [
+    const RBAC_MATRIX_PERMS = [
+    // Users / Auth / RBAC
     { key:"users.list", label:"Userliste sehen" },
     { key:"users.approve", label:"User freischalten" },
     { key:"users.role.set", label:"Rolle setzen (direkt)" },
     { key:"role.transfer.accept", label:"PS/SV Übergabe" },
     { key:"rbac.snapshot", label:"RBAC Snapshot lesen" },
-    { key:"rbac.perm.set", label:"RBAC bearbeiten" }
+    { key:"rbac.perm.set", label:"RBAC bearbeiten" },
+
+    // Bookings (Admin)
+    { key:"bookings.read", label:"Buchungen ansehen" },
+    { key:"bookings.cancel.any", label:"Buchungen stornieren (Admin)" },
+    { key:"bookings.csv.export", label:"Buchungen CSV-Download" },
+
+    // Logs (Admin)
+    { key:"logs.read", label:"Logs ansehen" },
+    { key:"logs.csv.export", label:"Logs CSV-Download" },
+
+    // Prepared (coming soon)
+    { key:"machines.read", label:"Maschinen ansehen (vorbereitet)" },
+    { key:"machines.edit", label:"Maschinen bearbeiten (vorbereitet)" },
+    { key:"defects.read", label:"Defekte ansehen (vorbereitet)" },
+    { key:"defects.clear", label:"Defekte freigeben/auflösen (vorbereitet)" },
+    { key:"feedback.read", label:"Feedback ansehen (vorbereitet)" },
+    { key:"rooms.read", label:"Rooms ansehen (vorbereitet)" },
+    { key:"rooms.edit", label:"Rooms bearbeiten (vorbereitet)" },
+    { key:"config.get", label:"Config lesen (vorbereitet)" },
+    { key:"config.set", label:"Config schreiben (vorbereitet)" }
   ];
 
   function bool(v){ return String(v) === "1" || v === 1 || v === true; }
