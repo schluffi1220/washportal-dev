@@ -384,7 +384,7 @@
       <div class="machine ${tint}">
         <div class="mhead">
           <div class="mtitle">${escapeHtml(label)}</div>
-          <div class="badge">${badge}${(kind==='dryer' && state.config?.features?.showDryerPopup && state.config?.dryerPopupImage) ? `<button class="btn btn-xs" style="margin-left:8px" onclick="event.stopPropagation();showDryerPopupImg()">Bild</button>` : ''}</div>
+          <div class="badge">${badge}${(m.kind==='dryer' && state.config?.features?.showDryerPopup && state.config?.dryerPopupImage) ? `<button class="btn btn-xs" style="margin-left:8px" onclick="event.stopPropagation();showDryerPopupImg()">Bild</button>` : ''}</div>
         </div>
         <div class="sub">
           <div>Zuletzt: ${fmtOcc(m.last)}</div>
