@@ -384,7 +384,7 @@
       <div class="machine ${tint}">
         <div class="mhead">
           <div class="mtitle">${escapeHtml(label)}</div>
-          <div class="badge">${badge}${(m.kind==='dryer' && state.config?.features?.showDryerPopup && state.config?.dryerPopupImage) ? `<button class="btn btn-xs" style="margin-left:8px" onclick="event.stopPropagation();showDryerPopupImg()">Bild</button>` : ''}</div>
+          <div class="badge">${badge}${(m.kind==='dryer' && state.config?.features?.showDryerPopup && state.config?.dryerPopupImage) ? `` : ''}</div>
         </div>
         <div class="sub">
           <div>Zuletzt: ${fmtOcc(m.last)}</div>
@@ -702,6 +702,8 @@
 
   async function bookWasher(){
     try{
+      if(!(await maybeShowBookingPopup('washer'))){ setStatus('Buchung abgebrochen.', false); return; }
+
       showErr("");
       const c = creds();
       if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
@@ -737,16 +739,57 @@
   $("btnSendFeedback").addEventListener("click", sendFeedback);
 
 })();
+
+// --- Booking Info Popup (Washer/Dryer) ---
+let __wpImgResolver = null;
+
+function hideWpImg(ok){
+  const m = document.getElementById('wpImgModal');
+  if(!m) return;
+  m.classList.add('hidden');
+  const r = __wpImgResolver;
+  __wpImgResolver = null;
+  if(typeof r === 'function') r(!!ok);
+}
+
+function showWpImg(imgUrl, title){
+  return new Promise((resolve)=>{
+    __wpImgResolver = resolve;
+    const m = document.getElementById('wpImgModal');
+    const img = document.getElementById('wpImg');
+    const t = document.getElementById('wpImgTitle');
+    if(t) t.textContent = title || 'Info';
+    if(img) img.src = imgUrl || '';
+    if(m) m.classList.remove('hidden');
+  });
+}
+
+async function maybeShowBookingPopup(kind){
+  // kind: 'washer' | 'dryer'
+  const cfg = state.config || {};
+  const f = (cfg.features || {});
+  const enabled = (kind === 'washer') ? !!f.showWasherPopup : !!f.showDryerPopup;
+  const img = (kind === 'washer') ? (cfg.washerPopupImage || '') : (cfg.dryerPopupImage || '');
+  if(!enabled || !img) return true; // no popup -> continue
+  return await showWpImg(img, kind === 'washer' ? 'Waschmaschine – Hinweis' : 'Trockner – Hinweis');
+}
+
 </script>
 
 <div id="wpImgModal" class="modal hidden">
-  <div class="modal-backdrop" onclick="hideWpImg()"></div>
+  <div class="modal-backdrop" onclick="hideWpImg(false)"></div>
   <div class="modal-card">
     <div class="modal-head">
-      <div class="modal-title">Info</div>
-      <button class="btn btn-sm" onclick="hideWpImg()">Schließen</button>
+      <div class="modal-title" id="wpImgTitle">Info</div>
+      <button class="btn-ghost" onclick="hideWpImg(false)">✕</button>
     </div>
-    <img id="wpImgModalImg" alt="Info" style="max-width:100%; border-radius:12px;"/>
+    <div class="modal-body">
+      <img id="wpImg" alt="Info" style="max-width:100%; border-radius:14px; display:block; margin:0 auto;"/>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="wpImgCancel" onclick="hideWpImg(false)">Abbrechen</button>
+      <button class="btn primary" id="wpImgOk" onclick="hideWpImg(true)">Weiter buchen</button>
+    </div>
   </div>
 </div>
 
