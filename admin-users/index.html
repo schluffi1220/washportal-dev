@@ -331,9 +331,57 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
     </div>
 
     <!-- PLACEHOLDER TABS -->
-    <div id="view-machines" class="view hidden"><div class="badge warn">Machines: INAKTIV (Worker Routes fehlen)</div></div>
-    <div id="view-defects" class="view hidden"><div class="badge warn">Defects: INAKTIV (Worker Routes fehlen)</div></div>
-    <div id="view-feedback" class="view hidden"><div class="badge warn">Feedback Inbox/Antworten: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-machines" class="view hidden">
+
+  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
+    <button class="btn" id="btnMachinesLoad">Machines laden</button>
+    <input class="input" id="machinesRoom" placeholder="Room (optional)" style="max-width:240px"/>
+    <div class="muted">Bearbeiten: via RBAC-Perm <code>machines.write</code> (oder SA).</div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-h">Machines</div>
+    <div class="card-b">
+      <table class="table" id="tblMachines">
+        <thead><tr><th>Room</th><th>Kind</th><th>ID</th><th>Label</th><th>Min</th><th>Enabled</th><th>Defekt</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div></div>
+    <div id="view-defects" class="view hidden">
+
+  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
+    <button class="btn" id="btnDefectsLoad">Defekte laden</button>
+    <input class="input" id="defectsRoom" placeholder="Room (optional)" style="max-width:240px"/>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-h">Defekte</div>
+    <div class="card-b">
+      <table class="table" id="tblDefects">
+        <thead><tr><th>Zeit</th><th>Room</th><th>Kind</th><th>Machine</th><th>Text</th><th>Status</th><th>Aktion</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div></div>
+    <div id="view-feedback" class="view hidden">
+
+  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
+    <button class="btn" id="btnFeedbackLoad">Feedback laden</button>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-h">Feedback</div>
+    <div class="card-b">
+      <table class="table" id="tblFeedback">
+        <thead><tr><th>Zeit</th><th>Room</th><th>Message</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div></div>
     <div id="view-logs" class="view hidden">
       <div class="row" style="justify-content:space-between">
         <div class="badge" id="logsStatus">Logs</div>
@@ -353,7 +401,28 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
         </table>
       </div>
     </div>
-    <div id="view-rooms" class="view hidden"><div class="badge warn">Rooms / Room-Locks: INAKTIV (Worker Routes fehlen)</div></div>
+    <div id="view-rooms" class="view hidden">
+
+  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
+    <button class="btn" id="btnRoomsLoad">Rooms laden</button>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-h">Rooms</div>
+    <div class="card-b">
+      <table class="table" id="tblRooms">
+        <thead><tr><th>ID</th><th>Name</th><th>Active</th><th>Aktion</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="row" style="gap:10px; margin-top:12px; flex-wrap:wrap">
+        <input class="input" id="roomId" placeholder="room-id" style="max-width:180px"/>
+        <input class="input" id="roomName" placeholder="Name" style="max-width:260px"/>
+        <label class="row" style="gap:8px"><input type="checkbox" id="roomActive" checked/> aktiv</label>
+        <button class="btn" id="btnRoomSave">Room speichern</button>
+      </div>
+    </div>
+  </div>
+
+</div></div>
     <div id="view-privacy" class="view hidden">
       <div class="badge">Privacy Meta</div>
       <div class="hr"></div>
@@ -404,6 +473,18 @@ let ROLE_OPTIONS = [];
 
     { key:"config.get", label:"config.get – Config lesen" },
     { key:"config.set", label:"config.set – Config ändern" },
+
+
+    { key:"machines.read", label:"machines.read – Machines sehen" },
+    { key:"machines.write", label:"machines.write – Machines ändern" },
+
+    { key:"defects.read", label:"defects.read – Defekte sehen" },
+    { key:"defects.clear", label:"defects.clear – Defekte freigeben" },
+
+    { key:"feedback.read", label:"feedback.read – Feedback sehen" },
+
+    { key:"rooms.read", label:"rooms.read – Rooms sehen" },
+    { key:"rooms.write", label:"rooms.write – Rooms ändern" },
 
     { key:"rbac.snapshot", label:"rbac.snapshot – RBAC Snapshot lesen" },
     { key:"rbac.perm.set", label:"rbac.perm.set – RBAC ändern (SA only)" }
@@ -1150,6 +1231,119 @@ setText("rbacRaw", JSON.stringify(snap, null, 2));
   buildTabs();
   updatePreviews();
 })();
+
+// ===== Admin extra tabs (Machines / Defects / Feedback / Rooms) =====
+async function loadMachines(){
+  const room = (document.getElementById("machinesRoom")?.value||"").trim();
+  const data = await jpost("/api/auth/admin/machines/list", { room });
+  const tbody = document.querySelector("#tblMachines tbody");
+  if(!tbody) return;
+  tbody.innerHTML = "";
+  (data.rows||[]).forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(r.room||"")}</td>
+      <td>${esc((r.kind||"").toUpperCase())}</td>
+      <td>${esc(String(r.machineId||""))}</td>
+      <td>${esc(r.label||"")}</td>
+      <td>${r.minutes==null?"":esc(String(r.minutes))}</td>
+      <td>${r.enabled? "✅":"—"}</td>
+      <td>${r.defective? "⚠️":"—"}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  toast(`Machines geladen: ${(data.rows||[]).length}`);
+}
+async function loadDefects(){
+  const room = (document.getElementById("defectsRoom")?.value||"").trim();
+  const data = await jpost("/api/auth/admin/defects/list", { room });
+  const tbody = document.querySelector("#tblDefects tbody");
+  if(!tbody) return;
+  tbody.innerHTML="";
+  (data.rows||[]).forEach(r=>{
+    const tr=document.createElement("tr");
+    const status = r.clearedAt ? `frei (${esc(r.clearedBy||"")})` : "offen";
+    tr.innerHTML = `
+      <td>${fmtTs(r.createdAt)}</td>
+      <td>${esc(r.room||"")}</td>
+      <td>${esc((r.kind||""))}</td>
+      <td>${esc(String(r.machine??""))}</td>
+      <td>${esc(r.message||"")}</td>
+      <td>${status}</td>
+      <td>${r.clearedAt? "" : `<button class="btn btn-xs" data-defect-id="${esc(r.id)}">Freigeben</button>`}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll("button[data-defect-id]").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const id = btn.getAttribute("data-defect-id");
+      await jpost("/api/auth/admin/defects/clear", { id });
+      await loadDefects();
+    });
+  });
+  toast(`Defekte geladen: ${(data.rows||[]).length}`);
+}
+async function loadFeedback(){
+  const data = await jpost("/api/auth/admin/feedback/list", {});
+  const tbody = document.querySelector("#tblFeedback tbody");
+  if(!tbody) return;
+  tbody.innerHTML="";
+  (data.rows||[]).forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML = `
+      <td>${fmtTs(r.createdAt)}</td>
+      <td>${esc(r.room||"")}</td>
+      <td>${esc(r.message||"")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  toast(`Feedback geladen: ${(data.rows||[]).length}`);
+}
+async function loadRooms(){
+  const data = await jpost("/api/auth/admin/rooms/list", {});
+  const tbody = document.querySelector("#tblRooms tbody");
+  if(!tbody) return;
+  tbody.innerHTML="";
+  (data.rows||[]).forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(r.id)}</td>
+      <td>${esc(r.name)}</td>
+      <td>${r.active? "✅":"—"}</td>
+      <td><button class="btn btn-xs" data-room-edit="${esc(r.id)}">Edit</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll("button[data-room-edit]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = btn.getAttribute("data-room-edit");
+      const row = (data.rows||[]).find(x=>x.id===id);
+      if(!row) return;
+      document.getElementById("roomId").value = row.id;
+      document.getElementById("roomName").value = row.name;
+      document.getElementById("roomActive").checked = !!row.active;
+      toast("Room in Formular übernommen");
+    });
+  });
+  toast(`Rooms geladen: ${(data.rows||[]).length}`);
+}
+async function saveRoom(){
+  const id = (document.getElementById("roomId")?.value||"").trim();
+  const name = (document.getElementById("roomName")?.value||"").trim();
+  const active = !!document.getElementById("roomActive")?.checked;
+  await jpost("/api/auth/admin/rooms/set", { id, name, active });
+  await loadRooms();
+}
+
+// hook buttons if present
+setTimeout(()=>{
+  document.getElementById("btnMachinesLoad")?.addEventListener("click", loadMachines);
+  document.getElementById("btnDefectsLoad")?.addEventListener("click", loadDefects);
+  document.getElementById("btnFeedbackLoad")?.addEventListener("click", loadFeedback);
+  document.getElementById("btnRoomsLoad")?.addEventListener("click", loadRooms);
+  document.getElementById("btnRoomSave")?.addEventListener("click", saveRoom);
+}, 0);
+
 </script>
 </body>
 </html>
