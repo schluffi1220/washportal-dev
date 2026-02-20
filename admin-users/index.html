@@ -1214,13 +1214,23 @@ setText("rbacRaw", JSON.stringify(snap, null, 2));
 
   el("fileWasher").addEventListener("change", async (ev) => {
     const f = ev.target.files?.[0]; if (!f) return;
-    el("cfgWasherImg").value = await fileToDataURL(f);
+    if (f.size > 250*1024) {
+  msg("Bild zu groß für DB (D1). Bitte kleineres Bild wählen (<=250KB) oder eine https:// Bild-URL eintragen.", "bad");
+  ev.target.value = "";
+  return;
+}
+el("cfgWasherImg").value = await fileToDataURL(f);
     updatePreviews();
     msg("Washer Bild geladen (DataURL). Nicht vergessen: Save.", "ok");
   });
   el("fileDryer").addEventListener("change", async (ev) => {
     const f = ev.target.files?.[0]; if (!f) return;
-    el("cfgDryerImg").value = await fileToDataURL(f);
+    if (f.size > 250*1024) {
+  msg("Bild zu groß für DB (D1). Bitte kleineres Bild wählen (<=250KB) oder eine https:// Bild-URL eintragen.", "bad");
+  ev.target.value = "";
+  return;
+}
+el("cfgDryerImg").value = await fileToDataURL(f);
     updatePreviews();
     msg("Dryer Bild geladen (DataURL). Nicht vergessen: Save.", "ok");
   });
