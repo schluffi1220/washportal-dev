@@ -186,6 +186,10 @@
     hiddenMy: new Set(JSON.parse(localStorage.getItem("wash_hidden_my")||"[]")),
   };
 
+  // expose state for popup helpers outside the IIFE
+  window.__wpState = state;
+
+
   function showErr(msg){
     const b = $("errBanner");
     b.textContent = msg || "";
@@ -233,7 +237,8 @@
   }
 
   function rebuildNews(){
-    const cfg = state.config || {};
+    const s = (window.__wpState || {});
+  const cfg = s.config || {};
     const enabled = !!cfg.features?.newsEnabled;
     const txt = String(cfg.newsText||"").trim();
     if(enabled && txt){
@@ -244,7 +249,8 @@
     }
   }
   function rebuildFeedback(){
-    const cfg = state.config || {};
+    const s = (window.__wpState || {});
+  const cfg = s.config || {};
     $("feedbackCard").style.display = cfg.features?.feedbackEnabled ? "" : "none";
   }
 
@@ -768,7 +774,8 @@ function showWpImg(imgUrl, title){
 
 async function maybeShowBookingPopup(kind){
   // kind: 'washer' | 'dryer'
-  const cfg = state.config || {};
+  const s = (window.__wpState || {});
+  const cfg = s.config || {};
   const f = (cfg.features || {});
   const enabled = (kind === 'washer') ? !!f.showWasherPopup : !!f.showDryerPopup;
   const img = (kind === 'washer') ? (cfg.washerPopupImage || '') : (cfg.dryerPopupImage || '');
