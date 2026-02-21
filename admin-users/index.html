@@ -577,7 +577,16 @@ let ROLE_OPTIONS = [];
     return u;
   }
 
-  async function jfetch(path, opts={}){
+  
+  function authHeaders(extra={}){
+    const h = Object.assign({}, extra);
+    if (SA) h["x-sa-password"] = SA;
+    if (TOKEN) h["authorization"] = "Bearer " + TOKEN;
+    // content-type nur setzen, wenn wir JSON senden
+    return h;
+  }
+
+async function jfetch(path, opts={}){
     if (!API) throw new Error("Kein Worker gesetzt.");
     const headers = Object.assign({}, opts.headers || {});
     if (SA) headers["x-sa-password"] = SA;
@@ -1129,7 +1138,7 @@ setText("rbacRaw", JSON.stringify(snap, null, 2));
       const room = (el("bookingsRoom").value||"").trim();
       const r = await fetch(BASE()+"/api/auth/admin/bookings/csv", {
         method:"POST",
-        headers: headers(),
+        headers: Object.assign({"content-type":"application/json"}, authHeaders()),
         body: JSON.stringify({ room, limit: 2000 })
       });
       if(!r.ok) throw new Error("CSV fehlgeschlagen ("+r.status+")");
@@ -1179,7 +1188,7 @@ setText("rbacRaw", JSON.stringify(snap, null, 2));
     try{
       const r = await fetch(BASE()+"/api/auth/admin/logs/csv", {
         method:"POST",
-        headers: headers(),
+        headers: Object.assign({"content-type":"application/json"}, authHeaders()),
         body: JSON.stringify({ limit: 2000 })
       });
       if(!r.ok) throw new Error("CSV fehlgeschlagen ("+r.status+")");
