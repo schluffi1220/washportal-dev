@@ -44,7 +44,7 @@
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
     @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
     .machine{border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:14px;background:rgba(255,255,255,.05)}
-    .mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .mhead{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
     .mtitle{font-weight:900}
     .badge{font-size:11px;font-weight:900;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
       background:rgba(0,0,0,.15);color:var(--txt)}
@@ -386,11 +386,12 @@ function computeWasherEnd(cfg, startAt){
 
   function machineTint(m){
     const defect = Number(m.defective||0)===1;
-    const busy = !!m.current || !!m.next;
-    const white = (m.current && m.current.whitecard) || (m.next && m.next.whitecard);
+    // Status badge reflects ONLY the current running slot (not future reservations)
+    const running = !!m.current;
+    const white = !!(m.current && m.current.whitecard);
     if(defect) return ["t-def","DEFEKT"];
     if(white) return ["t-white","WHITECARD"];
-    if(busy) return ["t-busy", (m.current ? "LÄUFT" : "GEBUCHT")];
+    if(running) return ["t-busy","LÄUFT"];
     return ["t-free","FREI"];
   }
 
