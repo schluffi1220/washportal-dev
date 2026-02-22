@@ -173,6 +173,21 @@
   </div>
 
 <script>
+  function getRoomCode(){
+    const el = document.getElementById("roomCode") || document.getElementById("room") || document.getElementById("roomInput");
+    return (el?.value || "").trim();
+  }
+  function requireRoomCode(){
+    const code = getRoomCode();
+    if (code.length < 2 || code.length > 32){
+      toast("Bitte Zimmer / Raum (frei wählbar) mit 2–32 Zeichen eingeben.");
+      const rc = document.getElementById("roomCode") || document.getElementById("room") || document.getElementById("roomInput");
+      if (rc) rc.focus();
+      return null;
+    }
+    return code;
+  }
+
   // Zimmer/Raum Pflichtfeld: 2-32 Zeichen (frei wählbar)
   function wpRoomCode(){
     const el = document.getElementById("room") || document.getElementById("roomCode") || document.querySelector('input[name="room"]');
@@ -325,7 +340,7 @@ function computeWasherEnd(cfg, startAt){
 
     for(const o of opts){
       const opt = document.createElement("option");
-      opt.value = JSON.stringify({ roomCode, machine:o.machine, startAt:o.startAt});
+      opt.value = JSON.stringify({ roomCode: code, machine:o.machine, startAt:o.startAt});
       opt.textContent = slotLine(o.machine, o.startAt, o.endAt) + (o.taken ? " — BELEGT" : "");
       opt.disabled = !!o.taken;
       sel.appendChild(opt);
@@ -354,7 +369,7 @@ function computeWasherEnd(cfg, startAt){
     let html = `<option value="">Slot auswählen…</option>`;
     for(const o of opts){
       const label = `${fmtDate(o.startAt)} ${fmtTime(o.startAt)}-${fmtTime(o.endAt)}${o.taken ? " · BELEGT" : ""}`;
-      const val = JSON.stringify({ roomCode,  machine: Number(machineId), startAt:o.startAt, endAt:o.endAt });
+      const val = JSON.stringify({ roomCode: code,  machine: Number(machineId), startAt:o.startAt, endAt:o.endAt });
       html += `<option value='${val.replace(/'/g,"&#39;")}' ${o.taken ? "disabled":""}>${escapeHtml(label)}</option>`;
     }
     return html;
@@ -717,6 +732,9 @@ function computeWasherEnd(cfg, startAt){
   }
 
   async function refreshAll(){
+    const code = requireRoomCode();
+    if (!code) return;
+
     try{
       showErr("");
       const c = creds();
