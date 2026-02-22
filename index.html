@@ -315,6 +315,7 @@ function computeWasherEnd(cfg, startAt){
   function rebuildSlotDropdown(){
     const sel = $("slotSelect");
     sel.innerHTML = `<option value="">Bitte auswählen…</option>`;
+    const code = getRoomCode();
     const cfg = state.config;
     if(!cfg) return;
 
@@ -348,6 +349,7 @@ function computeWasherEnd(cfg, startAt){
   }
 
   function washerTileOptions(machineId){
+    const code = getRoomCode();
     const cfg = state.config;
     if(!cfg) return `<option value="">(keine Daten)</option>`;
     const now = Date.now();
