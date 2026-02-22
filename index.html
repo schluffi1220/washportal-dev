@@ -110,7 +110,7 @@
         <div class="field"><label>Persönlicher PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
         <div class="field"><label>Stations-PIN</label><input id="stationPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
         <div class="field" style="flex:0 0 200px;align-self:flex-end">
-          <button id="btnRefresh" style="width:100%">Aktualisieren</button>
+          <button id="btnRefresh" style="width:100%" onclick="window.wpRefreshAll && window.wpRefreshAll()">Aktualisieren</button>
         </div>
       </div>
       <div class="help">PIN ist persönlich: 316/1111 ≠ 316/2222.</div>
