@@ -203,6 +203,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-sh
         <div class="feature"><input type="checkbox" id="fWhitecard"><div><b>Whitecard erlaubt</b><div class="small">User kann Whitecard selbst setzen</div></div></div>
         <div class="feature"><input type="checkbox" id="fWasherPopup"><div><b>Washer Popup</b><div class="small">Info-Popup + Bild</div></div></div>
         <div class="feature"><input type="checkbox" id="fDryerPopup"><div><b>Dryer Popup</b><div class="small">Info-Popup + Bild</div></div></div>
+        <div class="feature"><input type="checkbox" id="fRoomsEnabled"><div><b>Rooms aktiv</b><div class="small">Raum-Sperren/Begründung prüfen (optional)</div></div></div>
         <div class="feature"><input type="checkbox" id="fAllowUserHide"><div><b>User kann alte Buchungen ausblenden</b><div class="small">(Portal localStorage)</div></div></div>
       </div>
 
@@ -716,6 +717,7 @@ async function jfetch(path, opts={}){
     el("fWhitecard").checked = !!(features.whitecardEnabled ?? features.whitecard ?? false);
     el("fWasherPopup").checked = !!(features.showWasherPopup ?? features.washerPopup ?? false);
     el("fDryerPopup").checked = !!(features.showDryerPopup ?? features.dryerPopup ?? false);
+    el("fRoomsEnabled").checked = !!(features.roomsEnabled ?? false);
     el("fAllowUserHide").checked = true;
 
     el("cfgNewsText").value = cfg.newsText ?? cfg.news_text ?? "";
@@ -750,7 +752,8 @@ async function jfetch(path, opts={}){
       allowOverbook: el("fOverbook").checked,
       whitecardEnabled: el("fWhitecard").checked,
       showWasherPopup: el("fWasherPopup").checked,
-      showDryerPopup: el("fDryerPopup").checked
+      showDryerPopup: el("fDryerPopup").checked,
+      roomsEnabled: el("fRoomsEnabled").checked
     };
 
     cfg.newsText = el("cfgNewsText").value || "";
