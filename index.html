@@ -173,6 +173,29 @@
   </div>
 
 <script>
+  // Zimmer/Raum Pflichtfeld: 2-32 Zeichen (frei wählbar)
+  function wpRoomCode(){
+    const el = document.getElementById("room") || document.getElementById("roomCode") || document.querySelector('input[name="room"]');
+    return (el?.value || "").trim();
+  }
+  function wpEnsureRoomCode(){
+    const code = wpRoomCode();
+    if (code.length < 2 || code.length > 32){
+      try{
+        const el = document.getElementById("room") || document.getElementById("roomCode") || document.querySelector('input[name="room"]');
+        if (el){
+          el.focus();
+          el.style.outline = "2px solid rgba(255,0,0,.55)";
+          setTimeout(()=>{ el.style.outline = ""; }, 1500);
+        }
+      }catch(_){}
+      if (typeof msg === "function") msg("Bitte Zimmer / Raum eingeben (2–32 Zeichen).", "bad");
+      return null;
+    }
+    return code;
+  }
+
+
 (() => {
   const WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
   const API = WORKER.replace(/\/$/,"");
@@ -208,6 +231,9 @@
   }
 
   async function jpost(path, body){
+    const roomCode = wpEnsureRoomCode();
+    if (!roomCode) return;
+
     const res = await fetch(API+path, {
       method:"POST",
       headers:{"content-type":"application/json"},
@@ -299,7 +325,7 @@ function computeWasherEnd(cfg, startAt){
 
     for(const o of opts){
       const opt = document.createElement("option");
-      opt.value = JSON.stringify({machine:o.machine, startAt:o.startAt});
+      opt.value = JSON.stringify({ roomCode, machine:o.machine, startAt:o.startAt});
       opt.textContent = slotLine(o.machine, o.startAt, o.endAt) + (o.taken ? " — BELEGT" : "");
       opt.disabled = !!o.taken;
       sel.appendChild(opt);
@@ -328,7 +354,7 @@ function computeWasherEnd(cfg, startAt){
     let html = `<option value="">Slot auswählen…</option>`;
     for(const o of opts){
       const label = `${fmtDate(o.startAt)} ${fmtTime(o.startAt)}-${fmtTime(o.endAt)}${o.taken ? " · BELEGT" : ""}`;
-      const val = JSON.stringify({ machine: Number(machineId), startAt:o.startAt, endAt:o.endAt });
+      const val = JSON.stringify({ roomCode,  machine: Number(machineId), startAt:o.startAt, endAt:o.endAt });
       html += `<option value='${val.replace(/'/g,"&#39;")}' ${o.taken ? "disabled":""}>${escapeHtml(label)}</option>`;
     }
     return html;
