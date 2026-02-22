@@ -226,7 +226,12 @@
     };
   }
 
-  function computeWasherEnd(cfg, startAt){
+  
+  function isValidRoomCode(room){
+    const s = String(room||"").trim();
+    return /^[A-Za-z0-9][A-Za-z0-9_-]{1,31}$/.test(s);
+  }
+function computeWasherEnd(cfg, startAt){
     const hours = (cfg.washerHours||[]).map(Number).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
     const d = new Date(startAt);
     const day0 = new Date(startAt); day0.setHours(0,0,0,0);
