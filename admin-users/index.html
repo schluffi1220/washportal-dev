@@ -1,1386 +1,901 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Washportal Admin</title>
-<style>
-:root{
-  --bg1:#061018; --bg2:#0b2230; --card:#0f1f2b; --card2:#0c1822;
-  --text:#e8f1f7; --muted:#9fb3c3; --line:rgba(255,255,255,.08);
-  --accent:#26c6da; --accent2:#4f8cff; --good:#1ee2a2; --warn:#f7b955; --bad:#ff5d6c;
-}
-*{box-sizing:border-box}
-body{
-  margin:0; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  color:var(--text);
-  min-height:100vh;
-  background:
-    radial-gradient(1200px 700px at 20% 15%, rgba(38,198,218,.22), transparent 55%),
-    radial-gradient(900px 600px at 70% 35%, rgba(79,140,255,.18), transparent 55%),
-    linear-gradient(180deg,var(--bg1),var(--bg2));
-}
-a{color:var(--accent)}
-.container{max-width:1180px;margin:18px auto;padding:0 16px}
-.topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.dot{width:9px;height:9px;border-radius:99px;background:var(--good);box-shadow:0 0 0 6px rgba(30,226,162,.12)}
-.h1{font-weight:800;letter-spacing:.2px}
-.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);color:var(--muted);font-size:12px}
-.grid{display:grid;gap:14px}
-.card{
-  border:1px solid var(--line);
-  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-  box-shadow:0 10px 25px rgba(0,0,0,.35);
-  border-radius:18px;
-  padding:14px;
-}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.field{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
-label{font-size:12px;color:var(--muted)}
-input,select,textarea{
-  background:rgba(0,0,0,.22); color:var(--text);
-  border:1px solid rgba(255,255,255,.10);
-  border-radius:12px; padding:10px 12px; outline:none;
-}
-textarea{min-height:92px;resize:vertical}
-input:focus,select:focus,textarea:focus{border-color:rgba(38,198,218,.55);box-shadow:0 0 0 4px rgba(38,198,218,.12)}
-.btn{
-  border:1px solid rgba(255,255,255,.14);
-  background:linear-gradient(180deg, rgba(79,140,255,.95), rgba(38,198,218,.72));
-  color:#061018; font-weight:800;
-  padding:10px 14px; border-radius:14px; cursor:pointer;
-}
-.btn.secondary{
-  background:rgba(255,255,255,.05); color:var(--text); font-weight:700;
-}
-.btn.ghost{background:transparent}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.tab{
-  padding:9px 12px;border-radius:999px;border:1px solid var(--line);
-  background:rgba(0,0,0,.18); color:var(--muted);
-  cursor:pointer; user-select:none;
-}
-.tab.active{color:var(--text);background:rgba(79,140,255,.18);border-color:rgba(79,140,255,.35)}
-.badge{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:6px 10px;border-radius:999px;font-size:12px;
-  border:1px solid var(--line); background:rgba(0,0,0,.18); color:var(--muted);
-}
-.badge.ok{background:rgba(30,226,162,.12);color:var(--good);border-color:rgba(30,226,162,.25)}
-.badge.bad{background:rgba(255,93,108,.12);color:var(--bad);border-color:rgba(255,93,108,.25)}
-.badge.warn{background:rgba(247,185,85,.12);color:var(--warn);border-color:rgba(247,185,85,.25)}
-.hr{height:1px;background:var(--line);margin:12px 0}
-.small{font-size:12px;color:var(--muted);line-height:1.4}
-.kv{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre-wrap;background:rgba(0,0,0,.25);padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.08)}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:13px}
-.table th{color:var(--muted);font-weight:700}
-.slotgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
-.slot{
-  display:flex;align-items:center;gap:8px;
-  padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.10);
-  background:rgba(0,0,0,.16);
-}
-.slot input{width:16px;height:16px}
-.featuregrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.feature{
-  display:flex;align-items:center;gap:10px;padding:12px;border-radius:16px;
-  border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.16)
-}
-.feature input{width:18px;height:18px}
-.preview{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.preview img{max-height:86px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18)}
-.hidden{display:none !important}
-@media (max-width: 860px){
-  .slotgrid{grid-template-columns:repeat(6,minmax(0,1fr))}
-  .featuregrid{grid-template-columns:1fr}
-}
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Washportal</title>
+  <style>
+    :root{
+      --bg0:#07131f; --bg1:#0b1b2b; --card:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.10); --txt:#e8f1ff; --muted:rgba(232,241,255,.70);
+      --green:#23c58a; --blue:#4aa3ff; --red:#ff5b73; --lock:#8e95a1; --white:#f3f6ff;
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--txt);
+      background: radial-gradient(1200px 700px at 20% 15%, rgba(42,118,255,.25), transparent 60%),
+                  radial-gradient(900px 600px at 70% 55%, rgba(40,198,178,.22), transparent 60%),
+                  linear-gradient(180deg,var(--bg0),var(--bg1)); min-height:100vh;}
+    .topbar{position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(7,19,31,.88), rgba(7,19,31,.60));
+      backdrop-filter: blur(10px);border-bottom:1px solid rgba(255,255,255,.08);}
+    .bar{max-width:1080px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .brand{font-weight:900;display:flex;align-items:center;gap:10px}
+    .dot{width:10px;height:10px;border-radius:999px;background:#2ff2cc;box-shadow:0 0 18px rgba(47,242,204,.55)}
+    .pill{padding:7px 10px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:rgba(255,255,255,.05);
+      color:var(--muted);font-size:12px;white-space:nowrap}
+    .wrap{max-width:1080px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:16px;margin-bottom:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
+    h2{margin:0 0 10px 0;font-size:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .field{flex:1 1 180px}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    input,select,textarea{width:100%;border-radius:14px;padding:12px 12px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(6,12,20,.55);color:var(--txt);outline:none}
+    input[type="password"]{letter-spacing:.12em}
+    textarea{min-height:92px;resize:vertical}
+    button{border:0;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;color:white;
+      background:linear-gradient(135deg,#2a76ff,#28c6b2);box-shadow:0 10px 20px rgba(25,92,255,.20)}
+    button.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:none;color:var(--txt)}
+    .help{color:var(--muted);font-size:12px;margin-top:8px;white-space:pre-wrap}
+    .banner{display:none;padding:10px 12px;border-radius:14px;background:rgba(255,91,115,.12);
+      border:1px solid rgba(255,91,115,.35);margin-bottom:12px;color:#ffd0d7;font-weight:900;white-space:pre-wrap}
+
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    .machine{border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:14px;background:rgba(255,255,255,.05)}
+    .mhead{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+    .mtitle{font-weight:900}
+    .badge{font-size:11px;font-weight:900;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.15);color:var(--txt)}
+    .t-free{background:linear-gradient(180deg, rgba(35,197,138,.22), rgba(255,255,255,.05));}
+    .t-busy{background:linear-gradient(180deg, rgba(74,163,255,.22), rgba(255,255,255,.05));}
+    .t-def{background:linear-gradient(180deg, rgba(255,91,115,.22), rgba(255,255,255,.05));}
+    .t-lock{background:linear-gradient(180deg, rgba(142,149,161,.22), rgba(255,255,255,.05));}
+    .t-white{background:linear-gradient(180deg, rgba(243,246,255,.40), rgba(255,255,255,.05));}
+
+    .sub{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.4}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .slotpick{display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-top:10px}
+    .tileSlot{width:100%;min-width:0;padding:14px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.22);color:var(--txt);outline:none;font-size:16px}
+    .tileSlot:disabled{opacity:.55}
+    .slotpick button{white-space:nowrap}
+
+    .actions button{flex:1 1 120px}
+
+    .myitem{border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:14px;background:rgba(255,255,255,.05);margin-top:10px}
+    .inlinecb{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+    .inlinecb input{width:auto}
+    .divider{height:1px;background:rgba(255,255,255,.10);margin:10px 0}
+    a{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
+  
+.modal.hidden{display:none;}
+.modal{position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;}
+.modal-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.6);}
+.modal-card{position:relative; width:min(92vw,520px); background:rgba(14,30,46,.98); border:1px solid rgba(255,255,255,.08); border-radius:18px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.modal-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;}
+.modal-title{font-weight:700;}
+
+
+  /* --- Tile header layout fix: status above title --- */
+  .wp-machine-header{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:8px}
+  .wp-machine-status{order:0}
+  .wp-machine-title{order:1}
+
 </style>
 </head>
 <body>
-<div class="container">
   <div class="topbar">
-    <span class="dot"></span>
-    <div class="h1">Admin</div>
-    <span class="pill" id="pillBuild">build: -</span>
-    <span class="pill" id="pillConn">nicht verbunden</span>
-    <span class="pill">Hinweis: Zugriff mit <b>x-sa-password</b> oder <b>Email-Login</b></span>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <div class="field" style="min-width:360px;flex:2">
-        <label>Worker Base URL</label>
-        <input id="apiBase" placeholder="https://...workers.dev"/>
-        <div class="small">Wird lokal gespeichert. Keine .workers.de / .worker.de – nur .workers.dev</div>
-      </div>
-      <div class="field" style="min-width:260px;flex:1">
-        <label>SA Password (Header: x-sa-password)</label>
-        <input id="saPass" type="password" placeholder="optional"/>
-        <div class="small">Wenn falsch → 403. Wird lokal gespeichert.</div>
-      </div>
-      
-      <div class="field" style="min-width:240px;flex:1">
-        <label>Email Login</label>
-        <input id="loginEmail" placeholder="email@domain.de"/>
-        <div class="small">Optional. Nur Admin darf User freischalten/rollen setzen.</div>
-      </div>
-      <div class="field" style="min-width:220px;flex:1">
-        <label>Passwort</label>
-        <input id="loginPass" type="password" placeholder="••••••••"/>
-        <div class="small">Token wird lokal gespeichert (24h).</div>
-      </div>
-      <div class="field" style="min-width:220px;flex:0">
-        <label>&nbsp;</label>
-        <button class="btn secondary" id="btnLogin">Login</button>
-      </div>
-
-      <div class="field" style="min-width:220px;flex:0">
-        <label>&nbsp;</label>
-        <button class="btn" id="btnConnect">Connect</button>
-      </div>
+    <div class="bar">
+      <div class="brand"><span class="dot"></span> Washportal</div>
+      <div class="pill" id="buildPill">Worker: —</div>
+      <div class="pill" id="roomPill">Zimmer: —</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="tabs" id="tabs"></div>
+  <div class="wrap">
+    <div class="card">
+      <div class="help" style="margin:0">
+        Mit der Benutzung dieser Seite erklärst du dich mit der aktuellen
+        <a href="https://schluffi1220.github.io/washportal-dev/privacy/" target="_blank" rel="noopener">Datenschutzvereinbarung</a>
+        einverstanden.
+      </div>
+    </div>
 
-    <!-- CONFIG -->
-    <div id="view-config" class="view">
-      <div class="row" style="justify-content:space-between">
-        <div class="badge" id="cfgStatus">Config</div>
-        <div class="row">
-          <button class="btn secondary" id="btnCfgLoad">Load</button>
-          <button class="btn" id="btnCfgSave">Save</button>
+    <div class="banner" id="errBanner"></div>
+
+    <div class="card" id="newsCard" style="display:none">
+      <h2>News</h2>
+      <div id="newsText" class="sub"></div>
+    </div>
+
+    <div class="card">
+      <h2>Login</h2>
+      <div class="row">
+        <div class="field"><label>Zimmer</label><input id="room" inputmode="numeric" autocomplete="off" placeholder="z.B. 316"/></div>
+        <div class="field"><label>Persönlicher PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
+        <div class="field"><label>Stations-PIN</label><input id="stationPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"/></div>
+        <div class="field" style="flex:0 0 200px;align-self:flex-end">
+          <button id="btnRefresh" style="width:100%" onclick="window.wpRefreshAll && window.wpRefreshAll()">Aktualisieren</button>
         </div>
       </div>
-      <div class="hr"></div>
+      <div class="help">PIN ist persönlich: 316/1111 ≠ 316/2222.</div>
+    </div>
 
+    <div class="card">
+      <h2>Waschmaschine + Slot auswählen</h2>
       <div class="row">
         <div class="field">
-          <label>Stations-PIN (Eingabe verdeckt)</label>
-          <input id="cfgStationPin" type="password" placeholder="z.B. 1111"/>
-          <div class="small">Nach <b>Load</b> zeigen wir unten Klartext (nur Admin-Ansicht).</div>
+          <label>Slot (WM 1–4)</label>
+          <select id="slotSelect">
+            <option value="">Bitte auswählen…</option>
+          </select>
+          <div class="help">Belegte Slots sind als „BELEGT“ markiert.</div>
         </div>
-        <div class="field">
-          <label>Trockner Minuten (Slot läuft nach Buchung ab)</label>
-          <input id="cfgDryerMinutes" type="number" min="10" step="1" placeholder="z.B. 90"/>
-        </div>
-        <div class="field">
-          <label>Retention Days</label>
-          <input id="cfgRetentionDays" type="number" min="1" step="1" placeholder="z.B. 30"/>
+        <div class="field" style="flex:0 0 200px;align-self:flex-end">
+          <button id="btnBookWasher" style="width:100%">Buchen</button>
         </div>
       </div>
+    </div>
 
+    <div class="card">
+      <h2>Maschinenübersicht</h2>
+
+      <div class="divider"></div>
+      <div class="help" style="margin:0 0 8px 0">Waschmaschinen</div>
+      <div class="grid" id="washerGrid"></div>
+
+      <div class="divider"></div>
+      <div class="help" style="margin:0 0 8px 0">Trockner</div>
+      <div class="grid" id="dryerGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Meine Buchungen</h2>
+      <div id="myBookings"></div>
+      <div class="help">Abgelaufene Einträge: nur ausblenden (nicht löschen).</div>
+    </div>
+
+    <div class="card" id="feedbackCard" style="display:none">
+      <h2>Feedback</h2>
       <div class="row">
         <div class="field">
-          <label>daysPast (Vergangenheit in Tagen)</label>
-          <input id="cfgDaysPast" type="number" min="0" step="1" placeholder="z.B. 7"/>
-        </div>
-        <div class="field">
-          <label>daysFuture (Zukunft in Tagen)</label>
-          <input id="cfgDaysFuture" type="number" min="0" step="1" placeholder="z.B. 6"/>
-        </div>
-        <div class="field">
-          <label>Aktuelle Station-PIN (Klartext, nach Load)</label>
-          <input id="cfgStationPinClear" disabled placeholder="—"/>
+          <label>Empfänger</label>
+          <select id="feedbackTarget">
+            <option value="psvs">PS/SV (Standard)</option>
+            <option value="ps">Nur PS</option>
+            <option value="sv">Nur SV</option>
+            <option value="admin">Admin</option>
+          </select>
         </div>
       </div>
-
-      <div class="hr"></div>
-      <div class="small"><b>Waschslotzeiten</b> (Haken → Start-Stunden 0–23). Dauer wird im Portal automatisch als „bis zum nächsten Slot“ angezeigt.</div>
-      <div class="slotgrid" id="slotGrid"></div>
-      <div class="small" style="margin-top:6px">Aktiv: <span id="slotActiveText">—</span></div>
-
-      <div class="hr"></div>
-      <div class="small"><b>Features</b></div>
-      <div class="featuregrid">
-        <div class="feature"><input type="checkbox" id="fNews"><div><b>News aktiv</b><div class="small">Portal zeigt News-Banner</div></div></div>
-        <div class="feature"><input type="checkbox" id="fFeedback"><div><b>Feedback aktiv</b><div class="small">Portal Feedback-Formular</div></div></div>
-        <div class="feature"><input type="checkbox" id="fDefect"><div><b>User darf Defekt melden</b><div class="small">Defekt-Button im Portal</div></div></div>
-        <div class="feature"><input type="checkbox" id="fOverbook"><div><b>Trockner überbuchen</b><div class="small">Überbuchen im Portal</div></div></div>
-        <div class="feature"><input type="checkbox" id="fWhitecard"><div><b>Whitecard erlaubt</b><div class="small">User kann Whitecard selbst setzen</div></div></div>
-        <div class="feature"><input type="checkbox" id="fWasherPopup"><div><b>Washer Popup</b><div class="small">Info-Popup + Bild</div></div></div>
-        <div class="feature"><input type="checkbox" id="fDryerPopup"><div><b>Dryer Popup</b><div class="small">Info-Popup + Bild</div></div></div>
-        <div class="feature"><input type="checkbox" id="fRoomsEnabled"><div><b>Rooms aktiv</b><div class="small">Raum-Sperren/Begründung prüfen (optional)</div></div></div>
-        <div class="feature"><input type="checkbox" id="fAllowUserHide"><div><b>User kann alte Buchungen ausblenden</b><div class="small">(Portal localStorage)</div></div></div>
-      </div>
-
-      <div class="hr"></div>
-      <div class="row">
-        <div class="field">
-          <label>News Text</label>
-          <textarea id="cfgNewsText" placeholder="Kurzer Hinweis..."></textarea>
-        </div>
-      </div>
-
-      <div class="hr"></div>
-      <div class="small"><b>Feedback Zielgruppen</b> (im Portal Drop-Down)</div>
-      <div class="row">
-        <label class="badge"><input type="checkbox" id="tPS" style="margin-right:8px"> PS</label>
-        <label class="badge"><input type="checkbox" id="tSV" style="margin-right:8px"> SV</label>
-        <label class="badge"><input type="checkbox" id="tAdmin" style="margin-right:8px"> Admin</label>
-        <span class="badge warn">Antworten auf Feedback: INAKTIV (Worker-Route fehlt)</span>
-      </div>
-
-      <div class="hr"></div>
-      <div class="small"><b>Popup Bilder</b> (wir speichern DataURL direkt in der DB in config.json)</div>
-      <div class="row">
-        <div class="field">
-          <label>Washer Popup Image (URL oder DataURL)</label>
-          <input id="cfgWasherImg" placeholder="https://... oder data:image/..."/>
-          <div class="row" style="margin-top:8px">
-            <input id="fileWasher" type="file" accept="image/*" />
-            <button class="btn secondary" id="btnClearWasher">löschen</button>
-          </div>
-        </div>
-        <div class="field">
-          <label>Dryer Popup Image (URL oder DataURL)</label>
-          <input id="cfgDryerImg" placeholder="https://... oder data:image/..."/>
-          <div class="row" style="margin-top:8px">
-            <input id="fileDryer" type="file" accept="image/*" />
-            <button class="btn secondary" id="btnClearDryer">löschen</button>
-          </div>
-        </div>
-      </div>
-      <div class="preview">
-        <div class="badge">Preview</div>
-        <img id="imgPrevWasher" alt="washer preview" />
-        <img id="imgPrevDryer" alt="dryer preview" />
-      </div>
-
-      <div class="hr"></div>
-      <div class="small"><b>Weitere geplante Admin-Funktionen</b> (UI vorhanden, Worker fehlt noch):</div>
-      <div class="row" style="flex-wrap:wrap">
-        <span class="badge warn">Maschinen sperren/freigeben (INAKTIV)</span>
-        <span class="badge warn">Defekt-Management (INAKTIV)</span>
-        <span class="badge warn">Feedback Threads + Antworten (INAKTIV)</span>
-        <span class="badge warn">Logs/Protocol/Rooms (INAKTIV)</span>
-      </div>
-    </div>
-
-    <!-- USERS -->
-    <div id="view-users" class="view hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="badge" id="usersStatus">Users</div>
-        <div class="row">
-          <button class="btn secondary" id="btnUsersLoad">Users laden</button>
-        </div>
-      </div>
-      <div class="hr"></div>
-      <div class="small">Rollenliste kommt aus der DB (RBAC Snapshot). Du kannst Rollen setzen, auch als SA.</div>
-      <div class="hr"></div>
-      <table class="table">
-        <thead><tr><th>Email</th><th>Status</th><th>Wunsch</th><th>Role</th><th>Aktion</th></tr></thead>
-        <tbody id="usersBody"></tbody>
-      </table>
-      <div class="hr"></div>
-      <div class="badge ok">Email-Login/Registrierung: AKTIV (Admin via Token oder SA)</div>
-    </div>
-
-    
-    <!-- BOOKINGS -->
-    <div id="view-bookings" class="view hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="badge" id="bookingsStatus">Bookings</div>
-        <div class="row">
-          <input id="bookingsRoom" placeholder="Room (optional)" style="width:160px"/>
-          <button class="btn secondary" id="btnBookingsLoad">Load</button>
-          <button class="btn secondary" id="btnBookingsCsv">CSV</button>
-        </div>
-      </div>
-      <div class="hr"></div>
-      <div class="small">Stornierung nur mit Recht <b>bookings.cancel.any</b>. Storno wird im Log mit Actor gespeichert.</div>
-      <div class="hr"></div>
-      <div style="overflow:auto">
-        <table class="table" id="bookingsTable">
-          <thead>
-            <tr>
-              <th>Start</th><th>Ende</th><th>Type</th><th>Machine</th><th>Room</th><th>Status</th><th>ID</th><th>Aktion</th>
-            </tr>
-          </thead>
-          <tbody id="bookingsBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-<!-- RBAC -->
-    <div id="view-rbac" class="view hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="badge" id="rbacStatus">RBAC</div>
-        <div class="row">
-          <button class="btn secondary" id="btnRbacLoad">RBAC Snapshot</button>
-        </div>
-      </div>
-      <div class="hr"></div>
-      <div class="kv" id="rbacOut">—</div>
-      <div class="hr"></div>
-      <div class="small">Rollenrechte (Pro Rolle). Änderungen sind <b>nur als SA</b> möglich.</div>
-      <div class="hr"></div>
-      <div style="overflow:auto">
-        <table class="table" id="rbacMatrix">
-          <thead>
-            <tr><th>Permission</th><th>SA</th><th>Admin</th><th>PS</th><th>SV</th><th>User</th></tr>
-          </thead>
-          <tbody id="rbacMatrixBody"></tbody>
-        </table>
-      </div>
-
-      <div class="hr"></div>
-      <div class="badge" id="rbacPermHint">Rechte/Perms: —</div>
-    </div>
-
-    <!-- PLACEHOLDER TABS -->
-    <div id="view-machines" class="view hidden">
-
-  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
-    <button class="btn" id="btnMachinesLoad">Machines laden</button>
-    <input class="input" id="machinesRoom" placeholder="Room (optional)" style="max-width:240px"/>
-    <div class="muted">Bearbeiten: via RBAC-Perm <code>machines.write</code> (oder SA).</div>
-  </div>
-  <div class="card" style="margin-top:12px">
-    <div class="card-h">Machines</div>
-    <div class="card-b">
-      <table class="table" id="tblMachines">
-        <thead><tr><th>Room</th><th>Kind</th><th>ID</th><th>Label</th><th>Min</th><th>Enabled</th><th>Defekt</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-
-</div></div>
-    <div id="view-defects" class="view hidden">
-
-  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
-    <button class="btn" id="btnDefectsLoad">Defekte laden</button>
-    <input class="input" id="defectsRoom" placeholder="Room (optional)" style="max-width:240px"/>
-  </div>
-  <div class="card" style="margin-top:12px">
-    <div class="card-h">Defekte</div>
-    <div class="card-b">
-      <table class="table" id="tblDefects">
-        <thead><tr><th>Zeit</th><th>Room</th><th>Kind</th><th>Machine</th><th>Text</th><th>Status</th><th>Aktion</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-
-</div></div>
-    <div id="view-feedback" class="view hidden">
-
-  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
-    <button class="btn" id="btnFeedbackLoad">Feedback laden</button>
-  </div>
-  <div class="card" style="margin-top:12px">
-    <div class="card-h">Feedback</div>
-    <div class="card-b">
-      <table class="table" id="tblFeedback">
-        <thead><tr><th>Zeit</th><th>Room</th><th>Message</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-
-</div></div>
-    <div id="view-logs" class="view hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="badge" id="logsStatus">Logs</div>
-        <div class="row">
-          <input id="logsAction" placeholder="action filter (optional)" style="width:200px"/>
-          <button class="btn secondary" id="btnLogsLoad">Load</button>
-          <button class="btn secondary" id="btnLogsCsv">CSV</button>
-        </div>
-      </div>
-      <div class="hr"></div>
-      <div style="overflow:auto">
-        <table class="table" id="logsTable">
-          <thead>
-            <tr><th>Zeit</th><th>Action</th><th>Actor</th><th>Role</th><th>Target</th><th>Meta</th></tr>
-          </thead>
-          <tbody id="logsBody"></tbody>
-        </table>
-      </div>
-    </div>
-    <div id="view-rooms" class="view hidden">
-
-  <div class="row" style="gap:10px; align-items:center; flex-wrap:wrap">
-    <button class="btn" id="btnRoomsLoad">Rooms laden</button>
-  </div>
-  <div class="card" style="margin-top:12px">
-    <div class="card-h">Rooms</div>
-    <div class="card-b">
-      <table class="table" id="tblRooms">
-        <thead><tr><th>ID</th><th>Begründung</th><th>Active</th><th>Aktion</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <div class="row" style="gap:10px; margin-top:12px; flex-wrap:wrap">
-        <input class="input" id="roomId" placeholder="room-id" style="max-width:180px"/>
-        <input class="input" id="roomName" placeholder="Begründung" style="max-width:260px"/>
-        <label class="row" style="gap:8px"><input type="checkbox" id="roomActive" checked/> aktiv</label>
-        <button class="btn" id="btnRoomSave">Room speichern</button>
+      <div style="height:10px"></div>
+      <label>Nachricht</label>
+      <textarea id="feedbackText" placeholder="Kurzer Hinweis…"></textarea>
+      <div class="row" style="margin-top:10px">
+        <div class="field" style="flex:0 0 220px"><button id="btnSendFeedback" style="width:100%">Senden</button></div>
       </div>
     </div>
   </div>
-
-</div></div>
-    <div id="view-privacy" class="view hidden">
-      <div class="badge">Privacy Meta</div>
-      <div class="hr"></div>
-      <button class="btn secondary" id="btnPrivacyLoad">/api/privacy/meta laden</button>
-      <div class="hr"></div>
-      <div class="kv" id="privacyOut">—</div>
-    </div>
-
-    <div class="hr"></div>
-    <div class="small" id="msg"></div>
-  </div>
-</div>
 
 <script>
-    function BASE(){ return base(); }
+  function getRoomCode(){
+    const el = document.getElementById("roomCode") || document.getElementById("room") || document.getElementById("roomInput");
+    return (el?.value || "").trim();
+  }
+  function requireRoomCode(){
+    const code = getRoomCode();
+    if (code.length < 2 || code.length > 32){
+      toast("Bitte Zimmer / Raum (frei wählbar) mit 2–32 Zeichen eingeben.");
+      const rc = document.getElementById("roomCode") || document.getElementById("room") || document.getElementById("roomInput");
+      if (rc) rc.focus();
+      return null;
+    }
+    return code;
+  }
 
-  function authHeaders(){
-    const h = { "content-type":"application/json" };
-    const t = (window.__token || "").trim();
-    if (t) h["authorization"] = "Bearer " + t;
-    const sa = (document.getElementById("saPass")?.value || "").trim();
-    if (sa) h["x-sa-pass"] = sa;
-    return h;
+  // Zimmer/Raum Pflichtfeld: 2-32 Zeichen (frei wählbar)
+  function wpRoomCode(){
+    const el = document.getElementById("room") || document.getElementById("roomCode") || document.querySelector('input[name="room"]');
+    return (el?.value || "").trim();
   }
-function base(){
-    const v = (document.getElementById("apiBase")?.value || "").trim();
-    return v.replace(/\/$/,"");
+  function wpEnsureRoomCode(){
+    const code = wpRoomCode();
+    if (code.length < 2 || code.length > 32){
+      try{
+        const el = document.getElementById("room") || document.getElementById("roomCode") || document.querySelector('input[name="room"]');
+        if (el){
+          el.focus();
+          el.style.outline = "2px solid rgba(255,0,0,.55)";
+          setTimeout(()=>{ el.style.outline = ""; }, 1500);
+        }
+      }catch(_){}
+      if (typeof msg === "function") msg("Bitte Zimmer / Raum eingeben (2–32 Zeichen).", "bad");
+      return null;
+    }
+    return code;
   }
+
 
 (() => {
-  const el = (id) => document.getElementById(id);
-  const msg = (t, kind="") => {
-    const m = el("msg");
-    m.textContent = t || "";
-    m.style.color = kind==="bad" ? "var(--bad)" : kind==="ok" ? "var(--good)" : "var(--muted)";
+  const WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
+  const API = WORKER.replace(/\/$/,"");
+  const $ = (id)=>document.getElementById(id);
+
+  const state = {
+    config:null,
+    machines:[],
+    bookings:[],
+    myBookings:[],
+    hiddenMy: new Set(JSON.parse(localStorage.getItem("wash_hidden_my")||"[]")),
   };
 
-  let API = "";
-  let SA = "";
-  let ROUTES = new Set();
-  let TOKEN = localStorage.getItem('wp_admin_token') || "";
-  
-  // Prefill base URL
-  try {
-    const b = el("base");
-    if (b && !b.value) b.value = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  } catch(_){
-  }
-let ROLE_OPTIONS = [];
-
-  const RBAC_PERMS = [
-    { key:"users.list", label:"users.list – Userliste sehen" },
-    { key:"users.approve", label:"users.approve – User freischalten" },
-    { key:"users.role.set", label:"users.role.set – Rollen setzen (SA only)" },
-    { key:"role.transfer.accept", label:"role.transfer.accept – PS/SV Übergabe" },
-
-    { key:"bookings.read", label:"bookings.read – Buchungen sehen" },
-    { key:"bookings.cancel.any", label:"bookings.cancel.any – Buchungen stornieren (Admin)" },
-    { key:"bookings.csv.export", label:"bookings.csv.export – Buchungen CSV Download" },
-
-    { key:"logs.read", label:"logs.read – Logs sehen" },
-    { key:"logs.csv.export", label:"logs.csv.export – Logs CSV Download" },
-
-    { key:"config.get", label:"config.get – Config lesen" },
-    { key:"config.set", label:"config.set – Config ändern" },
+  // expose state for popup helpers outside the IIFE
+  window.__wpState = state;
 
 
-    { key:"machines.read", label:"machines.read – Machines sehen" },
-    { key:"machines.write", label:"machines.write – Machines ändern" },
-
-    { key:"defects.read", label:"defects.read – Defekte sehen" },
-    { key:"defects.clear", label:"defects.clear – Defekte freigeben" },
-
-    { key:"feedback.read", label:"feedback.read – Feedback sehen" },
-
-    { key:"rooms.read", label:"rooms.read – Rooms sehen" },
-    { key:"rooms.write", label:"rooms.write – Rooms ändern" },
-
-    { key:"rbac.snapshot", label:"rbac.snapshot – RBAC Snapshot lesen" },
-    { key:"rbac.perm.set", label:"rbac.perm.set – RBAC ändern (SA only)" }
-  ];
-
-  function bool(v){ return String(v)==="1" || v===1 || v===true; }
-
-  function canEditRbacPerms(){
-    return ROUTES.has("/api/auth/admin/rbac/perm/set") && !!SA;
+  function showErr(msg){
+    const b = $("errBanner");
+    b.textContent = msg || "";
+    b.style.display = msg ? "block" : "none";
   }
 
-  async function setRolePerm(role, perm, allowed){
-    // Worker enforces SA-only
-    await jpost("/api/auth/admin/rbac/perm/set", { scope:"role", role, perm, allowed: !!allowed });
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function fmtDate(ms){
+    const d = new Date(ms);
+    const wd = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
+    return `${wd} ${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.`;
+  }
+  function fmtTime(ms){
+    const d = new Date(ms);
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   }
 
-  function renderRbacMatrix(data){
-    const hint = el("rbacPermHint");
-    if (hint){
-      const active = ROUTES.has("/api/auth/admin/rbac/perm/set");
-      hint.classList.remove("ok","warn","bad");
-      hint.classList.add(active ? (SA ? "ok":"warn") : "warn");
-      hint.textContent = active
-        ? (SA ? "Rechte/Perms: AKTIV (SA)" : "Rechte/Perms: gesperrt (nur SA-Passwort eingeben)")
-        : "Rechte/Perms: INAKTIV (Route fehlt)";
-    }
+  async function jpost(path, body){
+    const roomCode = wpEnsureRoomCode();
+    if (!roomCode) return;
 
-    const roleMap = new Map(); // role -> perm -> allowed
-    (data.rolePermissions || []).forEach(rp => {
-      const role = String(rp.role||"").toLowerCase();
-      const perm = String(rp.perm||"");
-      if (!roleMap.has(role)) roleMap.set(role, new Map());
-      roleMap.get(role).set(perm, bool(rp.allowed));
+    const res = await fetch(API+path, {
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body: JSON.stringify(body||{})
     });
-
-    const roles = ["admin","ps","sv","user"];
-    let body = el("rbacMatrixBody") || el("rbacRolesBody");
-    if (!body) {
-      // Create tbody dynamically if missing (older HTML)
-      const tbl = el("rbacMatrix") || document.querySelector("table#rbacMatrix");
-      if (tbl) {
-        let tb = tbl.querySelector("tbody");
-        if (!tb) { tb = document.createElement("tbody"); tbl.appendChild(tb); }
-        tb.id = "rbacMatrixBody";
-        body = tb;
-      }
-    }
-    if (!body) { msg("RBAC Matrix DOM fehlt (rbacMatrixBody).", "bad"); return; }
-    body.innerHTML = "";
-    // debug
-    // console.log("renderRbacMatrix", snap);
-
-    const editable = canEditRbacPerms();
-
-    for (const p of RBAC_MATRIX_PERMS){
-      const tr = document.createElement("tr");
-      const cells = [];
-      cells.push(`<td>${escapeHtml(p.label)}</td>`);
-      cells.push(`<td>✅</td>`); // SA always
-      for (const r of roles){
-        const checked = roleMap.get(r)?.get(p.key) ? "checked" : "";
-        const dis = editable ? "" : "disabled";
-        cells.push(`<td><input type="checkbox" ${checked} ${dis} data-role="${r}" data-perm="${escapeHtml(p.key)}"></td>`);
-      }
-      tr.innerHTML = cells.join("");
-      body.appendChild(tr);
-    }
-
-    // wire changes
-    body.querySelectorAll("input[type=checkbox]").forEach(cb => {
-      cb.addEventListener("change", async () => {
-        try{
-          const role = cb.getAttribute("data-role");
-          const perm = cb.getAttribute("data-perm");
-          await setRolePerm(role, perm, cb.checked);
-          msg("Gespeichert.", "ok");
-        } catch(e){
-          msg("Fehler: " + (e.data?.message || e.message), "bad");
-          cb.checked = !cb.checked;
-        }
-      });
-    });
-  }
-
-
-  function normBase(u){
-    u = (u||"").trim();
-    u = u.replace(/\/+$/,'');
-    if (!u) return "";
-    return u;
-  }
-
-  
-  function authHeaders(extra={}){
-    const h = Object.assign({}, extra);
-    if (SA) h["x-sa-password"] = SA;
-    if (TOKEN) h["authorization"] = "Bearer " + TOKEN;
-    // content-type nur setzen, wenn wir JSON senden
-    return h;
-  }
-
-async function jfetch(path, opts={}){
-    if (!API) throw new Error("Kein Worker gesetzt.");
-    const headers = Object.assign({}, opts.headers || {});
-    if (SA) headers["x-sa-password"] = SA;
-    if (TOKEN) headers["authorization"] = "Bearer " + TOKEN;
-    headers["content-type"] = headers["content-type"] || "application/json";
-    const res = await fetch(API + path, Object.assign({}, opts, { headers }));
-    const ct = res.headers.get("content-type") || "";
-    const data = ct.includes("application/json") ? await res.json() : { ok:false, status:res.status, message: await res.text() };
-    if (!res.ok) throw Object.assign(new Error(data?.message || "HTTP "+res.status), { data, status: res.status });
+    const data = await res.json().catch(async()=>({ok:false,message:await res.text()}));
+    if(!res.ok || data.ok===false) throw data;
     return data;
   }
-  const jpost = (path, body) => jfetch(path, { method:"POST", body: JSON.stringify(body||{}) });
-  const jget = (path) => jfetch(path, { method:"GET", headers: { "content-type": "text/plain" } });
 
-  function setConn(ok, build=""){
-    el("pillConn").textContent = ok ? "verbunden" : "nicht verbunden";
-    el("pillConn").className = "pill " + (ok ? "" : "");
-    el("pillBuild").textContent = "build: " + (build || "-");
-  }
-
-  function setCfgBadge(kind, text){
-    const b = document.getElementById("cfgStatus");
-    if (!b) return;
-    b.textContent = text || "Config";
-    b.classList.remove("ok","warn","bad");
-    if (kind) b.classList.add(kind);
-  }
-
-  function tabButton(key, label, warn=false){
-    const b = document.createElement("div");
-    b.className = "tab";
-    b.dataset.key = key;
-    b.textContent = label + (warn ? " (INAKTIV)" : "");
-    b.addEventListener("click", () => setTab(key));
-    return b;
-  }
-
-  function setTab(key){
-    for (const t of document.querySelectorAll(".tab")) t.classList.toggle("active", t.dataset.key===key);
-    for (const v of document.querySelectorAll(".view")) v.classList.add("hidden");
-    el("view-"+key).classList.remove("hidden");
-  }
-
-  function buildTabs(){
-    const t = el("tabs");
-    t.innerHTML = "";
-    const active = (k) => ROUTES.has(k);
-    // These are "capabilities" based on routes we actually have:
-    t.appendChild(tabButton("config","Config", !active("/api/auth/admin/config/get")));
-    t.appendChild(tabButton("users","Users", !active("/api/auth/admin/users/list")));
-    t.appendChild(tabButton("rbac","RBAC", !active("/api/auth/admin/rbac/snapshot")));
-    t.appendChild(tabButton("bookings","Bookings", !active("/api/auth/admin/bookings/list")));
-    t.appendChild(tabButton("machines","Machines", true));
-    t.appendChild(tabButton("defects","Defects", true));
-    t.appendChild(tabButton("feedback","Feedback", true));
-    t.appendChild(tabButton("logs","Logs", !active("/api/auth/admin/logs/list")));
-    t.appendChild(tabButton("rooms","Rooms", true));
-    t.appendChild(tabButton("privacy","Privacy", !active("/api/privacy/meta")));
-    setTab("config");
-  }
-
-  function hoursFromChecks(){
-    const hours=[];
-    for (let h=0; h<24; h++){
-      const cb = el("slot_"+h);
-      if (cb && cb.checked) hours.push(h);
-    }
-    hours.sort((a,b)=>a-b);
-    return hours;
-  }
-  function setChecksFromHours(hours){
-    const set = new Set((hours||[]).map(n=>Number(n)));
-    for (let h=0; h<24; h++){
-      const cb = el("slot_"+h);
-      if (cb) cb.checked = set.has(h);
-    }
-    updateSlotActiveText();
-  }
-  function updateSlotActiveText(){
-    const hours = hoursFromChecks();
-    el("slotActiveText").textContent = hours.length ? hours.map(h=>String(h).padStart(2,"0")+":00").join(", ") : "—";
-  }
-  function initSlotGrid(){
-    const g = el("slotGrid");
-    g.innerHTML = "";
-    for (let h=0; h<24; h++){
-      const d = document.createElement("label");
-      d.className = "slot";
-      d.innerHTML = `<input type="checkbox" id="slot_${h}"><span>${String(h).padStart(2,"0")}:00</span>`;
-      g.appendChild(d);
-      d.querySelector("input").addEventListener("change", updateSlotActiveText);
-    }
-  }
-
-  function configToUI(cfg){
-    cfg = cfg || {};
-    el("cfgDryerMinutes").value = cfg.dryerMinutes ?? cfg.dryerSlotMinutes ?? cfg.dryer_slot_minutes ?? "";
-    el("cfgRetentionDays").value = cfg.retentionDays ?? cfg.retention_days ?? "";
-    el("cfgDaysPast").value = cfg.daysPast ?? cfg.days_past ?? "";
-    el("cfgDaysFuture").value = cfg.daysFuture ?? cfg.days_future ?? "";
-    // station pin: masked input empty (we don't re-fill), but show clear if present
-    el("cfgStationPinClear").value = cfg.stationPin ?? cfg.station_pin ?? "—";
-
-    const hours = cfg.washerHours ?? cfg.washer_hours ?? cfg.washerSlots ?? cfg.washer_slots ?? [];
-    setChecksFromHours(hours);
-
-    const features = cfg.features || cfg;
-    el("fNews").checked = !!(features.newsEnabled ?? features.news ?? false);
-    el("fFeedback").checked = !!(features.feedbackEnabled ?? features.feedback ?? false);
-    el("fDefect").checked = !!(features.userCanReportDefect ?? features.userDefect ?? features.allowDefectReport ?? false);
-    el("fOverbook").checked = !!(features.allowOverbook ?? features.overbook ?? false);
-    el("fWhitecard").checked = !!(features.whitecardEnabled ?? features.whitecard ?? false);
-    el("fWasherPopup").checked = !!(features.showWasherPopup ?? features.washerPopup ?? false);
-    el("fDryerPopup").checked = !!(features.showDryerPopup ?? features.dryerPopup ?? false);
-    el("fRoomsEnabled").checked = !!(features.roomsEnabled ?? false);
-    el("fAllowUserHide").checked = true;
-
-    el("cfgNewsText").value = cfg.newsText ?? cfg.news_text ?? "";
-
-    // targets
-    const targets = (cfg.feedbackTargets ?? cfg.feedback_targets ?? "ps,sv,admin").toString().toLowerCase();
-    el("tPS").checked = targets.includes("ps");
-    el("tSV").checked = targets.includes("sv");
-    el("tAdmin").checked = targets.includes("admin");
-
-    // images
-    el("cfgWasherImg").value = cfg.washerPopupImage ?? cfg.washer_popup_image ?? "";
-    el("cfgDryerImg").value = cfg.dryerPopupImage ?? cfg.dryer_popup_image ?? "";
-    updatePreviews();
-  }
-
-  function uiToConfig(){
-    const cfg = {};
-    const stationPin = (el("cfgStationPin").value || "").trim();
-    if (stationPin) cfg.stationPin = stationPin;
-
-    cfg.dryerMinutes = Number(el("cfgDryerMinutes").value || 0) || 0;
-    cfg.retentionDays = Number(el("cfgRetentionDays").value || 0) || 0;
-    cfg.daysPast = Number(el("cfgDaysPast").value || 0) || 0;
-    cfg.daysFuture = Number(el("cfgDaysFuture").value || 0) || 0;
-    cfg.washerHours = hoursFromChecks();
-
-    cfg.features = {
-      newsEnabled: el("fNews").checked,
-      feedbackEnabled: el("fFeedback").checked,
-      userCanReportDefect: el("fDefect").checked,
-      allowOverbook: el("fOverbook").checked,
-      whitecardEnabled: el("fWhitecard").checked,
-      showWasherPopup: el("fWasherPopup").checked,
-      showDryerPopup: el("fDryerPopup").checked,
-      roomsEnabled: el("fRoomsEnabled").checked
+  function creds(){
+    return {
+      room: String($("room").value||"").trim(),
+      pin: String($("pin").value||"").trim(),
+      stationPin: String($("stationPin").value||"").trim(),
     };
-
-    cfg.newsText = el("cfgNewsText").value || "";
-
-    const targets = [];
-    if (el("tPS").checked) targets.push("ps");
-    if (el("tSV").checked) targets.push("sv");
-    if (el("tAdmin").checked) targets.push("admin");
-    cfg.feedbackTargets = targets.join(",");
-
-    cfg.washerPopupImage = (el("cfgWasherImg").value||"").trim();
-    cfg.dryerPopupImage = (el("cfgDryerImg").value||"").trim();
-    return cfg;
   }
 
-  function updatePreviews(){
-    const w = el("cfgWasherImg").value.trim();
-    const d = el("cfgDryerImg").value.trim();
-    const iw = el("imgPrevWasher");
-    const id = el("imgPrevDryer");
-    iw.src = w || "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-    id.src = d || "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+  
+  function isValidRoomCode(room){
+    const s = String(room||"").trim();
+    return /^[A-Za-z0-9][A-Za-z0-9_-]{1,31}$/.test(s);
+  }
+function computeWasherEnd(cfg, startAt){
+    const hours = (cfg.washerHours||[]).map(Number).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b);
+    const d = new Date(startAt);
+    const day0 = new Date(startAt); day0.setHours(0,0,0,0);
+    const h = d.getHours();
+    const idx = hours.indexOf(h);
+    const nextH = (idx>=0 && idx < hours.length-1) ? hours[idx+1] : h+2;
+    return day0.getTime() + nextH*3600000;
   }
 
-  async function fileToDataURL(file){
-    return await new Promise((resolve,reject)=>{
-      const fr=new FileReader();
-      fr.onerror=()=>reject(new Error("FileReader error"));
-      fr.onload=()=>resolve(String(fr.result||""));
-      fr.readAsDataURL(file);
-    });
+  function rebuildNews(){
+    const s = (window.__wpState || {});
+  const cfg = s.config || {};
+    const enabled = !!cfg.features?.newsEnabled;
+    const txt = String(cfg.newsText||"").trim();
+    if(enabled && txt){
+      $("newsText").textContent = txt;
+      $("newsCard").style.display = "";
+    } else {
+      $("newsCard").style.display = "none";
+    }
+  }
+  function rebuildFeedback(){
+    const s = (window.__wpState || {});
+  const cfg = s.config || {};
+    $("feedbackCard").style.display = cfg.features?.feedbackEnabled ? "" : "none";
   }
 
-  async function connect(){
-    API = normBase(el("apiBase").value);
-    SA = (el("saPass").value||"").trim();
-    if (!API) { msg("Bitte Worker Base URL setzen.","bad"); return; }
-
-    localStorage.setItem("wp_admin_apiBase", API);
-    localStorage.setItem("wp_admin_sa", SA);
-
-    msg("Verbinde...");
-    setCfgBadge("warn","Config: (noch nicht geladen)");
-
-    // load routes + status
-    const routes = await jget("/api/_routes").catch(async () => ({ ok:false, routes:[] }));
-    ROUTES = new Set((routes.routes||[]).map(r => String(r).split(" ").slice(1).join(" ")).filter(Boolean));
-
-    const st = await jget("/api/_status");
-    setConn(true, st.build || st.version || "-");
-    buildTabs();
-    msg("Verbunden. Worker: " + (st.build || "-"), "ok");
-    if (ROUTES.has("/api/auth/admin/config/get")) setCfgBadge("warn","Config: bereit (Load klicken)");
-
-    // preload RBAC roles list (optional)
-    await loadRbac().catch(()=>{});
+  function isTaken(kind, machine, startAt, endAt){
+    return (state.bookings||[]).some(b =>
+      b.kind===kind && Number(b.machine)===Number(machine) &&
+      (b.status==="booked" || b.status==="running") &&
+      b.startAt < endAt && b.endAt > startAt
+    );
   }
 
-  async function loadConfig(){
-    const data = await jpost("/api/auth/admin/config/get", {});
-    const cfg = data.config || data.cfg || data;
-    configToUI(cfg);
-    msg("Config geladen.", "ok");
-    setCfgBadge("ok","Config: AKTIV");
+  function slotLine(machine, startAt, endAt){
+    return `${fmtDate(startAt)} ${fmtTime(startAt)}-${fmtTime(endAt)} Waschmaschine ${machine}`;
   }
 
-  async function saveConfig(){
-    const cfg = uiToConfig();
-    const data = await jpost("/api/auth/admin/config/set", { config: cfg });
-    msg("Config gespeichert.", "ok");
-    setCfgBadge("ok","Config: gespeichert");
-    // reload to show cleartext station pin after set
-    await loadConfig();
-  }
+  function rebuildSlotDropdown(){
+    const sel = $("slotSelect");
+    sel.innerHTML = `<option value="">Bitte auswählen…</option>`;
+    const code = getRoomCode();
+    const cfg = state.config;
+    if(!cfg) return;
 
-  async function loadUsers(){
-    const data = await jpost("/api/auth/admin/users/list", {});
-    const users = data.users || data.items || [];
-    const tbody = el("usersBody");
-    tbody.innerHTML = "";
-    // debug
-    // console.log("renderRbacMatrix", snap);
-    for (const u of users){
-      const tr = document.createElement("tr");
-      const email = u.email || u.userEmail || "";
-      const status = u.status || "";
-      const role = u.role || "";
-      const sel = document.createElement("select");
-      const opts = (ROLE_OPTIONS.length ? ROLE_OPTIONS : [...new Set(users.map(x=>x.role).filter(Boolean))]).sort();
-      for (const r of opts){
-        const o = document.createElement("option");
-        o.value = r; o.textContent = r;
-        if (r === role) o.selected = true;
-        sel.appendChild(o);
-      }
-      const btn = document.createElement("button");
-      btn.className = "btn secondary";
-      btn.textContent = "Role setzen";
-      btn.addEventListener("click", async () => {
-        btn.disabled = true;
-        try{
-          await jpost("/api/auth/admin/users/role/set", { email, role: sel.value });
-          msg("Rolle gesetzt: "+email+" → "+sel.value, "ok");
-          await loadUsers();
-        } catch(e){
-          msg("Fehler Role set: " + (e.data?.message || e.message), "bad");
-        } finally { btn.disabled = false; }
-      });
-      const wish = (u.requestedRole || "").toString();
-      const approve = document.createElement("button");
-      approve.className = "btn secondary";
-      approve.textContent = "Approve";
-      approve.style.marginRight = "8px";
-      approve.disabled = (status||"").toLowerCase() === "active";
-      approve.addEventListener("click", async () => {
-        approve.disabled = true;
-        try{
-          await jpost("/api/auth/admin/users/approve", { email });
-          msg("Approved: " + email, "ok");
-          await loadUsers();
-        } catch(e){
-          msg("Fehler Approve: " + (e.data?.message || e.message), "bad");
+    const now = Date.now();
+    const daysFuture = Number(cfg.daysFuture ?? 6);
+    const hours = (cfg.washerHours||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+
+    const opts = [];
+    for(let di=0; di<=daysFuture; di++){
+      const day = new Date(now + di*86400000);
+      day.setHours(0,0,0,0);
+      for(const h of hours){
+        const startAt = day.getTime() + h*3600000;
+        const endAt = computeWasherEnd(cfg, startAt);
+        if(endAt <= now) continue;
+        for(let m=1;m<=4;m++){
+          const taken = isTaken("washer", m, startAt, endAt);
+          opts.push({machine:m, startAt, endAt, taken});
         }
-      });
-
-      const transfer = document.createElement("button");
-      transfer.className = "btn secondary";
-      transfer.textContent = "Transfer PS/SV";
-      transfer.addEventListener("click", async () => {
-        transfer.disabled = true;
-        try{
-          const r = (wish || sel.value || "").toLowerCase();
-          if (r !== "ps" && r !== "sv") throw new Error("Wunschrolle muss ps oder sv sein.");
-          await jpost("/api/auth/role/transfer/accept", { role: r, toEmail: email });
-          msg("Transfer ausgeführt: " + r + " → " + email, "ok");
-          await loadUsers();
-        } catch(e){
-          msg("Fehler Transfer: " + (e.data?.message || e.message), "bad");
-        } finally { transfer.disabled = false; }
-      });
-
-      tr.innerHTML = `<td>${escapeHtml(email)}</td><td>${escapeHtml(status)}</td><td>${escapeHtml(wish)}</td>`;
-      const tdRole = document.createElement("td"); tdRole.appendChild(sel);
-      const tdAct = document.createElement("td");
-      tdAct.appendChild(approve);
-      tdAct.appendChild(btn);
-      tdAct.appendChild(transfer);
-      tr.appendChild(tdRole); tr.appendChild(tdAct);
-      tbody.appendChild(tr);
+      }
     }
-    msg("Users geladen: " + users.length, "ok");
+    opts.sort((a,b)=>a.startAt-b.startAt || a.machine-b.machine);
+
+    for(const o of opts){
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({ roomCode: code, machine:o.machine, startAt:o.startAt});
+      opt.textContent = slotLine(o.machine, o.startAt, o.endAt) + (o.taken ? " — BELEGT" : "");
+      opt.disabled = !!o.taken;
+      sel.appendChild(opt);
+    }
   }
 
-  async function loadRbac(){
-    const data = await jpost("/api/auth/admin/rbac/snapshot", {});
-    
-    window.__lastRbacSnap = data;
-el("rbacOut").textContent = JSON.stringify(data, null, 2);
-    // extract roles list
-    const roles = data.roles || data.roleList || data.availableRoles || [];
-    if (Array.isArray(roles) && roles.length){
-      ROLE_OPTIONS = roles.map(r => (typeof r === "string" ? r : (r && (r.role || r.name)))).filter(Boolean).map(String);
-    } else if (typeof data === "object") {
-      // fallback: parse from message or keys
-      const txt = JSON.stringify(data);
-      // crude: roles: [...] already handled
+  function washerTileOptions(machineId){
+    const code = getRoomCode();
+    const cfg = state.config;
+    if(!cfg) return `<option value="">(keine Daten)</option>`;
+    const now = Date.now();
+    const daysFuture = Number(cfg.daysFuture ?? 6);
+    const hours = (cfg.washerHours||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+    const opts = [];
+    for(let di=0; di<=daysFuture; di++){
+      const day = new Date(now + di*86400000);
+      day.setHours(0,0,0,0);
+      for(const h of hours){
+        const startAt = day.getTime() + h*3600000;
+        const endAt = computeWasherEnd(cfg, startAt);
+        if(endAt <= now) continue;
+        const taken = isTaken("washer", machineId, startAt, endAt);
+        opts.push({ startAt, endAt, taken });
+      }
     }
-    try { if (typeof renderRbacMatrix==="function") renderRbacMatrix(data); } catch(e){ msg("RBAC Matrix Fehler: "+(e.message||e), "bad"); console.error(e);} 
-    msg("RBAC Snapshot ok.", "ok");
-    return data;
+    opts.sort((a,b)=>a.startAt-b.startAt);
+    let html = `<option value="">Slot auswählen…</option>`;
+    for(const o of opts){
+      const label = `${fmtDate(o.startAt)} ${fmtTime(o.startAt)}-${fmtTime(o.endAt)}${o.taken ? " · BELEGT" : ""}`;
+      const val = JSON.stringify({ roomCode: code,  machine: Number(machineId), startAt:o.startAt, endAt:o.endAt });
+      html += `<option value='${val.replace(/'/g,"&#39;")}' ${o.taken ? "disabled":""}>${escapeHtml(label)}</option>`;
+    }
+    return html;
   }
 
-  async function loadPrivacy(){
-    const data = await jget("/api/privacy/meta");
-    el("privacyOut").textContent = JSON.stringify(data, null, 2);
-    msg("Privacy Meta geladen.", "ok");
+
+  function machineTint(m){
+    const defect = Number(m.defective||0)===1;
+    // Status badge reflects ONLY the current running slot (not future reservations)
+    const running = !!m.current;
+    const white = !!(m.current && m.current.whitecard);
+    if(defect) return ["t-def","DEFEKT"];
+    if(white) return ["t-white","WHITECARD"];
+    if(running) return ["t-busy","LÄUFT"];
+    return ["t-free","FREI"];
+  }
+
+  function fmtOcc(x){
+    if(!x) return "—";
+    const r = x.room ? `Zimmer ${x.room}` : "Zimmer —";
+    return `${r} ${fmtTime(x.startAt)}-${fmtTime(x.endAt)}`;
   }
 
   function escapeHtml(s){
-    return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
-  
-  async function doLogin(){
-    const email = (el("loginEmail").value||"").trim();
-    const password = (el("loginPass").value||"").trim();
-    if (!email || !password) { msg("Email & Passwort eingeben.", "bad"); return; }
-    const data = await jpost("/api/auth/login", { email, password });
-    TOKEN = data.token || "";
-    localStorage.setItem("wp_admin_token", TOKEN);
-    msg("Login ok (Token gespeichert).", "ok");
-  }
+  function renderMachineCard(m){
+    const [tint, badge] = machineTint(m);
+    const kindLabel = (m.kind==="washer") ? `Waschmaschine ${m.machineId}` : `Trockner ${m.machineId}`;
+    const rawLabel = (m.label==null? "" : String(m.label)).trim();
+    const label = (!rawLabel || /^\d+$/.test(rawLabel)) ? kindLabel : rawLabel;
 
-
-
-  function setText(id, v) {
-    const x = document.getElementById(id);
-    if (x) x.textContent = (v === null || typeof v === "undefined" || v === "") ? "—" : String(v);
-  }
-
-  
-    const RBAC_MATRIX_PERMS = [
-    // Users / Auth / RBAC
-    { key:"users.list", label:"Userliste sehen" },
-    { key:"users.approve", label:"User freischalten" },
-    { key:"users.role.set", label:"Rolle setzen (direkt)" },
-    { key:"role.transfer.accept", label:"PS/SV Übergabe" },
-    { key:"rbac.snapshot", label:"RBAC Snapshot lesen" },
-    { key:"rbac.perm.set", label:"RBAC bearbeiten" },
-
-    // Bookings (Admin)
-    { key:"bookings.read", label:"Buchungen ansehen" },
-    { key:"bookings.cancel.any", label:"Buchungen stornieren (Admin)" },
-    { key:"bookings.csv.export", label:"Buchungen CSV-Download" },
-
-    // Logs (Admin)
-    { key:"logs.read", label:"Logs ansehen" },
-    { key:"logs.csv.export", label:"Logs CSV-Download" },
-
-    // Prepared (coming soon)
-    { key:"machines.read", label:"Maschinen ansehen (vorbereitet)" },
-    { key:"machines.edit", label:"Maschinen bearbeiten (vorbereitet)" },
-    { key:"defects.read", label:"Defekte ansehen (vorbereitet)" },
-    { key:"defects.clear", label:"Defekte freigeben/auflösen (vorbereitet)" },
-    { key:"feedback.read", label:"Feedback ansehen (vorbereitet)" },
-    { key:"rooms.read", label:"Rooms ansehen (vorbereitet)" },
-    { key:"rooms.edit", label:"Rooms bearbeiten (vorbereitet)" },
-    { key:"config.get", label:"Config lesen (vorbereitet)" },
-    { key:"config.set", label:"Config schreiben (vorbereitet)" }
-  ];
-
-  function bool(v){ return String(v) === "1" || v === 1 || v === true; }
-
-  async function setPerm(scope, target, perm, allowed){
-    // RBAC ändern: nur SA
-    const sa = (el("saPass")?.value || el("saPassword")?.value || "").trim();
-    if (!sa) { msg("RBAC ändern: nur SA (SA-Passwort oben eingeben).", "bad"); throw new Error("sa_required"); }
-  
-    const payload = { scope, perm, allowed: !!allowed };
-    if (scope === "role") payload.role = target;
-    else payload.email = target;
-    await jpost("/api/auth/admin/rbac/perm/set", payload);
-  }
-
-  async function loadRbacSnapshot() {
-    msg("");
-    const snap = await jpost("/api/auth/admin/rbac/snapshot", {});
+    const isDryer = m.kind==="dryer";
+    const isWasher = m.kind==="washer";
+    const cRoom = String(document.getElementById("room").value||"").trim();
     
-    window.__lastRbacSnap = data;
-setText("rbacRaw", JSON.stringify(snap, null, 2));
+    const mineCurrent = (m.current && m.current.room && String(m.current.room)===cRoom && m.current.id);
 
-    const body = el("rbacRolesBody");
-    body.innerHTML = "";
-    // debug
-    // console.log("renderRbacMatrix", snap);
-    (data.roles || []).forEach(r => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(r.role)}</td><td>${escapeHtml(String(r.cnt))}</td>`;
-      body.appendChild(tr);
-    });
+    const isDefective = Number(m.defective||0)===1;
 
-    const ul = await jpost("/api/auth/admin/users/list", {});
-    const users = ul.users || [];
-    const ps = users.find(u => String(u.role||"").toLowerCase() === "ps" && String(u.status||"").toLowerCase()==="active");
-    const sv = users.find(u => String(u.role||"").toLowerCase() === "sv" && String(u.status||"").toLowerCase()==="active");
-    setText("rbacPs", ps ? ps.email : "—");
-    setText("rbacSv", sv ? sv.email : "—");
+    // Washer tile: Slot dropdown ALWAYS visible in the card, with Book button underneath.
+    const pickSlots = isWasher ? `
+            <div class="slotpick">
+              <select class="tileSlot" data-mid="${m.machineId}">${washerTileOptions(m.machineId)}</select>
+            </div>
+          ` : "";
 
-    const roleMap = new Map();
-    (data.rolePermissions || []).forEach(rp => {
-      const role = String(rp.role||"").toLowerCase();
-      const perm = String(rp.perm||"");
-      if (!roleMap.has(role)) roleMap.set(role, new Map());
-      roleMap.get(role).set(perm, bool(rp.allowed));
-    });
+    const bookBtn = isWasher
+      ? `<button class="secondary" data-act="bookWasherTile" data-mid="${m.machineId}">Buchen</button>`
+      : (isDryer ? `<button class="secondary" data-act="bookDryer" data-mid="${m.machineId}">Buchen</button>` : "");
 
-    const userMap = new Map();
-    (data.userOverrides || []).forEach(up => {
-      const em = String(up.email||"").toLowerCase();
-      const perm = String(up.perm||"");
-      if (!userMap.has(em)) userMap.set(em, new Map());
-      userMap.get(em).set(perm, bool(up.allowed));
-    });
+    const releaseBtn = mineCurrent ? `<button class="secondary" data-act="release" data-id="${m.current.id}">Freigeben</button>` : "";
 
-    const scope = (el("rbacScope")?.value || "role");
-    const target = scope === "user" ? String(el("rbacUserEmail")?.value||"").trim().toLowerCase() : null;
+    // Defect: toggle (report -> clear) depending on current defect state.
+    const defectBtn = state.config?.features?.userCanReportDefect
+      ? (isDefective
+          ? `<button class="secondary" data-act="defectClear" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt freigeben</button>`
+          : `<button class="secondary" data-act="defectReport" data-kind="${m.kind}" data-mid="${m.machineId}">Defekt</button>`)
+      : "";
 
-    const roles = ["admin","ps","sv","user"];
-    const mbody = el("rbacMatrixBody");
-    mbody.innerHTML = "";
-    // debug
-    // console.log("renderRbacMatrix", snap);
+    // Whitecard toggle lives in "Meine Buchungen" (not in the tiles)
 
-    RBAC_PERMS.forEach(p => {
-      const tr = document.createElement("tr");
-      const cells = [];
-      cells.push(`<td>${escapeHtml(p.label)}</td>`);
-      cells.push(`<td>✅</td>`); // SA
+    return `
+      <div class="machine ${tint}">
+        <div class="mhead">
+          <div class="mtitle">${escapeHtml(label)}</div>
+          <div class="badge">${badge}${(m.kind==='dryer' && state.config?.features?.showDryerPopup && state.config?.dryerPopupImage) ? `` : ''}</div>
+        </div>
+        <div class="sub">
+          <div>Zuletzt: ${fmtOcc(m.last)}</div>
+          <div>Aktuell: ${fmtOcc(m.current)}</div>
+          <div>Als nächstes: ${fmtOcc(m.next)}</div>
+        </div>
+        <div class="actions">
+          ${pickSlots}
+          ${bookBtn}
+          ${releaseBtn}
+          ${defectBtn}
+        </div>
+      </div>
+    `;
+  }
 
-      roles.forEach(role => {
-        const allowed = scope === "role"
-          ? (roleMap.get(role)?.get(p.key) || false)
-          : (target ? (userMap.get(target)?.get(p.key) || false) : false);
+  function rebuildMachines(){
+    const washers = state.machines.filter(m=>m.kind==="washer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    const dryers  = state.machines.filter(m=>m.kind==="dryer").sort((a,b)=>Number(a.machineId)-Number(b.machineId));
+    $("washerGrid").innerHTML = washers.map(renderMachineCard).join("");
+    $("dryerGrid").innerHTML  = dryers.map(renderMachineCard).join("");
 
-        const disabled = (scope === "user" && !target) ? "disabled" : "";
-        const checked = allowed ? "checked" : "";
-        const saPresent = ((el("saPass")?.value||el("saPassword")?.value||"").trim().length>0);
-        const dis2 = (!saPresent) ? "disabled" : disabled;
-        cells.push(`<td><input type="checkbox" ${checked} ${dis2} data-role="${role}" data-perm="${escapeHtml(p.key)}"/></td>`);
-      });
-
-      tr.innerHTML = cells.join("");
-      mbody.appendChild(tr);
-    });
-
-    mbody.querySelectorAll("input[type=checkbox]").forEach(cb => {
-      cb.addEventListener("change", async () => {
+    document.querySelectorAll('[data-act="bookDryer"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
         try{
-          const perm = cb.getAttribute("data-perm");
-          const sc = el("rbacScope").value;
-          if (sc === "role") {
-            const role = cb.getAttribute("data-role");
-            await setPerm("role", role, perm, cb.checked);
-          } else {
-            const email = String(el("rbacUserEmail").value||"").trim().toLowerCase();
-            if (!email) { msg("Bitte User Email für Override angeben.", "bad"); cb.checked = !cb.checked; return; }
-            await setPerm("user", email, perm, cb.checked);
-          }
-          msg("Gespeichert.", "ok");
-        } catch(e){
-          msg("Fehler Speichern: " + (e.data?.message || e.message), "bad");
-          cb.checked = !cb.checked;
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const mid = Number(btn.dataset.mid);
+          const go = await maybeShowBookingPopup("dryer");
+          if(!go) return;
+          await jpost("/api/dryer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: mid });
+          await refreshAll();
+        }catch(e){
+          if(e && (e.error==='room_locked' || e.message==='room_locked')){ await showRoomLocked(e.reason||e.meta?.reason||'Raum gesperrt'); try{ $('feedbackText').focus(); }catch(_){} return; }
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+    
+    document.querySelectorAll('[data-act="pickWasher"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const mid = String(btn.dataset.mid);
+          const sel = $("slotSelect");
+          const opts = Array.from(sel.options).filter(o=>{
+            if(!o.value) return false;
+            try{ const v = JSON.parse(o.value); return String(v.machine)===String(mid); }catch{ return false; }
+          });
+          const firstFree = opts.find(o=>!o.disabled) || opts[0];
+          if(!firstFree) return showErr("Kein Slot verfügbar.");
+          sel.value = firstFree.value;
+          sel.scrollIntoView({behavior:"smooth", block:"center"});
+        }catch(e){
+          showErr(e.message || String(e));
+        }
+      });
+    });
+
+
+    // Release buttons inside machine cards (only for own current booking)
+    document.querySelectorAll('#washerGrid [data-act="release"], #dryerGrid [data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+
+    document.querySelectorAll('[data-act="pickSlot"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const mid = String(btn.dataset.mid);
+        const sel = $("slotSelect");
+        // pick first non-disabled option that matches this washer machine
+        for (const opt of sel.options) {
+          if (!opt.value) continue;
+          try {
+            const v = JSON.parse(opt.value);
+            if (String(v.machine) === String(mid) && !opt.disabled) { sel.value = opt.value; break; }
+          } catch (_) {}
+        }
+        sel.scrollIntoView({behavior:"smooth", block:"center"});
+      });
+    });
+
+    
+    // Populate per-washer slot selects
+    document.querySelectorAll('[data-act="washerSlotSel"]').forEach(sel=>{
+      const mid = String(sel.dataset.mid);
+      sel.innerHTML = `<option value="">Slot…</option>`;
+      const cfg = state.config;
+      if(!cfg) return;
+      const now = Date.now();
+      const daysFuture = Number(cfg.daysFuture ?? 6);
+      const hours = (cfg.washerHours||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+
+      const opts = [];
+      for(let di=0; di<=daysFuture; di++){
+        const day = new Date(now + di*86400000);
+        day.setHours(0,0,0,0);
+        for(const h of hours){
+          const startAt = day.getTime() + h*3600000;
+          const endAt = computeWasherEnd(cfg, startAt);
+          if(endAt <= now) continue;
+          const taken = isTaken("washer", Number(mid), startAt, endAt);
+          opts.push({startAt, endAt, taken});
+        }
+      }
+      opts.sort((a,b)=>a.startAt-b.startAt);
+      for(const o of opts){
+        const opt = document.createElement("option");
+        opt.value = JSON.stringify({machine:Number(mid), startAt:o.startAt});
+        opt.textContent = `${fmtDate(o.startAt)} ${fmtTime(o.startAt)}-${fmtTime(o.endAt)}` + (o.taken ? " — BELEGT" : "");
+        opt.disabled = !!o.taken;
+        sel.appendChild(opt);
+      }
+    });
+
+    document.querySelectorAll('[data-act="washerBookFromTile"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const mid = String(btn.dataset.mid);
+          const sel = document.querySelector(`select[data-act="washerSlotSel"][data-mid="${mid}"]`);
+          if(!sel || !sel.value) return showErr("Bitte Slot auswählen.");
+          const v = JSON.parse(sel.value);
+          await jpost("/api/washer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: v.machine, startAt: v.startAt });
+          await refreshAll();
+        }catch(e){
+          if(e && (e.error==='room_locked' || e.message==='room_locked')){ await showRoomLocked(e.reason||e.meta?.reason||'Raum gesperrt'); try{ $('feedbackText').focus(); }catch(_){} return; }
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+
+    document.querySelectorAll('[data-act="bookWasherTile"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const mid = Number(btn.getAttribute("data-mid"));
+          const selEl = document.querySelector(`select.tileSlot[data-mid="${mid}"]`);
+          const val = selEl ? selEl.value : "";
+          if(!val) return showErr("Bitte Slot im Dropdown auswählen.");
+          const sel = JSON.parse(val);
+          await jpost("/api/washer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: sel.machine, startAt: sel.startAt });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-act="defectReport"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const kind = String(btn.dataset.kind||"").toLowerCase();
+          const mid  = Number(btn.dataset.mid);
+          const text = prompt("Defekt melden – kurze Beschreibung:", "");
+          if(!text || !String(text).trim()) return;
+          await jpost("/api/defect/report", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid, text: String(text).trim() });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || e.message || JSON.stringify(e));
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-act="defectClear"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+          const kind = String(btn.dataset.kind||"").toLowerCase();
+          const mid  = Number(btn.dataset.mid);
+          const ok = confirm("Defekt freigeben? (Maschine wird wieder als nutzbar markiert)");
+          if(!ok) return;
+          await jpost("/api/defect/clear", { room:c.room, pin:c.pin, stationPin:c.stationPin, kind, machine: mid });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+  }
+
+  function rebuildMyBookings(){
+    const wrap = $("myBookings");
+    wrap.innerHTML = "";
+    const now = Date.now();
+    const list = (state.myBookings||[]).slice().sort((a,b)=>(b.startAt||0)-(a.startAt||0));
+
+    if(!list.length){
+      wrap.innerHTML = `<div class="help">Keine Buchungen.</div>`;
+      return;
+    }
+
+    for(const b of list){
+      if(state.hiddenMy.has(b.id)) continue;
+      const expired = b.endAt <= now;
+      const title = (b.kind==="washer" ? `Waschmaschine ${b.machine}` : `Trockner ${b.machine}`);
+      const time = `${fmtDate(b.startAt)} ${fmtTime(b.startAt)}-${fmtTime(b.endAt)}`;
+
+      const canCancel = (!expired && now < b.startAt);
+      const canRelease = (!expired && now >= b.startAt && now < b.endAt);
+
+      const btns = [];
+      if(canRelease) btns.push(`<button class="secondary" data-act="release" data-id="${b.id}">freigeben</button>`);
+      if(canCancel) btns.push(`<button class="secondary" data-act="cancel" data-id="${b.id}">stornieren</button>`);
+      if(state.config?.features?.whitecardEnabled && !expired) {
+        btns.push(`<button class="secondary" data-act="whitecard" data-id="${b.id}" data-on="${b.whitecard?1:0}">${b.whitecard ? "Whitecard aus" : "Whitecard an"}</button>`);
+      }
+      btns.push(`<label class="inlinecb"><input type="checkbox" data-act="hide" data-id="${b.id}"/> ausblenden</label>`);
+
+      const el = document.createElement("div");
+      el.className="myitem";
+      el.innerHTML = `
+        <div class="mhead">
+          <div class="mtitle">${title}</div>
+          <div class="badge">${expired ? "abgelaufen" : (b.status||"booked")}</div>
+        </div>
+        <div class="sub">${time}</div>
+        <div class="actions">${btns.join("")}</div>
+      `;
+      wrap.appendChild(el);
+    }
+
+    wrap.querySelectorAll('[data-act="hide"]').forEach(cb=>{
+      cb.addEventListener("change", async ()=>{
+        state.hiddenMy.add(cb.dataset.id);
+        localStorage.setItem("wash_hidden_my", JSON.stringify(Array.from(state.hiddenMy)));
+        rebuildMyBookings();
+      });
+    });
+
+    wrap.querySelectorAll('[data-act="release"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/release", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+    wrap.querySelectorAll('[data-act="cancel"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          await jpost("/api/booking/cancel", { room:c.room, pin:c.pin, id: btn.dataset.id });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
+        }
+      });
+    });
+
+    wrap.querySelectorAll('[data-act="whitecard"]').forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        try{
+          showErr("");
+          const c = creds();
+          const id = btn.dataset.id;
+          const on = Number(btn.dataset.on||0)===1;
+          await jpost("/api/booking/whitecard", { room:c.room, pin:c.pin, id, whitecard: !on });
+          await refreshAll();
+        }catch(e){
+          showErr(e.message || e.error || JSON.stringify(e));
         }
       });
     });
   }
 
+  async function refreshAll(){
+    const code = requireRoomCode();
+    if (!code) return;
 
-
-  // wire
-  initSlotGrid();
-  el("btnConnect").addEventListener("click", () => connect().catch(e => msg(e.data?.message || e.message, "bad")));
-  el("saPass")?.addEventListener("input", () => { SA = (el("saPass").value||"").trim(); try { if (window.__lastRbacSnap) renderRbacMatrix(window.__lastRbacSnap); } catch(_){} });
-  el("btnLogin").addEventListener("click", () => doLogin().catch(e => msg(e.data?.message || e.message, "bad")));
-  el("btnCfgLoad").addEventListener("click", () => loadConfig().catch(e => msg(e.data?.message || e.message, "bad")));
-  el("btnCfgSave").addEventListener("click", () => saveConfig().catch(e => msg(e.data?.message || e.message, "bad")));
-  // BOOKINGS
-  async function loadBookings(){
     try{
-      msg("", "");
-      const room = (el("bookingsRoom").value||"").trim();
-      const data = await jpost("/api/auth/admin/bookings/list", { room, limit: 200 });
-      const rows = data.rows || [];
-      const body = el("bookingsBody");
-      body.innerHTML = "";
-      for (const r of rows){
-        const tr = document.createElement("tr");
-        const d1 = r.startAt ? new Date(Number(r.startAt)).toLocaleString() : "";
-        const d2 = r.endAt ? new Date(Number(r.endAt)).toLocaleString() : "";
-        const status = String(r.status||"");
-        const canCancel = ROUTES.has("/api/auth/admin/booking/cancel");
-        tr.innerHTML = `
-          <td>${escapeHtml(d1)}</td>
-          <td>${escapeHtml(d2)}</td>
-          <td>${escapeHtml(String(r.type||""))}</td>
-          <td>${escapeHtml(String(r.machine||""))}</td>
-          <td>${escapeHtml(String(r.room||""))}</td>
-          <td>${escapeHtml(status)}</td>
-          <td class="mono">${escapeHtml(String(r.id||""))}</td>
-          <td>
-            <button class="btn secondary" data-act="cancelBooking" data-id="${escapeHtml(String(r.id||""))}">Stornieren</button>
-          </td>
-        `;
-        body.appendChild(tr);
-      }
-      // wire cancel
-      body.querySelectorAll('[data-act="cancelBooking"]').forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-          try{
-            const id = btn.dataset.id;
-            const reason = prompt("Storno-Grund (wird geloggt):", "");
-            if(reason===null) return;
-            await jpost("/api/auth/admin/booking/cancel", { id, reason: String(reason||"").trim() });
-            await loadBookings();
-            msg("Storniert & geloggt.", "ok");
-          }catch(e){
-            msg(e.data?.message || e.message, "bad");
-          }
-        });
-      });
+      showErr("");
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const data = await jpost("/api/user/refresh", c);
 
-      el("bookingsStatus").textContent = "Bookings: " + rows.length;
+      state.config = data.config;
+      state.machines = data.machines || [];
+      state.bookings = data.bookings || [];
+      state.myBookings = data.myBookings || [];
+
+      $("buildPill").textContent = "Worker: " + (data.build || "—");
+      $("roomPill").textContent = "Zimmer: " + c.room;
+
+      rebuildNews();
+      rebuildFeedback();
+      rebuildSlotDropdown();
+      rebuildMachines();
+      rebuildMyBookings();
     }catch(e){
-      msg(e.data?.message || e.message, "bad");
+      showErr(e.message || e.error || JSON.stringify(e));
     }
   }
 
-  async function bookingsCsv(){
+  async function bookWasher(){
     try{
-      const room = (el("bookingsRoom").value||"").trim();
-      const r = await fetch(BASE()+"/api/auth/admin/bookings/csv", {
-        method:"POST",
-        headers: Object.assign({"content-type":"application/json"}, authHeaders()),
-        body: JSON.stringify({ room, limit: 2000 })
-      });
-      if(!r.ok) throw new Error("CSV fehlgeschlagen ("+r.status+")");
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "bookings.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 2000);
+      if(!(await maybeShowBookingPopup('washer'))){ setStatus('Buchung abgebrochen.', false); return; }
+
+      showErr("");
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const val = $("slotSelect").value;
+      if(!val) return showErr("Bitte Slot auswählen.");
+      const sel = JSON.parse(val);
+      await jpost("/api/washer/book", { room:c.room, pin:c.pin, stationPin:c.stationPin, machine: sel.machine, startAt: sel.startAt });
+      await refreshAll();
     }catch(e){
-      msg(e.message, "bad");
+      showErr(e.message || e.error || JSON.stringify(e));
     }
   }
 
-  // LOGS
-  async function loadLogs(){
+  async function sendFeedback(){
     try{
-      const action = (el("logsAction").value||"").trim();
-      const data = await jpost("/api/auth/admin/logs/list", { action, limit: 200 });
-      const rows = data.rows || [];
-      const body = el("logsBody");
-      body.innerHTML = "";
-      for (const r of rows){
-        const t = r.createdAt ? new Date(Number(r.createdAt)).toLocaleString() : "";
-        const meta = r.meta ? JSON.stringify(r.meta) : "";
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(t)}</td>
-          <td>${escapeHtml(String(r.action||""))}</td>
-          <td>${escapeHtml(String(r.actorEmail||""))}</td>
-          <td>${escapeHtml(String(r.actorRole||""))}</td>
-          <td class="mono">${escapeHtml(String(r.targetId||""))}</td>
-          <td class="mono">${escapeHtml(meta)}</td>
-        `;
-        body.appendChild(tr);
-      }
-      el("logsStatus").textContent = "Logs: " + rows.length;
+      showErr("");
+      const c = creds();
+      if(!c.room || !c.pin) return showErr("Bitte Zimmer & PIN eingeben.");
+      const t = String($("feedbackText").value||"").trim();
+      if(!t) return showErr("Bitte Text eingeben.");
+      const target = String(document.getElementById("feedbackTarget")?.value || "psvs");
+      await jpost("/api/feedback/send", { room:c.room, pin:c.pin, stationPin:c.stationPin, message:t, target });
+      $("feedbackText").value="";
+      showErr("Danke! Feedback gesendet.");
+      setTimeout(()=>showErr(""),1200);
     }catch(e){
-      msg(e.data?.message || e.message, "bad");
+      showErr(e.message || e.error || JSON.stringify(e));
     }
   }
 
-  async function logsCsv(){
-    try{
-      const r = await fetch(BASE()+"/api/auth/admin/logs/csv", {
-        method:"POST",
-        headers: Object.assign({"content-type":"application/json"}, authHeaders()),
-        body: JSON.stringify({ limit: 2000 })
-      });
-      if(!r.ok) throw new Error("CSV fehlgeschlagen ("+r.status+")");
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "logs.csv";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 2000);
-    }catch(e){
-      msg(e.message, "bad");
-    }
-  }
+  $("btnRefresh").addEventListener("click", refreshAll);
+  $("btnBookWasher").addEventListener("click", bookWasher);
+  $("btnSendFeedback").addEventListener("click", sendFeedback);
 
-
-  el("btnUsersLoad").addEventListener("click", () => loadUsers().catch(e => msg(e.data?.message || e.message, "bad")));
-  el("btnBookingsLoad").addEventListener("click", () => loadBookings());
-  el("btnBookingsCsv").addEventListener("click", () => bookingsCsv());
-  el("btnLogsLoad").addEventListener("click", () => loadLogs());
-  el("btnLogsCsv").addEventListener("click", () => logsCsv());
-  el("btnRbacLoad").addEventListener("click", () => loadRbac().catch(e => msg(e.data?.message || e.message, "bad")));
-  el("btnPrivacyLoad").addEventListener("click", () => loadPrivacy().catch(e => msg(e.data?.message || e.message, "bad")));
-
-  el("cfgWasherImg").addEventListener("input", updatePreviews);
-  el("cfgDryerImg").addEventListener("input", updatePreviews);
-
-  el("btnClearWasher").addEventListener("click", () => { el("cfgWasherImg").value=""; updatePreviews(); });
-  el("btnClearDryer").addEventListener("click", () => { el("cfgDryerImg").value=""; updatePreviews(); });
-
-  el("fileWasher").addEventListener("change", async (ev) => {
-    const f = ev.target.files?.[0]; if (!f) return;
-    if (f.size > 250*1024) {
-  msg("Bild zu groß (max ~120KB). Tipp: Bild stärker komprimieren oder URL eintragen für DB (D1). Bitte kleineres Bild wählen (<=250KB) oder eine https:// Bild-URL eintragen.", "bad");
-  ev.target.value = "";
-  return;
-}
-el("cfgWasherImg").value = await fileToDataURL(f);
-    updatePreviews();
-    msg("Washer Bild geladen (DataURL). Nicht vergessen: Save.", "ok");
-  });
-  el("fileDryer").addEventListener("change", async (ev) => {
-    const f = ev.target.files?.[0]; if (!f) return;
-    if (f.size > 250*1024) {
-  msg("Bild zu groß (max ~120KB). Tipp: Bild stärker komprimieren oder URL eintragen für DB (D1). Bitte kleineres Bild wählen (<=250KB) oder eine https:// Bild-URL eintragen.", "bad");
-  ev.target.value = "";
-  return;
-}
-el("cfgDryerImg").value = await fileToDataURL(f);
-    updatePreviews();
-    msg("Dryer Bild geladen (DataURL). Nicht vergessen: Save.", "ok");
-  });
-
-  // restore
-  el("apiBase").value = localStorage.getItem("wp_admin_apiBase") || "";
-  el("saPass").value = localStorage.getItem("wp_admin_sa") || "";
-  buildTabs();
-  updatePreviews();
 })();
 
-// ===== Admin extra tabs (Machines / Defects / Feedback / Rooms) =====
-async function loadMachines(){
-  const room = (document.getElementById("machinesRoom")?.value||"").trim();
-  const data = await jpost("/api/auth/admin/machines/list", { room });
-  const tbody = document.querySelector("#tblMachines tbody");
-  if(!tbody) return;
-  tbody.innerHTML = "";
-  (data.rows||[]).forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${esc(r.room||"")}</td>
-      <td>${esc((r.kind||"").toUpperCase())}</td>
-      <td>${esc(String(r.machineId||""))}</td>
-      <td>${esc(r.label||"")}</td>
-      <td>${r.minutes==null?"":esc(String(r.minutes))}</td>
-      <td>${r.enabled? "✅":"—"}</td>
-      <td>${r.defective? "⚠️":"—"}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  toast(`Machines geladen: ${(data.rows||[]).length}`);
-}
-async function loadDefects(){
-  const room = (document.getElementById("defectsRoom")?.value||"").trim();
-  const data = await jpost("/api/auth/admin/defects/list", { room });
-  const tbody = document.querySelector("#tblDefects tbody");
-  if(!tbody) return;
-  tbody.innerHTML="";
-  (data.rows||[]).forEach(r=>{
-    const tr=document.createElement("tr");
-    const status = r.clearedAt ? `frei (${esc(r.clearedBy||"")})` : "offen";
-    tr.innerHTML = `
-      <td>${fmtTs(r.createdAt)}</td>
-      <td>${esc(r.room||"")}</td>
-      <td>${esc((r.kind||""))}</td>
-      <td>${esc(String(r.machine??""))}</td>
-      <td>${esc(r.message||"")}</td>
-      <td>${status}</td>
-      <td>${r.clearedAt? "" : `<button class="btn btn-xs" data-defect-id="${esc(r.id)}">Freigeben</button>`}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  tbody.querySelectorAll("button[data-defect-id]").forEach(btn=>{
-    btn.addEventListener("click", async ()=>{
-      const id = btn.getAttribute("data-defect-id");
-      await jpost("/api/auth/admin/defects/clear", { id });
-      await loadDefects();
-    });
-  });
-  toast(`Defekte geladen: ${(data.rows||[]).length}`);
-}
-async function loadFeedback(){
-  const data = await jpost("/api/auth/admin/feedback/list", {});
-  const tbody = document.querySelector("#tblFeedback tbody");
-  if(!tbody) return;
-  tbody.innerHTML="";
-  (data.rows||[]).forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${fmtTs(r.createdAt)}</td>
-      <td>${esc(r.room||"")}</td>
-      <td>${esc(r.message||"")}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  toast(`Feedback geladen: ${(data.rows||[]).length}`);
-}
-async function loadRooms(){
-  const data = await jpost("/api/auth/admin/rooms/list", {});
-  const tbody = document.querySelector("#tblRooms tbody");
-  if(!tbody) return;
-  tbody.innerHTML="";
-  (data.rows||[]).forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${esc(r.id)}</td>
-      <td>${esc(r.name)}</td>
-      <td>${r.active? "✅":"—"}</td>
-      <td><button class="btn btn-xs" data-room-edit="${esc(r.id)}">Edit</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-  tbody.querySelectorAll("button[data-room-edit]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const id = btn.getAttribute("data-room-edit");
-      const row = (data.rows||[]).find(x=>x.id===id);
-      if(!row) return;
-      document.getElementById("roomId").value = row.id;
-      document.getElementById("roomName").value = row.name;
-      document.getElementById("roomActive").checked = !!row.active;
-      toast("Room in Formular übernommen");
-    });
-  });
-  toast(`Rooms geladen: ${(data.rows||[]).length}`);
-}
-async function saveRoom(){
-  const id = (document.getElementById("roomId")?.value||"").trim();
-  const name = (document.getElementById("roomName")?.value||"").trim();
-  const active = !!document.getElementById("roomActive")?.checked;
-  await jpost("/api/auth/admin/rooms/set", { id, name, active });
-  await loadRooms();
+// --- Booking Info Popup (Washer/Dryer) ---
+let __wpImgResolver = null;
+
+function hideWpImg(ok){
+  const m = document.getElementById('wpImgModal');
+  if(!m) return;
+  m.classList.add('hidden');
+  const r = __wpImgResolver;
+  __wpImgResolver = null;
+  if(typeof r === 'function') r(!!ok);
 }
 
-// hook buttons if present
-setTimeout(()=>{
-  document.getElementById("btnMachinesLoad")?.addEventListener("click", loadMachines);
-  document.getElementById("btnDefectsLoad")?.addEventListener("click", loadDefects);
-  document.getElementById("btnFeedbackLoad")?.addEventListener("click", loadFeedback);
-  document.getElementById("btnRoomsLoad")?.addEventListener("click", loadRooms);
-  document.getElementById("btnRoomSave")?.addEventListener("click", saveRoom);
-}, 0);
+function showWpImg(imgUrl, title, message){
+  return new Promise((resolve)=>{
+    __wpImgResolver = resolve;
+    const m = document.getElementById('wpImgModal');
+    const img = document.getElementById('wpImg');
+    const t = document.getElementById('wpImgTitle');
+    const msg = document.getElementById('wpImgMsg');
+    if(t) t.textContent = title || 'Info';
+    if(msg) msg.textContent = message || '';
+    if(img){
+      if(imgUrl){
+        img.src = imgUrl;
+        img.style.display = 'block';
+      }else{
+        img.removeAttribute('src');
+        img.style.display = 'none';
+      }
+    }
+    // reset buttons for booking flow (cancel/ok)
+    const okBtn = document.getElementById('wpImgOk');
+    const cancelBtn = document.getElementById('wpImgCancel');
+    if(okBtn){ okBtn.textContent = 'Weiter buchen'; okBtn.style.display='inline-flex'; }
+    if(cancelBtn){ cancelBtn.textContent = 'Abbrechen'; }
+
+    m.classList.remove('hidden');
+  });
+}
+
+
+function showRoomLocked(reason){
+  return new Promise((resolve)=>{
+    const m = document.getElementById('wpImgModal');
+    const t = document.getElementById('wpImgTitle');
+    const msg = document.getElementById('wpImgMsg');
+    const img = document.getElementById('wpImg');
+    const okBtn = document.getElementById('wpImgOk');
+    const cancelBtn = document.getElementById('wpImgCancel');
+    if(t) t.textContent = 'Raum gesperrt';
+    if(msg) msg.textContent = reason || 'Dieser Raum ist aktuell gesperrt.';
+    if(img){ img.style.display='none'; img.removeAttribute('src'); }
+    if(okBtn){ okBtn.style.display='none'; }
+    if(cancelBtn){ cancelBtn.textContent = 'OK'; }
+    __wpImgResolver = (v)=>{ resolve(false); };
+    m.classList.remove('hidden');
+  });
+}
+async function maybeShowBookingPopup(kind){
+  // kind: 'washer' | 'dryer'
+  const s = (window.__wpState || {});
+  const cfg = s.config || {};
+  const f = (cfg.features || {});
+  const enabled = (kind === 'washer') ? !!f.showWasherPopup : !!f.showDryerPopup;
+  const img = (kind === 'washer') ? (cfg.washerPopupImage || '') : (cfg.dryerPopupImage || '');
+  if(!enabled || !img) return true; // no popup -> continue
+  return await showWpImg(img, kind === 'washer' ? 'Waschmaschine – Hinweis' : 'Trockner – Hinweis');
+}
 
 </script>
+
+<div id="wpImgModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="hideWpImg(false)"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title" id="wpImgTitle">Info</div>
+      <button class="btn-ghost" onclick="hideWpImg(false)">✕</button>
+    </div>
+    <div class="modal-body">
+      <img id="wpImg" alt="Info" style="max-width:100%; border-radius:14px; display:block; margin:0 auto;"/>
+      <div id="wpImgMsg" style="margin-top:12px; line-height:1.4; color:#d7e6ff;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="wpImgCancel" onclick="hideWpImg(false)">Abbrechen</button>
+      <button class="btn primary" id="wpImgOk" onclick="hideWpImg(true)">Weiter buchen</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
