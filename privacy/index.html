@@ -42,121 +42,19 @@
       <div class="muted">Patientensprecher</div><div id="ps">—</div>
       <div class="muted">Datenarten</div><div id="types">—</div>
     </div>
-    <h2 style="margin-top:16px">Debug</h2>
-    <pre id="raw">lädt…</pre>
-  </div>
-
-  <div class="card">
-    <pre style="white-space:pre-wrap;line-height:1.5" id="text">
-Datenschutzerklärung
-
-1. Verantwortlicher
-Verantwortlich für die Datenverarbeitung auf dieser Website im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
-
-[HIER KOMMT DER VORNAME UND NACHNAME DES PATIENTENSPRECHERS REIN!!!]
-Salzburgweg 7, 97616 Bad Neustadt an der Saale
-
-Kontakt: HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHERS REIN!!!
-
-Da diese Website privat durch einen Patienten betrieben wird, besteht kein betrieblicher Datenschutzbeauftragter.
-
-2. Zweck der Website
-Diese Website dient ausschließlich der Organisation und Buchung von Waschmaschinenzeiten innerhalb der Saaletalklinik Bad Neustadt. Sie ist nur für Patienten der Klinik bestimmt.
-
-3. Welche Daten werden verarbeitet?
-Bei Nutzung der Website werden folgende personenbezogene Daten verarbeitet:
-• Zimmernummer (als Benutzerkennung)
-• selbstgewählter PIN-Code
-• gebuchte Waschmaschinen-Zeiten
-• technische Zugriffsdaten (z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs)
-
-Die Zimmernummer ermöglicht im Kontext der Klinik die Zuordnung zu einer bestimmten Person und stellt daher ein personenbezogenes Datum im Sinne von Art. 4 Nr. 1 DSGVO dar.
-
-4. Zweck der Datenverarbeitung:
-Die Verarbeitung erfolgt ausschließlich zum Zweck:
-• der Identifikation der jeweiligen Nutzer bei der Buchung
-• der Verwaltung der Waschmaschinenbelegung
-• der technischen Bereitstellung und Sicherheit der Website
-Eine Nutzung der Daten zu anderen Zwecken oder eine Weitergabe an Dritte erfolgt nicht.
-
-5. Rechtsgrundlage
-Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).
-
-6. Speicherung und Löschung
-Buchungsdaten werden nur so lange gespeichert, wie dies für die Organisation der Waschmaschinenbelegung erforderlich ist. (Siehe oben „Löschgrenze“)
-Server-Logdaten werden ausschließlich aus technischen Gründen kurzfristig gespeichert und regelmäßig gelöscht.
-
-7. Datensicherheit:
-Es werden angemessene technische Maßnahmen eingesetzt, um die gespeicherten Daten vor unbefugtem Zugriff zu schützen. Ein absoluter Schutz kann jedoch nicht garantiert werden.
-
-8. Rechte der betroffenen Personen:
-Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch.
-
-9. Beschwerderecht:
-Bayerisches Landesamt für Datenschutzaufsicht.
-
-10. Änderungen:
-Diese Datenschutzerklärung kann angepasst werden.
-Stand: <span id="stand"></span>
-    </pre>
-  </div>
-</div>
-
+    
 <script>
-(() => {
-  const WORKER = "https://washportal-dev-worker.schluffi1220.workers.dev";
-  document.getElementById("w").textContent = WORKER;
-
-  const fmt = (ms) => {
-    const d = new Date(Number(ms));
-    if (!Number.isFinite(d.getTime())) return "—";
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const yy = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mi = String(d.getMinutes()).padStart(2,"0");
-    return `${dd}.${mm}.${yy} ${hh}:${mi}`;
-  };
-
-  document.getElementById("stand").textContent = (() => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const yy = d.getFullYear();
-    return `${dd}.${mm}.${yy}`;
-  })();
-
-  fetch(WORKER + "/api/privacy/meta").then(r => r.json()).then(meta => {
-    document.getElementById("raw").textContent = JSON.stringify(meta, null, 2);
-    if(!meta.ok) throw new Error(meta.message || meta.error || "meta not ok");
-
-    document.getElementById("build").textContent = meta.build || "—";
-    document.getElementById("ret").textContent = String(meta.retentionDays ?? "—");
-    document.getElementById("delBefore").textContent = fmt(meta.deleteBefore);
-    document.getElementById("delAt").textContent = fmt(meta.deleteAt);
-
-    const ps = [meta.psName, meta.psEmail].filter(Boolean).join(" – ");
-    document.getElementById("ps").textContent = ps || "—";
-
-    document.getElementById("types").innerHTML = (meta.dataTypes||[]).map(t => "• " + t).join("<br>");
-
-    // Platzhalter im Text ersetzen
-    const tEl = document.getElementById("text");
-    if (tEl){
-      const name = meta.psName || "[Patientensprecher]";
-      const mail = meta.psEmail || "[E-Mail]";
-      const delDate = fmt(meta.deleteBefore); // "alles davor wird gelöscht"
-      tEl.innerHTML = tEl.innerHTML
-        .replaceAll("[HIER KOMMT DER VORNAME UND NACHNAME DES PATIENTENSPRECHERS REIN!!!]", name)
-        .replaceAll("HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHERS REIN!!!", mail)
-        .replaceAll("HIER KOMMT DIE EMAIL VOM PATIENTENSPRECHER REIN!!!", mail)
-        .replaceAll("„Löschgrenze“", `„Löschgrenze (alles vor ${delDate})“`);
+(async function(){
+  try{
+    const r = await fetch((location.origin.replace(/\/$/,"")) + "/api/privacy/meta", { method:"GET" });
+    const j = await r.json();
+    if(j && j.ok){
+      if(document.getElementById("psName")) document.getElementById("psName").textContent = j.psName || "—";
+      if(document.getElementById("psEmail")) document.getElementById("psEmail").textContent = j.psEmail || "—";
     }
-
-  }).catch(err => {
-    document.getElementById("raw").textContent = "Fehler: " + String(err);
-  });
+  }catch(e){}
 })();
 </script>
+
 </body>
 </html>
