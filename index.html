@@ -82,6 +82,17 @@
   .wp-machine-status{order:0}
   .wp-machine-title{order:1}
 
+
+/* --- FORCE: status above title in machine tiles (app+web) --- */
+.mhead, .tileTop, .machineTop, .machineHeader, .wp-machine-header{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  gap:6px !important;
+}
+.machine-status, .wp-machine-status{ order:0 !important; }
+.machine-title, .machineTitle, .wp-machine-title{ order:1 !important; }
+
 </style>
 </head>
 <body>
@@ -444,8 +455,8 @@ function computeWasherEnd(cfg, startAt){
     return `
       <div class="machine ${tint}">
         <div class="mhead">
-          <div class="mtitle">${escapeHtml(label)}</div>
           <div class="badge">${badge}${(m.kind==='dryer' && state.config?.features?.showDryerPopup && state.config?.dryerPopupImage) ? `` : ''}</div>
+          <div class="mtitle">${escapeHtml(label)}</div>
         </div>
         <div class="sub">
           <div>Zuletzt: ${fmtOcc(m.last)}</div>
